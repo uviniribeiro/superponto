@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ interface CompanySettings {
 }
 
 export default function Company() {
+  const { company } = useAuth();
   const [settings, setSettings] = useState<CompanySettings>({
     company_name: '',
     cnpj: '',
@@ -88,9 +90,16 @@ export default function Company() {
       toast.error('Nome da empresa é obrigatório');
       return;
     }
+    
+    if (!settings.cnpj.trim()) {
+      toast.error('CNPJ é obrigatório');
+      return;
+    }
 
     setSaving(true);
     try {
+      const normalizedCnpj = settings.cnpj.replace(/[^\d]/g, '');
+      
       const settingsData = {
         company_name: settings.company_name,
         cnpj: settings.cnpj || null,
@@ -122,6 +131,24 @@ export default function Company() {
           .single();
         if (error) throw error;
         setSettings({ ...settings, id: data.id });
+      }
+
+      // Update company table with new CNPJ as company_code
+      if (company?.id) {
+        const { error: companyError } = await supabase
+          .from('companies')
+          .update({ 
+            cnpj: settings.cnpj,
+            company_code: normalizedCnpj,
+            name: settings.company_name
+          })
+          .eq('id', company.id);
+        
+        if (companyError) {
+          console.error('Error updating company:', companyError);
+          toast.error('Erro ao atualizar código da empresa');
+          return;
+        }
       }
 
       toast.success('Configurações salvas com sucesso!');
@@ -169,12 +196,14 @@ export default function Company() {
               />
             </div>
             <div className="space-y-2">
-              <Label>CNPJ</Label>
+              <Label>CNPJ *</Label>
               <Input
                 value={settings.cnpj}
                 onChange={(e) => setSettings({ ...settings, cnpj: e.target.value })}
                 placeholder="00.000.000/0000-00"
+                required
               />
+              <p className="text-xs text-muted-foreground">O CNPJ é usado como código de acesso da empresa no login</p>
             </div>
             <div className="space-y-2">
               <Label>CEI</Label>

@@ -13,8 +13,10 @@ import { z } from 'zod';
 const loginSchema = z.object({
   email: z.string().trim().email('Email inválido').max(255),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(100),
-  companyCode: z.string().trim().min(1, 'Código da empresa é obrigatório').max(20),
+  companyCode: z.string().trim().min(14, 'CNPJ da empresa é obrigatório').max(18),
 });
+
+const cnpjRegex = /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/;
 
 const signupSchema = z.object({
   email: z.string().trim().email('Email inválido').max(255),
@@ -22,7 +24,10 @@ const signupSchema = z.object({
   confirmPassword: z.string(),
   fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
   companyName: z.string().trim().min(2, 'Nome da empresa é obrigatório').max(100),
-  companyCnpj: z.string().optional(),
+  companyCnpj: z.string().trim().min(14, 'CNPJ é obrigatório').max(18).refine(
+    (val) => cnpjRegex.test(val),
+    { message: 'CNPJ inválido' }
+  ),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Senhas não coincidem",
   path: ["confirmPassword"],
@@ -209,18 +214,17 @@ export default function Auth() {
                   <CardContent className="space-y-4">
                     <CardTitle>Bem-vindo de volta</CardTitle>
                     <CardDescription>
-                      Informe o código da empresa e suas credenciais
+                      Informe o CNPJ da empresa e suas credenciais
                     </CardDescription>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="login-company">Código da Empresa</Label>
+                      <Label htmlFor="login-company">CNPJ da Empresa</Label>
                       <Input
                         id="login-company"
                         type="text"
-                        placeholder="Ex: EMPRESA123"
+                        placeholder="00.000.000/0000-00"
                         value={loginData.companyCode}
-                        onChange={(e) => setLoginData({ ...loginData, companyCode: e.target.value.toUpperCase() })}
-                        className="uppercase"
+                        onChange={(e) => setLoginData({ ...loginData, companyCode: e.target.value })}
                         required
                       />
                     </div>
@@ -285,14 +289,16 @@ export default function Auth() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="signup-cnpj">CNPJ</Label>
+                          <Label htmlFor="signup-cnpj">CNPJ *</Label>
                           <Input
                             id="signup-cnpj"
                             type="text"
                             placeholder="00.000.000/0000-00"
                             value={signupData.companyCnpj}
                             onChange={(e) => setSignupData({ ...signupData, companyCnpj: e.target.value })}
+                            required
                           />
+                          <p className="text-xs text-muted-foreground">O CNPJ será usado como código de acesso da empresa</p>
                         </div>
                       </div>
                     </div>
