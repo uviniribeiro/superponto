@@ -92,12 +92,16 @@ export type Database = {
           cnpj: string | null
           company_name: string
           created_at: string
+          daily_overtime_limit_hours: number | null
           id: string
+          monthly_overtime_limit_hours: number | null
+          overtime_alert_email: string | null
           rep_manufacturer: string | null
           rep_model: string | null
           rep_number: string | null
           state: string | null
           updated_at: string
+          weekly_overtime_limit_hours: number | null
         }
         Insert: {
           address?: string | null
@@ -106,12 +110,16 @@ export type Database = {
           cnpj?: string | null
           company_name: string
           created_at?: string
+          daily_overtime_limit_hours?: number | null
           id?: string
+          monthly_overtime_limit_hours?: number | null
+          overtime_alert_email?: string | null
           rep_manufacturer?: string | null
           rep_model?: string | null
           rep_number?: string | null
           state?: string | null
           updated_at?: string
+          weekly_overtime_limit_hours?: number | null
         }
         Update: {
           address?: string | null
@@ -120,12 +128,16 @@ export type Database = {
           cnpj?: string | null
           company_name?: string
           created_at?: string
+          daily_overtime_limit_hours?: number | null
           id?: string
+          monthly_overtime_limit_hours?: number | null
+          overtime_alert_email?: string | null
           rep_manufacturer?: string | null
           rep_model?: string | null
           rep_number?: string | null
           state?: string | null
           updated_at?: string
+          weekly_overtime_limit_hours?: number | null
         }
         Relationships: []
       }
@@ -197,6 +209,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      overtime_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          hours_limit: number
+          hours_worked: number
+          id: string
+          notified_at: string
+          period_end: string
+          period_start: string
+          profile_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          hours_limit: number
+          hours_worked: number
+          id?: string
+          notified_at?: string
+          period_end: string
+          period_start: string
+          profile_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          hours_limit?: number
+          hours_worked?: number
+          id?: string
+          notified_at?: string
+          period_end?: string
+          period_start?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_alerts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

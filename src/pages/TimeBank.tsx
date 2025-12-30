@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, getDay } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, getDay, startOfWeek, endOfWeek, eachWeekOfInterval, isSameWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Download, Clock, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Download, Clock, TrendingUp, TrendingDown, Minus, CalendarCheck } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
 interface Profile {
@@ -54,6 +54,16 @@ interface DailyBalance {
   balance: number;
   isHoliday: boolean;
   isWeekend: boolean;
+  weekNumber: number;
+}
+
+interface WeeklyDSR {
+  weekNumber: number;
+  weekStart: string;
+  weekEnd: string;
+  hasAbsence: boolean;
+  dsrValue: number;
+  dsrLost: boolean;
 }
 
 const TimeBank = () => {
@@ -210,7 +220,8 @@ const TimeBank = () => {
           worked: Math.round(worked * 100) / 100,
           balance: Math.round(balance * 100) / 100,
           isHoliday: isHolidayDay,
-          isWeekend: isWeekendDay
+          isWeekend: isWeekendDay,
+          weekNumber: Math.ceil(day.getDate() / 7)
         });
       });
 
