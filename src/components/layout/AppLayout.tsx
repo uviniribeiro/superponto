@@ -41,6 +41,7 @@ import {
   UserX,
   UserCog,
   TrendingUp,
+  Briefcase,
 } from 'lucide-react';
 
 const menuItems = [
@@ -49,6 +50,7 @@ const menuItems = [
   { title: 'Meus Registros', icon: FileText, href: '/my-records', roles: ['admin', 'manager', 'employee'] },
   { title: 'Banco de Horas', icon: Timer, href: '/time-bank', roles: ['admin', 'manager', 'employee'] },
   { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
+  { title: 'Cargos e Deptos', icon: Briefcase, href: '/positions-departments', roles: ['admin'] },
   { title: 'Jornadas', icon: Calendar, href: '/schedules', roles: ['admin'] },
   { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
   { title: 'Faltas', icon: UserX, href: '/absences', roles: ['admin', 'manager'] },
