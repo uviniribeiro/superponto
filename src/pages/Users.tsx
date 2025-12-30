@@ -10,11 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Users as UsersIcon, Shield, Search, UserCog, History, UserPlus } from 'lucide-react';
+import { Users as UsersIcon, Shield, Search, UserCog, History, Link, Eye, Settings, FileText, Clock, Calendar, Building2, BarChart3, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { z } from 'zod';
-import { SelfieCapture } from '@/components/employees/SelfieCapture';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface UserWithRole {
   id: string;
@@ -25,6 +24,7 @@ interface UserWithRole {
   position: string | null;
   is_active: boolean;
   created_at: string;
+  photo_url: string | null;
   role: 'admin' | 'manager' | 'employee';
 }
 
@@ -40,37 +40,15 @@ interface RoleChangeHistory {
   changed_by_name?: string;
 }
 
-interface Schedule {
+interface EmployeeProfile {
   id: string;
-  name: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  department: string | null;
+  position: string | null;
+  photo_url: string | null;
 }
-
-interface Department {
-  id: string;
-  name: string;
-}
-
-interface Position {
-  id: string;
-  name: string;
-  department_id: string | null;
-}
-
-const employeeSchema = z.object({
-  fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
-  email: z.string().trim().email('Email inválido').max(255),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(100),
-  cpf: z.string().optional(),
-  pis: z.string().optional(),
-  registration_number: z.string().optional(),
-  department: z.string().optional(),
-  position: z.string().optional(),
-  department_id: z.string().optional(),
-  position_id: z.string().optional(),
-  hire_date: z.string().optional(),
-  phone: z.string().optional(),
-  schedule_id: z.string().optional(),
-});
 
 const roleLabels = {
   admin: 'Administrador',
@@ -84,42 +62,68 @@ const roleBadgeVariants = {
   employee: 'secondary' as const
 };
 
+const rolePermissions = {
+  admin: {
+    label: 'Administrador',
+    description: 'Acesso total ao sistema',
+    color: 'bg-red-500',
+    permissions: [
+      { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+      { key: 'employees', label: 'Funcionários', icon: UsersIcon },
+      { key: 'users', label: 'Gerenciamento de Usuários', icon: UserCog },
+      { key: 'timeclock', label: 'Registro de Ponto', icon: Clock },
+      { key: 'schedules', label: 'Jornadas de Trabalho', icon: Calendar },
+      { key: 'reports', label: 'Relatórios', icon: FileText },
+      { key: 'company', label: 'Configurações da Empresa', icon: Building2 },
+      { key: 'adjustments', label: 'Solicitações de Ajuste', icon: Settings },
+      { key: 'holidays', label: 'Feriados', icon: Calendar },
+      { key: 'positions', label: 'Cargos e Departamentos', icon: Building2 },
+    ]
+  },
+  manager: {
+    label: 'Gerente',
+    description: 'Visualiza equipe e aprova solicitações',
+    color: 'bg-blue-500',
+    permissions: [
+      { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+      { key: 'employees', label: 'Funcionários (visualização)', icon: UsersIcon },
+      { key: 'timeclock', label: 'Registro de Ponto', icon: Clock },
+      { key: 'reports', label: 'Relatórios da Equipe', icon: FileText },
+      { key: 'adjustments', label: 'Aprovar Solicitações', icon: Settings },
+    ]
+  },
+  employee: {
+    label: 'Funcionário',
+    description: 'Acesso básico ao próprio registro',
+    color: 'bg-gray-500',
+    permissions: [
+      { key: 'timeclock', label: 'Registro de Ponto', icon: Clock },
+      { key: 'myrecords', label: 'Meus Registros', icon: FileText },
+      { key: 'adjustments', label: 'Solicitar Ajustes', icon: Settings },
+    ]
+  }
+};
+
 export default function Users() {
-  const { isAdmin, user, profile: currentProfile, createEmployee } = useAuth();
+  const { isAdmin, user, profile: currentProfile } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [allEmployees, setAllEmployees] = useState<EmployeeProfile[]>([]);
   const [history, setHistory] = useState<RoleChangeHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [updating, setUpdating] = useState<string | null>(null);
   
-  // Form states for new user registration
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    cpf: '',
-    pis: '',
-    registration_number: '',
-    department: '',
-    position: '',
-    department_id: '',
-    position_id: '',
-    hire_date: '',
-    phone: '',
-    schedule_id: ''
-  });
+  // Form states for linking existing employee
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'manager' | 'employee'>('employee');
+  const [isLinking, setIsLinking] = useState(false);
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
 
   useEffect(() => {
     fetchUsers();
     fetchHistory();
-    fetchFormData();
+    fetchAllEmployees();
   }, []);
 
   const fetchUsers = async () => {
@@ -153,172 +157,16 @@ export default function Users() {
     }
   };
 
-  const fetchFormData = async () => {
-    const [schedulesRes, deptsRes, posRes] = await Promise.all([
-      supabase.from('work_schedules').select('id, name'),
-      supabase.from('departments').select('id, name').eq('is_active', true).order('name'),
-      supabase.from('positions').select('id, name, department_id').eq('is_active', true).order('name')
-    ]);
-    setSchedules(schedulesRes.data || []);
-    setDepartments(deptsRes.data || []);
-    setPositions(posRes.data || []);
-  };
-
-  const handleDepartmentChange = (deptId: string) => {
-    const dept = departments.find(d => d.id === deptId);
-    setFormData({
-      ...formData,
-      department_id: deptId === 'none' ? '' : deptId,
-      department: dept?.name || '',
-      position_id: '',
-      position: ''
-    });
-  };
-
-  const handlePositionChange = (posId: string) => {
-    const pos = positions.find(p => p.id === posId);
-    setFormData({
-      ...formData,
-      position_id: posId === 'none' ? '' : posId,
-      position: pos?.name || ''
-    });
-  };
-
-  const filteredPositions = formData.department_id
-    ? positions.filter(p => p.department_id === formData.department_id || !p.department_id)
-    : positions;
-
-  const handlePhotoCapture = (blob: Blob) => {
-    setPhotoBlob(blob);
-    setCapturedImage(URL.createObjectURL(blob));
-  };
-
-  const handlePhotoClear = () => {
-    setPhotoBlob(null);
-    if (capturedImage) {
-      URL.revokeObjectURL(capturedImage);
-    }
-    setCapturedImage(null);
-  };
-
-  const uploadPhoto = async (userId: string): Promise<string | null> => {
-    if (!photoBlob) return null;
-
-    const fileName = `${userId}-${Date.now()}.jpg`;
-    const filePath = `${currentProfile?.company_id}/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('employee-photos')
-      .upload(filePath, photoBlob, {
-        contentType: 'image/jpeg',
-        upsert: true
-      });
-
-    if (uploadError) {
-      console.error('Error uploading photo:', uploadError);
-      return null;
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('employee-photos')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  };
-
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!photoBlob) {
-      toast.error('A foto do funcionário é obrigatória');
-      return;
-    }
-
-    setIsRegistering(true);
-
+  const fetchAllEmployees = async () => {
     try {
-      const validData = employeeSchema.parse(formData);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, user_id, full_name, email, department, position, photo_url')
+        .order('full_name');
       
-      const { error, user: newUser } = await createEmployee({
-        email: validData.email,
-        password: validData.password,
-        fullName: validData.fullName,
-        cpf: formData.cpf || undefined,
-        pis: formData.pis || undefined,
-        registration_number: formData.registration_number || undefined,
-        department: formData.department || undefined,
-        position: formData.position || undefined,
-        hire_date: formData.hire_date || undefined,
-        phone: formData.phone || undefined,
-      });
-
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast.error('Este email já está cadastrado');
-        } else {
-          toast.error(error.message);
-        }
-        return;
-      }
-
-      if (newUser) {
-        const photoUrl = await uploadPhoto(newUser.id);
-        
-        if (photoUrl) {
-          const { data: newProfile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('user_id', newUser.id)
-            .maybeSingle();
-
-          if (newProfile) {
-            await supabase
-              .from('profiles')
-              .update({ photo_url: photoUrl })
-              .eq('id', newProfile.id);
-
-            if (formData.schedule_id) {
-              await supabase.from('employee_schedules').insert({
-                profile_id: newProfile.id,
-                schedule_id: formData.schedule_id,
-                start_date: new Date().toISOString().split('T')[0],
-                company_id: currentProfile?.company_id
-              });
-            }
-          }
-        }
-      }
-
-      toast.success('Usuário cadastrado com sucesso!');
-      
-      handlePhotoClear();
-      setFormData({
-        fullName: '',
-        email: '',
-        password: '',
-        cpf: '',
-        pis: '',
-        registration_number: '',
-        department: '',
-        position: '',
-        department_id: '',
-        position_id: '',
-        hire_date: '',
-        phone: '',
-        schedule_id: ''
-      });
-      
-      fetchUsers();
-
+      setAllEmployees(profiles || []);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else {
-        console.error('Error creating user:', error);
-        toast.error('Erro ao cadastrar usuário');
-      }
-    } finally {
-      setIsRegistering(false);
+      console.error('Error fetching employees:', error);
     }
   };
 
@@ -372,7 +220,8 @@ export default function Users() {
           user_id: userId,
           changed_by_user_id: user?.id,
           previous_role: currentUser.role,
-          new_role: newRole
+          new_role: newRole,
+          company_id: currentProfile?.company_id
         });
 
       if (historyError) console.error('Error logging role change:', historyError);
@@ -388,7 +237,6 @@ export default function Users() {
             changedByName: currentProfile?.full_name || 'Administrador'
           }
         });
-        console.log('Role change notification sent');
       } catch (emailError) {
         console.error('Error sending email notification:', emailError);
       }
@@ -430,11 +278,87 @@ export default function Users() {
     }
   };
 
+  const handleLinkEmployee = async () => {
+    if (!selectedEmployee) {
+      toast.error('Selecione um funcionário');
+      return;
+    }
+
+    const employee = allEmployees.find(e => e.id === selectedEmployee);
+    if (!employee) {
+      toast.error('Funcionário não encontrado');
+      return;
+    }
+
+    setIsLinking(true);
+    try {
+      // Check if user already has a role
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('id, role')
+        .eq('user_id', employee.user_id)
+        .maybeSingle();
+
+      if (existingRole) {
+        // Update existing role
+        const { error: updateError } = await supabase
+          .from('user_roles')
+          .update({ role: selectedRole })
+          .eq('user_id', employee.user_id);
+
+        if (updateError) throw updateError;
+
+        // Log the change
+        await supabase.from('role_change_history').insert({
+          user_id: employee.user_id,
+          changed_by_user_id: user?.id,
+          previous_role: existingRole.role,
+          new_role: selectedRole,
+          company_id: currentProfile?.company_id
+        });
+
+        toast.success(`Nível de acesso de ${employee.full_name} atualizado para ${roleLabels[selectedRole]}`);
+      } else {
+        // Create new role
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: employee.user_id,
+            role: selectedRole
+          });
+
+        if (insertError) throw insertError;
+
+        toast.success(`${employee.full_name} agora tem acesso como ${roleLabels[selectedRole]}`);
+      }
+
+      // Reset form
+      setSelectedEmployee('');
+      setSelectedRole('employee');
+      
+      // Refresh data
+      fetchUsers();
+      fetchHistory();
+    } catch (error) {
+      console.error('Error linking employee:', error);
+      toast.error('Erro ao vincular acesso');
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
   const filteredUsers = users.filter(user =>
     user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (user.department?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
+
+  const filteredEmployees = allEmployees.filter(emp =>
+    emp.full_name.toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
+    emp.email.toLowerCase().includes(employeeSearchTerm.toLowerCase())
+  );
+
+  const selectedEmployeeData = allEmployees.find(e => e.id === selectedEmployee);
 
   if (!isAdmin) {
     return (
@@ -472,9 +396,9 @@ export default function Users() {
             <UsersIcon className="h-4 w-4" />
             Usuários
           </TabsTrigger>
-          <TabsTrigger value="register" className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Cadastrar
+          <TabsTrigger value="access" className="gap-2">
+            <Link className="h-4 w-4" />
+            Vincular Acesso
           </TabsTrigger>
           <TabsTrigger value="history" className="gap-2">
             <History className="h-4 w-4" />
@@ -516,30 +440,37 @@ export default function Users() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Nome</TableHead>
+                        <TableHead>Usuário</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Departamento</TableHead>
                         <TableHead>Cargo</TableHead>
-                        <TableHead>Função</TableHead>
+                        <TableHead>Nível de Acesso</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Cadastro</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredUsers.map((user) => (
-                        <TableRow key={user.id} className={!user.is_active ? 'opacity-50' : ''}>
-                          <TableCell className="font-medium">{user.full_name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.department || '-'}</TableCell>
-                          <TableCell>{user.position || '-'}</TableCell>
+                      {filteredUsers.map((userItem) => (
+                        <TableRow key={userItem.id} className={!userItem.is_active ? 'opacity-50' : ''}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={userItem.photo_url || ''} alt={userItem.full_name} />
+                                <AvatarFallback>{userItem.full_name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">{userItem.full_name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{userItem.email}</TableCell>
+                          <TableCell>{userItem.department || '-'}</TableCell>
+                          <TableCell>{userItem.position || '-'}</TableCell>
                           <TableCell>
                             <Select
-                              value={user.role}
+                              value={userItem.role}
                               onValueChange={(value: 'admin' | 'manager' | 'employee') => 
-                                handleRoleChange(user.user_id, value)
+                                handleRoleChange(userItem.user_id, value)
                               }
-                              disabled={updating === user.user_id}
+                              disabled={updating === userItem.user_id}
                             >
                               <SelectTrigger className="w-[140px]">
                                 <SelectValue />
@@ -564,28 +495,25 @@ export default function Users() {
                             </Select>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={user.is_active ? 'default' : 'secondary'}>
-                              {user.is_active ? 'Ativo' : 'Inativo'}
+                            <Badge variant={userItem.is_active ? 'default' : 'secondary'}>
+                              {userItem.is_active ? 'Ativo' : 'Inativo'}
                             </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(user.created_at), 'dd/MM/yyyy', { locale: ptBR })}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
-                              variant={user.is_active ? 'outline' : 'default'}
+                              variant={userItem.is_active ? 'outline' : 'default'}
                               size="sm"
-                              onClick={() => handleToggleActive(user.user_id, user.id, user.is_active)}
-                              disabled={updating === user.user_id}
+                              onClick={() => handleToggleActive(userItem.user_id, userItem.id, userItem.is_active)}
+                              disabled={updating === userItem.user_id}
                             >
-                              {user.is_active ? 'Desativar' : 'Ativar'}
+                              {userItem.is_active ? 'Desativar' : 'Ativar'}
                             </Button>
                           </TableCell>
                         </TableRow>
                       ))}
                       {filteredUsers.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                             Nenhum usuário encontrado
                           </TableCell>
                         </TableRow>
@@ -598,193 +526,152 @@ export default function Users() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="register">
-          <div className="max-w-2xl mx-auto space-y-6">
-            <SelfieCapture
-              onCapture={handlePhotoCapture}
-              capturedImage={capturedImage}
-              onClear={handlePhotoClear}
-              required
-            />
+        <TabsContent value="access">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link className="h-5 w-5" />
+                  Vincular Acesso ao Sistema
+                </CardTitle>
+                <CardDescription>
+                  Selecione um funcionário existente e defina seu nível de acesso
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Buscar Funcionário</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Digite o nome ou email..."
+                      value={employeeSearchTerm}
+                      onChange={(e) => setEmployeeSearchTerm(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Selecionar Funcionário *</Label>
+                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um funcionário" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredEmployees.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={emp.photo_url || ''} />
+                              <AvatarFallback className="text-xs">{emp.full_name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <span className="font-medium">{emp.full_name}</span>
+                              <span className="text-muted-foreground ml-2 text-sm">{emp.email}</span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedEmployeeData && (
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={selectedEmployeeData.photo_url || ''} />
+                        <AvatarFallback>{selectedEmployeeData.full_name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{selectedEmployeeData.full_name}</p>
+                        <p className="text-sm text-muted-foreground">{selectedEmployeeData.email}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedEmployeeData.position || 'Sem cargo'} • {selectedEmployeeData.department || 'Sem departamento'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Nível de Acesso *</Label>
+                  <Select value={selectedRole} onValueChange={(v: 'admin' | 'manager' | 'employee') => setSelectedRole(v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-red-500" />
+                          <span>Administrador</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="manager">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-blue-500" />
+                          <span>Gerente</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="employee">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-gray-500" />
+                          <span>Funcionário</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button 
+                  onClick={handleLinkEmployee} 
+                  disabled={isLinking || !selectedEmployee}
+                  className="w-full gradient-primary"
+                >
+                  <Link className="mr-2 h-4 w-4" />
+                  {isLinking ? 'Vinculando...' : 'Vincular Acesso'}
+                </Button>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="h-5 w-5" />
-                  Cadastrar Novo Usuário
+                  <Eye className="h-5 w-5" />
+                  Permissões por Nível
                 </CardTitle>
                 <CardDescription>
-                  Preencha os dados para criar a conta do usuário
+                  Veja o que cada nível de acesso pode visualizar
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleRegisterSubmit} className="space-y-6">
-                  <div className="p-4 bg-muted/50 rounded-lg space-y-4">
-                    <p className="text-sm font-medium">Credenciais de Acesso</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="reg-email">Email *</Label>
-                        <Input
-                          id="reg-email"
-                          type="email"
-                          placeholder="usuario@empresa.com"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="reg-password">Senha Inicial *</Label>
-                        <Input
-                          id="reg-password"
-                          type="password"
-                          placeholder="Mínimo 6 caracteres"
-                          value={formData.password}
-                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                          required
-                        />
-                      </div>
+              <CardContent className="space-y-6">
+                {Object.entries(rolePermissions).map(([role, info]) => (
+                  <div 
+                    key={role} 
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      selectedRole === role ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${info.color}`} />
+                      <h4 className="font-semibold">{info.label}</h4>
+                      {selectedRole === role && (
+                        <Badge variant="outline" className="ml-auto">Selecionado</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">{info.description}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {info.permissions.map((perm) => (
+                        <div key={perm.key} className="flex items-center gap-2 text-sm">
+                          <Check className="h-3 w-3 text-green-500" />
+                          <perm.icon className="h-3 w-3 text-muted-foreground" />
+                          <span>{perm.label}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="reg-fullName">Nome Completo *</Label>
-                      <Input
-                        id="reg-fullName"
-                        type="text"
-                        placeholder="Nome do usuário"
-                        value={formData.fullName}
-                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-cpf">CPF</Label>
-                      <Input
-                        id="reg-cpf"
-                        type="text"
-                        placeholder="000.000.000-00"
-                        value={formData.cpf}
-                        onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-pis">PIS</Label>
-                      <Input
-                        id="reg-pis"
-                        type="text"
-                        placeholder="PIS/PASEP"
-                        value={formData.pis}
-                        onChange={(e) => setFormData({ ...formData, pis: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-registration">Matrícula</Label>
-                      <Input
-                        id="reg-registration"
-                        type="text"
-                        placeholder="Número da matrícula"
-                        value={formData.registration_number}
-                        onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-phone">Telefone/WhatsApp</Label>
-                      <Input
-                        id="reg-phone"
-                        type="tel"
-                        placeholder="(11) 99999-9999"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-department">Departamento</Label>
-                      <Select
-                        value={formData.department_id || 'none'}
-                        onValueChange={handleDepartmentChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um departamento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Nenhum</SelectItem>
-                          {departments.map((dept) => (
-                            <SelectItem key={dept.id} value={dept.id}>
-                              {dept.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-position">Cargo</Label>
-                      <Select
-                        value={formData.position_id || 'none'}
-                        onValueChange={handlePositionChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um cargo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Nenhum</SelectItem>
-                          {filteredPositions.map((pos) => (
-                            <SelectItem key={pos.id} value={pos.id}>
-                              {pos.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-hire-date">Data de Admissão</Label>
-                      <Input
-                        id="reg-hire-date"
-                        type="date"
-                        value={formData.hire_date}
-                        onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-schedule">Jornada de Trabalho</Label>
-                      <Select 
-                        value={formData.schedule_id} 
-                        onValueChange={(v) => setFormData({ ...formData, schedule_id: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma jornada" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {schedules.map((schedule) => (
-                            <SelectItem key={schedule.id} value={schedule.id}>
-                              {schedule.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-4">
-                    <Button 
-                      type="submit" 
-                      className="gradient-primary"
-                      disabled={isRegistering}
-                    >
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      {isRegistering ? 'Cadastrando...' : 'Cadastrar Usuário'}
-                    </Button>
-                  </div>
-                </form>
+                ))}
               </CardContent>
             </Card>
           </div>
