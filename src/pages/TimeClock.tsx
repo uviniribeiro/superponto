@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2 } from 'lucide-react';
+import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Camera, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -23,6 +23,14 @@ export default function TimeClock() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const [todayRecords, setTodayRecords] = useState<{ record_type: string; recorded_at: string }[]>([]);
+  
+  // Camera states
+  const [showCamera, setShowCamera] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [pendingRecordType, setPendingRecordType] = useState<RecordType | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -33,6 +41,12 @@ export default function TimeClock() {
     getLocation();
     if (profile) fetchTodayRecords();
   }, [profile]);
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
   const getLocation = () => {
     setIsLoadingLocation(true);
@@ -47,7 +61,6 @@ export default function TimeClock() {
         const { latitude, longitude } = position.coords;
         setLocation({ latitude, longitude, address: null });
         
-        // Try to get address from coordinates
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
@@ -89,9 +102,106 @@ export default function TimeClock() {
     setTodayRecords(data || []);
   };
 
-  const recordTime = async (recordType: RecordType) => {
-    if (!profile) {
-      toast.error('Perfil não encontrado');
+  const startCamera = async (recordType: RecordType) => {
+    setPendingRecordType(recordType);
+    setShowCamera(true);
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: 640, height: 480 } 
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      toast.error('Não foi possível acessar a câmera');
+      setShowCamera(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      setCapturedPhoto(dataUrl);
+      stopCamera();
+    }
+  };
+
+  const retakePhoto = async () => {
+    setCapturedPhoto(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: 640, height: 480 } 
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+    }
+  };
+
+  const cancelCamera = () => {
+    stopCamera();
+    setShowCamera(false);
+    setCapturedPhoto(null);
+    setPendingRecordType(null);
+  };
+
+  const uploadPhoto = async (dataUrl: string): Promise<string | null> => {
+    if (!profile) return null;
+
+    try {
+      const base64Data = dataUrl.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+      const fileName = `${profile.id}/${Date.now()}.jpg`;
+      
+      const { data, error } = await supabase.storage
+        .from('time-clock-photos')
+        .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('time-clock-photos')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      return null;
+    }
+  };
+
+  const confirmAndRecord = async () => {
+    if (!profile || !pendingRecordType || !capturedPhoto) {
+      toast.error('Dados incompletos');
       return;
     }
 
@@ -103,19 +213,23 @@ export default function TimeClock() {
     setIsRecording(true);
 
     try {
+      const photoUrl = await uploadPhoto(capturedPhoto);
+
       const { error } = await supabase.from('time_records').insert({
         profile_id: profile.id,
-        record_type: recordType,
+        record_type: pendingRecordType,
         recorded_at: new Date().toISOString(),
         latitude: location.latitude,
         longitude: location.longitude,
         address: location.address,
-        device_info: navigator.userAgent
+        device_info: navigator.userAgent,
+        photo_url: photoUrl
       });
 
       if (error) throw error;
 
       toast.success('Ponto registrado com sucesso!');
+      cancelCamera();
       fetchTodayRecords();
     } catch (error) {
       console.error('Error recording time:', error);
@@ -151,6 +265,77 @@ export default function TimeClock() {
   };
 
   const nextRecordType = getNextRecordType();
+
+  if (showCamera) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5 text-primary" />
+                Captura de Foto
+              </CardTitle>
+              <Button variant="ghost" size="icon" onClick={cancelCamera}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <CardDescription>
+              Tire uma foto para confirmar sua identidade
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+              {capturedPhoto ? (
+                <img 
+                  src={capturedPhoto} 
+                  alt="Foto capturada" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
+            <canvas ref={canvasRef} className="hidden" />
+            
+            <div className="flex gap-3">
+              {capturedPhoto ? (
+                <>
+                  <Button variant="outline" onClick={retakePhoto} className="flex-1">
+                    <Camera className="mr-2 h-4 w-4" />
+                    Tirar Novamente
+                  </Button>
+                  <Button 
+                    onClick={confirmAndRecord} 
+                    disabled={isRecording}
+                    className={`flex-1 ${pendingRecordType ? recordTypeConfig[pendingRecordType].color : ''} text-white`}
+                  >
+                    {isRecording ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      pendingRecordType && recordTypeConfig[pendingRecordType].icon
+                    )}
+                    <span className="ml-2">Confirmar {pendingRecordType && recordTypeConfig[pendingRecordType].label}</span>
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={capturePhoto} className="w-full gradient-primary" size="lg">
+                  <Camera className="mr-2 h-5 w-5" />
+                  Capturar Foto
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
@@ -206,7 +391,7 @@ export default function TimeClock() {
         <CardHeader>
           <CardTitle>Registrar Ponto</CardTitle>
           <CardDescription>
-            Clique no botão para registrar seu ponto
+            Clique no botão para tirar uma foto e registrar seu ponto
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -214,13 +399,16 @@ export default function TimeClock() {
             <Button
               size="lg"
               className={`w-full h-20 text-lg ${recordTypeConfig[nextRecordType].color} text-white`}
-              onClick={() => recordTime(nextRecordType)}
+              onClick={() => startCamera(nextRecordType)}
               disabled={isRecording || isLoadingLocation || !location.latitude}
             >
               {isRecording ? (
                 <Loader2 className="mr-3 h-6 w-6 animate-spin" />
               ) : (
-                recordTypeConfig[nextRecordType].icon
+                <>
+                  <Camera className="mr-2 h-6 w-6" />
+                  {recordTypeConfig[nextRecordType].icon}
+                </>
               )}
               <span className="ml-3">{recordTypeConfig[nextRecordType].label}</span>
             </Button>

@@ -88,6 +88,28 @@ export default function Adjustments() {
         });
       }
 
+      // Send email notification
+      if (selectedAdjustment.profiles?.email) {
+        try {
+          await supabase.functions.invoke('send-adjustment-notification', {
+            body: {
+              to: selectedAdjustment.profiles.email,
+              employeeName: selectedAdjustment.profiles.full_name,
+              status: approved ? 'approved' : 'rejected',
+              requestType: selectedAdjustment.request_type,
+              requestedTime: selectedAdjustment.requested_time 
+                ? format(new Date(selectedAdjustment.requested_time), 'dd/MM/yyyy HH:mm')
+                : 'N/A',
+              reviewNotes: reviewNotes || undefined
+            }
+          });
+          console.log('Email notification sent');
+        } catch (emailError) {
+          console.error('Error sending email notification:', emailError);
+          // Don't fail the whole operation if email fails
+        }
+      }
+
       toast.success(approved ? 'Solicitação aprovada!' : 'Solicitação rejeitada');
       setIsDialogOpen(false);
       setSelectedAdjustment(null);
