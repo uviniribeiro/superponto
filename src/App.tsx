@@ -11,6 +11,7 @@ import Dashboard from "@/pages/Dashboard";
 import TimeClock from "@/pages/TimeClock";
 import MyRecords from "@/pages/MyRecords";
 import Employees from "@/pages/Employees";
+import RegisterEmployee from "@/pages/RegisterEmployee";
 import Schedules from "@/pages/Schedules";
 import Adjustments from "@/pages/Adjustments";
 import Reports from "@/pages/Reports";
@@ -46,6 +47,11 @@ const App = () => (
               <Route path="employees" element={
                 <ProtectedRoute requiredRoles={['admin', 'manager']}>
                   <Employees />
+                </ProtectedRoute>
+              } />
+              <Route path="employees/register" element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <RegisterEmployee />
                 </ProtectedRoute>
               } />
               <Route path="schedules" element={

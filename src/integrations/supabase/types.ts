@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       adjustment_requests: {
         Row: {
+          company_id: string | null
           created_at: string
           id: string
           original_time: string | null
@@ -31,6 +32,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           id?: string
           original_time?: string | null
@@ -46,6 +48,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           id?: string
           original_time?: string | null
@@ -61,6 +64,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "adjustment_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "adjustment_requests_profile_id_fkey"
             columns: ["profile_id"]
@@ -84,12 +94,52 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          address: string | null
+          city: string | null
+          cnpj: string | null
+          company_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          company_code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          cnpj?: string | null
+          company_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           address: string | null
           cei: string | null
           city: string | null
           cnpj: string | null
+          company_id: string | null
           company_name: string
           created_at: string
           daily_overtime_limit_hours: number | null
@@ -109,6 +159,7 @@ export type Database = {
           cei?: string | null
           city?: string | null
           cnpj?: string | null
+          company_id?: string | null
           company_name: string
           created_at?: string
           daily_overtime_limit_hours?: number | null
@@ -128,6 +179,7 @@ export type Database = {
           cei?: string | null
           city?: string | null
           cnpj?: string | null
+          company_id?: string | null
           company_name?: string
           created_at?: string
           daily_overtime_limit_hours?: number | null
@@ -142,10 +194,19 @@ export type Database = {
           weekly_overtime_limit_hours?: number | null
           whatsapp_alert_phone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employee_schedules: {
         Row: {
+          company_id: string | null
           created_at: string
           end_date: string | null
           id: string
@@ -154,6 +215,7 @@ export type Database = {
           start_date: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           end_date?: string | null
           id?: string
@@ -162,6 +224,7 @@ export type Database = {
           start_date?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           end_date?: string | null
           id?: string
@@ -170,6 +233,13 @@ export type Database = {
           start_date?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "employee_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "employee_schedules_profile_id_fkey"
             columns: ["profile_id"]
@@ -188,6 +258,7 @@ export type Database = {
       }
       holidays: {
         Row: {
+          company_id: string | null
           created_at: string
           date: string
           id: string
@@ -196,6 +267,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           date: string
           id?: string
@@ -204,6 +276,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           date?: string
           id?: string
@@ -211,11 +284,20 @@ export type Database = {
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "holidays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       overtime_alerts: {
         Row: {
           alert_type: string
+          company_id: string | null
           created_at: string
           hours_limit: number
           hours_worked: number
@@ -227,6 +309,7 @@ export type Database = {
         }
         Insert: {
           alert_type: string
+          company_id?: string | null
           created_at?: string
           hours_limit: number
           hours_worked: number
@@ -238,6 +321,7 @@ export type Database = {
         }
         Update: {
           alert_type?: string
+          company_id?: string | null
           created_at?: string
           hours_limit?: number
           hours_worked?: number
@@ -249,6 +333,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "overtime_alerts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "overtime_alerts_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
@@ -259,6 +350,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          company_id: string | null
           cpf: string | null
           created_at: string
           department: string | null
@@ -275,6 +367,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          company_id?: string | null
           cpf?: string | null
           created_at?: string
           department?: string | null
@@ -291,6 +384,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          company_id?: string | null
           cpf?: string | null
           created_at?: string
           department?: string | null
@@ -306,12 +400,21 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       role_change_history: {
         Row: {
           changed_at: string
           changed_by_user_id: string
+          company_id: string | null
           id: string
           new_role: Database["public"]["Enums"]["app_role"]
           notes: string | null
@@ -321,6 +424,7 @@ export type Database = {
         Insert: {
           changed_at?: string
           changed_by_user_id: string
+          company_id?: string | null
           id?: string
           new_role: Database["public"]["Enums"]["app_role"]
           notes?: string | null
@@ -330,17 +434,27 @@ export type Database = {
         Update: {
           changed_at?: string
           changed_by_user_id?: string
+          company_id?: string | null
           id?: string
           new_role?: Database["public"]["Enums"]["app_role"]
           notes?: string | null
           previous_role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "role_change_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       time_records: {
         Row: {
           address: string | null
+          company_id: string | null
           created_at: string
           device_info: string | null
           id: string
@@ -355,6 +469,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          company_id?: string | null
           created_at?: string
           device_info?: string | null
           id?: string
@@ -369,6 +484,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          company_id?: string | null
           created_at?: string
           device_info?: string | null
           id?: string
@@ -382,6 +498,13 @@ export type Database = {
           recorded_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "time_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "time_records_profile_id_fkey"
             columns: ["profile_id"]
@@ -412,6 +535,7 @@ export type Database = {
       work_schedules: {
         Row: {
           break_duration_minutes: number | null
+          company_id: string | null
           created_at: string
           description: string | null
           friday_end: string | null
@@ -435,6 +559,7 @@ export type Database = {
         }
         Insert: {
           break_duration_minutes?: number | null
+          company_id?: string | null
           created_at?: string
           description?: string | null
           friday_end?: string | null
@@ -458,6 +583,7 @@ export type Database = {
         }
         Update: {
           break_duration_minutes?: number | null
+          company_id?: string | null
           created_at?: string
           description?: string | null
           friday_end?: string | null
@@ -479,7 +605,15 @@ export type Database = {
           wednesday_end?: string | null
           wednesday_start?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "work_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -487,6 +621,7 @@ export type Database = {
     }
     Functions: {
       get_profile_id: { Args: { _user_id: string }; Returns: string }
+      get_user_company_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
