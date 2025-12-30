@@ -18,6 +18,10 @@ interface CompanySettings {
   rep_number: string;
   rep_manufacturer: string;
   rep_model: string;
+  daily_overtime_limit_hours: number;
+  weekly_overtime_limit_hours: number;
+  monthly_overtime_limit_hours: number;
+  overtime_alert_email: string;
 }
 
 export default function Company() {
@@ -30,7 +34,11 @@ export default function Company() {
     state: '',
     rep_number: '',
     rep_manufacturer: '',
-    rep_model: ''
+    rep_model: '',
+    daily_overtime_limit_hours: 2,
+    weekly_overtime_limit_hours: 10,
+    monthly_overtime_limit_hours: 44,
+    overtime_alert_email: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -58,7 +66,11 @@ export default function Company() {
           state: data.state || '',
           rep_number: data.rep_number || '',
           rep_manufacturer: data.rep_manufacturer || '',
-          rep_model: data.rep_model || ''
+          rep_model: data.rep_model || '',
+          daily_overtime_limit_hours: data.daily_overtime_limit_hours ?? 2,
+          weekly_overtime_limit_hours: data.weekly_overtime_limit_hours ?? 10,
+          monthly_overtime_limit_hours: data.monthly_overtime_limit_hours ?? 44,
+          overtime_alert_email: data.overtime_alert_email || ''
         });
       }
     } catch (error) {
@@ -85,7 +97,11 @@ export default function Company() {
         state: settings.state || null,
         rep_number: settings.rep_number || null,
         rep_manufacturer: settings.rep_manufacturer || null,
-        rep_model: settings.rep_model || null
+        rep_model: settings.rep_model || null,
+        daily_overtime_limit_hours: settings.daily_overtime_limit_hours,
+        weekly_overtime_limit_hours: settings.weekly_overtime_limit_hours,
+        monthly_overtime_limit_hours: settings.monthly_overtime_limit_hours,
+        overtime_alert_email: settings.overtime_alert_email || null
       };
 
       if (settings.id) {
@@ -226,6 +242,64 @@ export default function Company() {
                 placeholder="Modelo do REP"
               />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Limites de Horas Extras</CardTitle>
+          <CardDescription>
+            Configure os limites para alertas automáticos de horas extras
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Limite Diário (horas)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.5"
+                value={settings.daily_overtime_limit_hours}
+                onChange={(e) => setSettings({ ...settings, daily_overtime_limit_hours: parseFloat(e.target.value) || 0 })}
+                placeholder="2"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Limite Semanal (horas)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.5"
+                value={settings.weekly_overtime_limit_hours}
+                onChange={(e) => setSettings({ ...settings, weekly_overtime_limit_hours: parseFloat(e.target.value) || 0 })}
+                placeholder="10"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Limite Mensal (horas)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.5"
+                value={settings.monthly_overtime_limit_hours}
+                onChange={(e) => setSettings({ ...settings, monthly_overtime_limit_hours: parseFloat(e.target.value) || 0 })}
+                placeholder="44"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Email para Alertas</Label>
+            <Input
+              type="email"
+              value={settings.overtime_alert_email}
+              onChange={(e) => setSettings({ ...settings, overtime_alert_email: e.target.value })}
+              placeholder="rh@empresa.com.br"
+            />
+            <p className="text-xs text-muted-foreground">
+              Os alertas serão enviados para este email quando os limites forem ultrapassados
+            </p>
           </div>
         </CardContent>
       </Card>
