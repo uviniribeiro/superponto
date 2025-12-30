@@ -31,6 +31,12 @@ interface MonthlyTrend {
   overtime: number;
 }
 
+interface MonthlyComparison {
+  month: string;
+  currentYear: number;
+  previousYear: number;
+}
+
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 const PDF_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -44,6 +50,7 @@ export default function OvertimeDashboard() {
   const [employeeData, setEmployeeData] = useState<OvertimeData[]>([]);
   const [departmentData, setDepartmentData] = useState<DepartmentData[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<MonthlyTrend[]>([]);
+  const [monthlyComparison, setMonthlyComparison] = useState<MonthlyComparison[]>([]);
   const [totalOvertime, setTotalOvertime] = useState(0);
   const [alertCount, setAlertCount] = useState(0);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -60,6 +67,7 @@ export default function OvertimeDashboard() {
     if (isAdmin || isManager) {
       fetchOvertimeData();
       fetchMonthlyTrend();
+      fetchMonthlyComparison();
       fetchAlertCount();
     }
   }, [selectedMonth, isAdmin, isManager]);
@@ -243,6 +251,52 @@ export default function OvertimeDashboard() {
       setMonthlyTrend(trends);
     } catch (error) {
       console.error('Error fetching monthly trend:', error);
+    }
+  };
+
+  const fetchMonthlyComparison = async () => {
+    try {
+      const comparison: MonthlyComparison[] = [];
+      const currentYear = new Date().getFullYear();
+      const previousYear = currentYear - 1;
+      
+      for (let m = 0; m < 12; m++) {
+        const monthName = format(new Date(currentYear, m), 'MMM', { locale: ptBR });
+        
+        // Current year data
+        const currentStart = startOfMonth(new Date(currentYear, m));
+        const currentEnd = endOfMonth(new Date(currentYear, m));
+        
+        const { data: currentAlerts } = await supabase
+          .from('overtime_alerts')
+          .select('hours_worked')
+          .gte('created_at', currentStart.toISOString())
+          .lte('created_at', currentEnd.toISOString());
+
+        const currentTotal = currentAlerts?.reduce((sum, a) => sum + Number(a.hours_worked), 0) || 0;
+
+        // Previous year data
+        const prevStart = startOfMonth(new Date(previousYear, m));
+        const prevEnd = endOfMonth(new Date(previousYear, m));
+        
+        const { data: prevAlerts } = await supabase
+          .from('overtime_alerts')
+          .select('hours_worked')
+          .gte('created_at', prevStart.toISOString())
+          .lte('created_at', prevEnd.toISOString());
+
+        const prevTotal = prevAlerts?.reduce((sum, a) => sum + Number(a.hours_worked), 0) || 0;
+        
+        comparison.push({
+          month: monthName,
+          currentYear: Math.round(currentTotal * 10) / 10,
+          previousYear: Math.round(prevTotal * 10) / 10
+        });
+      }
+
+      setMonthlyComparison(comparison);
+    } catch (error) {
+      console.error('Error fetching monthly comparison:', error);
     }
   };
 
@@ -577,6 +631,36 @@ export default function OvertimeDashboard() {
                     dot={{ fill: 'hsl(var(--primary))' }}
                   />
                 </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Monthly Year Comparison */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Comparativo Anual de Horas Extras</CardTitle>
+              <CardDescription>
+                Comparação mês a mês entre {new Date().getFullYear()} e {new Date().getFullYear() - 1}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={monthlyComparison} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis unit="h" />
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [
+                      `${value}h`, 
+                      name === 'currentYear' ? new Date().getFullYear().toString() : (new Date().getFullYear() - 1).toString()
+                    ]}
+                  />
+                  <Legend 
+                    formatter={(value) => value === 'currentYear' ? new Date().getFullYear().toString() : (new Date().getFullYear() - 1).toString()}
+                  />
+                  <Bar dataKey="currentYear" name="currentYear" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="previousYear" name="previousYear" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
