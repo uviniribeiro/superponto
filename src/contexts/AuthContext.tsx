@@ -117,17 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (!error && data.user) {
-      // Create profile
+      // Create profile - trigger will auto-assign role (first user = admin)
       await supabase.from('profiles').insert({
         user_id: data.user.id,
         full_name: fullName,
         email: email
-      });
-
-      // Assign default employee role
-      await supabase.from('user_roles').insert({
-        user_id: data.user.id,
-        role: 'employee'
       });
     }
 
