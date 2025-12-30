@@ -36,14 +36,18 @@ import {
   Fingerprint,
   ClipboardCheck,
   Building2,
+  CalendarDays,
+  Timer,
 } from 'lucide-react';
 
 const menuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: ['admin', 'manager', 'employee'] },
   { title: 'Registrar Ponto', icon: Clock, href: '/time-clock', roles: ['admin', 'manager', 'employee'] },
   { title: 'Meus Registros', icon: FileText, href: '/my-records', roles: ['admin', 'manager', 'employee'] },
+  { title: 'Banco de Horas', icon: Timer, href: '/time-bank', roles: ['admin', 'manager', 'employee'] },
   { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
   { title: 'Jornadas', icon: Calendar, href: '/schedules', roles: ['admin'] },
+  { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
   { title: 'Ajustes', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
   { title: 'Relatórios', icon: FileText, href: '/reports', roles: ['admin', 'manager'] },
   { title: 'Empresa', icon: Building2, href: '/company', roles: ['admin'] },
