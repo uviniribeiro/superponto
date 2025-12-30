@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Building2, Briefcase, Plus, Edit, Trash2, ChevronRight } from 'lucide-react';
+import { Building2, Briefcase, Plus, Edit, Trash2, ChevronRight, Network } from 'lucide-react';
+import { OrgChart } from '@/components/orgchart/OrgChart';
 
 interface Department {
   id: string;
@@ -267,8 +268,12 @@ export default function PositionsDepartments() {
         </div>
       </div>
 
-      <Tabs defaultValue="departments" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+      <Tabs defaultValue="orgchart" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsTrigger value="orgchart" className="gap-2">
+            <Network className="h-4 w-4" />
+            Organograma
+          </TabsTrigger>
           <TabsTrigger value="departments" className="gap-2">
             <Building2 className="h-4 w-4" />
             Departamentos
@@ -278,6 +283,10 @@ export default function PositionsDepartments() {
             Cargos
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="orgchart" className="mt-6">
+          <OrgChart departments={departments} positions={positions} />
+        </TabsContent>
 
         <TabsContent value="departments" className="mt-6">
           <Card>

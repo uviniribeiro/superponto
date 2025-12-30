@@ -37,6 +37,17 @@ interface Schedule {
   name: string;
 }
 
+interface DepartmentOption {
+  id: string;
+  name: string;
+}
+
+interface PositionOption {
+  id: string;
+  name: string;
+  department_id: string | null;
+}
+
 const employeeSchema = z.object({
   full_name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
   email: z.string().email('Email inválido').max(255),
@@ -62,6 +73,8 @@ export default function Employees() {
   const { isAdmin } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
+  const [allPositions, setAllPositions] = useState<PositionOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -79,6 +92,8 @@ export default function Employees() {
     registration_number: '',
     department: '',
     position: '',
+    department_id: '',
+    position_id: '',
     hire_date: '',
     phone: '',
     schedule_id: ''
@@ -87,6 +102,7 @@ export default function Employees() {
   useEffect(() => {
     fetchEmployees();
     fetchSchedules();
+    fetchDepartmentsAndPositions();
   }, []);
 
   const fetchEmployees = async () => {
@@ -110,6 +126,39 @@ export default function Employees() {
     const { data } = await supabase.from('work_schedules').select('id, name');
     setSchedules(data || []);
   };
+
+  const fetchDepartmentsAndPositions = async () => {
+    const [deptsRes, posRes] = await Promise.all([
+      supabase.from('departments').select('id, name').eq('is_active', true).order('name'),
+      supabase.from('positions').select('id, name, department_id').eq('is_active', true).order('name')
+    ]);
+    setDepartments(deptsRes.data || []);
+    setAllPositions(posRes.data || []);
+  };
+
+  const handleDepartmentChange = (deptId: string) => {
+    const dept = departments.find(d => d.id === deptId);
+    setFormData({
+      ...formData,
+      department_id: deptId === 'none' ? '' : deptId,
+      department: dept?.name || '',
+      position_id: '',
+      position: ''
+    });
+  };
+
+  const handlePositionChange = (posId: string) => {
+    const pos = allPositions.find(p => p.id === posId);
+    setFormData({
+      ...formData,
+      position_id: posId === 'none' ? '' : posId,
+      position: pos?.name || ''
+    });
+  };
+
+  const filteredPositions = formData.department_id
+    ? allPositions.filter(p => p.department_id === formData.department_id || !p.department_id)
+    : allPositions;
 
   const handleSave = async () => {
     try {
@@ -185,6 +234,8 @@ export default function Employees() {
       registration_number: '',
       department: '',
       position: '',
+      department_id: '',
+      position_id: '',
       hire_date: '',
       phone: '',
       schedule_id: ''
@@ -194,6 +245,10 @@ export default function Employees() {
 
   const openEditDialog = (employee: Employee) => {
     setEditingEmployee(employee);
+    // Find matching department and position IDs based on names
+    const matchingDept = departments.find(d => d.name === employee.department);
+    const matchingPos = allPositions.find(p => p.name === employee.position);
+    
     setFormData({
       full_name: employee.full_name,
       email: employee.email,
@@ -202,6 +257,8 @@ export default function Employees() {
       registration_number: employee.registration_number || '',
       department: employee.department || '',
       position: employee.position || '',
+      department_id: matchingDept?.id || '',
+      position_id: matchingPos?.id || '',
       hire_date: employee.hire_date || '',
       phone: employee.phone || '',
       schedule_id: ''
@@ -429,17 +486,41 @@ export default function Employees() {
             </div>
             <div className="space-y-2">
               <Label>Departamento</Label>
-              <Input
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              />
+              <Select
+                value={formData.department_id || 'none'}
+                onValueChange={handleDepartmentChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um departamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Cargo</Label>
-              <Input
-                value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-              />
+              <Select
+                value={formData.position_id || 'none'}
+                onValueChange={handlePositionChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cargo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {filteredPositions.map((pos) => (
+                    <SelectItem key={pos.id} value={pos.id}>
+                      {pos.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Data de Admissão</Label>
