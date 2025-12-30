@@ -10,7 +10,7 @@ import { UserPlus, Shield, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import { SelfieCapture } from '@/components/employees/SelfieCapture';
+import { PhotoCapture } from '@/components/employees/PhotoCapture';
 
 const employeeSchema = z.object({
   fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
@@ -275,8 +275,8 @@ export default function RegisterEmployee() {
         </div>
       </div>
 
-      {/* Selfie Capture Section */}
-      <SelfieCapture
+      {/* Photo Capture Section */}
+      <PhotoCapture
         onCapture={handlePhotoCapture}
         capturedImage={capturedImage}
         onClear={handlePhotoClear}
