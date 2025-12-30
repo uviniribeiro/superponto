@@ -1,10 +1,23 @@
 project_id = "sfbyujjvfxicuuafjtoy"
 
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
 [functions.check-overtime]
 verify_jwt = false
 
+[functions.send-adjustment-notification]
+verify_jwt = false
+
 [functions.send-role-notification]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-weekly-report]
+verify_jwt = false
+
+[functions.send-whatsapp-alert]
 verify_jwt = false

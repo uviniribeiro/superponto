@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
-import { Shield, TrendingUp, Users, Clock, AlertTriangle, Building2, FileDown, Filter } from 'lucide-react';
+import { Shield, TrendingUp, Users, Clock, AlertTriangle, Building2, FileDown, Filter, Send, MessageSquare } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -44,6 +44,8 @@ export default function OvertimeDashboard() {
   const { isAdmin, isManager } = useAuth();
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [sendingReport, setSendingReport] = useState(false);
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [allEmployeeData, setAllEmployeeData] = useState<OvertimeData[]>([]);
@@ -421,6 +423,42 @@ export default function OvertimeDashboard() {
     }
   };
 
+  const sendManualReport = async () => {
+    setSendingReport(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-weekly-report', {
+        body: { manual: true }
+      });
+      
+      if (error) throw error;
+      toast.success('Relatório enviado por email com sucesso!');
+    } catch (error) {
+      console.error('Error sending manual report:', error);
+      toast.error('Erro ao enviar relatório');
+    } finally {
+      setSendingReport(false);
+    }
+  };
+
+  const sendWhatsAppReport = async () => {
+    setSendingWhatsApp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-whatsapp-alert', {
+        body: { type: 'weekly_report' }
+      });
+      
+      if (error) throw error;
+      toast.success('Relatório preparado para WhatsApp!', {
+        description: `${data.report?.totalAlerts} alertas, ${data.report?.totalHours}h extras`
+      });
+    } catch (error) {
+      console.error('Error sending WhatsApp report:', error);
+      toast.error('Erro ao enviar relatório via WhatsApp');
+    } finally {
+      setSendingWhatsApp(false);
+    }
+  };
+
   if (!isAdmin && !isManager) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -479,6 +517,14 @@ export default function OvertimeDashboard() {
           <Button onClick={exportToPDF} disabled={exporting || loading} variant="outline">
             <FileDown className="h-4 w-4 mr-2" />
             {exporting ? 'Gerando...' : 'Exportar PDF'}
+          </Button>
+          <Button onClick={sendManualReport} disabled={sendingReport || loading} variant="outline">
+            <Send className="h-4 w-4 mr-2" />
+            {sendingReport ? 'Enviando...' : 'Enviar Email'}
+          </Button>
+          <Button onClick={sendWhatsAppReport} disabled={sendingWhatsApp || loading} variant="outline" className="bg-green-600 text-white hover:bg-green-700">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            {sendingWhatsApp ? 'Enviando...' : 'WhatsApp'}
           </Button>
         </div>
       </div>
