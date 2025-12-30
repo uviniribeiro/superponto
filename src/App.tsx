@@ -15,6 +15,8 @@ import Schedules from "@/pages/Schedules";
 import Adjustments from "@/pages/Adjustments";
 import Reports from "@/pages/Reports";
 import Company from "@/pages/Company";
+import Holidays from "@/pages/Holidays";
+import TimeBank from "@/pages/TimeBank";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +65,12 @@ const App = () => (
                   <Company />
                 </ProtectedRoute>
               } />
+              <Route path="holidays" element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <Holidays />
+                </ProtectedRoute>
+              } />
+              <Route path="time-bank" element={<TimeBank />} />
             </Route>
             
             <Route path="*" element={<NotFound />} />
