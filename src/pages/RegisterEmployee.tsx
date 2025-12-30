@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,8 @@ const employeeSchema = z.object({
   registration_number: z.string().optional(),
   department: z.string().optional(),
   position: z.string().optional(),
+  department_id: z.string().optional(),
+  position_id: z.string().optional(),
   hire_date: z.string().optional(),
   phone: z.string().optional(),
   schedule_id: z.string().optional(),
@@ -30,11 +32,24 @@ interface Schedule {
   name: string;
 }
 
+interface Department {
+  id: string;
+  name: string;
+}
+
+interface Position {
+  id: string;
+  name: string;
+  department_id: string | null;
+}
+
 export default function RegisterEmployee() {
   const navigate = useNavigate();
   const { isAdmin, createEmployee, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -44,21 +59,51 @@ export default function RegisterEmployee() {
     registration_number: '',
     department: '',
     position: '',
+    department_id: '',
+    position_id: '',
     hire_date: '',
     phone: '',
     schedule_id: ''
   });
 
-  React.useEffect(() => {
-    fetchSchedules();
+  useEffect(() => {
+    fetchData();
   }, []);
 
-  const fetchSchedules = async () => {
-    const { data } = await supabase
-      .from('work_schedules')
-      .select('id, name');
-    setSchedules(data || []);
+  const fetchData = async () => {
+    const [schedulesRes, deptsRes, posRes] = await Promise.all([
+      supabase.from('work_schedules').select('id, name'),
+      supabase.from('departments').select('id, name').eq('is_active', true).order('name'),
+      supabase.from('positions').select('id, name, department_id').eq('is_active', true).order('name')
+    ]);
+    setSchedules(schedulesRes.data || []);
+    setDepartments(deptsRes.data || []);
+    setPositions(posRes.data || []);
   };
+
+  const handleDepartmentChange = (deptId: string) => {
+    const dept = departments.find(d => d.id === deptId);
+    setFormData({
+      ...formData,
+      department_id: deptId === 'none' ? '' : deptId,
+      department: dept?.name || '',
+      position_id: '', // Reset position when department changes
+      position: ''
+    });
+  };
+
+  const handlePositionChange = (posId: string) => {
+    const pos = positions.find(p => p.id === posId);
+    setFormData({
+      ...formData,
+      position_id: posId === 'none' ? '' : posId,
+      position: pos?.name || ''
+    });
+  };
+
+  const filteredPositions = formData.department_id
+    ? positions.filter(p => p.department_id === formData.department_id || !p.department_id)
+    : positions;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,6 +164,8 @@ export default function RegisterEmployee() {
         registration_number: '',
         department: '',
         position: '',
+        department_id: '',
+        position_id: '',
         hire_date: '',
         phone: '',
         schedule_id: ''
@@ -263,24 +310,42 @@ export default function RegisterEmployee() {
               
               <div className="space-y-2">
                 <Label htmlFor="department">Departamento</Label>
-                <Input
-                  id="department"
-                  type="text"
-                  placeholder="Ex: TI, RH, Comercial"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                />
+                <Select
+                  value={formData.department_id || 'none'}
+                  onValueChange={handleDepartmentChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um departamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="position">Cargo</Label>
-                <Input
-                  id="position"
-                  type="text"
-                  placeholder="Ex: Analista, Gerente"
-                  value={formData.position}
-                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                />
+                <Select
+                  value={formData.position_id || 'none'}
+                  onValueChange={handlePositionChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cargo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {filteredPositions.map((pos) => (
+                      <SelectItem key={pos.id} value={pos.id}>
+                        {pos.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
