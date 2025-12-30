@@ -102,6 +102,7 @@ export type Database = {
           state: string | null
           updated_at: string
           weekly_overtime_limit_hours: number | null
+          whatsapp_alert_phone: string | null
         }
         Insert: {
           address?: string | null
@@ -120,6 +121,7 @@ export type Database = {
           state?: string | null
           updated_at?: string
           weekly_overtime_limit_hours?: number | null
+          whatsapp_alert_phone?: string | null
         }
         Update: {
           address?: string | null
@@ -138,6 +140,7 @@ export type Database = {
           state?: string | null
           updated_at?: string
           weekly_overtime_limit_hours?: number | null
+          whatsapp_alert_phone?: string | null
         }
         Relationships: []
       }
@@ -264,6 +267,7 @@ export type Database = {
           hire_date: string | null
           id: string
           is_active: boolean
+          phone: string | null
           pis: string | null
           position: string | null
           registration_number: string | null
@@ -279,6 +283,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           is_active?: boolean
+          phone?: string | null
           pis?: string | null
           position?: string | null
           registration_number?: string | null
@@ -294,6 +299,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           is_active?: boolean
+          phone?: string | null
           pis?: string | null
           position?: string | null
           registration_number?: string | null

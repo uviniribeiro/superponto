@@ -22,6 +22,7 @@ interface CompanySettings {
   weekly_overtime_limit_hours: number;
   monthly_overtime_limit_hours: number;
   overtime_alert_email: string;
+  whatsapp_alert_phone: string;
 }
 
 export default function Company() {
@@ -38,7 +39,8 @@ export default function Company() {
     daily_overtime_limit_hours: 2,
     weekly_overtime_limit_hours: 10,
     monthly_overtime_limit_hours: 44,
-    overtime_alert_email: ''
+    overtime_alert_email: '',
+    whatsapp_alert_phone: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,7 +72,8 @@ export default function Company() {
           daily_overtime_limit_hours: data.daily_overtime_limit_hours ?? 2,
           weekly_overtime_limit_hours: data.weekly_overtime_limit_hours ?? 10,
           monthly_overtime_limit_hours: data.monthly_overtime_limit_hours ?? 44,
-          overtime_alert_email: data.overtime_alert_email || ''
+          overtime_alert_email: data.overtime_alert_email || '',
+          whatsapp_alert_phone: (data as any).whatsapp_alert_phone || ''
         });
       }
     } catch (error) {
@@ -101,7 +104,8 @@ export default function Company() {
         daily_overtime_limit_hours: settings.daily_overtime_limit_hours,
         weekly_overtime_limit_hours: settings.weekly_overtime_limit_hours,
         monthly_overtime_limit_hours: settings.monthly_overtime_limit_hours,
-        overtime_alert_email: settings.overtime_alert_email || null
+        overtime_alert_email: settings.overtime_alert_email || null,
+        whatsapp_alert_phone: settings.whatsapp_alert_phone || null
       };
 
       if (settings.id) {
@@ -289,17 +293,31 @@ export default function Company() {
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Email para Alertas</Label>
-            <Input
-              type="email"
-              value={settings.overtime_alert_email}
-              onChange={(e) => setSettings({ ...settings, overtime_alert_email: e.target.value })}
-              placeholder="rh@empresa.com.br"
-            />
-            <p className="text-xs text-muted-foreground">
-              Os alertas serão enviados para este email quando os limites forem ultrapassados
-            </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Email para Alertas</Label>
+              <Input
+                type="email"
+                value={settings.overtime_alert_email}
+                onChange={(e) => setSettings({ ...settings, overtime_alert_email: e.target.value })}
+                placeholder="rh@empresa.com.br"
+              />
+              <p className="text-xs text-muted-foreground">
+                Os alertas serão enviados para este email
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>WhatsApp para Alertas</Label>
+              <Input
+                type="tel"
+                value={settings.whatsapp_alert_phone}
+                onChange={(e) => setSettings({ ...settings, whatsapp_alert_phone: e.target.value })}
+                placeholder="(11) 99999-9999"
+              />
+              <p className="text-xs text-muted-foreground">
+                Alertas também serão enviados via WhatsApp
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
