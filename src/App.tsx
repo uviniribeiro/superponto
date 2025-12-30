@@ -19,6 +19,7 @@ import Holidays from "@/pages/Holidays";
 import TimeBank from "@/pages/TimeBank";
 import Absences from "@/pages/Absences";
 import Users from "@/pages/Users";
+import OvertimeDashboard from "@/pages/OvertimeDashboard";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -81,6 +82,11 @@ const App = () => (
               <Route path="users" element={
                 <ProtectedRoute requiredRoles={['admin']}>
                   <Users />
+                </ProtectedRoute>
+              } />
+              <Route path="overtime-dashboard" element={
+                <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                  <OvertimeDashboard />
                 </ProtectedRoute>
               } />
             </Route>
