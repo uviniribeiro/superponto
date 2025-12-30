@@ -21,6 +21,7 @@ import TimeBank from "@/pages/TimeBank";
 import Absences from "@/pages/Absences";
 import Users from "@/pages/Users";
 import OvertimeDashboard from "@/pages/OvertimeDashboard";
+import PositionsDepartments from "@/pages/PositionsDepartments";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,11 @@ const App = () => (
               <Route path="employees/register" element={
                 <ProtectedRoute requiredRoles={['admin']}>
                   <RegisterEmployee />
+                </ProtectedRoute>
+              } />
+              <Route path="positions-departments" element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <PositionsDepartments />
                 </ProtectedRoute>
               } />
               <Route path="schedules" element={

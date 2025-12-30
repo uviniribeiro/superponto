@@ -10,11 +10,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Users, Search, Edit, UserCheck, UserX, UserPlus, Key } from 'lucide-react';
+import { Users, Search, Edit, UserCheck, UserX, UserPlus, Key, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { supabase as supabaseClient } from '@/integrations/supabase/client';
+import { CsvImportDialog } from '@/components/employees/CsvImportDialog';
 
 interface Employee {
   id: string;
@@ -69,6 +70,7 @@ export default function Employees() {
   const [selectedEmployeeForPassword, setSelectedEmployeeForPassword] = useState<Employee | null>(null);
   const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
+  const [isCsvDialogOpen, setIsCsvDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -263,10 +265,16 @@ export default function Employees() {
           <p className="text-muted-foreground">Gerencie o cadastro de colaboradores</p>
         </div>
         {isAdmin && (
-          <Button onClick={() => navigate('/employees/register')} className="gradient-primary">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Cadastrar Funcionário
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsCsvDialogOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Importar CSV
+            </Button>
+            <Button onClick={() => navigate('/employees/register')} className="gradient-primary">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Cadastrar Funcionário
+            </Button>
+          </div>
         )}
       </div>
 
@@ -523,6 +531,13 @@ export default function Employees() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* CSV Import Dialog */}
+      <CsvImportDialog
+        open={isCsvDialogOpen}
+        onOpenChange={setIsCsvDialogOpen}
+        onImportComplete={fetchEmployees}
+      />
     </div>
   );
 }
