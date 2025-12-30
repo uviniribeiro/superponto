@@ -1,7 +1,13 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building2, User, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Building2, User, ChevronDown, FileImage, FileText } from 'lucide-react';
+import { toast } from 'sonner';
+
+// Org Chart Component with PNG/PDF export
 
 interface Department {
   id: string;
@@ -27,6 +33,68 @@ interface OrgChartProps {
 }
 
 export function OrgChart({ departments, positions }: OrgChartProps) {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const exportToPNG = async () => {
+    if (!chartRef.current) return;
+    
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(chartRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `organograma-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      toast.success('Organograma exportado como PNG!');
+    } catch (error) {
+      console.error('Error exporting PNG:', error);
+      toast.error('Erro ao exportar organograma');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportToPDF = async () => {
+    if (!chartRef.current) return;
+    
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(chartRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      
+      // Determine PDF orientation based on content dimensions
+      const isLandscape = imgWidth > imgHeight;
+      const pdf = new jsPDF({
+        orientation: isLandscape ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [imgWidth + 40, imgHeight + 40]
+      });
+      
+      pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+      pdf.save(`organograma-${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      toast.success('Organograma exportado como PDF!');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Erro ao exportar organograma');
+    } finally {
+      setExporting(false);
+    }
+  };
   const getDepartmentPositions = (departmentId: string) => {
     return positions
       .filter(p => p.department_id === departmentId && p.is_active)
@@ -175,17 +243,41 @@ export function OrgChart({ departments, positions }: OrgChartProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-primary" />
-          Organograma
-        </CardTitle>
-        <CardDescription>
-          Visualização da estrutura organizacional da empresa
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            Organograma
+          </CardTitle>
+          <CardDescription>
+            Visualização da estrutura organizacional da empresa
+          </CardDescription>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToPNG}
+            disabled={exporting}
+            className="gap-2"
+          >
+            <FileImage className="h-4 w-4" />
+            PNG
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToPDF}
+            disabled={exporting}
+            className="gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            PDF
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
-        <div className="min-w-max p-4">
+        <div ref={chartRef} className="min-w-max p-4 bg-background">
           {/* Render department trees */}
           <div className="flex gap-12 justify-center flex-wrap">
             {rootDepartments.map((dept) => renderDepartmentNode(dept))}
