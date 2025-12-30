@@ -5,11 +5,11 @@ import { Clock } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRoles?: ('admin' | 'manager' | 'employee')[];
+  requiredRoles?: ('admin' | 'manager' | 'employee' | 'super_admin')[];
 }
 
 export default function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
-  const { user, loading, hasRole, isAdmin } = useAuth();
+  const { user, loading, hasRole, isAdmin, isSuperAdmin } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -28,6 +28,11 @@ export default function ProtectedRoute({ children, requiredRoles }: ProtectedRou
   }
 
   if (requiredRoles && requiredRoles.length > 0) {
+    // Super admin has access to everything
+    if (isSuperAdmin) {
+      return <>{children}</>;
+    }
+    
     const hasRequiredRole = requiredRoles.some(role => hasRole(role)) || isAdmin;
     
     if (!hasRequiredRole) {
