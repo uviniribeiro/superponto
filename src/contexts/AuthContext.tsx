@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-type AppRole = 'admin' | 'manager' | 'employee';
+type AppRole = 'admin' | 'manager' | 'employee' | 'super_admin';
 
 interface Company {
   id: string;
@@ -40,6 +40,7 @@ interface AuthContextType {
   hasRole: (role: AppRole) => boolean;
   isAdmin: boolean;
   isManager: boolean;
+  isSuperAdmin: boolean;
   createEmployee: (employeeData: CreateEmployeeData) => Promise<{ error: Error | null; user?: any }>;
 }
 
@@ -307,7 +308,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
-  const isAdmin = hasRole('admin');
+  const isSuperAdmin = hasRole('super_admin');
+  const isAdmin = hasRole('admin') || isSuperAdmin;
   const isManager = hasRole('manager') || isAdmin;
 
   return (
@@ -324,6 +326,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hasRole,
       isAdmin,
       isManager,
+      isSuperAdmin,
       createEmployee
     }}>
       {children}

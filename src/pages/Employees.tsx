@@ -6,16 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Users, Search, Edit, UserCheck, UserX, UserPlus, Key, Upload } from 'lucide-react';
+import { Users, Search, Edit, UserCheck, UserX, UserPlus, Key, Upload, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
-import { supabase as supabaseClient } from '@/integrations/supabase/client';
 import { CsvImportDialog } from '@/components/employees/CsvImportDialog';
+import { PhotoCapture } from '@/components/employees/PhotoCapture';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Employee {
   id: string;
@@ -30,6 +32,7 @@ interface Employee {
   hire_date: string | null;
   phone: string | null;
   is_active: boolean;
+  photo_url: string | null;
 }
 
 interface Schedule {
@@ -70,7 +73,7 @@ const passwordSchema = z.object({
 
 export default function Employees() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
@@ -84,6 +87,8 @@ export default function Employees() {
   const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
   const [changingPassword, setChangingPassword] = useState(false);
   const [isCsvDialogOpen, setIsCsvDialogOpen] = useState(false);
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -160,11 +165,58 @@ export default function Employees() {
     ? allPositions.filter(p => p.department_id === formData.department_id || !p.department_id)
     : allPositions;
 
+  const handlePhotoCapture = (blob: Blob) => {
+    setPhotoBlob(blob);
+    setCapturedImage(URL.createObjectURL(blob));
+  };
+
+  const handlePhotoClear = () => {
+    setPhotoBlob(null);
+    if (capturedImage && !capturedImage.startsWith('http')) {
+      URL.revokeObjectURL(capturedImage);
+    }
+    setCapturedImage(null);
+  };
+
+  const uploadPhoto = async (employeeId: string): Promise<string | null> => {
+    if (!photoBlob) return null;
+
+    const fileName = `${employeeId}-${Date.now()}.jpg`;
+    const filePath = `${profile?.company_id}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('employee-photos')
+      .upload(filePath, photoBlob, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Error uploading photo:', uploadError);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('employee-photos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const handleSave = async () => {
     try {
       const validData = employeeSchema.parse(formData);
 
       if (editingEmployee) {
+        // Upload new photo if provided
+        let photoUrl = editingEmployee.photo_url;
+        if (photoBlob) {
+          const newPhotoUrl = await uploadPhoto(editingEmployee.id);
+          if (newPhotoUrl) {
+            photoUrl = newPhotoUrl;
+          }
+        }
+
         const { error } = await supabase
           .from('profiles')
           .update({
@@ -177,6 +229,7 @@ export default function Employees() {
             position: formData.position || null,
             hire_date: formData.hire_date || null,
             phone: formData.phone || null,
+            photo_url: photoUrl,
           })
           .eq('id', editingEmployee.id);
 
@@ -241,6 +294,7 @@ export default function Employees() {
       schedule_id: ''
     });
     setEditingEmployee(null);
+    handlePhotoClear();
   };
 
   const openEditDialog = (employee: Employee) => {
@@ -248,6 +302,14 @@ export default function Employees() {
     // Find matching department and position IDs based on names
     const matchingDept = departments.find(d => d.name === employee.department);
     const matchingPos = allPositions.find(p => p.name === employee.position);
+    
+    // Set existing photo if available
+    if (employee.photo_url) {
+      setCapturedImage(employee.photo_url);
+    } else {
+      setCapturedImage(null);
+    }
+    setPhotoBlob(null);
     
     setFormData({
       full_name: employee.full_name,
@@ -280,7 +342,7 @@ export default function Employees() {
       setChangingPassword(true);
 
       // Call edge function to change user password
-      const { error } = await supabaseClient.functions.invoke('admin-change-password', {
+      const { error } = await supabase.functions.invoke('admin-change-password', {
         body: {
           userId: selectedEmployeeForPassword.user_id,
           newPassword: validData.newPassword
@@ -436,7 +498,7 @@ export default function Employees() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
               {editingEmployee ? 'Editar Funcionário' : 'Novo Funcionário'}
@@ -446,115 +508,126 @@ export default function Employees() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Nome Completo *</Label>
-              <Input
-                value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-6">
+              {/* Photo Section */}
+              <PhotoCapture
+                onCapture={handlePhotoCapture}
+                capturedImage={capturedImage}
+                onClear={handlePhotoClear}
               />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nome Completo *</Label>
+                  <Input
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>CPF</Label>
+                  <Input
+                    value={formData.cpf}
+                    onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                    placeholder="000.000.000-00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>PIS</Label>
+                  <Input
+                    value={formData.pis}
+                    onChange={(e) => setFormData({ ...formData, pis: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Matrícula</Label>
+                  <Input
+                    value={formData.registration_number}
+                    onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Departamento</Label>
+                  <Select
+                    value={formData.department_id || 'none'}
+                    onValueChange={handleDepartmentChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um departamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cargo</Label>
+                  <Select
+                    value={formData.position_id || 'none'}
+                    onValueChange={handlePositionChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um cargo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {filteredPositions.map((pos) => (
+                        <SelectItem key={pos.id} value={pos.id}>
+                          {pos.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Data de Admissão</Label>
+                  <Input
+                    type="date"
+                    value={formData.hire_date}
+                    onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefone/WhatsApp</Label>
+                  <Input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Jornada de Trabalho</Label>
+                  <Select value={formData.schedule_id} onValueChange={(v) => setFormData({ ...formData, schedule_id: v })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma jornada" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schedules.map((schedule) => (
+                        <SelectItem key={schedule.id} value={schedule.id}>
+                          {schedule.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>CPF</Label>
-              <Input
-                value={formData.cpf}
-                onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                placeholder="000.000.000-00"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>PIS</Label>
-              <Input
-                value={formData.pis}
-                onChange={(e) => setFormData({ ...formData, pis: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Matrícula</Label>
-              <Input
-                value={formData.registration_number}
-                onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Departamento</Label>
-              <Select
-                value={formData.department_id || 'none'}
-                onValueChange={handleDepartmentChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um departamento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Cargo</Label>
-              <Select
-                value={formData.position_id || 'none'}
-                onValueChange={handlePositionChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cargo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {filteredPositions.map((pos) => (
-                    <SelectItem key={pos.id} value={pos.id}>
-                      {pos.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Data de Admissão</Label>
-              <Input
-                type="date"
-                value={formData.hire_date}
-                onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Telefone/WhatsApp</Label>
-              <Input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(11) 99999-9999"
-              />
-            </div>
-            <div className="space-y-2 col-span-2">
-              <Label>Jornada de Trabalho</Label>
-              <Select value={formData.schedule_id} onValueChange={(v) => setFormData({ ...formData, schedule_id: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma jornada" />
-                </SelectTrigger>
-                <SelectContent>
-                  {schedules.map((schedule) => (
-                    <SelectItem key={schedule.id} value={schedule.id}>
-                      {schedule.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          </ScrollArea>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
