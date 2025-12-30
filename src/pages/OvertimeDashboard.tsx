@@ -1,13 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
-import { Shield, TrendingUp, Users, Clock, AlertTriangle, Building2 } from 'lucide-react';
+import { Shield, TrendingUp, Users, Clock, AlertTriangle, Building2, FileDown, Filter } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface OvertimeData {
   employee: string;
@@ -28,16 +32,21 @@ interface MonthlyTrend {
 }
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+const PDF_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function OvertimeDashboard() {
   const { isAdmin, isManager } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
+  const [allEmployeeData, setAllEmployeeData] = useState<OvertimeData[]>([]);
   const [employeeData, setEmployeeData] = useState<OvertimeData[]>([]);
   const [departmentData, setDepartmentData] = useState<DepartmentData[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<MonthlyTrend[]>([]);
   const [totalOvertime, setTotalOvertime] = useState(0);
   const [alertCount, setAlertCount] = useState(0);
+  const [departments, setDepartments] = useState<string[]>([]);
 
   const months = Array.from({ length: 12 }, (_, i) => {
     const date = subMonths(new Date(), i);
@@ -55,6 +64,18 @@ export default function OvertimeDashboard() {
     }
   }, [selectedMonth, isAdmin, isManager]);
 
+  useEffect(() => {
+    // Filter data by department
+    if (selectedDepartment === 'all') {
+      setEmployeeData(allEmployeeData.slice(0, 10));
+      setTotalOvertime(Math.round(allEmployeeData.reduce((sum, d) => sum + d.overtimeHours, 0) * 10) / 10);
+    } else {
+      const filtered = allEmployeeData.filter(e => e.department === selectedDepartment);
+      setEmployeeData(filtered.slice(0, 10));
+      setTotalOvertime(Math.round(filtered.reduce((sum, d) => sum + d.overtimeHours, 0) * 10) / 10);
+    }
+  }, [selectedDepartment, allEmployeeData]);
+
   const fetchOvertimeData = async () => {
     setLoading(true);
     try {
@@ -62,7 +83,6 @@ export default function OvertimeDashboard() {
       const startDate = startOfMonth(new Date(year, month - 1));
       const endDate = endOfMonth(new Date(year, month - 1));
 
-      // Fetch profiles
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, user_id, full_name, department')
@@ -70,7 +90,6 @@ export default function OvertimeDashboard() {
 
       if (!profiles) return;
 
-      // Fetch time records for the month
       const { data: timeRecords } = await supabase
         .from('time_records')
         .select('*')
@@ -78,7 +97,6 @@ export default function OvertimeDashboard() {
         .lte('recorded_at', endDate.toISOString())
         .order('recorded_at');
 
-      // Fetch schedules
       const { data: employeeSchedules } = await supabase
         .from('employee_schedules')
         .select('profile_id, schedule_id');
@@ -87,17 +105,18 @@ export default function OvertimeDashboard() {
         .from('work_schedules')
         .select('*');
 
-      // Calculate overtime per employee
       const overtimeByEmployee: Record<string, { overtime: number; regular: number; department: string; name: string }> = {};
+      const uniqueDepartments = new Set<string>();
 
       profiles.forEach(profile => {
+        const dept = profile.department || 'Sem departamento';
+        uniqueDepartments.add(dept);
+        
         const schedule = employeeSchedules?.find(es => es.profile_id === profile.id);
         const workSchedule = schedule ? workSchedules?.find(ws => ws.id === schedule.schedule_id) : null;
         
-        // Get employee's time records
         const employeeRecords = timeRecords?.filter(tr => tr.profile_id === profile.id) || [];
         
-        // Group by date
         const recordsByDate: Record<string, typeof employeeRecords> = {};
         employeeRecords.forEach(record => {
           const date = format(parseISO(record.recorded_at), 'yyyy-MM-dd');
@@ -131,7 +150,6 @@ export default function OvertimeDashboard() {
             expectedHours += expectedMinutes / 60;
           }
 
-          // Calculate worked hours from records
           const sortedRecords = records.sort((a, b) => 
             new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
           );
@@ -152,12 +170,13 @@ export default function OvertimeDashboard() {
         overtimeByEmployee[profile.id] = {
           overtime,
           regular: Math.min(totalWorked, expectedHours),
-          department: profile.department || 'Sem departamento',
+          department: dept,
           name: profile.full_name
         };
       });
 
-      // Format employee data
+      setDepartments(Array.from(uniqueDepartments).sort());
+
       const employeeDataArray: OvertimeData[] = Object.values(overtimeByEmployee)
         .map(data => ({
           employee: data.name,
@@ -166,12 +185,11 @@ export default function OvertimeDashboard() {
           regularHours: Math.round(data.regular * 10) / 10
         }))
         .filter(d => d.overtimeHours > 0)
-        .sort((a, b) => b.overtimeHours - a.overtimeHours)
-        .slice(0, 10);
+        .sort((a, b) => b.overtimeHours - a.overtimeHours);
 
-      setEmployeeData(employeeDataArray);
+      setAllEmployeeData(employeeDataArray);
+      setEmployeeData(employeeDataArray.slice(0, 10));
 
-      // Aggregate by department
       const deptMap: Record<string, { total: number; count: number }> = {};
       Object.values(overtimeByEmployee).forEach(data => {
         if (!deptMap[data.department]) {
@@ -246,6 +264,109 @@ export default function OvertimeDashboard() {
     }
   };
 
+  const exportToPDF = async () => {
+    setExporting(true);
+    try {
+      const doc = new jsPDF();
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const monthLabel = format(new Date(year, month - 1), 'MMMM yyyy', { locale: ptBR });
+
+      // Header
+      doc.setFontSize(20);
+      doc.setTextColor(59, 130, 246);
+      doc.text('Relatório de Horas Extras', 14, 20);
+      
+      doc.setFontSize(12);
+      doc.setTextColor(100);
+      doc.text(`Período: ${monthLabel}`, 14, 30);
+      doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 37);
+      
+      if (selectedDepartment !== 'all') {
+        doc.text(`Departamento: ${selectedDepartment}`, 14, 44);
+      }
+
+      // Summary
+      doc.setFontSize(14);
+      doc.setTextColor(0);
+      doc.text('Resumo', 14, 55);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(60);
+      const summaryY = 62;
+      doc.text(`Total de Horas Extras: ${totalOvertime}h`, 14, summaryY);
+      doc.text(`Funcionários com HE: ${employeeData.length}`, 14, summaryY + 7);
+      doc.text(`Departamentos: ${departmentData.length}`, 100, summaryY);
+      doc.text(`Alertas Gerados: ${alertCount}`, 100, summaryY + 7);
+
+      // Employee Table
+      doc.setFontSize(14);
+      doc.setTextColor(0);
+      doc.text('Top Funcionários - Horas Extras', 14, summaryY + 22);
+
+      const dataToExport = selectedDepartment === 'all' ? allEmployeeData : allEmployeeData.filter(e => e.department === selectedDepartment);
+      
+      autoTable(doc, {
+        startY: summaryY + 28,
+        head: [['Funcionário', 'Departamento', 'Horas Extras', 'Horas Regulares']],
+        body: dataToExport.slice(0, 20).map(emp => [
+          emp.employee,
+          emp.department,
+          `${emp.overtimeHours}h`,
+          `${emp.regularHours}h`
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontSize: 9 },
+      });
+
+      // Department Table
+      const finalY = (doc as any).lastAutoTable.finalY || summaryY + 80;
+      
+      if (finalY < 200) {
+        doc.setFontSize(14);
+        doc.setTextColor(0);
+        doc.text('Resumo por Departamento', 14, finalY + 15);
+
+        autoTable(doc, {
+          startY: finalY + 21,
+          head: [['Departamento', 'Funcionários', 'Total HE', 'Média/Func.', 'Status']],
+          body: departmentData.map(dept => [
+            dept.name,
+            dept.employeeCount.toString(),
+            `${dept.totalOvertime}h`,
+            `${(dept.totalOvertime / dept.employeeCount).toFixed(1)}h`,
+            dept.totalOvertime > 20 ? 'Alto' : dept.totalOvertime > 10 ? 'Médio' : 'Normal'
+          ]),
+          theme: 'striped',
+          headStyles: { fillColor: [59, 130, 246] },
+          styles: { fontSize: 9 },
+        });
+      }
+
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(
+          `PontoMax - Sistema de Controle de Ponto | Página ${i} de ${pageCount}`,
+          doc.internal.pageSize.width / 2,
+          doc.internal.pageSize.height - 10,
+          { align: 'center' }
+        );
+      }
+
+      doc.save(`relatorio-horas-extras-${selectedMonth}.pdf`);
+      toast.success('Relatório PDF gerado com sucesso!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Erro ao gerar PDF');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (!isAdmin && !isManager) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -276,18 +397,36 @@ export default function OvertimeDashboard() {
             </p>
           </div>
         </div>
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map(m => (
-              <SelectItem key={m.value} value={m.value} className="capitalize">
-                {m.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap gap-2">
+          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+            <SelectTrigger className="w-48">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Departamento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os departamentos</SelectItem>
+              {departments.map(dept => (
+                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map(m => (
+                <SelectItem key={m.value} value={m.value} className="capitalize">
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={exportToPDF} disabled={exporting || loading} variant="outline">
+            <FileDown className="h-4 w-4 mr-2" />
+            {exporting ? 'Gerando...' : 'Exportar PDF'}
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -299,7 +438,9 @@ export default function OvertimeDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalOvertime}h</div>
-            <p className="text-xs text-muted-foreground">No mês selecionado</p>
+            <p className="text-xs text-muted-foreground">
+              {selectedDepartment === 'all' ? 'No mês selecionado' : `Dept: ${selectedDepartment}`}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -308,7 +449,11 @@ export default function OvertimeDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{employeeData.length}</div>
+            <div className="text-2xl font-bold">
+              {selectedDepartment === 'all' 
+                ? allEmployeeData.length 
+                : allEmployeeData.filter(e => e.department === selectedDepartment).length}
+            </div>
             <p className="text-xs text-muted-foreground">Com horas extras registradas</p>
           </CardContent>
         </Card>
@@ -343,7 +488,14 @@ export default function OvertimeDashboard() {
           {/* Top Employees Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Top 10 Funcionários - Horas Extras</CardTitle>
+              <CardTitle>
+                Top 10 Funcionários - Horas Extras
+                {selectedDepartment !== 'all' && (
+                  <Badge variant="secondary" className="ml-2 font-normal">
+                    {selectedDepartment}
+                  </Badge>
+                )}
+              </CardTitle>
               <CardDescription>Funcionários com mais horas extras no período</CardDescription>
             </CardHeader>
             <CardContent>
@@ -449,7 +601,11 @@ export default function OvertimeDashboard() {
                   </thead>
                   <tbody>
                     {departmentData.map((dept, index) => (
-                      <tr key={index} className="border-b last:border-0">
+                      <tr 
+                        key={index} 
+                        className={`border-b last:border-0 cursor-pointer hover:bg-muted/50 ${selectedDepartment === dept.name ? 'bg-primary/5' : ''}`}
+                        onClick={() => setSelectedDepartment(selectedDepartment === dept.name ? 'all' : dept.name)}
+                      >
                         <td className="py-3 px-4 font-medium">{dept.name}</td>
                         <td className="py-3 px-4 text-right">{dept.employeeCount}</td>
                         <td className="py-3 px-4 text-right">{dept.totalOvertime}h</td>
