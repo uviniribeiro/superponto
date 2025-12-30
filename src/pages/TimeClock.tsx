@@ -4,9 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Camera, X } from 'lucide-react';
+import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Camera, X, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Progress } from '@/components/ui/progress';
 
 type RecordType = 'entry' | 'break_start' | 'break_end' | 'exit';
 
@@ -14,6 +15,13 @@ interface Location {
   latitude: number | null;
   longitude: number | null;
   address: string | null;
+}
+
+interface FaceValidationResult {
+  isMatch: boolean;
+  confidence: number;
+  reason: string;
+  error?: string;
 }
 
 export default function TimeClock() {
@@ -31,6 +39,10 @@ export default function TimeClock() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  
+  // Face validation states
+  const [isValidatingFace, setIsValidatingFace] = useState(false);
+  const [faceValidation, setFaceValidation] = useState<FaceValidationResult | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -147,6 +159,7 @@ export default function TimeClock() {
 
   const retakePhoto = async () => {
     setCapturedPhoto(null);
+    setFaceValidation(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'user', width: 640, height: 480 } 
@@ -165,6 +178,50 @@ export default function TimeClock() {
     setShowCamera(false);
     setCapturedPhoto(null);
     setPendingRecordType(null);
+    setFaceValidation(null);
+  };
+
+  const validateFace = async (selfieDataUrl: string): Promise<FaceValidationResult> => {
+    if (!profile?.photo_url) {
+      return {
+        isMatch: false,
+        confidence: 0,
+        reason: "Funcionário não possui foto cadastrada. Contate o administrador.",
+        error: "NO_REGISTERED_PHOTO"
+      };
+    }
+
+    try {
+      // Extract base64 from data URL
+      const selfieBase64 = selfieDataUrl.split(',')[1];
+      
+      const { data, error } = await supabase.functions.invoke('validate-face', {
+        body: {
+          selfieBase64,
+          registeredPhotoUrl: profile.photo_url
+        }
+      });
+
+      if (error) {
+        console.error('Face validation error:', error);
+        return {
+          isMatch: false,
+          confidence: 0,
+          reason: "Erro ao validar face. Tente novamente.",
+          error: error.message
+        };
+      }
+
+      return data as FaceValidationResult;
+    } catch (error) {
+      console.error('Face validation error:', error);
+      return {
+        isMatch: false,
+        confidence: 0,
+        reason: "Erro de conexão. Verifique sua internet.",
+        error: String(error)
+      };
+    }
   };
 
   const uploadPhoto = async (dataUrl: string): Promise<string | null> => {
@@ -199,6 +256,61 @@ export default function TimeClock() {
     }
   };
 
+  const handleCaptureAndValidate = async () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(video, 0, 0);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      setCapturedPhoto(dataUrl);
+      stopCamera();
+      
+      // Validate face if employee has a registered photo
+      if (profile?.photo_url) {
+        setIsValidatingFace(true);
+        setFaceValidation(null);
+        
+        try {
+          const result = await validateFace(dataUrl);
+          setFaceValidation(result);
+          
+          if (result.isMatch) {
+            toast.success(`Identidade confirmada! (${result.confidence}% de confiança)`);
+          } else if (result.error === "NO_REGISTERED_PHOTO") {
+            toast.warning('Você não possui foto cadastrada. Contate o administrador.');
+          } else {
+            toast.error(`Validação facial falhou: ${result.reason}`);
+          }
+        } catch (error) {
+          console.error('Face validation error:', error);
+          setFaceValidation({
+            isMatch: false,
+            confidence: 0,
+            reason: "Erro ao validar face",
+            error: String(error)
+          });
+        } finally {
+          setIsValidatingFace(false);
+        }
+      } else {
+        // No registered photo - show warning but allow to proceed
+        setFaceValidation({
+          isMatch: false,
+          confidence: 0,
+          reason: "Sem foto cadastrada",
+          error: "NO_REGISTERED_PHOTO"
+        });
+        toast.warning('Você não possui foto cadastrada. O ponto será registrado sem validação facial.');
+      }
+    }
+  };
+
   const confirmAndRecord = async () => {
     if (!profile || !pendingRecordType || !capturedPhoto) {
       toast.error('Dados incompletos');
@@ -207,6 +319,12 @@ export default function TimeClock() {
 
     if (!location.latitude || !location.longitude) {
       toast.error('Localização é obrigatória para registrar o ponto');
+      return;
+    }
+
+    // Block if face validation failed (unless no registered photo)
+    if (profile.photo_url && faceValidation && !faceValidation.isMatch && faceValidation.error !== "NO_REGISTERED_PHOTO") {
+      toast.error('Validação facial falhou. Tire uma nova foto.');
       return;
     }
 
@@ -304,16 +422,79 @@ export default function TimeClock() {
             </div>
             <canvas ref={canvasRef} className="hidden" />
             
+            {/* Face Validation Status */}
+            {capturedPhoto && (
+              <div className="space-y-2">
+                {isValidatingFace ? (
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-secondary/50">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">Validando identidade...</p>
+                      <p className="text-xs text-muted-foreground">Comparando com foto cadastrada</p>
+                    </div>
+                  </div>
+                ) : faceValidation ? (
+                  <div className={`p-4 rounded-lg ${
+                    faceValidation.isMatch 
+                      ? 'bg-success/10 border border-success/30' 
+                      : faceValidation.error === 'NO_REGISTERED_PHOTO'
+                        ? 'bg-warning/10 border border-warning/30'
+                        : 'bg-destructive/10 border border-destructive/30'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      {faceValidation.isMatch ? (
+                        <ShieldCheck className="h-6 w-6 text-success" />
+                      ) : faceValidation.error === 'NO_REGISTERED_PHOTO' ? (
+                        <ShieldAlert className="h-6 w-6 text-warning" />
+                      ) : (
+                        <ShieldAlert className="h-6 w-6 text-destructive" />
+                      )}
+                      <div className="flex-1">
+                        <p className={`font-medium text-sm ${
+                          faceValidation.isMatch 
+                            ? 'text-success' 
+                            : faceValidation.error === 'NO_REGISTERED_PHOTO'
+                              ? 'text-warning'
+                              : 'text-destructive'
+                        }`}>
+                          {faceValidation.isMatch 
+                            ? 'Identidade Confirmada' 
+                            : faceValidation.error === 'NO_REGISTERED_PHOTO'
+                              ? 'Sem foto cadastrada'
+                              : 'Validação Falhou'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{faceValidation.reason}</p>
+                      </div>
+                      {faceValidation.confidence > 0 && (
+                        <div className="text-right">
+                          <p className="text-sm font-mono font-bold">{faceValidation.confidence}%</p>
+                          <p className="text-xs text-muted-foreground">confiança</p>
+                        </div>
+                      )}
+                    </div>
+                    {faceValidation.confidence > 0 && (
+                      <div className="mt-2">
+                        <Progress 
+                          value={faceValidation.confidence} 
+                          className={`h-2 ${faceValidation.isMatch ? '[&>div]:bg-success' : '[&>div]:bg-destructive'}`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
+            
             <div className="flex gap-3">
               {capturedPhoto ? (
                 <>
-                  <Button variant="outline" onClick={retakePhoto} className="flex-1">
+                  <Button variant="outline" onClick={retakePhoto} className="flex-1" disabled={isValidatingFace}>
                     <Camera className="mr-2 h-4 w-4" />
                     Tirar Novamente
                   </Button>
                   <Button 
                     onClick={confirmAndRecord} 
-                    disabled={isRecording}
+                    disabled={isRecording || isValidatingFace || (profile?.photo_url && faceValidation && !faceValidation.isMatch && faceValidation.error !== "NO_REGISTERED_PHOTO")}
                     className={`flex-1 ${pendingRecordType ? recordTypeConfig[pendingRecordType].color : ''} text-white`}
                   >
                     {isRecording ? (
@@ -325,7 +506,7 @@ export default function TimeClock() {
                   </Button>
                 </>
               ) : (
-                <Button onClick={capturePhoto} className="w-full gradient-primary" size="lg">
+                <Button onClick={handleCaptureAndValidate} className="w-full gradient-primary" size="lg">
                   <Camera className="mr-2 h-5 w-5" />
                   Capturar Foto
                 </Button>

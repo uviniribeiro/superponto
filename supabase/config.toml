@@ -21,3 +21,9 @@ verify_jwt = false
 
 [functions.send-whatsapp-alert]
 verify_jwt = false
+
+[functions.validate-face]
+verify_jwt = false
+
+[functions.admin-change-password]
+verify_jwt = true
