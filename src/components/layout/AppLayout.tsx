@@ -38,6 +38,7 @@ import {
   Building2,
   CalendarDays,
   Timer,
+  UserX,
 } from 'lucide-react';
 
 const menuItems = [
@@ -48,6 +49,7 @@ const menuItems = [
   { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
   { title: 'Jornadas', icon: Calendar, href: '/schedules', roles: ['admin'] },
   { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
+  { title: 'Faltas', icon: UserX, href: '/absences', roles: ['admin', 'manager'] },
   { title: 'Ajustes', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
   { title: 'Relatórios', icon: FileText, href: '/reports', roles: ['admin', 'manager'] },
   { title: 'Empresa', icon: Building2, href: '/company', roles: ['admin'] },
