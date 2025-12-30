@@ -25,6 +25,7 @@ interface Profile {
   is_active: boolean;
   company_id: string | null;
   phone: string | null;
+  photo_url: string | null;
 }
 
 interface AuthContextType {
