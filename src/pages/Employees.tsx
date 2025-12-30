@@ -10,9 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Users, Plus, Search, Edit, UserCheck, UserX } from 'lucide-react';
+import { Users, Search, Edit, UserCheck, UserX, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
 
 interface Employee {
   id: string;
@@ -47,6 +48,7 @@ const employeeSchema = z.object({
 });
 
 export default function Employees() {
+  const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -208,6 +210,12 @@ export default function Employees() {
           </h1>
           <p className="text-muted-foreground">Gerencie o cadastro de colaboradores</p>
         </div>
+        {isAdmin && (
+          <Button onClick={() => navigate('/employees/register')} className="gradient-primary">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Cadastrar Funcionário
+          </Button>
+        )}
       </div>
 
       <Card>

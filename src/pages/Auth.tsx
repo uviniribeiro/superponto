@@ -7,17 +7,22 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Clock, Fingerprint, Shield, Users } from 'lucide-react';
+import { Clock, Fingerprint, Shield, Users, Building2 } from 'lucide-react';
 import { z } from 'zod';
 
 const loginSchema = z.object({
   email: z.string().trim().email('Email inválido').max(255),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(100),
+  companyCode: z.string().trim().min(1, 'Código da empresa é obrigatório').max(20),
 });
 
-const signupSchema = loginSchema.extend({
-  fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
+const signupSchema = z.object({
+  email: z.string().trim().email('Email inválido').max(255),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(100),
   confirmPassword: z.string(),
+  fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
+  companyName: z.string().trim().min(2, 'Nome da empresa é obrigatório').max(100),
+  companyCnpj: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Senhas não coincidem",
   path: ["confirmPassword"],
@@ -28,12 +33,18 @@ export default function Auth() {
   const { signIn, signUp, user, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [loginData, setLoginData] = useState({ 
+    email: '', 
+    password: '', 
+    companyCode: '' 
+  });
   const [signupData, setSignupData] = useState({ 
     email: '', 
     password: '', 
     confirmPassword: '', 
-    fullName: '' 
+    fullName: '',
+    companyName: '',
+    companyCnpj: ''
   });
 
   useEffect(() => {
@@ -48,7 +59,7 @@ export default function Auth() {
 
     try {
       const validData = loginSchema.parse(loginData);
-      const { error } = await signIn(validData.email, validData.password);
+      const { error } = await signIn(validData.email, validData.password, validData.companyCode);
       
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
@@ -75,7 +86,13 @@ export default function Auth() {
 
     try {
       const validData = signupSchema.parse(signupData);
-      const { error } = await signUp(validData.email, validData.password, validData.fullName);
+      const { error } = await signUp(
+        validData.email, 
+        validData.password, 
+        validData.fullName,
+        validData.companyName,
+        validData.companyCnpj || ''
+      );
       
       if (error) {
         if (error.message.includes('already registered')) {
@@ -84,7 +101,7 @@ export default function Auth() {
           toast.error(error.message);
         }
       } else {
-        toast.success('Conta criada com sucesso! Você já pode fazer login.');
+        toast.success('Empresa e conta criadas com sucesso! Você já pode fazer login.');
         navigate('/dashboard');
       }
     } catch (error) {
@@ -119,13 +136,22 @@ export default function Auth() {
         
         <div className="space-y-8">
           <h1 className="text-4xl font-bold text-primary-foreground leading-tight">
-            Sistema de Controle de Ponto Eletrônico
+            Sistema de Controle de Ponto Eletrônico Multi-Empresas
           </h1>
           <p className="text-primary-foreground/80 text-lg">
             Conforme Portarias 1510 e 671 do Ministério do Trabalho
           </p>
           
           <div className="grid grid-cols-2 gap-6 pt-8">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-primary-foreground/20 rounded-lg">
+                <Building2 className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-primary-foreground">Multi-Empresas</h3>
+                <p className="text-sm text-primary-foreground/70">Cada empresa isolada</p>
+              </div>
+            </div>
             <div className="flex items-start gap-3">
               <div className="p-2 bg-primary-foreground/20 rounded-lg">
                 <Clock className="w-6 h-6 text-primary-foreground" />
@@ -174,7 +200,7 @@ export default function Auth() {
               <CardHeader className="pb-4">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="login">Entrar</TabsTrigger>
-                  <TabsTrigger value="signup">Cadastrar</TabsTrigger>
+                  <TabsTrigger value="signup">Nova Empresa</TabsTrigger>
                 </TabsList>
               </CardHeader>
 
@@ -183,8 +209,21 @@ export default function Auth() {
                   <CardContent className="space-y-4">
                     <CardTitle>Bem-vindo de volta</CardTitle>
                     <CardDescription>
-                      Acesse sua conta para registrar o ponto
+                      Informe o código da empresa e suas credenciais
                     </CardDescription>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="login-company">Código da Empresa</Label>
+                      <Input
+                        id="login-company"
+                        type="text"
+                        placeholder="Ex: EMPRESA123"
+                        value={loginData.companyCode}
+                        onChange={(e) => setLoginData({ ...loginData, companyCode: e.target.value.toUpperCase() })}
+                        className="uppercase"
+                        required
+                      />
+                    </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="login-email">Email</Label>
@@ -226,57 +265,91 @@ export default function Auth() {
               <TabsContent value="signup">
                 <form onSubmit={handleSignup}>
                   <CardContent className="space-y-4">
-                    <CardTitle>Criar conta</CardTitle>
+                    <CardTitle>Cadastrar Empresa</CardTitle>
                     <CardDescription>
-                      Preencha os dados para se cadastrar
+                      Crie uma conta para sua empresa
                     </CardDescription>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-name">Nome completo</Label>
-                      <Input
-                        id="signup-name"
-                        type="text"
-                        placeholder="Seu nome"
-                        value={signupData.fullName}
-                        onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
-                        required
-                      />
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-sm font-medium mb-2">Dados da Empresa</p>
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-company-name">Nome da Empresa *</Label>
+                          <Input
+                            id="signup-company-name"
+                            type="text"
+                            placeholder="Razão Social"
+                            value={signupData.companyName}
+                            onChange={(e) => setSignupData({ ...signupData, companyName: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-cnpj">CNPJ</Label>
+                          <Input
+                            id="signup-cnpj"
+                            type="text"
+                            placeholder="00.000.000/0000-00"
+                            value={signupData.companyCnpj}
+                            onChange={(e) => setSignupData({ ...signupData, companyCnpj: e.target.value })}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={signupData.email}
-                        onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Senha</Label>
-                      <Input
-                        id="signup-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={signupData.password}
-                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-confirm">Confirmar senha</Label>
-                      <Input
-                        id="signup-confirm"
-                        type="password"
-                        placeholder="••••••••"
-                        value={signupData.confirmPassword}
-                        onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                        required
-                      />
+
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-sm font-medium mb-2">Administrador</p>
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-name">Nome Completo *</Label>
+                          <Input
+                            id="signup-name"
+                            type="text"
+                            placeholder="Seu nome"
+                            value={signupData.fullName}
+                            onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
+                            required
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="signup-email">Email *</Label>
+                          <Input
+                            id="signup-email"
+                            type="email"
+                            placeholder="seu@email.com"
+                            value={signupData.email}
+                            onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                            required
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="signup-password">Senha *</Label>
+                            <Input
+                              id="signup-password"
+                              type="password"
+                              placeholder="••••••"
+                              value={signupData.password}
+                              onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                              required
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="signup-confirm">Confirmar *</Label>
+                            <Input
+                              id="signup-confirm"
+                              type="password"
+                              placeholder="••••••"
+                              value={signupData.confirmPassword}
+                              onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                   
@@ -286,7 +359,7 @@ export default function Auth() {
                       className="w-full gradient-primary"
                       disabled={isLoading}
                     >
-                      {isLoading ? 'Cadastrando...' : 'Cadastrar'}
+                      {isLoading ? 'Cadastrando...' : 'Criar Empresa'}
                     </Button>
                   </CardFooter>
                 </form>
