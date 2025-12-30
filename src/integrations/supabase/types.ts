@@ -302,6 +302,36 @@ export type Database = {
         }
         Relationships: []
       }
+      role_change_history: {
+        Row: {
+          changed_at: string
+          changed_by_user_id: string
+          id: string
+          new_role: Database["public"]["Enums"]["app_role"]
+          notes: string | null
+          previous_role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by_user_id: string
+          id?: string
+          new_role: Database["public"]["Enums"]["app_role"]
+          notes?: string | null
+          previous_role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by_user_id?: string
+          id?: string
+          new_role?: Database["public"]["Enums"]["app_role"]
+          notes?: string | null
+          previous_role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       time_records: {
         Row: {
           address: string | null
