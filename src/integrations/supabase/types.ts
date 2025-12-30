@@ -229,6 +229,7 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           nsr: number
+          photo_url: string | null
           profile_id: string
           record_type: string
           recorded_at: string
@@ -242,6 +243,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           nsr?: number
+          photo_url?: string | null
           profile_id: string
           record_type: string
           recorded_at?: string
@@ -255,6 +257,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           nsr?: number
+          photo_url?: string | null
           profile_id?: string
           record_type?: string
           recorded_at?: string
