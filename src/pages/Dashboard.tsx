@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Users, CalendarCheck, AlertCircle, ArrowRight, TrendingUp, BarChart3, Timer, UserX } from 'lucide-react';
+import { Clock, Users, CalendarCheck, AlertCircle, ArrowRight, TrendingUp, BarChart3, Timer, UserX, Building2, Copy, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, differenceInMinutes, parseISO, startOfWeek, endOfWeek, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
@@ -29,8 +30,9 @@ interface AttendanceData {
 }
 
 export default function Dashboard() {
-  const { profile, isAdmin, isManager } = useAuth();
+  const { profile, company, isAdmin, isManager } = useAuth();
   const navigate = useNavigate();
+  const [copiedCode, setCopiedCode] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     todayRecords: 0,
     pendingAdjustments: 0,
@@ -242,6 +244,15 @@ export default function Dashboard() {
 
   const currentDate = format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
+  const copyCompanyCode = () => {
+    if (company?.company_code) {
+      navigator.clipboard.writeText(company.company_code);
+      setCopiedCode(true);
+      toast.success('Código copiado!');
+      setTimeout(() => setCopiedCode(false), 2000);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Welcome Header */}
@@ -252,11 +263,44 @@ export default function Dashboard() {
           </h1>
           <p className="text-muted-foreground capitalize">{currentDate}</p>
         </div>
-        <Button onClick={() => navigate('/time-clock')} size="lg" className="gradient-primary">
-          <Clock className="mr-2 h-5 w-5" />
-          Registrar Ponto
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate('/time-clock')} size="lg" className="gradient-primary">
+            <Clock className="mr-2 h-5 w-5" />
+            Registrar Ponto
+          </Button>
+        </div>
       </div>
+
+      {/* Company Code Card for Admins */}
+      {isAdmin && company && (
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="py-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Building2 className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Código da Empresa</p>
+                  <p className="text-2xl font-bold tracking-wider">{company.company_code}</p>
+                </div>
+              </div>
+              <div className="flex flex-col md:items-end gap-1">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={copyCompanyCode}
+                  className="gap-2"
+                >
+                  {copiedCode ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copiedCode ? 'Copiado!' : 'Copiar Código'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Compartilhe com seus funcionários para login
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Grid for Admin/Manager */}
       {(isAdmin || isManager) && (
