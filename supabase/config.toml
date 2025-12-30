@@ -1,1 +1,7 @@
 project_id = "sfbyujjvfxicuuafjtoy"
+
+[functions.check-overtime]
+verify_jwt = false
+
+[functions.send-role-notification]
+verify_jwt = true

@@ -50,7 +50,7 @@ const roleBadgeVariants = {
 };
 
 export default function Users() {
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, profile: currentProfile } = useAuth();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [history, setHistory] = useState<RoleChangeHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,6 +148,22 @@ export default function Users() {
         });
 
       if (historyError) console.error('Error logging role change:', historyError);
+
+      // Send email notification
+      try {
+        await supabase.functions.invoke('send-role-notification', {
+          body: {
+            userEmail: currentUser.email,
+            userName: currentUser.full_name,
+            previousRole: currentUser.role,
+            newRole: newRole,
+            changedByName: currentProfile?.full_name || 'Administrador'
+          }
+        });
+        console.log('Role change notification sent');
+      } catch (emailError) {
+        console.error('Error sending email notification:', emailError);
+      }
 
       setUsers(prev => prev.map(u => 
         u.user_id === userId ? { ...u, role: newRole } : u
