@@ -10,10 +10,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Users, Search, Edit, UserCheck, UserX, UserPlus } from 'lucide-react';
+import { Users, Search, Edit, UserCheck, UserX, UserPlus, Key } from 'lucide-react';
 import { format } from 'date-fns';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
+import { supabase as supabaseClient } from '@/integrations/supabase/client';
 
 interface Employee {
   id: string;
@@ -47,6 +48,14 @@ const employeeSchema = z.object({
   phone: z.string().optional(),
 });
 
+const passwordSchema = z.object({
+  newPassword: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  confirmPassword: z.string().min(6, 'Confirmação deve ter pelo menos 6 caracteres'),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
+
 export default function Employees() {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
@@ -56,6 +65,10 @@ export default function Employees() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [selectedEmployeeForPassword, setSelectedEmployeeForPassword] = useState<Employee | null>(null);
+  const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
+  const [changingPassword, setChangingPassword] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -194,6 +207,45 @@ export default function Employees() {
     setIsDialogOpen(true);
   };
 
+  const openPasswordDialog = (employee: Employee) => {
+    setSelectedEmployeeForPassword(employee);
+    setPasswordData({ newPassword: '', confirmPassword: '' });
+    setIsPasswordDialogOpen(true);
+  };
+
+  const handleChangePassword = async () => {
+    if (!selectedEmployeeForPassword) return;
+
+    try {
+      const validData = passwordSchema.parse(passwordData);
+      setChangingPassword(true);
+
+      // Call edge function to change user password
+      const { error } = await supabaseClient.functions.invoke('admin-change-password', {
+        body: {
+          userId: selectedEmployeeForPassword.user_id,
+          newPassword: validData.newPassword
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success('Senha alterada com sucesso!');
+      setIsPasswordDialogOpen(false);
+      setPasswordData({ newPassword: '', confirmPassword: '' });
+      setSelectedEmployeeForPassword(null);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        console.error('Error changing password:', error);
+        toast.error('Erro ao alterar senha');
+      }
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const filteredEmployees = employees.filter(emp =>
     emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -274,21 +326,33 @@ export default function Employees() {
                             variant="ghost"
                             size="icon"
                             onClick={() => openEditDialog(employee)}
+                            title="Editar"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           {isAdmin && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => toggleEmployeeStatus(employee)}
-                            >
-                              {employee.is_active ? (
-                                <UserX className="h-4 w-4 text-destructive" />
-                              ) : (
-                                <UserCheck className="h-4 w-4 text-success" />
-                              )}
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openPasswordDialog(employee)}
+                                title="Alterar Senha"
+                              >
+                                <Key className="h-4 w-4 text-warning" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => toggleEmployeeStatus(employee)}
+                                title={employee.is_active ? 'Desativar' : 'Ativar'}
+                              >
+                                {employee.is_active ? (
+                                  <UserX className="h-4 w-4 text-destructive" />
+                                ) : (
+                                  <UserCheck className="h-4 w-4 text-success" />
+                                )}
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>
@@ -409,6 +473,52 @@ export default function Employees() {
             </Button>
             <Button onClick={handleSave} className="gradient-primary">
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Change Dialog */}
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Senha</DialogTitle>
+            <DialogDescription>
+              Alterar senha de {selectedEmployeeForPassword?.full_name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nova Senha</Label>
+              <Input
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirmar Nova Senha</Label>
+              <Input
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                placeholder="Repita a nova senha"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleChangePassword} 
+              disabled={changingPassword}
+              className="gradient-primary"
+            >
+              {changingPassword ? 'Alterando...' : 'Alterar Senha'}
             </Button>
           </DialogFooter>
         </DialogContent>
