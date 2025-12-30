@@ -59,25 +59,23 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     } else if (body.type === 'weekly_report') {
-      // Send weekly report to all admins and managers with phone numbers
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, user_id, cpf')
-        .eq('is_active', true);
+      // Get company settings for WhatsApp phone
+      const { data: companySettings } = await supabase
+        .from('company_settings')
+        .select('whatsapp_alert_phone, overtime_alert_email')
+        .single();
 
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-        throw profilesError;
-      }
+      const alertPhone = (companySettings as any)?.whatsapp_alert_phone;
 
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('role', ['admin', 'manager']);
-
-      if (rolesError) {
-        console.error("Error fetching roles:", rolesError);
-        throw rolesError;
+      if (!alertPhone) {
+        console.log("No WhatsApp phone configured in company settings");
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "WhatsApp não configurado nas configurações da empresa" 
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // Get overtime data for the report
@@ -100,25 +98,13 @@ const handler = async (req: Request): Promise<Response> => {
         `⏰ Total de Horas Extras: ${totalHours.toFixed(1)}h\n\n` +
         `_Acesse o sistema para mais detalhes._`;
 
-      // Note: In a real implementation, you would store phone numbers in profiles
-      // For now, we'll log that the feature needs phone numbers to be configured
-      console.log("Weekly report message prepared:", reportMessage);
-      console.log("Admin/Manager profiles found:", profiles?.filter(p => 
-        roles?.some(r => r.user_id === p.user_id)
-      ).length);
+      // Send WhatsApp message
+      await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, alertPhone, reportMessage);
 
-      // Get company settings for alert phone
-      const { data: companySettings } = await supabase
-        .from('company_settings')
-        .select('overtime_alert_email')
-        .single();
-
-      // If we had a phone field in company_settings, we would use it here
-      // For demo purposes, return success
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: "Weekly report prepared",
+          message: "Relatório enviado via WhatsApp",
           report: {
             totalAlerts,
             totalHours: totalHours.toFixed(1),

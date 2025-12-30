@@ -25,6 +25,7 @@ interface Employee {
   department: string | null;
   position: string | null;
   hire_date: string | null;
+  phone: string | null;
   is_active: boolean;
 }
 
@@ -42,6 +43,7 @@ const employeeSchema = z.object({
   department: z.string().optional(),
   position: z.string().optional(),
   hire_date: z.string().optional(),
+  phone: z.string().optional(),
 });
 
 export default function Employees() {
@@ -61,6 +63,7 @@ export default function Employees() {
     department: '',
     position: '',
     hire_date: '',
+    phone: '',
     schedule_id: ''
   });
 
@@ -107,6 +110,7 @@ export default function Employees() {
             department: formData.department || null,
             position: formData.position || null,
             hire_date: formData.hire_date || null,
+            phone: formData.phone || null,
           })
           .eq('id', editingEmployee.id);
 
@@ -165,6 +169,7 @@ export default function Employees() {
       department: '',
       position: '',
       hire_date: '',
+      phone: '',
       schedule_id: ''
     });
     setEditingEmployee(null);
@@ -181,6 +186,7 @@ export default function Employees() {
       department: employee.department || '',
       position: employee.position || '',
       hire_date: employee.hire_date || '',
+      phone: employee.phone || '',
       schedule_id: ''
     });
     setIsDialogOpen(true);
@@ -359,6 +365,15 @@ export default function Employees() {
                 type="date"
                 value={formData.hire_date}
                 onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone/WhatsApp</Label>
+              <Input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="(11) 99999-9999"
               />
             </div>
             <div className="space-y-2 col-span-2">
