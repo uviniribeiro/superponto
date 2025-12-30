@@ -139,16 +139,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string, companyCode: string) => {
-    // First validate company code exists
+    // Normalize CNPJ - remove formatting for comparison
+    const normalizedCnpj = companyCode.replace(/[^\d]/g, '');
+    
+    // First validate company CNPJ exists
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
-      .select('id, name, company_code')
-      .eq('company_code', companyCode.toUpperCase())
+      .select('id, name, company_code, cnpj')
+      .eq('company_code', normalizedCnpj)
       .eq('is_active', true)
       .maybeSingle();
 
     if (companyError || !companyData) {
-      return { error: new Error('Código da empresa inválido ou empresa inativa') };
+      return { error: new Error('CNPJ da empresa inválido ou empresa inativa') };
     }
 
     // Try to sign in
@@ -181,20 +184,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, fullName: string, companyName: string, companyCnpj: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    // Generate unique company code
-    const companyCode = companyName
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '')
-      .substring(0, 6) + 
-      Math.random().toString(36).substring(2, 6).toUpperCase();
+    // Use CNPJ as company code (normalized - only digits)
+    const normalizedCnpj = companyCnpj.replace(/[^\d]/g, '');
+    
+    // Check if CNPJ is already registered
+    const { data: existingCompany } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('company_code', normalizedCnpj)
+      .maybeSingle();
+    
+    if (existingCompany) {
+      return { error: new Error('CNPJ já cadastrado no sistema') };
+    }
 
-    // Create company first
+    // Create company first with CNPJ as company_code
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .insert({
         name: companyName,
-        cnpj: companyCnpj || null,
-        company_code: companyCode
+        cnpj: companyCnpj,
+        company_code: normalizedCnpj
       })
       .select()
       .single();
