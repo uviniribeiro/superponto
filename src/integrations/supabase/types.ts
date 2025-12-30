@@ -103,6 +103,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          license_status: string | null
           name: string
           state: string | null
           updated_at: string
@@ -115,6 +116,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          license_status?: string | null
           name: string
           state?: string | null
           updated_at?: string
@@ -127,6 +129,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          license_status?: string | null
           name?: string
           state?: string | null
           updated_at?: string
@@ -335,6 +338,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "holidays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenses: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          license_key: string
+          max_employees: number | null
+          notes: string | null
+          updated_at: string
+          valid_from: string
+          valid_until: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          license_key: string
+          max_employees?: number | null
+          notes?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_until: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          license_key?: string
+          max_employees?: number | null
+          notes?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenses_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -741,9 +794,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "manager" | "employee"
+      app_role: "admin" | "manager" | "employee" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -871,7 +925,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "manager", "employee"],
+      app_role: ["admin", "manager", "employee", "super_admin"],
     },
   },
 } as const

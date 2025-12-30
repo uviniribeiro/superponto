@@ -25,15 +25,15 @@ interface UserWithRole {
   is_active: boolean;
   created_at: string;
   photo_url: string | null;
-  role: 'admin' | 'manager' | 'employee';
+  role: 'admin' | 'manager' | 'employee' | 'super_admin';
 }
 
 interface RoleChangeHistory {
   id: string;
   user_id: string;
   changed_by_user_id: string;
-  previous_role: 'admin' | 'manager' | 'employee';
-  new_role: 'admin' | 'manager' | 'employee';
+  previous_role: 'admin' | 'manager' | 'employee' | 'super_admin';
+  new_role: 'admin' | 'manager' | 'employee' | 'super_admin';
   changed_at: string;
   notes: string | null;
   user_name?: string;

@@ -22,6 +22,8 @@ import Absences from "@/pages/Absences";
 import Users from "@/pages/Users";
 import OvertimeDashboard from "@/pages/OvertimeDashboard";
 import PositionsDepartments from "@/pages/PositionsDepartments";
+import SuperAdmin from "@/pages/SuperAdmin";
+import SuperAdminAuth from "@/pages/SuperAdminAuth";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +38,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
             
             <Route path="/" element={
               <ProtectedRoute>
@@ -99,6 +102,11 @@ const App = () => (
               <Route path="overtime-dashboard" element={
                 <ProtectedRoute requiredRoles={['admin', 'manager']}>
                   <OvertimeDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="super-admin" element={
+                <ProtectedRoute requiredRoles={['super_admin']}>
+                  <SuperAdmin />
                 </ProtectedRoute>
               } />
             </Route>
