@@ -469,6 +469,7 @@ export type Database = {
           id: string
           is_active: boolean
           phone: string | null
+          photo_url: string | null
           pis: string | null
           position: string | null
           registration_number: string | null
@@ -486,6 +487,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           phone?: string | null
+          photo_url?: string | null
           pis?: string | null
           position?: string | null
           registration_number?: string | null
@@ -503,6 +505,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           phone?: string | null
+          photo_url?: string | null
           pis?: string | null
           position?: string | null
           registration_number?: string | null

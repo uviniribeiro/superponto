@@ -10,6 +10,7 @@ import { UserPlus, Shield, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { SelfieCapture } from '@/components/employees/SelfieCapture';
 
 const employeeSchema = z.object({
   fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
@@ -50,6 +51,8 @@ export default function RegisterEmployee() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -105,8 +108,53 @@ export default function RegisterEmployee() {
     ? positions.filter(p => p.department_id === formData.department_id || !p.department_id)
     : positions;
 
+  const handlePhotoCapture = (blob: Blob) => {
+    setPhotoBlob(blob);
+    setCapturedImage(URL.createObjectURL(blob));
+  };
+
+  const handlePhotoClear = () => {
+    setPhotoBlob(null);
+    if (capturedImage) {
+      URL.revokeObjectURL(capturedImage);
+    }
+    setCapturedImage(null);
+  };
+
+  const uploadPhoto = async (userId: string): Promise<string | null> => {
+    if (!photoBlob) return null;
+
+    const fileName = `${userId}-${Date.now()}.jpg`;
+    const filePath = `${profile?.company_id}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('employee-photos')
+      .upload(filePath, photoBlob, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+
+    if (uploadError) {
+      console.error('Error uploading photo:', uploadError);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('employee-photos')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate photo is required
+    if (!photoBlob) {
+      toast.error('A foto do funcionário é obrigatória');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -134,27 +182,40 @@ export default function RegisterEmployee() {
         return;
       }
 
-      // Assign schedule if selected
-      if (formData.schedule_id && user) {
-        const { data: newProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
+      // Upload photo and update profile
+      if (user) {
+        const photoUrl = await uploadPhoto(user.id);
+        
+        if (photoUrl) {
+          const { data: newProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
 
-        if (newProfile) {
-          await supabase.from('employee_schedules').insert({
-            profile_id: newProfile.id,
-            schedule_id: formData.schedule_id,
-            start_date: new Date().toISOString().split('T')[0],
-            company_id: profile?.company_id
-          });
+          if (newProfile) {
+            await supabase
+              .from('profiles')
+              .update({ photo_url: photoUrl })
+              .eq('id', newProfile.id);
+
+            // Assign schedule if selected
+            if (formData.schedule_id) {
+              await supabase.from('employee_schedules').insert({
+                profile_id: newProfile.id,
+                schedule_id: formData.schedule_id,
+                start_date: new Date().toISOString().split('T')[0],
+                company_id: profile?.company_id
+              });
+            }
+          }
         }
       }
 
       toast.success('Funcionário cadastrado com sucesso!');
       
       // Reset form
+      handlePhotoClear();
       setFormData({
         fullName: '',
         email: '',
@@ -213,6 +274,14 @@ export default function RegisterEmployee() {
           <p className="text-muted-foreground">Adicione um novo colaborador à empresa</p>
         </div>
       </div>
+
+      {/* Selfie Capture Section */}
+      <SelfieCapture
+        onCapture={handlePhotoCapture}
+        capturedImage={capturedImage}
+        onClear={handlePhotoClear}
+        required
+      />
 
       <Card>
         <CardHeader>
