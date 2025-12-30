@@ -240,6 +240,7 @@ export default function Employees() {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Telefone</TableHead>
                     <TableHead>Departamento</TableHead>
                     <TableHead>Cargo</TableHead>
                     <TableHead>Status</TableHead>
@@ -251,6 +252,7 @@ export default function Employees() {
                     <TableRow key={employee.id}>
                       <TableCell className="font-medium">{employee.full_name}</TableCell>
                       <TableCell>{employee.email}</TableCell>
+                      <TableCell>{(employee as any).phone || '-'}</TableCell>
                       <TableCell>{employee.department || '-'}</TableCell>
                       <TableCell>{employee.position || '-'}</TableCell>
                       <TableCell>

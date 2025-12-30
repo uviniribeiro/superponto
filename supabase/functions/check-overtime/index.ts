@@ -11,11 +11,52 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 interface OvertimeCheckResult {
   profileId: string;
   profileName: string;
+  profilePhone: string | null;
   alertType: 'daily' | 'weekly' | 'monthly';
   hoursWorked: number;
   hoursLimit: number;
   periodStart: string;
   periodEnd: string;
+}
+
+async function sendWhatsAppMessage(
+  instanceId: string,
+  token: string,
+  phone: string,
+  message: string
+): Promise<void> {
+  // Format phone number (remove non-digits and ensure country code)
+  let formattedPhone = phone.replace(/\D/g, '');
+  if (!formattedPhone.startsWith('55')) {
+    formattedPhone = '55' + formattedPhone;
+  }
+
+  const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`;
+  
+  console.log("Sending WhatsApp message to:", formattedPhone);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phone: formattedPhone,
+        message: message,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Z-API error response:", errorText);
+    } else {
+      const result = await response.json();
+      console.log("Z-API response:", result);
+    }
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -51,16 +92,22 @@ const handler = async (req: Request): Promise<Response> => {
     const weeklyLimit = companySettings.weekly_overtime_limit_hours || 10;
     const monthlyLimit = companySettings.monthly_overtime_limit_hours || 44;
     const alertEmail = companySettings.overtime_alert_email;
+    const whatsappPhone = (companySettings as any).whatsapp_alert_phone;
+    
+    // Z-API credentials
+    const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
+    const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
 
     console.log(`Limits: daily=${dailyLimit}h, weekly=${weeklyLimit}h, monthly=${monthlyLimit}h`);
 
-    // Get all active employees with schedules
+    // Get all active employees with schedules and phone
     const { data: employees } = await supabase
       .from('profiles')
       .select(`
         id,
         full_name,
         email,
+        phone,
         employee_schedules(
           work_schedules(*)
         )
@@ -138,6 +185,7 @@ const handler = async (req: Request): Promise<Response> => {
           alerts.push({
             profileId: employee.id,
             profileName: employee.full_name,
+            profilePhone: (employee as any).phone || null,
             alertType: 'daily',
             hoursWorked: Math.round(todayOvertime * 100) / 100,
             hoursLimit: dailyLimit,
@@ -203,6 +251,7 @@ const handler = async (req: Request): Promise<Response> => {
           alerts.push({
             profileId: employee.id,
             profileName: employee.full_name,
+            profilePhone: (employee as any).phone || null,
             alertType: 'weekly',
             hoursWorked: Math.round(weeklyOvertime * 100) / 100,
             hoursLimit: weeklyLimit,
@@ -264,6 +313,7 @@ const handler = async (req: Request): Promise<Response> => {
           alerts.push({
             profileId: employee.id,
             profileName: employee.full_name,
+            profilePhone: (employee as any).phone || null,
             alertType: 'monthly',
             hoursWorked: Math.round(monthlyOvertime * 100) / 100,
             hoursLimit: monthlyLimit,
@@ -287,10 +337,10 @@ const handler = async (req: Request): Promise<Response> => {
         hours_limit: alert.hoursLimit
       });
 
+      const typeLabels: Record<string, string> = { daily: 'Diário', weekly: 'Semanal', monthly: 'Mensal' };
+
       // Send email if configured
       if (RESEND_API_KEY && alertEmail) {
-        const typeLabels: Record<string, string> = { daily: 'Diário', weekly: 'Semanal', monthly: 'Mensal' };
-        
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -317,6 +367,34 @@ const handler = async (req: Request): Promise<Response> => {
           console.log(`Email sent for ${alert.profileName}`);
         } else {
           console.error(`Failed to send email for ${alert.profileName}:`, await res.text());
+        }
+      }
+
+      // Send WhatsApp alert if Z-API is configured
+      if (ZAPI_INSTANCE_ID && ZAPI_TOKEN) {
+        // Send to company WhatsApp if configured
+        if (whatsappPhone) {
+          const message = `⚠️ *Alerta de Horas Extras*\n\n` +
+            `👤 Funcionário: ${alert.profileName}\n` +
+            `⏰ Horas Extras: ${alert.hoursWorked}h\n` +
+            `📋 Tipo: Limite ${typeLabels[alert.alertType]}\n` +
+            `📅 Período: ${alert.periodStart} a ${alert.periodEnd}\n\n` +
+            `_O limite de ${alert.hoursLimit}h foi ultrapassado._`;
+
+          await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, whatsappPhone, message);
+          console.log(`WhatsApp sent to company for ${alert.profileName}`);
+        }
+
+        // Send to employee if they have a phone number
+        if (alert.profilePhone) {
+          const employeeMessage = `⚠️ *Alerta de Horas Extras*\n\n` +
+            `Olá ${alert.profileName.split(' ')[0]},\n\n` +
+            `Você atingiu ${alert.hoursWorked}h extras (limite ${typeLabels[alert.alertType]}: ${alert.hoursLimit}h).\n` +
+            `📅 Período: ${alert.periodStart} a ${alert.periodEnd}\n\n` +
+            `_Por favor, entre em contato com o RH._`;
+
+          await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, alert.profilePhone, employeeMessage);
+          console.log(`WhatsApp sent to employee ${alert.profileName}`);
         }
       }
     }
