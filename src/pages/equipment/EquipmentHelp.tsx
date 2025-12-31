@@ -37,7 +37,7 @@ export default function EquipmentHelp() {
 
       {/* Tabs for Windows/Linux */}
       <Tabs defaultValue="windows" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
           <TabsTrigger value="windows" className="flex items-center gap-2">
             <Monitor className="h-4 w-4" />
             Windows
@@ -46,8 +46,12 @@ export default function EquipmentHelp() {
             <Terminal className="h-4 w-4" />
             Linux
           </TabsTrigger>
-          <TabsTrigger value="build" className="flex items-center gap-2">
+          <TabsTrigger value="packages" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
+            .deb / .rpm
+          </TabsTrigger>
+          <TabsTrigger value="build" className="flex items-center gap-2">
+            <Cpu className="h-4 w-4" />
             Criar .EXE
           </TabsTrigger>
         </TabsList>
@@ -377,6 +381,159 @@ export default function EquipmentHelp() {
                   </li>
                 </ul>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Packages Tab - .deb / .rpm */}
+        <TabsContent value="packages" className="space-y-6">
+          <Card className="border-red-500/50 bg-gradient-to-r from-red-500/5 to-red-500/10">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-red-500" />
+                Pacotes Linux (.deb / .rpm)
+                <Badge className="bg-red-500">Pronto para Instalar</Badge>
+              </CardTitle>
+              <CardDescription>
+                Scripts para criar pacotes de instalação nativos para distribuições Linux
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert className="border-red-500/30 bg-red-500/5">
+                <Package className="h-4 w-4" />
+                <AlertTitle>Instalação Simplificada</AlertTitle>
+                <AlertDescription className="mt-2">
+                  Os pacotes .deb e .rpm permitem instalação com um único comando, sem necessidade de compilação.
+                  O serviço é configurado automaticamente para iniciar com o sistema.
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card className="bg-card hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => downloadFile('build-deb.sh')}>
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className="p-3 rounded-full bg-orange-500/10">
+                        <Package className="h-8 w-8 text-orange-500" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold">Criar Pacote .deb</h4>
+                        <p className="text-sm text-muted-foreground">build-deb.sh</p>
+                        <p className="text-xs text-muted-foreground mt-1">Debian, Ubuntu, Mint</p>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => downloadFile('build-rpm.sh')}>
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div className="p-3 rounded-full bg-red-500/10">
+                        <Package className="h-8 w-8 text-red-500" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold">Criar Pacote .rpm</h4>
+                        <p className="text-sm text-muted-foreground">build-rpm.sh</p>
+                        <p className="text-xs text-muted-foreground mt-1">RHEL, CentOS, Fedora</p>
+                      </div>
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                  <h4 className="font-medium flex items-center gap-2 text-orange-500">
+                    <Package className="h-4 w-4" />
+                    Pacote .deb (Debian/Ubuntu)
+                  </h4>
+                  <div className="space-y-2 text-sm font-mono">
+                    <div className="bg-muted/50 p-2 rounded">
+                      <p className="text-xs text-muted-foreground mb-1">1. Gerar o pacote:</p>
+                      <code>chmod +x build-deb.sh && ./build-deb.sh</code>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded">
+                      <p className="text-xs text-muted-foreground mb-1">2. Instalar:</p>
+                      <code>sudo dpkg -i equipment-sync-agent_1.0.0_all.deb</code>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded">
+                      <p className="text-xs text-muted-foreground mb-1">3. Dependências (se necessário):</p>
+                      <code>sudo apt-get install -f</code>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                  <h4 className="font-medium flex items-center gap-2 text-red-500">
+                    <Package className="h-4 w-4" />
+                    Pacote .rpm (RHEL/Fedora)
+                  </h4>
+                  <div className="space-y-2 text-sm font-mono">
+                    <div className="bg-muted/50 p-2 rounded">
+                      <p className="text-xs text-muted-foreground mb-1">1. Instalar rpmbuild:</p>
+                      <code>sudo dnf install rpm-build</code>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded">
+                      <p className="text-xs text-muted-foreground mb-1">2. Gerar o pacote:</p>
+                      <code>chmod +x build-rpm.sh && ./build-rpm.sh</code>
+                    </div>
+                    <div className="bg-muted/50 p-2 rounded">
+                      <p className="text-xs text-muted-foreground mb-1">3. Instalar:</p>
+                      <code>sudo dnf install ./equipment-sync-agent-1.0.0*.rpm</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-500" />
+                  O que os pacotes incluem:
+                </h4>
+                <ul className="grid gap-2 md:grid-cols-2 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    Agente de sincronização completo
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    Dashboard web em localhost:8765
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    Configuração systemd automática
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    Instalação de dependências Python
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    Diretórios de log configurados
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    Scripts de pós-instalação
+                  </li>
+                </ul>
+              </div>
+
+              <Alert variant="default" className="border-blue-500/50 bg-blue-500/5">
+                <HelpCircle className="h-4 w-4 text-blue-500" />
+                <AlertTitle className="text-blue-500">Após a instalação</AlertTitle>
+                <AlertDescription className="text-muted-foreground">
+                  Edite o arquivo <code className="bg-muted px-1 rounded">/opt/equipment-sync-agent/config.json</code> para 
+                  configurar o código da empresa e as faixas de rede. Depois reinicie o serviço com 
+                  <code className="bg-muted px-1 rounded ml-1">systemctl restart equipment-sync-agent</code>.
+                </AlertDescription>
+              </Alert>
             </CardContent>
           </Card>
         </TabsContent>
