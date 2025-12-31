@@ -65,6 +65,11 @@ import {
   Star,
   History,
   ChevronUp,
+  Plus,
+  FileWarning,
+  RefreshCw,
+  HelpCircle,
+  Activity,
 } from 'lucide-react';
 
 interface CompanySettings {
@@ -151,7 +156,14 @@ const menuCategories: MenuCategory[] = [
     icon: Server,
     roles: ['admin'],
     items: [
-      { title: 'Equipamentos REP', icon: Server, href: '/equipment', roles: ['admin'] },
+      { title: 'Status de Conexão', icon: Activity, href: '/equipment/status', roles: ['admin'] },
+      { title: 'Lista de Equipamentos', icon: Server, href: '/equipment/list', roles: ['admin'] },
+      { title: 'Adicionar Equipamento', icon: Plus, href: '/equipment/add', roles: ['admin'] },
+      { title: 'Funcionários no REP', icon: Users, href: '/equipment/employees', roles: ['admin'] },
+      { title: 'Registros Pendentes', icon: FileWarning, href: '/equipment/pending', roles: ['admin'] },
+      { title: 'Logs de Comunicação', icon: FileText, href: '/equipment/logs', roles: ['admin'] },
+      { title: 'Sincronizar', icon: RefreshCw, href: '/equipment/sync', roles: ['admin'] },
+      { title: 'Ajuda', icon: HelpCircle, href: '/equipment/help', roles: ['admin'] },
     ]
   },
   {
