@@ -971,14 +971,14 @@ export default function ImportExport() {
                 <div className="space-y-2">
                   <Label>Delimitador</Label>
                   <Select
-                    value={editingLayout.delimiter}
-                    onValueChange={(value) => setEditingLayout({ ...editingLayout, delimiter: value })}
+                    value={editingLayout.delimiter || 'none'}
+                    onValueChange={(value) => setEditingLayout({ ...editingLayout, delimiter: value === 'none' ? '' : value })}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Posicional (sem delimitador)</SelectItem>
+                      <SelectItem value="none">Posicional (sem delimitador)</SelectItem>
                       <SelectItem value=";">Ponto e vírgula (;)</SelectItem>
                       <SelectItem value=",">Vírgula (,)</SelectItem>
                       <SelectItem value="|">Pipe (|)</SelectItem>
