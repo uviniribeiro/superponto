@@ -94,6 +94,111 @@ export type Database = {
           },
         ]
       }
+      class_hour_configurations: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          hourly_rate: number | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_hour_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_records: {
+        Row: {
+          class_date: string
+          class_hour_configuration_id: string
+          company_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          number_of_classes: number
+          profile_id: string
+          total_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          class_date: string
+          class_hour_configuration_id: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          number_of_classes?: number
+          profile_id: string
+          total_minutes: number
+          updated_at?: string
+        }
+        Update: {
+          class_date?: string
+          class_hour_configuration_id?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          number_of_classes?: number
+          profile_id?: string
+          total_minutes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_records_class_hour_configuration_id_fkey"
+            columns: ["class_hour_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "class_hour_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_records_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -251,6 +356,170 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_class_hour_assignments: {
+        Row: {
+          class_hour_configuration_id: string
+          company_id: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          profile_id: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          class_hour_configuration_id: string
+          company_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          profile_id: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          class_hour_configuration_id?: string
+          company_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          profile_id?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_class_hour_assignment_class_hour_configuration_id_fkey"
+            columns: ["class_hour_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "class_hour_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_class_hour_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_class_hour_assignments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_off_days: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          is_manual_override: boolean
+          off_date: string
+          profile_id: string
+          reason: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_manual_override?: boolean
+          off_date: string
+          profile_id: string
+          reason?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_manual_override?: boolean
+          off_date?: string
+          profile_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_off_days_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_off_days_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_scale_assignments: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          profile_id: string
+          scale_configuration_id: string
+          scale_start_day: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          profile_id: string
+          scale_configuration_id: string
+          scale_start_day: string
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          profile_id?: string
+          scale_configuration_id?: string
+          scale_start_day?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_scale_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_scale_assignments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_scale_assignments_scale_configuration_id_fkey"
+            columns: ["scale_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "scale_configurations"
             referencedColumns: ["id"]
           },
         ]
@@ -616,6 +885,59 @@ export type Database = {
           },
         ]
       }
+      scale_configurations: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string | null
+          holiday_treatment: Database["public"]["Enums"]["holiday_treatment"]
+          id: string
+          is_active: boolean
+          name: string
+          off_days: number
+          scale_type: Database["public"]["Enums"]["scale_type"]
+          updated_at: string
+          work_days: number
+          work_hours_per_day: number | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          holiday_treatment?: Database["public"]["Enums"]["holiday_treatment"]
+          id?: string
+          is_active?: boolean
+          name: string
+          off_days?: number
+          scale_type?: Database["public"]["Enums"]["scale_type"]
+          updated_at?: string
+          work_days?: number
+          work_hours_per_day?: number | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          holiday_treatment?: Database["public"]["Enums"]["holiday_treatment"]
+          id?: string
+          is_active?: boolean
+          name?: string
+          off_days?: number
+          scale_type?: Database["public"]["Enums"]["scale_type"]
+          updated_at?: string
+          work_days?: number
+          work_hours_per_day?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scale_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_records: {
         Row: {
           address: string | null
@@ -798,6 +1120,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "employee" | "super_admin"
+      holiday_treatment: "normal" | "overtime" | "off"
+      scale_type: "standard" | "5x1" | "6x1" | "12x36"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -926,6 +1250,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "employee", "super_admin"],
+      holiday_treatment: ["normal", "overtime", "off"],
+      scale_type: ["standard", "5x1", "6x1", "12x36"],
     },
   },
 } as const

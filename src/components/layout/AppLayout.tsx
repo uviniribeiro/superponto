@@ -42,6 +42,8 @@ import {
   UserCog,
   TrendingUp,
   Briefcase,
+  CalendarClock,
+  GraduationCap,
 } from 'lucide-react';
 
 const menuItems = [
@@ -52,6 +54,8 @@ const menuItems = [
   { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
   { title: 'Cargos e Deptos', icon: Briefcase, href: '/positions-departments', roles: ['admin'] },
   { title: 'Jornadas', icon: Calendar, href: '/schedules', roles: ['admin'] },
+  { title: 'Escalas', icon: CalendarClock, href: '/scale-management', roles: ['admin'] },
+  { title: 'Hora Aula', icon: GraduationCap, href: '/class-hours', roles: ['admin'] },
   { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
   { title: 'Faltas', icon: UserX, href: '/absences', roles: ['admin', 'manager'] },
   { title: 'Ajustes', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
