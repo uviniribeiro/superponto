@@ -14,9 +14,10 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Plus, Wifi, WifiOff, RefreshCw, Trash2, Edit, Activity, Clock, Server, HelpCircle, Copy, Check, Info, FileWarning, CheckCircle2, XCircle, User, Link } from 'lucide-react';
+import { Plus, Wifi, WifiOff, RefreshCw, Trash2, Edit, Activity, Clock, Server, HelpCircle, Copy, Check, Info, FileWarning, CheckCircle2, XCircle, User, Link, Users, Upload, Download, UserMinus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Equipment manufacturers and their models
 const EQUIPMENT_CATALOG = [
@@ -236,6 +237,9 @@ export default function Equipment() {
   const [editingEquipment, setEditingEquipment] = useState<Partial<Equipment>>(defaultEquipment);
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [selectedEquipmentForEmployees, setSelectedEquipmentForEmployees] = useState<string | null>(null);
+  const [selectedEmployeesToSend, setSelectedEmployeesToSend] = useState<string[]>([]);
+  const [deviceEmployees, setDeviceEmployees] = useState<any[]>([]);
 
   // Get server URL for configuration help
   const serverUrl = 'https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync';
@@ -520,6 +524,71 @@ export default function Equipment() {
     },
   });
 
+  // Send employees to device mutation
+  const sendEmployeesMutation = useMutation({
+    mutationFn: async ({ equipmentId, profileIds }: { equipmentId: string; profileIds: string[] }) => {
+      const { data, error } = await supabase.functions.invoke('equipment-sync', {
+        body: { action: 'send_employees', equipmentId, profileIds },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Enviados ${data.sent} funcionários, ${data.errors} erros`);
+      setSelectedEmployeesToSend([]);
+    },
+    onError: (error) => {
+      toast.error(`Erro ao enviar funcionários: ${error.message}`);
+    },
+  });
+
+  // Receive employees from device mutation
+  const receiveEmployeesMutation = useMutation({
+    mutationFn: async (equipmentId: string) => {
+      const { data, error } = await supabase.functions.invoke('equipment-sync', {
+        body: { action: 'receive_employees', equipmentId },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        setDeviceEmployees(data.employees || []);
+        toast.success(`Recebidos ${data.employees?.length || 0} funcionários do dispositivo`);
+      } else {
+        toast.error(data.error || 'Erro ao receber funcionários');
+      }
+    },
+    onError: (error) => {
+      toast.error(`Erro ao receber funcionários: ${error.message}`);
+    },
+  });
+
+  // Delete employee from device mutation
+  const deleteFromDeviceMutation = useMutation({
+    mutationFn: async ({ equipmentId, identifier }: { equipmentId: string; identifier: string }) => {
+      const { data, error } = await supabase.functions.invoke('equipment-sync', {
+        body: { action: 'delete_employee', equipmentId, identifier },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success('Funcionário removido do dispositivo');
+        // Refresh device employees list
+        if (selectedEquipmentForEmployees) {
+          receiveEmployeesMutation.mutate(selectedEquipmentForEmployees);
+        }
+      } else {
+        toast.error(data.error || 'Erro ao remover funcionário');
+      }
+    },
+    onError: (error) => {
+      toast.error(`Erro ao remover funcionário: ${error.message}`);
+    },
+  });
+
   const handleEdit = (equipment: Equipment) => {
     setEditingEquipment(equipment);
     setIsDialogOpen(true);
@@ -772,8 +841,12 @@ export default function Equipment() {
       </div>
 
       <Tabs defaultValue="equipment" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="equipment">Equipamentos</TabsTrigger>
+          <TabsTrigger value="employees">
+            <Users className="h-4 w-4 mr-1" />
+            Funcionários no REP
+          </TabsTrigger>
           <TabsTrigger value="pending" className="relative">
             <FileWarning className="h-4 w-4 mr-1" />
             Registros Pendentes
@@ -903,6 +976,245 @@ export default function Equipment() {
                   </TableBody>
                 </Table>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="employees">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Send Employees to Device */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
+                  Enviar Funcionários para o REP
+                </CardTitle>
+                <CardDescription>
+                  Selecione o equipamento e os funcionários para enviar ao relógio de ponto
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Selecione o Equipamento</Label>
+                  <Select
+                    value={selectedEquipmentForEmployees || ''}
+                    onValueChange={(value) => {
+                      setSelectedEquipmentForEmployees(value);
+                      setDeviceEmployees([]);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um equipamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {equipments.filter(e => e.is_active).map((eq) => (
+                        <SelectItem key={eq.id} value={eq.id}>
+                          {eq.name} ({eq.ip_address})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedEquipmentForEmployees && (
+                  <>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Funcionários do Sistema</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedEmployeesToSend(employees.map(e => e.id))}
+                          >
+                            Selecionar Todos
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedEmployeesToSend([])}
+                          >
+                            Limpar
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="border rounded-lg max-h-64 overflow-y-auto">
+                        {employees.map((emp) => (
+                          <div
+                            key={emp.id}
+                            className="flex items-center gap-3 p-2 hover:bg-muted/50 border-b last:border-b-0"
+                          >
+                            <Checkbox
+                              checked={selectedEmployeesToSend.includes(emp.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedEmployeesToSend([...selectedEmployeesToSend, emp.id]);
+                                } else {
+                                  setSelectedEmployeesToSend(selectedEmployeesToSend.filter(id => id !== emp.id));
+                                }
+                              }}
+                            />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{emp.full_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {emp.registration_number ? `Mat: ${emp.registration_number}` : ''}
+                                {emp.pis ? ` | PIS: ${emp.pis}` : ''}
+                                {emp.cpf ? ` | CPF: ${emp.cpf}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => {
+                        if (selectedEquipmentForEmployees && selectedEmployeesToSend.length > 0) {
+                          sendEmployeesMutation.mutate({
+                            equipmentId: selectedEquipmentForEmployees,
+                            profileIds: selectedEmployeesToSend,
+                          });
+                        }
+                      }}
+                      disabled={sendEmployeesMutation.isPending || selectedEmployeesToSend.length === 0}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {sendEmployeesMutation.isPending ? 'Enviando...' : `Enviar ${selectedEmployeesToSend.length} Funcionário(s)`}
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Receive/Delete Employees from Device */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  Funcionários no Dispositivo
+                </CardTitle>
+                <CardDescription>
+                  Visualize e gerencie os funcionários cadastrados no relógio de ponto
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!selectedEquipmentForEmployees ? (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Selecione um equipamento para visualizar os funcionários cadastrados.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <>
+                    <Button
+                      onClick={() => {
+                        if (selectedEquipmentForEmployees) {
+                          receiveEmployeesMutation.mutate(selectedEquipmentForEmployees);
+                        }
+                      }}
+                      disabled={receiveEmployeesMutation.isPending}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Download className={`h-4 w-4 mr-2 ${receiveEmployeesMutation.isPending ? 'animate-spin' : ''}`} />
+                      {receiveEmployeesMutation.isPending ? 'Buscando...' : 'Buscar Funcionários do Dispositivo'}
+                    </Button>
+
+                    {deviceEmployees.length > 0 ? (
+                      <div className="border rounded-lg max-h-80 overflow-y-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Identificador</TableHead>
+                              <TableHead>Nome</TableHead>
+                              <TableHead>Ações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {deviceEmployees.map((emp, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell className="font-mono text-sm">{emp.identifier}</TableCell>
+                                <TableCell>{emp.name || '-'}</TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      if (confirm(`Tem certeza que deseja remover ${emp.name || emp.identifier} do dispositivo?`)) {
+                                        deleteFromDeviceMutation.mutate({
+                                          equipmentId: selectedEquipmentForEmployees!,
+                                          identifier: emp.identifier,
+                                        });
+                                      }
+                                    }}
+                                    disabled={deleteFromDeviceMutation.isPending}
+                                    title="Remover do dispositivo"
+                                  >
+                                    <UserMinus className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground border rounded-lg">
+                        Clique em "Buscar Funcionários" para listar os funcionários cadastrados no dispositivo
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Instructions */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Info className="h-5 w-5" />
+                Como Funciona
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
+                    <Upload className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h5 className="font-medium">Enviar Funcionários</h5>
+                    <p className="text-sm text-muted-foreground">
+                      Envia o cadastro dos funcionários selecionados para o relógio de ponto, usando a matrícula como identificador principal.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-full">
+                    <Download className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <h5 className="font-medium">Receber Funcionários</h5>
+                    <p className="text-sm text-muted-foreground">
+                      Busca a lista de funcionários cadastrados diretamente no relógio de ponto.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-950 rounded-lg">
+                  <div className="p-2 bg-red-100 dark:bg-red-900 rounded-full">
+                    <UserMinus className="h-4 w-4 text-red-600" />
+                  </div>
+                  <div>
+                    <h5 className="font-medium">Remover Funcionários</h5>
+                    <p className="text-sm text-muted-foreground">
+                      Remove o cadastro de um funcionário específico do relógio de ponto.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
