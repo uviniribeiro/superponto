@@ -25,6 +25,7 @@ import PositionsDepartments from "@/pages/PositionsDepartments";
 import SuperAdmin from "@/pages/SuperAdmin";
 import SuperAdminAuth from "@/pages/SuperAdminAuth";
 import TeacherModule from "@/pages/TeacherModule";
+import Timesheet from "@/pages/Timesheet";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -103,6 +104,11 @@ const App = () => (
               <Route path="overtime-dashboard" element={
                 <ProtectedRoute requiredRoles={['admin', 'manager']}>
                   <OvertimeDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="timesheet" element={
+                <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                  <Timesheet />
                 </ProtectedRoute>
               } />
               <Route path="teacher-module" element={
