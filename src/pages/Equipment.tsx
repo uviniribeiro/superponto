@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Plus, Wifi, WifiOff, RefreshCw, Trash2, Edit, Activity, Clock, Server, HelpCircle, Copy, Check, Info } from 'lucide-react';
+import { Plus, Wifi, WifiOff, RefreshCw, Trash2, Edit, Activity, Clock, Server, HelpCircle, Copy, Check, Info, FileWarning, CheckCircle2, XCircle, User, Link } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -184,6 +184,33 @@ interface CommunicationLog {
   created_at: string;
 }
 
+interface PendingRecord {
+  id: string;
+  equipment_id: string;
+  employee_identifier: string;
+  recorded_at: string;
+  record_type: string | null;
+  is_processed: boolean;
+  processed_at: string | null;
+  profile_id: string | null;
+  created_at: string;
+  time_clock_equipment?: {
+    name: string;
+  };
+  profiles?: {
+    full_name: string;
+    registration_number: string | null;
+  } | null;
+}
+
+interface EmployeeProfile {
+  id: string;
+  full_name: string;
+  registration_number: string | null;
+  pis: string | null;
+  cpf: string | null;
+}
+
 const defaultEquipment: Partial<Equipment> = {
   name: '',
   manufacturer: '',
@@ -246,6 +273,42 @@ export default function Equipment() {
     enabled: !!selectedEquipmentId,
   });
 
+  // Fetch pending records
+  const { data: pendingRecords = [], refetch: refetchPendingRecords } = useQuery({
+    queryKey: ['pending-records', profile?.company_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('equipment_pending_records')
+        .select(`
+          *,
+          time_clock_equipment (name),
+          profiles (full_name, registration_number)
+        `)
+        .order('recorded_at', { ascending: false })
+        .limit(200);
+      
+      if (error) throw error;
+      return data as PendingRecord[];
+    },
+    enabled: !!profile,
+  });
+
+  // Fetch employees for linking
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees-for-linking', profile?.company_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, registration_number, pis, cpf')
+        .eq('is_active', true)
+        .order('full_name');
+      
+      if (error) throw error;
+      return data as EmployeeProfile[];
+    },
+    enabled: !!profile,
+  });
+
   // Real-time subscription for equipment status updates
   useEffect(() => {
     const channel = supabase
@@ -259,6 +322,17 @@ export default function Equipment() {
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['equipment'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'equipment_pending_records',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['pending-records'] });
         }
       )
       .subscribe();
@@ -407,6 +481,45 @@ export default function Equipment() {
     },
   });
 
+  // Link pending record to employee mutation
+  const linkEmployeeMutation = useMutation({
+    mutationFn: async ({ recordId, profileId }: { recordId: string; profileId: string }) => {
+      const { error } = await supabase
+        .from('equipment_pending_records')
+        .update({ 
+          profile_id: profileId,
+          is_processed: false // Mark as not processed so it can be re-processed
+        })
+        .eq('id', recordId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-records'] });
+      toast.success('Funcionário vinculado com sucesso. O registro será processado na próxima sincronização.');
+    },
+    onError: (error) => {
+      toast.error(`Erro ao vincular funcionário: ${error.message}`);
+    },
+  });
+
+  // Delete pending record mutation
+  const deletePendingRecordMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('equipment_pending_records')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-records'] });
+      toast.success('Registro removido com sucesso');
+    },
+    onError: (error) => {
+      toast.error(`Erro ao remover registro: ${error.message}`);
+    },
+  });
+
   const handleEdit = (equipment: Equipment) => {
     setEditingEquipment(equipment);
     setIsDialogOpen(true);
@@ -438,6 +551,9 @@ export default function Equipment() {
 
   const onlineCount = equipments.filter(e => e.is_online).length;
   const offlineCount = equipments.filter(e => !e.is_online && e.is_active).length;
+  const pendingWithoutEmployee = pendingRecords.filter(r => !r.profile_id && !r.is_processed).length;
+  const pendingProcessed = pendingRecords.filter(r => r.is_processed).length;
+  const pendingNotProcessed = pendingRecords.filter(r => !r.is_processed).length;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -658,6 +774,15 @@ export default function Equipment() {
       <Tabs defaultValue="equipment" className="space-y-4">
         <TabsList>
           <TabsTrigger value="equipment">Equipamentos</TabsTrigger>
+          <TabsTrigger value="pending" className="relative">
+            <FileWarning className="h-4 w-4 mr-1" />
+            Registros Pendentes
+            {pendingWithoutEmployee > 0 && (
+              <Badge variant="destructive" className="ml-2 h-5 min-w-5 text-xs">
+                {pendingWithoutEmployee}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="logs">Logs de Comunicação</TabsTrigger>
           <TabsTrigger value="help">
             <HelpCircle className="h-4 w-4 mr-1" />
@@ -768,6 +893,176 @@ export default function Equipment() {
                                 }
                               }}
                               title="Remover"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pending">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileWarning className="h-5 w-5" />
+                Registros Pendentes dos Equipamentos
+              </CardTitle>
+              <CardDescription>
+                Registros importados dos relógios de ponto. Vincule funcionários aos registros que não foram identificados automaticamente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Status cards for pending records */}
+              <div className="grid gap-4 md:grid-cols-3 mb-6">
+                <Card className="bg-muted/50">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total de Registros</p>
+                        <p className="text-2xl font-bold">{pendingRecords.length}</p>
+                      </div>
+                      <Clock className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-green-50 dark:bg-green-950">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Processados</p>
+                        <p className="text-2xl font-bold text-green-600">{pendingProcessed}</p>
+                      </div>
+                      <CheckCircle2 className="h-8 w-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-orange-50 dark:bg-orange-950">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Sem Funcionário</p>
+                        <p className="text-2xl font-bold text-orange-600">{pendingWithoutEmployee}</p>
+                      </div>
+                      <XCircle className="h-8 w-8 text-orange-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {pendingWithoutEmployee > 0 && (
+                <Alert className="mb-4">
+                  <User className="h-4 w-4" />
+                  <AlertTitle>Registros sem funcionário vinculado</AlertTitle>
+                  <AlertDescription>
+                    Existem {pendingWithoutEmployee} registros que não foram vinculados automaticamente. 
+                    A vinculação é feita prioritariamente pelo <strong>número de matrícula</strong>, seguido pelo PIS e CPF.
+                    Você pode vincular manualmente selecionando o funcionário na coluna "Ações".
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {pendingRecords.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum registro pendente encontrado
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Equipamento</TableHead>
+                      <TableHead>Identificador</TableHead>
+                      <TableHead>Data/Hora</TableHead>
+                      <TableHead>Funcionário</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingRecords.map((record) => (
+                      <TableRow key={record.id} className={!record.profile_id && !record.is_processed ? 'bg-orange-50 dark:bg-orange-950/30' : ''}>
+                        <TableCell>
+                          {record.is_processed ? (
+                            <Badge variant="default" className="bg-green-500">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Processado
+                            </Badge>
+                          ) : record.profile_id ? (
+                            <Badge variant="secondary">
+                              <Clock className="h-3 w-3 mr-1" />
+                              Aguardando
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Sem Funcionário
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {record.time_clock_equipment?.name || 'N/A'}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {record.employee_identifier}
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(record.recorded_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell>
+                          {record.profiles ? (
+                            <div className="flex flex-col">
+                              <span>{record.profiles.full_name}</span>
+                              {record.profiles.registration_number && (
+                                <span className="text-xs text-muted-foreground">
+                                  Matrícula: {record.profiles.registration_number}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground italic">Não identificado</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            {!record.profile_id && !record.is_processed && (
+                              <Select
+                                onValueChange={(value) => {
+                                  linkEmployeeMutation.mutate({ recordId: record.id, profileId: value });
+                                }}
+                              >
+                                <SelectTrigger className="w-[180px] h-8">
+                                  <SelectValue placeholder="Vincular funcionário" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {employees.map((emp) => (
+                                    <SelectItem key={emp.id} value={emp.id}>
+                                      <div className="flex flex-col">
+                                        <span>{emp.full_name}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {emp.registration_number ? `Mat: ${emp.registration_number}` : ''}
+                                          {emp.pis ? ` | PIS: ${emp.pis}` : ''}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (confirm('Tem certeza que deseja remover este registro pendente?')) {
+                                  deletePendingRecordMutation.mutate(record.id);
+                                }
+                              }}
+                              title="Remover registro"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>

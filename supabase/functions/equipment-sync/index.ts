@@ -364,28 +364,75 @@ const manufacturerHandlers: Record<string, (equipment: any) => Promise<any>> = {
   },
 };
 
-// Find employee profile by PIS or CPF
+// Find employee profile - Priority: registration_number > PIS > CPF
 const findEmployeeProfile = async (supabase: any, identifier: string, companyId: string | null) => {
   // Clean up identifier (remove dots, dashes, etc.)
   const cleanIdentifier = identifier.replace(/[^\d]/g, '');
   
   if (!cleanIdentifier) return null;
   
-  // Try to find by PIS first
+  // First priority: Try to find by registration_number (matrícula)
   let query = supabase
     .from('profiles')
-    .select('id, full_name, pis, cpf, company_id')
-    .or(`pis.eq.${cleanIdentifier},cpf.eq.${cleanIdentifier}`);
+    .select('id, full_name, pis, cpf, registration_number, company_id')
+    .eq('registration_number', cleanIdentifier);
   
   if (companyId) {
     query = query.eq('company_id', companyId);
   }
   
-  const { data, error } = await query.maybeSingle();
+  let { data, error } = await query.maybeSingle();
   
   if (error) {
-    console.error('Error finding employee:', error.message);
-    return null;
+    console.error('Error finding employee by registration_number:', error.message);
+  }
+  
+  // If found by registration_number, return immediately
+  if (data) {
+    console.log(`Employee found by registration_number: ${data.full_name}`);
+    return data;
+  }
+  
+  // Second priority: Try to find by PIS
+  query = supabase
+    .from('profiles')
+    .select('id, full_name, pis, cpf, registration_number, company_id')
+    .eq('pis', cleanIdentifier);
+  
+  if (companyId) {
+    query = query.eq('company_id', companyId);
+  }
+  
+  ({ data, error } = await query.maybeSingle());
+  
+  if (error) {
+    console.error('Error finding employee by PIS:', error.message);
+  }
+  
+  // If found by PIS, return
+  if (data) {
+    console.log(`Employee found by PIS: ${data.full_name}`);
+    return data;
+  }
+  
+  // Third priority: Try to find by CPF
+  query = supabase
+    .from('profiles')
+    .select('id, full_name, pis, cpf, registration_number, company_id')
+    .eq('cpf', cleanIdentifier);
+  
+  if (companyId) {
+    query = query.eq('company_id', companyId);
+  }
+  
+  ({ data, error } = await query.maybeSingle());
+  
+  if (error) {
+    console.error('Error finding employee by CPF:', error.message);
+  }
+  
+  if (data) {
+    console.log(`Employee found by CPF: ${data.full_name}`);
   }
   
   return data;
