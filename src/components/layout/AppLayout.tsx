@@ -44,6 +44,7 @@ import {
   Briefcase,
   CalendarClock,
   GraduationCap,
+  ClipboardList,
 } from 'lucide-react';
 
 const menuItems = [
@@ -54,6 +55,7 @@ const menuItems = [
   { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
   { title: 'Cargos e Deptos', icon: Briefcase, href: '/positions-departments', roles: ['admin'] },
   { title: 'Jornadas e Escalas', icon: CalendarClock, href: '/schedules', roles: ['admin'] },
+  { title: 'Espelho de Ponto', icon: ClipboardList, href: '/timesheet', roles: ['admin', 'manager'] },
   { title: 'Módulo Professor', icon: GraduationCap, href: '/teacher-module', roles: ['admin'] },
   { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
   { title: 'Faltas', icon: UserX, href: '/absences', roles: ['admin', 'manager'] },
