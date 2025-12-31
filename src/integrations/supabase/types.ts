@@ -102,6 +102,7 @@ export type Database = {
           created_at: string
           description: string | null
           duration_minutes: number
+          educator_type: string | null
           hourly_rate: number | null
           id: string
           is_active: boolean
@@ -123,6 +124,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_minutes?: number
+          educator_type?: string | null
           hourly_rate?: number | null
           id?: string
           is_active?: boolean
@@ -144,6 +146,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_minutes?: number
+          educator_type?: string | null
           hourly_rate?: number | null
           id?: string
           is_active?: boolean
@@ -415,11 +418,14 @@ export type Database = {
           contract_type: string | null
           contract_weekly_hours: number | null
           created_at: string
+          educator_type: string | null
           end_date: string | null
           id: string
           is_active: boolean
           profile_id: string
           start_date: string
+          subject: string | null
+          teaching_level: string | null
           updated_at: string
           work_schedule_id: string | null
         }
@@ -430,11 +436,14 @@ export type Database = {
           contract_type?: string | null
           contract_weekly_hours?: number | null
           created_at?: string
+          educator_type?: string | null
           end_date?: string | null
           id?: string
           is_active?: boolean
           profile_id: string
           start_date: string
+          subject?: string | null
+          teaching_level?: string | null
           updated_at?: string
           work_schedule_id?: string | null
         }
@@ -445,11 +454,14 @@ export type Database = {
           contract_type?: string | null
           contract_weekly_hours?: number | null
           created_at?: string
+          educator_type?: string | null
           end_date?: string | null
           id?: string
           is_active?: boolean
           profile_id?: string
           start_date?: string
+          subject?: string | null
+          teaching_level?: string | null
           updated_at?: string
           work_schedule_id?: string | null
         }
@@ -1000,6 +1012,82 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_schedule_slots: {
+        Row: {
+          assignment_id: string
+          class_name: string | null
+          company_id: string | null
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          profile_id: string
+          room: string | null
+          slot_number: number
+          start_time: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          assignment_id: string
+          class_name?: string | null
+          company_id?: string | null
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          profile_id: string
+          room?: string | null
+          slot_number: number
+          start_time: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          class_name?: string | null
+          company_id?: string | null
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          profile_id?: string
+          room?: string | null
+          slot_number?: number
+          start_time?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_schedule_slots_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "employee_class_hour_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_schedule_slots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_schedule_slots_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
