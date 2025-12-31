@@ -749,6 +749,21 @@ export default function ImportExport() {
         .order('recorded_at', { ascending: true });
       
       if (error) throw error;
+
+      // Fetch work schedules for employees
+      const { data: schedules } = await supabase
+        .from('employee_schedules')
+        .select('*, work_schedules(*)')
+        .in('profile_id', profilesToExport.map(p => p.id));
+
+      // Fetch holidays
+      const { data: holidays } = await supabase
+        .from('holidays')
+        .select('date')
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      const holidayDates = new Set((holidays || []).map(h => h.date));
       
       // Group records by profile and date
       const groupedRecords: Record<string, Record<string, any[]>> = {};
@@ -765,6 +780,58 @@ export default function ImportExport() {
         }
         groupedRecords[profileId][dateKey].push(record);
       }
+
+      // Helper function to calculate worked minutes for a day
+      const calculateWorkedMinutes = (dayRecords: any[]): number => {
+        if (dayRecords.length < 2) return 0;
+        let totalMinutes = 0;
+        for (let i = 0; i < dayRecords.length - 1; i += 2) {
+          const entry = new Date(dayRecords[i].recorded_at);
+          const exit = dayRecords[i + 1] ? new Date(dayRecords[i + 1].recorded_at) : null;
+          if (exit) {
+            totalMinutes += (exit.getTime() - entry.getTime()) / 60000;
+          }
+        }
+        return Math.round(totalMinutes);
+      };
+
+      // Get expected minutes for a profile on a given day
+      const getExpectedMinutes = (profileId: string, dateKey: string): number => {
+        const dayOfWeek = new Date(dateKey).getDay();
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayName = dayNames[dayOfWeek];
+        
+        const schedule = (schedules || []).find(s => s.profile_id === profileId);
+        if (!schedule?.work_schedules) return 480; // Default 8h
+        
+        const ws = schedule.work_schedules;
+        const startKey = `${dayName}_start` as keyof typeof ws;
+        const endKey = `${dayName}_end` as keyof typeof ws;
+        
+        if (!ws[startKey] || !ws[endKey]) return 0;
+        
+        const start = ws[startKey] as string;
+        const end = ws[endKey] as string;
+        const [sh, sm] = start.split(':').map(Number);
+        const [eh, em] = end.split(':').map(Number);
+        
+        let minutes = (eh * 60 + em) - (sh * 60 + sm);
+        if (ws.break_duration_minutes) {
+          minutes -= ws.break_duration_minutes;
+        }
+        return minutes > 0 ? minutes : 0;
+      };
+
+      // Format time in HH:mm or decimal
+      const formatMinutes = (minutes: number, asDecimal: boolean = false): string => {
+        if (asDecimal) {
+          return (minutes / 60).toFixed(2);
+        }
+        const h = Math.floor(Math.abs(minutes) / 60);
+        const m = Math.abs(minutes) % 60;
+        const sign = minutes < 0 ? '-' : '';
+        return `${sign}${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+      };
       
       // Generate export content
       const lines: string[] = [];
@@ -780,13 +847,63 @@ export default function ImportExport() {
       for (const profile of profilesToExport) {
         const profileRecords = groupedRecords[profile.id] || {};
         
+        // Calculate monthly totals
+        let monthlyWorkedMinutes = 0;
+        let monthlyExpectedMinutes = 0;
+        let monthlyOvertimeMinutes = 0;
+        let monthlyDeficitMinutes = 0;
+        let absenceDays = 0;
+        
+        // Get all days in the period
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const allDays: string[] = [];
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          allDays.push(format(d, 'yyyy-MM-dd'));
+        }
+        
+        for (const dateKey of allDays) {
+          const dayRecords = profileRecords[dateKey] || [];
+          const expectedMinutes = getExpectedMinutes(profile.id, dateKey);
+          const workedMinutes = calculateWorkedMinutes(dayRecords);
+          const isHoliday = holidayDates.has(dateKey);
+          const isWeekend = [0, 6].includes(new Date(dateKey).getDay());
+          
+          if (expectedMinutes > 0 && !isHoliday) {
+            monthlyExpectedMinutes += expectedMinutes;
+            if (workedMinutes === 0 && !isWeekend) {
+              absenceDays++;
+            }
+          }
+          
+          monthlyWorkedMinutes += workedMinutes;
+          
+          const balance = workedMinutes - expectedMinutes;
+          if (balance > 0 && !isHoliday) {
+            monthlyOvertimeMinutes += balance;
+          } else if (balance < 0 && expectedMinutes > 0 && !isHoliday) {
+            monthlyDeficitMinutes += Math.abs(balance);
+          }
+        }
+        
+        const monthlyBalanceMinutes = monthlyWorkedMinutes - monthlyExpectedMinutes;
+        
         for (const [dateKey, records] of Object.entries(profileRecords)) {
           const dayRecords = records.sort((a: any, b: any) => 
             new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
           );
           
+          const workedMinutes = calculateWorkedMinutes(dayRecords);
+          const expectedMinutes = getExpectedMinutes(profile.id, dateKey);
+          const dailyBalance = workedMinutes - expectedMinutes;
+          const dailyOvertime = dailyBalance > 0 ? dailyBalance : 0;
+          const dailyDeficit = dailyBalance < 0 ? Math.abs(dailyBalance) : 0;
+          const isHoliday = holidayDates.has(dateKey);
+          
           const recordData: Record<string, string> = {
             company_code: '00001',
+            branch_code: '0001',
+            company_cnpj: companySettings?.rep_number || '',
             registration_number: profile.registration_number || '',
             full_name: profile.full_name || '',
             cpf: profile.cpf?.replace(/\D/g, '') || '',
@@ -800,6 +917,39 @@ export default function ImportExport() {
             break_start_time: dayRecords[1] ? format(new Date(dayRecords[1].recorded_at), selectedLayout.timeFormat) : '',
             break_end_time: dayRecords[2] ? format(new Date(dayRecords[2].recorded_at), selectedLayout.timeFormat) : '',
             exit_time: dayRecords[3] ? format(new Date(dayRecords[3].recorded_at), selectedLayout.timeFormat) : '',
+            extra_entry_1: dayRecords[4] ? format(new Date(dayRecords[4].recorded_at), selectedLayout.timeFormat) : '',
+            extra_exit_1: dayRecords[5] ? format(new Date(dayRecords[5].recorded_at), selectedLayout.timeFormat) : '',
+            extra_entry_2: dayRecords[6] ? format(new Date(dayRecords[6].recorded_at), selectedLayout.timeFormat) : '',
+            extra_exit_2: dayRecords[7] ? format(new Date(dayRecords[7].recorded_at), selectedLayout.timeFormat) : '',
+            // Daily calculations
+            worked_hours: formatMinutes(workedMinutes),
+            worked_hours_decimal: formatMinutes(workedMinutes, true),
+            expected_hours: formatMinutes(expectedMinutes),
+            expected_hours_decimal: formatMinutes(expectedMinutes, true),
+            daily_balance: formatMinutes(dailyBalance),
+            daily_balance_decimal: formatMinutes(dailyBalance, true),
+            daily_overtime: formatMinutes(dailyOvertime),
+            daily_overtime_decimal: formatMinutes(dailyOvertime, true),
+            daily_deficit: formatMinutes(dailyDeficit),
+            daily_deficit_decimal: formatMinutes(dailyDeficit, true),
+            is_holiday: isHoliday ? 'S' : 'N',
+            day_of_week: format(new Date(dateKey), 'EEEE', { locale: ptBR }),
+            day_of_week_short: format(new Date(dateKey), 'EEE', { locale: ptBR }),
+            // Monthly totals (same for all days of the employee)
+            monthly_worked: formatMinutes(monthlyWorkedMinutes),
+            monthly_worked_decimal: formatMinutes(monthlyWorkedMinutes, true),
+            monthly_expected: formatMinutes(monthlyExpectedMinutes),
+            monthly_expected_decimal: formatMinutes(monthlyExpectedMinutes, true),
+            monthly_overtime: formatMinutes(monthlyOvertimeMinutes),
+            monthly_overtime_decimal: formatMinutes(monthlyOvertimeMinutes, true),
+            monthly_deficit: formatMinutes(monthlyDeficitMinutes),
+            monthly_deficit_decimal: formatMinutes(monthlyDeficitMinutes, true),
+            monthly_balance: formatMinutes(monthlyBalanceMinutes),
+            monthly_balance_decimal: formatMinutes(monthlyBalanceMinutes, true),
+            time_bank_balance: formatMinutes(monthlyBalanceMinutes),
+            time_bank_balance_decimal: formatMinutes(monthlyBalanceMinutes, true),
+            absence_days: String(absenceDays),
+            total_records: String(dayRecords.length),
           };
           
           const lineValues = selectedLayout.fields
@@ -821,40 +971,76 @@ export default function ImportExport() {
         }
         
         // If no records, still export profile data for employee export
-        if (Object.keys(profileRecords).length === 0 && selectedLayout.id !== 'gaia') {
-          const recordData: Record<string, string> = {
-            company_code: '00001',
-            registration_number: profile.registration_number || '',
-            full_name: profile.full_name || '',
-            cpf: profile.cpf?.replace(/\D/g, '') || '',
-            pis: profile.pis || '',
-            department: profile.department || '',
-            position: profile.position || '',
-            hire_date: profile.hire_date ? format(new Date(profile.hire_date), selectedLayout.dateFormat) : '',
-            email: profile.email || '',
-            record_date: '',
-            entry_time: '',
-            break_start_time: '',
-            break_end_time: '',
-            exit_time: '',
-          };
-          
-          const lineValues = selectedLayout.fields
-            .filter(f => f.enabled)
-            .sort((a, b) => a.position - b.position)
-            .map(field => {
-              let value = recordData[field.source] || '';
-              
-              if (field.padding === 'left') {
-                value = value.padStart(field.length, field.paddingChar);
-              } else if (field.padding === 'right') {
-                value = value.padEnd(field.length, field.paddingChar);
-              }
-              
-              return value.slice(0, field.length);
-            });
-          
-          lines.push(lineValues.join(selectedLayout.delimiter || ''));
+        if (Object.keys(profileRecords).length === 0) {
+          const nativeIds = nativeLayouts.map(l => l.id);
+          if (!nativeIds.includes(selectedLayout.id) || selectedLayout.id === 'csv_generico') {
+            const recordData: Record<string, string> = {
+              company_code: '00001',
+              branch_code: '0001',
+              company_cnpj: companySettings?.rep_number || '',
+              registration_number: profile.registration_number || '',
+              full_name: profile.full_name || '',
+              cpf: profile.cpf?.replace(/\D/g, '') || '',
+              pis: profile.pis || '',
+              department: profile.department || '',
+              position: profile.position || '',
+              hire_date: profile.hire_date ? format(new Date(profile.hire_date), selectedLayout.dateFormat) : '',
+              email: profile.email || '',
+              record_date: '',
+              entry_time: '',
+              break_start_time: '',
+              break_end_time: '',
+              exit_time: '',
+              extra_entry_1: '',
+              extra_exit_1: '',
+              extra_entry_2: '',
+              extra_exit_2: '',
+              worked_hours: '00:00',
+              worked_hours_decimal: '0.00',
+              expected_hours: '00:00',
+              expected_hours_decimal: '0.00',
+              daily_balance: '00:00',
+              daily_balance_decimal: '0.00',
+              daily_overtime: '00:00',
+              daily_overtime_decimal: '0.00',
+              daily_deficit: '00:00',
+              daily_deficit_decimal: '0.00',
+              is_holiday: 'N',
+              day_of_week: '',
+              day_of_week_short: '',
+              monthly_worked: '00:00',
+              monthly_worked_decimal: '0.00',
+              monthly_expected: '00:00',
+              monthly_expected_decimal: '0.00',
+              monthly_overtime: '00:00',
+              monthly_overtime_decimal: '0.00',
+              monthly_deficit: '00:00',
+              monthly_deficit_decimal: '0.00',
+              monthly_balance: '00:00',
+              monthly_balance_decimal: '0.00',
+              time_bank_balance: '00:00',
+              time_bank_balance_decimal: '0.00',
+              absence_days: '0',
+              total_records: '0',
+            };
+            
+            const lineValues = selectedLayout.fields
+              .filter(f => f.enabled)
+              .sort((a, b) => a.position - b.position)
+              .map(field => {
+                let value = recordData[field.source] || '';
+                
+                if (field.padding === 'left') {
+                  value = value.padStart(field.length, field.paddingChar);
+                } else if (field.padding === 'right') {
+                  value = value.padEnd(field.length, field.paddingChar);
+                }
+                
+                return value.slice(0, field.length);
+              });
+            
+            lines.push(lineValues.join(selectedLayout.delimiter || ''));
+          }
         }
       }
       
@@ -881,9 +1067,18 @@ export default function ImportExport() {
     URL.revokeObjectURL(url);
   };
 
-  const openLayoutEditor = (layout?: ExportLayout) => {
+  const openLayoutEditor = (layout?: ExportLayout, duplicate: boolean = false) => {
+    const nativeIds = nativeLayouts.map(l => l.id);
     if (layout) {
-      setEditingLayout({ ...layout, id: layout.id === 'gaia' ? `custom_${Date.now()}` : layout.id });
+      const isNative = nativeIds.includes(layout.id);
+      const newId = (isNative || duplicate) ? `custom_${Date.now()}` : layout.id;
+      const newName = duplicate ? `${layout.name} (Cópia)` : (isNative ? `${layout.name} (Personalizado)` : layout.name);
+      setEditingLayout({ 
+        ...layout, 
+        id: newId,
+        name: newName,
+        fields: layout.fields.map(f => ({ ...f })),
+      });
     } else {
       setEditingLayout({
         id: `custom_${Date.now()}`,
@@ -1124,7 +1319,7 @@ export default function ImportExport() {
                     onClick={() => openLayoutEditor(selectedLayout || undefined)}
                   >
                     <Settings className="mr-2 h-4 w-4" />
-                    {selectedLayout?.id === 'gaia' ? 'Criar Baseado' : 'Editar'}
+                    Personalizar
                   </Button>
                   <Button 
                     variant="outline" 
@@ -1132,11 +1327,11 @@ export default function ImportExport() {
                     className="flex-1"
                     onClick={() => openLayoutEditor()}
                   >
-                    Novo Layout
+                    Novo
                   </Button>
                 </div>
 
-                {selectedLayout && selectedLayout.id !== 'gaia' && (
+                {selectedLayout && !nativeLayouts.map(l => l.id).includes(selectedLayout.id) && (
                   <Button 
                     variant="destructive" 
                     size="sm" 
@@ -1349,8 +1544,33 @@ export default function ImportExport() {
               </div>
 
               <div className="space-y-2">
-                <Label>Campos</Label>
-                <div className="border rounded-lg overflow-auto max-h-64">
+                <div className="flex items-center justify-between">
+                  <Label>Campos</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const newField: ExportField = {
+                        id: `field_${Date.now()}`,
+                        name: 'Novo Campo',
+                        source: 'registration_number',
+                        position: editingLayout.fields.length + 1,
+                        length: 10,
+                        padding: 'none',
+                        paddingChar: '',
+                        enabled: true,
+                      };
+                      setEditingLayout({
+                        ...editingLayout,
+                        fields: [...editingLayout.fields, newField],
+                      });
+                    }}
+                  >
+                    + Adicionar Campo
+                  </Button>
+                </div>
+                <div className="border rounded-lg overflow-auto max-h-80">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1359,6 +1579,7 @@ export default function ImportExport() {
                         <TableHead>Origem</TableHead>
                         <TableHead className="w-20">Tamanho</TableHead>
                         <TableHead className="w-24">Preenchimento</TableHead>
+                        <TableHead className="w-12"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1397,7 +1618,8 @@ export default function ImportExport() {
                               <SelectTrigger className="h-8">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="max-h-80">
+                                {/* Dados do Funcionário */}
                                 <SelectItem value="registration_number">Matrícula</SelectItem>
                                 <SelectItem value="full_name">Nome</SelectItem>
                                 <SelectItem value="cpf">CPF</SelectItem>
@@ -1407,11 +1629,48 @@ export default function ImportExport() {
                                 <SelectItem value="hire_date">Data Admissão</SelectItem>
                                 <SelectItem value="email">Email</SelectItem>
                                 <SelectItem value="company_code">Cód. Empresa</SelectItem>
+                                <SelectItem value="branch_code">Cód. Filial</SelectItem>
+                                <SelectItem value="company_cnpj">CNPJ Empresa</SelectItem>
+                                {/* Marcações de Ponto */}
                                 <SelectItem value="record_date">Data Registro</SelectItem>
+                                <SelectItem value="day_of_week">Dia da Semana</SelectItem>
+                                <SelectItem value="day_of_week_short">Dia Semana (Abrev)</SelectItem>
                                 <SelectItem value="entry_time">Hora Entrada</SelectItem>
                                 <SelectItem value="break_start_time">Saída Intervalo</SelectItem>
                                 <SelectItem value="break_end_time">Retorno Intervalo</SelectItem>
                                 <SelectItem value="exit_time">Hora Saída</SelectItem>
+                                <SelectItem value="extra_entry_1">Entrada Extra 1</SelectItem>
+                                <SelectItem value="extra_exit_1">Saída Extra 1</SelectItem>
+                                <SelectItem value="extra_entry_2">Entrada Extra 2</SelectItem>
+                                <SelectItem value="extra_exit_2">Saída Extra 2</SelectItem>
+                                <SelectItem value="total_records">Total Marcações</SelectItem>
+                                {/* Horas Diárias */}
+                                <SelectItem value="worked_hours">Horas Trabalhadas (HH:mm)</SelectItem>
+                                <SelectItem value="worked_hours_decimal">Horas Trabalhadas (Decimal)</SelectItem>
+                                <SelectItem value="expected_hours">Horas Previstas (HH:mm)</SelectItem>
+                                <SelectItem value="expected_hours_decimal">Horas Previstas (Decimal)</SelectItem>
+                                <SelectItem value="daily_balance">Saldo Diário (HH:mm)</SelectItem>
+                                <SelectItem value="daily_balance_decimal">Saldo Diário (Decimal)</SelectItem>
+                                <SelectItem value="daily_overtime">Hora Extra Diária (HH:mm)</SelectItem>
+                                <SelectItem value="daily_overtime_decimal">Hora Extra Diária (Decimal)</SelectItem>
+                                <SelectItem value="daily_deficit">Débito Diário (HH:mm)</SelectItem>
+                                <SelectItem value="daily_deficit_decimal">Débito Diário (Decimal)</SelectItem>
+                                <SelectItem value="is_holiday">É Feriado (S/N)</SelectItem>
+                                {/* Totais Mensais */}
+                                <SelectItem value="monthly_worked">Total Trabalhado Mês (HH:mm)</SelectItem>
+                                <SelectItem value="monthly_worked_decimal">Total Trabalhado Mês (Decimal)</SelectItem>
+                                <SelectItem value="monthly_expected">Total Previsto Mês (HH:mm)</SelectItem>
+                                <SelectItem value="monthly_expected_decimal">Total Previsto Mês (Decimal)</SelectItem>
+                                <SelectItem value="monthly_overtime">Horas Extras Mês (HH:mm)</SelectItem>
+                                <SelectItem value="monthly_overtime_decimal">Horas Extras Mês (Decimal)</SelectItem>
+                                <SelectItem value="monthly_deficit">Débitos Mês (HH:mm)</SelectItem>
+                                <SelectItem value="monthly_deficit_decimal">Débitos Mês (Decimal)</SelectItem>
+                                <SelectItem value="monthly_balance">Saldo Mês (HH:mm)</SelectItem>
+                                <SelectItem value="monthly_balance_decimal">Saldo Mês (Decimal)</SelectItem>
+                                {/* Banco de Horas e Faltas */}
+                                <SelectItem value="time_bank_balance">Banco Horas (HH:mm)</SelectItem>
+                                <SelectItem value="time_bank_balance_decimal">Banco Horas (Decimal)</SelectItem>
+                                <SelectItem value="absence_days">Dias de Falta</SelectItem>
                               </SelectContent>
                             </Select>
                           </TableCell>
@@ -1445,6 +1704,20 @@ export default function ImportExport() {
                                 <SelectItem value="right">Direita (espaço)</SelectItem>
                               </SelectContent>
                             </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              onClick={() => {
+                                const newFields = editingLayout.fields.filter((_, i) => i !== idx);
+                                setEditingLayout({ ...editingLayout, fields: newFields });
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
