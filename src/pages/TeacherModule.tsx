@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,12 +16,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO, eachDayOfInterval, isWeekend, differenceInMinutes, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, CalendarIcon, Clock, Users, BookOpen, 
-  DollarSign, GraduationCap, Moon, AlertCircle, FileText, School
+  DollarSign, GraduationCap, Moon, AlertCircle, FileText, School,
+  Download, Printer, ClipboardList
 } from 'lucide-react';
 
 interface TeacherConfiguration {
@@ -83,10 +84,57 @@ interface ClassRecord {
   class_hour_configuration?: TeacherConfiguration;
 }
 
+interface TimeRecord {
+  id: string;
+  profile_id: string;
+  record_type: string;
+  recorded_at: string;
+  nsr: number;
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+}
+
+interface DailyTimesheet {
+  date: string;
+  dayOfWeek: string;
+  records: TimeRecord[];
+  entry: string | null;
+  breakStart: string | null;
+  breakEnd: string | null;
+  exit: string | null;
+  workedMinutes: number;
+  classRecords: ClassRecord[];
+  totalClasses: number;
+  totalClassMinutes: number;
+  activityMinutes: number;
+  isHoliday: boolean;
+  holidayName: string | null;
+}
+
 interface Profile {
   id: string;
   full_name: string;
   registration_number: string | null;
+  pis: string | null;
+  cpf: string | null;
+  position: string | null;
+  department: string | null;
+}
+
+interface CompanySettings {
+  company_name: string;
+  cnpj: string | null;
+  cei: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+}
+
+interface Holiday {
+  id: string;
+  date: string;
+  name: string;
 }
 
 const contractTypeLabels: Record<string, string> = {
@@ -97,12 +145,16 @@ const contractTypeLabels: Record<string, string> = {
 
 export default function TeacherModule() {
   const { profile } = useAuth();
+  const printRef = useRef<HTMLDivElement>(null);
   
   const [configurations, setConfigurations] = useState<TeacherConfiguration[]>([]);
   const [assignments, setAssignments] = useState<TeacherAssignment[]>([]);
   const [records, setRecords] = useState<ClassRecord[]>([]);
   const [employees, setEmployees] = useState<Profile[]>([]);
   const [schedules, setSchedules] = useState<WorkSchedule[]>([]);
+  const [timeRecords, setTimeRecords] = useState<TimeRecord[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -111,6 +163,10 @@ export default function TeacherModule() {
 
   const [editingConfig, setEditingConfig] = useState<TeacherConfiguration | null>(null);
   const [editingAssignment, setEditingAssignment] = useState<TeacherAssignment | null>(null);
+  
+  // Timesheet state
+  const [selectedTeacher, setSelectedTeacher] = useState<string>('');
+  const [timesheetData, setTimesheetData] = useState<DailyTimesheet[]>([]);
 
   const [configForm, setConfigForm] = useState({
     name: '',
@@ -160,7 +216,7 @@ export default function TeacherModule() {
       const startDate = format(startOfMonth(filterMonth), 'yyyy-MM-dd');
       const endDate = format(endOfMonth(filterMonth), 'yyyy-MM-dd');
 
-      const [configsRes, assignmentsRes, recordsRes, employeesRes, schedulesRes] = await Promise.all([
+      const [configsRes, assignmentsRes, recordsRes, employeesRes, schedulesRes, holidaysRes, settingsRes] = await Promise.all([
         supabase.from('class_hour_configurations').select('*').order('name'),
         supabase.from('employee_class_hour_assignments').select(`
           *,
@@ -173,15 +229,19 @@ export default function TeacherModule() {
           profile:profiles(full_name),
           class_hour_configuration:class_hour_configurations(*)
         `).gte('class_date', startDate).lte('class_date', endDate).order('class_date', { ascending: false }),
-        supabase.from('profiles').select('id, full_name, registration_number').eq('is_active', true).order('full_name'),
+        supabase.from('profiles').select('id, full_name, registration_number, pis, cpf, position, department').eq('is_active', true).order('full_name'),
         supabase.from('work_schedules').select('id, name, scale_type, workload_type').order('name'),
+        supabase.from('holidays').select('id, date, name'),
+        supabase.from('company_settings').select('company_name, cnpj, cei, address, city, state').limit(1).maybeSingle(),
       ]);
 
       if (configsRes.data) setConfigurations(configsRes.data as unknown as TeacherConfiguration[]);
       if (assignmentsRes.data) setAssignments(assignmentsRes.data as unknown as TeacherAssignment[]);
       if (recordsRes.data) setRecords(recordsRes.data as unknown as ClassRecord[]);
-      if (employeesRes.data) setEmployees(employeesRes.data);
+      if (employeesRes.data) setEmployees(employeesRes.data as unknown as Profile[]);
       if (schedulesRes.data) setSchedules(schedulesRes.data as unknown as WorkSchedule[]);
+      if (holidaysRes.data) setHolidays(holidaysRes.data);
+      if (settingsRes.data) setCompanySettings(settingsRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Erro ao carregar dados');
@@ -457,6 +517,380 @@ export default function TeacherModule() {
     return time.slice(0, 5);
   };
 
+  // Fetch time records for selected teacher
+  const fetchTeacherTimeRecords = async (profileId: string) => {
+    if (!profileId) {
+      setTimesheetData([]);
+      return;
+    }
+
+    const startDate = format(startOfMonth(filterMonth), 'yyyy-MM-dd');
+    const endDate = format(endOfMonth(filterMonth), 'yyyy-MM-dd');
+
+    try {
+      const { data, error } = await supabase
+        .from('time_records')
+        .select('*')
+        .eq('profile_id', profileId)
+        .gte('recorded_at', `${startDate}T00:00:00`)
+        .lte('recorded_at', `${endDate}T23:59:59`)
+        .order('recorded_at', { ascending: true });
+
+      if (error) throw error;
+      
+      processTimesheetData(profileId, data || [], startDate, endDate);
+    } catch (error) {
+      console.error('Error fetching time records:', error);
+      toast.error('Erro ao carregar registros de ponto');
+    }
+  };
+
+  // Process timesheet data
+  const processTimesheetData = (profileId: string, timeRecordsData: TimeRecord[], startDate: string, endDate: string) => {
+    const days = eachDayOfInterval({
+      start: parseISO(startDate),
+      end: parseISO(endDate),
+    });
+
+    const teacherClassRecords = records.filter(r => r.profile_id === profileId);
+    const teacherAssignment = assignments.find(a => a.profile_id === profileId && a.is_active);
+    const activityPercent = teacherAssignment?.class_hour_configuration?.activity_hours_percent || 33.33;
+
+    const timesheetRows: DailyTimesheet[] = days.map(day => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      const dayOfWeek = format(day, 'EEEE', { locale: ptBR });
+      
+      // Check if holiday
+      const holiday = holidays.find(h => h.date === dateStr);
+      
+      // Get time records for this day
+      const dayRecords = timeRecordsData.filter(r => 
+        format(parseISO(r.recorded_at), 'yyyy-MM-dd') === dateStr
+      );
+      
+      // Extract record times
+      const entry = dayRecords.find(r => r.record_type === 'entry');
+      const breakStart = dayRecords.find(r => r.record_type === 'break_start');
+      const breakEnd = dayRecords.find(r => r.record_type === 'break_end');
+      const exit = dayRecords.find(r => r.record_type === 'exit');
+
+      // Calculate worked minutes
+      let workedMinutes = 0;
+      if (entry && exit) {
+        const entryTime = parseISO(entry.recorded_at);
+        const exitTime = parseISO(exit.recorded_at);
+        workedMinutes = differenceInMinutes(exitTime, entryTime);
+        
+        // Subtract break time
+        if (breakStart && breakEnd) {
+          const breakStartTime = parseISO(breakStart.recorded_at);
+          const breakEndTime = parseISO(breakEnd.recorded_at);
+          workedMinutes -= differenceInMinutes(breakEndTime, breakStartTime);
+        }
+      }
+
+      // Get class records for this day
+      const dayClassRecords = teacherClassRecords.filter(r => r.class_date === dateStr);
+      const totalClasses = dayClassRecords.reduce((sum, r) => sum + r.number_of_classes, 0);
+      const totalClassMinutes = dayClassRecords.reduce((sum, r) => sum + r.total_minutes, 0);
+      const activityMinutes = Math.round((totalClassMinutes * activityPercent) / 100);
+
+      return {
+        date: dateStr,
+        dayOfWeek,
+        records: dayRecords,
+        entry: entry ? format(parseISO(entry.recorded_at), 'HH:mm') : null,
+        breakStart: breakStart ? format(parseISO(breakStart.recorded_at), 'HH:mm') : null,
+        breakEnd: breakEnd ? format(parseISO(breakEnd.recorded_at), 'HH:mm') : null,
+        exit: exit ? format(parseISO(exit.recorded_at), 'HH:mm') : null,
+        workedMinutes,
+        classRecords: dayClassRecords,
+        totalClasses,
+        totalClassMinutes,
+        activityMinutes,
+        isHoliday: !!holiday,
+        holidayName: holiday?.name || null,
+      };
+    });
+
+    setTimesheetData(timesheetRows);
+    setTimeRecords(timeRecordsData);
+  };
+
+  // Calculate totals for timesheet
+  const calculateTimesheetTotals = () => {
+    const totalWorkedMinutes = timesheetData.reduce((sum, d) => sum + d.workedMinutes, 0);
+    const totalClasses = timesheetData.reduce((sum, d) => sum + d.totalClasses, 0);
+    const totalClassMinutes = timesheetData.reduce((sum, d) => sum + d.totalClassMinutes, 0);
+    const totalActivityMinutes = timesheetData.reduce((sum, d) => sum + d.activityMinutes, 0);
+    const totalDaysWorked = timesheetData.filter(d => d.workedMinutes > 0 || d.totalClasses > 0).length;
+
+    return {
+      totalWorkedMinutes,
+      totalClasses,
+      totalClassMinutes,
+      totalActivityMinutes,
+      totalDaysWorked,
+    };
+  };
+
+  // Format minutes to hours and minutes
+  const formatMinutesToHours = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}min`;
+  };
+
+  // Print timesheet
+  const handlePrintTimesheet = () => {
+    const printContent = printRef.current;
+    if (!printContent) return;
+
+    const printWindow = window.open('', '', 'height=600,width=900');
+    if (!printWindow) return;
+
+    const selectedEmployee = employees.find(e => e.id === selectedTeacher);
+    const totals = calculateTimesheetTotals();
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Espelho de Ponto - ${selectedEmployee?.full_name || 'Professor'}</title>
+          <style>
+            body { font-family: Arial, sans-serif; font-size: 10px; margin: 20px; }
+            h1 { font-size: 14px; text-align: center; margin-bottom: 5px; }
+            h2 { font-size: 12px; text-align: center; margin-bottom: 10px; }
+            .header { border: 1px solid #000; padding: 10px; margin-bottom: 10px; }
+            .header-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+            th, td { border: 1px solid #000; padding: 3px 5px; text-align: center; }
+            th { background-color: #f0f0f0; font-weight: bold; }
+            .weekend { background-color: #f5f5f5; }
+            .holiday { background-color: #ffe0e0; }
+            .totals { margin-top: 10px; border: 1px solid #000; padding: 10px; }
+            .signature-area { margin-top: 30px; display: flex; justify-content: space-between; }
+            .signature-line { width: 200px; border-top: 1px solid #000; text-align: center; padding-top: 5px; }
+            .legal-notice { margin-top: 20px; font-size: 8px; text-align: center; color: #666; }
+          </style>
+        </head>
+        <body>
+          <h1>ESPELHO DE PONTO ELETRÔNICO</h1>
+          <h2>Portaria 671/2021 MTE - Art. 76 a 79</h2>
+          
+          <div class="header">
+            <div class="header-row">
+              <span><strong>Empresa:</strong> ${companySettings?.company_name || 'N/A'}</span>
+              <span><strong>CNPJ:</strong> ${companySettings?.cnpj || 'N/A'}</span>
+            </div>
+            <div class="header-row">
+              <span><strong>Endereço:</strong> ${companySettings?.address || 'N/A'}, ${companySettings?.city || ''} - ${companySettings?.state || ''}</span>
+            </div>
+            <div class="header-row">
+              <span><strong>Professor:</strong> ${selectedEmployee?.full_name || 'N/A'}</span>
+              <span><strong>PIS:</strong> ${selectedEmployee?.pis || 'N/A'}</span>
+            </div>
+            <div class="header-row">
+              <span><strong>Matrícula:</strong> ${selectedEmployee?.registration_number || 'N/A'}</span>
+              <span><strong>CPF:</strong> ${selectedEmployee?.cpf || 'N/A'}</span>
+            </div>
+            <div class="header-row">
+              <span><strong>Cargo:</strong> ${selectedEmployee?.position || 'Professor'}</span>
+              <span><strong>Período:</strong> ${format(startOfMonth(filterMonth), 'dd/MM/yyyy')} a ${format(endOfMonth(filterMonth), 'dd/MM/yyyy')}</span>
+            </div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Dia</th>
+                <th>Entrada</th>
+                <th>Saída Int.</th>
+                <th>Retorno Int.</th>
+                <th>Saída</th>
+                <th>Total Horas</th>
+                <th>Aulas</th>
+                <th>Hora Aula</th>
+                <th>Hora Ativ.</th>
+                <th>Obs.</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${timesheetData.map(row => `
+                <tr class="${isWeekend(parseISO(row.date)) ? 'weekend' : ''} ${row.isHoliday ? 'holiday' : ''}">
+                  <td>${format(parseISO(row.date), 'dd/MM')}</td>
+                  <td>${row.dayOfWeek.slice(0, 3)}</td>
+                  <td>${row.entry || '-'}</td>
+                  <td>${row.breakStart || '-'}</td>
+                  <td>${row.breakEnd || '-'}</td>
+                  <td>${row.exit || '-'}</td>
+                  <td>${row.workedMinutes > 0 ? formatMinutesToHours(row.workedMinutes) : '-'}</td>
+                  <td>${row.totalClasses > 0 ? row.totalClasses : '-'}</td>
+                  <td>${row.totalClassMinutes > 0 ? formatMinutesToHours(row.totalClassMinutes) : '-'}</td>
+                  <td>${row.activityMinutes > 0 ? formatMinutesToHours(row.activityMinutes) : '-'}</td>
+                  <td>${row.isHoliday ? row.holidayName : ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="totals">
+            <div class="header-row">
+              <span><strong>Total Dias Trabalhados:</strong> ${totals.totalDaysWorked}</span>
+              <span><strong>Total Horas Relógio:</strong> ${formatMinutesToHours(totals.totalWorkedMinutes)}</span>
+            </div>
+            <div class="header-row">
+              <span><strong>Total Aulas:</strong> ${totals.totalClasses}</span>
+              <span><strong>Total Hora Aula:</strong> ${formatMinutesToHours(totals.totalClassMinutes)}</span>
+            </div>
+            <div class="header-row">
+              <span><strong>Total Hora Atividade:</strong> ${formatMinutesToHours(totals.totalActivityMinutes)}</span>
+              <span><strong>Total Geral (Aula + Ativ.):</strong> ${formatMinutesToHours(totals.totalClassMinutes + totals.totalActivityMinutes)}</span>
+            </div>
+          </div>
+          
+          <div class="signature-area">
+            <div class="signature-line">Assinatura do Funcionário</div>
+            <div class="signature-line">Assinatura do Responsável</div>
+          </div>
+          
+          <div class="legal-notice">
+            Documento gerado conforme Portaria 671/2021 do Ministério do Trabalho e Previdência - Arts. 76 a 79.
+            <br>Emitido em: ${format(new Date(), 'dd/MM/yyyy HH:mm:ss')}
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  // Generate AFD for teacher (Portaria 1510/671)
+  const generateTeacherAFD = () => {
+    if (!selectedTeacher || timeRecords.length === 0) {
+      toast.error('Selecione um professor e busque os registros primeiro');
+      return;
+    }
+
+    const selectedEmployee = employees.find(e => e.id === selectedTeacher);
+    const startDate = format(startOfMonth(filterMonth), 'ddMMyyyy');
+    const endDate = format(endOfMonth(filterMonth), 'ddMMyyyy');
+
+    const lines: string[] = [];
+    
+    // Header line (Type 1)
+    const header = [
+      '1',
+      '1',
+      (companySettings?.cnpj || '00000000000000').replace(/\D/g, '').padStart(14, '0'),
+      '000000000000',
+      (companySettings?.company_name || 'EMPRESA').padEnd(150, ' ').slice(0, 150),
+      '00000000000000000',
+      startDate,
+      endDate,
+      format(new Date(), 'ddMMyyyyHHmmss'),
+    ].join('');
+    lines.push(header);
+
+    // Record lines (Type 3)
+    timeRecords.forEach((record) => {
+      const recordLine = [
+        '3',
+        String(record.nsr).padStart(9, '0'),
+        '1',
+        (selectedEmployee?.pis || '00000000000').replace(/\D/g, '').padStart(11, '0'),
+        format(parseISO(record.recorded_at), 'ddMMyyyy'),
+        format(parseISO(record.recorded_at), 'HHmm'),
+      ].join('');
+      lines.push(recordLine);
+    });
+
+    // Trailer line (Type 9)
+    const trailer = [
+      '9',
+      String(lines.length + 1).padStart(9, '0'),
+    ].join('');
+    lines.push(trailer);
+
+    downloadFile(lines.join('\r\n'), `AFD_PROFESSOR_${selectedEmployee?.full_name?.replace(/\s/g, '_')}_${format(filterMonth, 'yyyy_MM')}.txt`);
+    toast.success('AFD gerado com sucesso!');
+  };
+
+  // Download file helper
+  const downloadFile = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Auto-register classes from time records
+  const autoRegisterClassesFromPunch = async () => {
+    if (!selectedTeacher) {
+      toast.error('Selecione um professor primeiro');
+      return;
+    }
+
+    const teacherAssignment = assignments.find(a => a.profile_id === selectedTeacher && a.is_active);
+    if (!teacherAssignment) {
+      toast.error('Professor não possui configuração de aulas atribuída');
+      return;
+    }
+
+    const config = configurations.find(c => c.id === teacherAssignment.class_hour_configuration_id);
+    if (!config) {
+      toast.error('Configuração de aulas não encontrada');
+      return;
+    }
+
+    // For each day with time records, calculate classes based on worked hours
+    let classesRegistered = 0;
+    const startDate = format(startOfMonth(filterMonth), 'yyyy-MM-dd');
+    const endDate = format(endOfMonth(filterMonth), 'yyyy-MM-dd');
+
+    for (const day of timesheetData) {
+      // Skip if no punch records or already has class records
+      if (day.workedMinutes === 0 || day.totalClasses > 0) continue;
+
+      // Calculate number of classes based on worked minutes and class duration
+      const possibleClasses = Math.floor(day.workedMinutes / config.duration_minutes);
+      if (possibleClasses <= 0) continue;
+
+      // Check max consecutive classes
+      const maxClasses = Math.min(possibleClasses, config.max_consecutive_classes || 4);
+      const totalMinutes = maxClasses * config.duration_minutes;
+
+      try {
+        const { error } = await supabase.from('class_records').insert({
+          profile_id: selectedTeacher,
+          class_hour_configuration_id: config.id,
+          class_date: day.date,
+          number_of_classes: maxClasses,
+          total_minutes: totalMinutes,
+          notes: 'Gerado automaticamente a partir do registro de ponto',
+          company_id: profile?.company_id,
+        });
+
+        if (!error) classesRegistered++;
+      } catch (error) {
+        console.error('Error registering class:', error);
+      }
+    }
+
+    if (classesRegistered > 0) {
+      toast.success(`${classesRegistered} dia(s) de aulas registrados automaticamente!`);
+      fetchData();
+      fetchTeacherTimeRecords(selectedTeacher);
+    } else {
+      toast.info('Nenhuma aula nova para registrar (dias já possuem registros ou sem ponto)');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -480,22 +914,30 @@ export default function TeacherModule() {
       </div>
 
       <Tabs defaultValue="configurations" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="configurations" className="gap-2">
             <School className="h-4 w-4" />
-            Configurações
+            <span className="hidden md:inline">Configurações</span>
           </TabsTrigger>
           <TabsTrigger value="assignments" className="gap-2">
             <Users className="h-4 w-4" />
-            Professores
+            <span className="hidden md:inline">Professores</span>
           </TabsTrigger>
           <TabsTrigger value="records" className="gap-2">
             <BookOpen className="h-4 w-4" />
-            Aulas
+            <span className="hidden md:inline">Aulas</span>
+          </TabsTrigger>
+          <TabsTrigger value="timesheet" className="gap-2">
+            <ClipboardList className="h-4 w-4" />
+            <span className="hidden md:inline">Espelho de Ponto</span>
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden md:inline">Relatórios</span>
           </TabsTrigger>
           <TabsTrigger value="summary" className="gap-2">
             <DollarSign className="h-4 w-4" />
-            Resumo
+            <span className="hidden md:inline">Resumo</span>
           </TabsTrigger>
         </TabsList>
 
@@ -741,6 +1183,357 @@ export default function TeacherModule() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Timesheet Tab - Espelho de Ponto */}
+        <TabsContent value="timesheet" className="space-y-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+              <div className="space-y-2">
+                <Label>Professor</Label>
+                <Select
+                  value={selectedTeacher}
+                  onValueChange={(v) => {
+                    setSelectedTeacher(v);
+                    if (v) fetchTeacherTimeRecords(v);
+                  }}
+                >
+                  <SelectTrigger className="w-[250px]">
+                    <SelectValue placeholder="Selecione o professor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>
+                        {emp.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Mês</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(filterMonth, 'MMMM yyyy', { locale: ptBR })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={filterMonth}
+                      onSelect={(date) => {
+                        if (date) {
+                          setFilterMonth(date);
+                          if (selectedTeacher) fetchTeacherTimeRecords(selectedTeacher);
+                        }
+                      }}
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handlePrintTimesheet} disabled={!selectedTeacher || timesheetData.length === 0}>
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir
+              </Button>
+              <Button variant="outline" onClick={autoRegisterClassesFromPunch} disabled={!selectedTeacher}>
+                <BookOpen className="h-4 w-4 mr-2" />
+                Gerar Aulas do Ponto
+              </Button>
+            </div>
+          </div>
+
+          {selectedTeacher && timesheetData.length > 0 && (
+            <>
+              {/* Summary Cards */}
+              <div className="grid gap-4 md:grid-cols-5">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Dias Trabalhados</CardDescription>
+                    <CardTitle className="text-2xl">{calculateTimesheetTotals().totalDaysWorked}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Horas Relógio</CardDescription>
+                    <CardTitle className="text-2xl">{formatMinutesToHours(calculateTimesheetTotals().totalWorkedMinutes)}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Total Aulas</CardDescription>
+                    <CardTitle className="text-2xl">{calculateTimesheetTotals().totalClasses}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Hora Aula</CardDescription>
+                    <CardTitle className="text-2xl">{formatMinutesToHours(calculateTimesheetTotals().totalClassMinutes)}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardDescription>Hora Atividade</CardDescription>
+                    <CardTitle className="text-2xl">{formatMinutesToHours(calculateTimesheetTotals().totalActivityMinutes)}</CardTitle>
+                  </CardHeader>
+                </Card>
+              </div>
+
+              {/* Timesheet Table */}
+              <Card ref={printRef}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5" />
+                    Espelho de Ponto - {employees.find(e => e.id === selectedTeacher)?.full_name}
+                  </CardTitle>
+                  <CardDescription>
+                    Período: {format(startOfMonth(filterMonth), 'dd/MM/yyyy')} a {format(endOfMonth(filterMonth), 'dd/MM/yyyy')} | 
+                    Conforme Portaria 671/2021 MTE
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[80px]">Data</TableHead>
+                          <TableHead className="w-[60px]">Dia</TableHead>
+                          <TableHead className="w-[70px]">Entrada</TableHead>
+                          <TableHead className="w-[70px]">Saída Int.</TableHead>
+                          <TableHead className="w-[70px]">Ret. Int.</TableHead>
+                          <TableHead className="w-[70px]">Saída</TableHead>
+                          <TableHead className="w-[80px]">Total</TableHead>
+                          <TableHead className="w-[60px]">Aulas</TableHead>
+                          <TableHead className="w-[80px]">H. Aula</TableHead>
+                          <TableHead className="w-[80px]">H. Ativ.</TableHead>
+                          <TableHead>Obs.</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {timesheetData.map((row) => (
+                          <TableRow 
+                            key={row.date}
+                            className={cn(
+                              isWeekend(parseISO(row.date)) && 'bg-muted/50',
+                              row.isHoliday && 'bg-destructive/10'
+                            )}
+                          >
+                            <TableCell className="font-mono text-sm">
+                              {format(parseISO(row.date), 'dd/MM')}
+                            </TableCell>
+                            <TableCell className="text-sm capitalize">
+                              {row.dayOfWeek.slice(0, 3)}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {row.entry || '-'}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {row.breakStart || '-'}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {row.breakEnd || '-'}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {row.exit || '-'}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {row.workedMinutes > 0 ? formatMinutesToHours(row.workedMinutes) : '-'}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {row.totalClasses > 0 ? (
+                                <Badge variant="secondary">{row.totalClasses}</Badge>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {row.totalClassMinutes > 0 ? formatMinutesToHours(row.totalClassMinutes) : '-'}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {row.activityMinutes > 0 ? formatMinutesToHours(row.activityMinutes) : '-'}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {row.isHoliday && (
+                                <Badge variant="destructive" className="text-xs">{row.holidayName}</Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {!selectedTeacher && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Selecione um professor para visualizar o espelho de ponto</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Reports Tab */}
+        <TabsContent value="reports" className="space-y-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="space-y-2">
+              <Label>Professor</Label>
+              <Select
+                value={selectedTeacher}
+                onValueChange={(v) => {
+                  setSelectedTeacher(v);
+                  if (v) fetchTeacherTimeRecords(v);
+                }}
+              >
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Selecione o professor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Mês</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(filterMonth, 'MMMM yyyy', { locale: ptBR })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={filterMonth}
+                    onSelect={(date) => {
+                      if (date) {
+                        setFilterMonth(date);
+                        if (selectedTeacher) fetchTeacherTimeRecords(selectedTeacher);
+                      }
+                    }}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={generateTeacherAFD}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5 text-primary" />
+                  Arquivo AFD - Professor
+                </CardTitle>
+                <CardDescription>
+                  Arquivo Fonte de Dados - Portaria 1510/671
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Arquivo com todos os registros de ponto do professor no formato exigido pelo MTE.
+                </p>
+                <Button className="mt-4 w-full" variant="outline" disabled={!selectedTeacher || timeRecords.length === 0}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Gerar AFD
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={handlePrintTimesheet}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Printer className="h-5 w-5 text-primary" />
+                  Espelho de Ponto - PDF
+                </CardTitle>
+                <CardDescription>
+                  Relatório de ponto para impressão - Portaria 671
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Espelho de ponto completo com hora aula e hora atividade para assinatura.
+                </p>
+                <Button className="mt-4 w-full" variant="outline" disabled={!selectedTeacher || timesheetData.length === 0}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  Imprimir Espelho
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {selectedTeacher && timeRecords.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Prévia dos Registros</CardTitle>
+                <CardDescription>
+                  {timeRecords.length} registros encontrados para {employees.find(e => e.id === selectedTeacher)?.full_name}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto max-h-96">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>NSR</TableHead>
+                        <TableHead>Data/Hora</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Endereço</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {timeRecords.slice(0, 50).map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell className="font-mono">{record.nsr}</TableCell>
+                          <TableCell className="font-mono">
+                            {format(parseISO(record.recorded_at), 'dd/MM/yyyy HH:mm:ss')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {{
+                                entry: 'Entrada',
+                                break_start: 'Saída Intervalo',
+                                break_end: 'Retorno Intervalo',
+                                exit: 'Saída',
+                              }[record.record_type] || record.record_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                            {record.address || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {timeRecords.length > 50 && (
+                    <p className="text-center text-sm text-muted-foreground mt-4">
+                      Mostrando 50 de {timeRecords.length} registros
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {!selectedTeacher && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Selecione um professor para gerar relatórios</p>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Summary Tab */}
