@@ -12,7 +12,7 @@ import TimeClock from "@/pages/TimeClock";
 import MyRecords from "@/pages/MyRecords";
 import Employees from "@/pages/Employees";
 import RegisterEmployee from "@/pages/RegisterEmployee";
-import Schedules from "@/pages/Schedules";
+import WorkSchedules from "@/pages/WorkSchedules";
 import Adjustments from "@/pages/Adjustments";
 import Reports from "@/pages/Reports";
 import Company from "@/pages/Company";
@@ -24,7 +24,6 @@ import OvertimeDashboard from "@/pages/OvertimeDashboard";
 import PositionsDepartments from "@/pages/PositionsDepartments";
 import SuperAdmin from "@/pages/SuperAdmin";
 import SuperAdminAuth from "@/pages/SuperAdminAuth";
-import ScaleManagement from "@/pages/ScaleManagement";
 import ClassHours from "@/pages/ClassHours";
 import NotFound from "@/pages/NotFound";
 
@@ -67,7 +66,7 @@ const App = () => (
               } />
               <Route path="schedules" element={
                 <ProtectedRoute requiredRoles={['admin']}>
-                  <Schedules />
+                  <WorkSchedules />
                 </ProtectedRoute>
               } />
               <Route path="adjustments" element={
@@ -104,11 +103,6 @@ const App = () => (
               <Route path="overtime-dashboard" element={
                 <ProtectedRoute requiredRoles={['admin', 'manager']}>
                   <OvertimeDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="scale-management" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <ScaleManagement />
                 </ProtectedRoute>
               } />
               <Route path="class-hours" element={
