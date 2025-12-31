@@ -30,6 +30,7 @@ import TeacherModule from "@/pages/TeacherModule";
 import Timesheet from "@/pages/Timesheet";
 import ImportExport from "@/pages/ImportExport";
 import CategoryPage from "@/pages/CategoryPage";
+import AccountSettings from "@/pages/AccountSettings";
 import NotFound from "@/pages/NotFound";
 
 // Equipment pages
@@ -82,6 +83,7 @@ const App = () => (
                 <Route path="timesheet" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Timesheet /></ProtectedRoute>} />
                 <Route path="import-export" element={<ProtectedRoute requiredRoles={['admin']}><ImportExport /></ProtectedRoute>} />
                 <Route path="teacher-module" element={<ProtectedRoute requiredRoles={['admin']}><TeacherModule /></ProtectedRoute>} />
+                <Route path="account-settings" element={<AccountSettings />} />
                 <Route path="super-admin" element={<ProtectedRoute requiredRoles={['super_admin']}><SuperAdmin /></ProtectedRoute>} />
                 
                 {/* Equipment Routes */}
