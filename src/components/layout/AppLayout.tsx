@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useBrasiliaTime } from '@/hooks/useBrasiliaTime';
 import { useDailyMessage } from '@/hooks/useDailyMessage';
+import { useFavorites } from '@/hooks/useFavorites';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +62,9 @@ import {
   FolderOpen,
   FileBarChart,
   Cog,
+  Star,
+  History,
+  ChevronUp,
 } from 'lucide-react';
 
 interface CompanySettings {
@@ -69,6 +73,7 @@ interface CompanySettings {
 }
 
 interface MenuCategory {
+  id: string;
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   items: MenuItem[];
@@ -85,6 +90,7 @@ interface MenuItem {
 // Categories with their items
 const menuCategories: MenuCategory[] = [
   {
+    id: 'principal',
     title: 'Principal',
     icon: Home,
     roles: ['admin', 'manager', 'employee'],
@@ -95,6 +101,7 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
+    id: 'meus-dados',
     title: 'Meus Dados',
     icon: FileText,
     roles: ['admin', 'manager', 'employee'],
@@ -104,6 +111,7 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
+    id: 'cadastros',
     title: 'Cadastros',
     icon: FolderOpen,
     roles: ['admin', 'manager'],
@@ -116,6 +124,7 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
+    id: 'espelhos-ponto',
     title: 'Espelhos de Ponto',
     icon: ClipboardList,
     roles: ['admin', 'manager'],
@@ -126,6 +135,7 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
+    id: 'relatorios',
     title: 'Relatórios',
     icon: FileBarChart,
     roles: ['admin', 'manager'],
@@ -136,6 +146,7 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
+    id: 'configuracoes',
     title: 'Configurações',
     icon: Cog,
     roles: ['admin'],
@@ -147,14 +158,20 @@ const menuCategories: MenuCategory[] = [
   },
 ];
 
+// Get all menu items flattened
+const getAllMenuItems = (): MenuItem[] => {
+  return menuCategories.flatMap(cat => cat.items);
+};
+
 export default function AppLayout() {
   const { profile, roles, signOut, isAdmin, isManager } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
-  const [openCategories, setOpenCategories] = useState<string[]>(['Principal']);
+  const [openCategories, setOpenCategories] = useState<string[]>(['principal']);
   const { getFormattedDate, getFormattedTime } = useBrasiliaTime();
   const dailyMessage = useDailyMessage();
+  const { favorites, recentRoutes, toggleFavorite, isFavorite, addRecentRoute } = useFavorites();
 
   useEffect(() => {
     const fetchCompanySettings = async () => {
@@ -172,12 +189,17 @@ export default function AppLayout() {
     fetchCompanySettings();
   }, []);
 
+  // Track route changes for recent routes
+  useEffect(() => {
+    addRecentRoute(location.pathname);
+  }, [location.pathname, addRecentRoute]);
+
   // Determine which category contains the current route and open it
   useEffect(() => {
     for (const category of menuCategories) {
       const hasActiveItem = category.items.some(item => item.href === location.pathname);
-      if (hasActiveItem && !openCategories.includes(category.title)) {
-        setOpenCategories(prev => [...prev, category.title]);
+      if (hasActiveItem && !openCategories.includes(category.id)) {
+        setOpenCategories(prev => [...prev, category.id]);
       }
     }
   }, [location.pathname]);
@@ -196,11 +218,11 @@ export default function AppLayout() {
       .slice(0, 2);
   };
 
-  const toggleCategory = (categoryTitle: string) => {
+  const toggleCategory = (categoryId: string) => {
     setOpenCategories(prev => 
-      prev.includes(categoryTitle)
-        ? prev.filter(c => c !== categoryTitle)
-        : [...prev, categoryTitle]
+      prev.includes(categoryId)
+        ? prev.filter(c => c !== categoryId)
+        : [...prev, categoryId]
     );
   };
 
@@ -221,8 +243,47 @@ export default function AppLayout() {
       const item = category.items.find(i => i.href === location.pathname);
       if (item) return item.title;
     }
+    if (location.pathname.startsWith('/category/')) {
+      const categoryId = location.pathname.split('/category/')[1];
+      const category = menuCategories.find(c => c.id === categoryId);
+      return category?.title || 'Categoria';
+    }
     return 'Início';
   };
+
+  const getCurrentCategory = () => {
+    for (const category of menuCategories) {
+      const hasItem = category.items.some(i => i.href === location.pathname);
+      if (hasItem) return category;
+    }
+    return null;
+  };
+
+  const handleBack = () => {
+    const currentCategory = getCurrentCategory();
+    if (currentCategory && location.pathname !== '/home') {
+      // Navigate to category overview
+      navigate(`/category/${currentCategory.id}`);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const getMenuItemByHref = (href: string) => {
+    return getAllMenuItems().find(item => item.href === href);
+  };
+
+  // Get favorite items
+  const favoriteItems = favorites
+    .map(href => getMenuItemByHref(href))
+    .filter((item): item is MenuItem => item !== undefined && filterItem(item));
+
+  // Get recent items (excluding favorites and current route)
+  const recentItems = recentRoutes
+    .filter(href => !favorites.includes(href) && href !== location.pathname)
+    .map(href => getMenuItemByHref(href))
+    .filter((item): item is MenuItem => item !== undefined && filterItem(item))
+    .slice(0, 3);
 
   return (
     <SidebarProvider>
@@ -288,11 +349,93 @@ export default function AppLayout() {
           </SidebarHeader>
 
           <SidebarContent className="px-2">
+            {/* Favorites Section */}
+            {favoriteItems.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-xs font-medium text-amber-500 flex items-center gap-2 px-2">
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                  <span>Favoritos</span>
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {favoriteItems.map((item) => (
+                      <SidebarMenuItem key={`fav-${item.href}`}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={location.pathname === item.href}
+                          className="h-8 group"
+                        >
+                          <Link to={item.href}>
+                            <item.icon className="w-3.5 h-3.5" />
+                            <span className="text-xs flex-1">{item.title}</span>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleFavorite(item.href);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                            </button>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {/* Recent Section */}
+            {recentItems.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel className="text-xs font-medium text-sidebar-foreground/70 flex items-center gap-2 px-2">
+                  <History className="w-3.5 h-3.5" />
+                  <span>Recentes</span>
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {recentItems.map((item) => (
+                      <SidebarMenuItem key={`recent-${item.href}`}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={location.pathname === item.href}
+                          className="h-8 group"
+                        >
+                          <Link to={item.href}>
+                            <item.icon className="w-3.5 h-3.5" />
+                            <span className="text-xs flex-1">{item.title}</span>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleFavorite(item.href);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Star className="w-3 h-3 text-muted-foreground hover:text-amber-500" />
+                            </button>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {/* Divider */}
+            {(favoriteItems.length > 0 || recentItems.length > 0) && (
+              <div className="my-2 border-t border-sidebar-border/50" />
+            )}
+
+            {/* Menu Categories */}
             {menuCategories.filter(filterCategory).map((category) => (
-              <SidebarGroup key={category.title}>
+              <SidebarGroup key={category.id}>
                 <Collapsible 
-                  open={openCategories.includes(category.title)} 
-                  onOpenChange={() => toggleCategory(category.title)}
+                  open={openCategories.includes(category.id)} 
+                  onOpenChange={() => toggleCategory(category.id)}
                 >
                   <CollapsibleTrigger asChild>
                     <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md px-2 py-1.5 flex items-center justify-between w-full text-xs font-medium text-sidebar-foreground/70">
@@ -300,11 +443,20 @@ export default function AppLayout() {
                         <category.icon className="w-3.5 h-3.5" />
                         <span>{category.title}</span>
                       </div>
-                      {openCategories.includes(category.title) ? (
-                        <ChevronDown className="w-3.5 h-3.5" />
-                      ) : (
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      )}
+                      <div className="flex items-center gap-1">
+                        <Link 
+                          to={`/category/${category.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-1 hover:bg-sidebar-accent rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <ChevronUp className="w-3 h-3 rotate-90" />
+                        </Link>
+                        {openCategories.includes(category.id) ? (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        )}
+                      </div>
                     </SidebarGroupLabel>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -315,11 +467,21 @@ export default function AppLayout() {
                             <SidebarMenuButton
                               asChild
                               isActive={location.pathname === item.href}
-                              className="h-8 pl-6"
+                              className="h-8 pl-6 group"
                             >
                               <Link to={item.href}>
                                 <item.icon className="w-3.5 h-3.5" />
-                                <span className="text-xs">{item.title}</span>
+                                <span className="text-xs flex-1">{item.title}</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleFavorite(item.href);
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Star className={`w-3 h-3 ${isFavorite(item.href) ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground hover:text-amber-500'}`} />
+                                </button>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
@@ -337,10 +499,10 @@ export default function AppLayout() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start gap-3 h-auto py-2 px-2 hover:bg-sidebar-accent">
                   <Settings className="h-4 w-4" />
-                  <span className="text-sm">Configurações</span>
+                  <span className="text-sm">Conta</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuContent align="start" className="w-56 bg-popover border border-border z-50">
                 <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -368,7 +530,7 @@ export default function AppLayout() {
                   variant="ghost" 
                   size="icon" 
                   className="h-8 w-8"
-                  onClick={() => navigate(-1)}
+                  onClick={handleBack}
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
@@ -392,3 +554,5 @@ export default function AppLayout() {
     </SidebarProvider>
   );
 }
+
+export { menuCategories };
