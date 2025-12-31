@@ -24,6 +24,8 @@ import OvertimeDashboard from "@/pages/OvertimeDashboard";
 import PositionsDepartments from "@/pages/PositionsDepartments";
 import SuperAdmin from "@/pages/SuperAdmin";
 import SuperAdminAuth from "@/pages/SuperAdminAuth";
+import ScaleManagement from "@/pages/ScaleManagement";
+import ClassHours from "@/pages/ClassHours";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -102,6 +104,16 @@ const App = () => (
               <Route path="overtime-dashboard" element={
                 <ProtectedRoute requiredRoles={['admin', 'manager']}>
                   <OvertimeDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="scale-management" element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <ScaleManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="class-hours" element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <ClassHours />
                 </ProtectedRoute>
               } />
               <Route path="super-admin" element={
