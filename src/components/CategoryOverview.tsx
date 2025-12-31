@@ -83,11 +83,17 @@ const categoryConfig: Record<string, CategoryData> = {
       { title: 'Import/Export', href: '/import-export', icon: ArrowUpDown, description: 'Importar e exportar dados' },
     ]
   },
+  'equipamentos-rep': {
+    title: 'Equipamentos REP',
+    description: 'Gestão de relógios de ponto eletrônicos',
+    items: [
+      { title: 'Equipamentos REP', href: '/equipment', icon: Server, description: 'Cadastro e sincronização de REPs' },
+    ]
+  },
   configuracoes: {
     title: 'Configurações',
     description: 'Configurações do sistema',
     items: [
-      { title: 'Equipamentos REP', href: '/equipment', icon: Server, description: 'Relógios de ponto eletrônicos' },
       { title: 'Usuários', href: '/users', icon: UserCog, description: 'Gestão de usuários do sistema' },
       { title: 'Empresa', href: '/company', icon: Building2, description: 'Dados da empresa' },
     ]

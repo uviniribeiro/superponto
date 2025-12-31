@@ -146,12 +146,20 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
+    id: 'equipamentos-rep',
+    title: 'Equipamentos REP',
+    icon: Server,
+    roles: ['admin'],
+    items: [
+      { title: 'Equipamentos REP', icon: Server, href: '/equipment', roles: ['admin'] },
+    ]
+  },
+  {
     id: 'configuracoes',
     title: 'Configurações',
     icon: Cog,
     roles: ['admin'],
     items: [
-      { title: 'Equipamentos REP', icon: Server, href: '/equipment', roles: ['admin'] },
       { title: 'Usuários', icon: UserCog, href: '/users', roles: ['admin'] },
       { title: 'Empresa', icon: Building2, href: '/company', roles: ['admin'] },
     ]
