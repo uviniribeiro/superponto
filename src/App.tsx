@@ -30,6 +30,7 @@ import TeacherModule from "@/pages/TeacherModule";
 import Timesheet from "@/pages/Timesheet";
 import ImportExport from "@/pages/ImportExport";
 import Equipment from "@/pages/Equipment";
+import CategoryPage from "@/pages/CategoryPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,90 +56,91 @@ const App = () => (
                 <Route path="home" element={<Home />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="time-clock" element={<TimeClock />} />
-              <Route path="my-records" element={<MyRecords />} />
-              <Route path="employees" element={
-                <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                  <Employees />
-                </ProtectedRoute>
-              } />
-              <Route path="employees/register" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <RegisterEmployee />
-                </ProtectedRoute>
-              } />
-              <Route path="positions-departments" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <PositionsDepartments />
-                </ProtectedRoute>
-              } />
-              <Route path="schedules" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <WorkSchedules />
-                </ProtectedRoute>
-              } />
-              <Route path="adjustments" element={
-                <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                  <Adjustments />
-                </ProtectedRoute>
-              } />
-              <Route path="reports" element={
-                <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                  <Reports />
-                </ProtectedRoute>
-              } />
-              <Route path="company" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <Company />
-                </ProtectedRoute>
-              } />
-              <Route path="holidays" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <Holidays />
-                </ProtectedRoute>
-              } />
-              <Route path="time-bank" element={<TimeBank />} />
-              <Route path="absences" element={
-                <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                  <Absences />
-                </ProtectedRoute>
-              } />
-              <Route path="users" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <Users />
-                </ProtectedRoute>
-              } />
-              <Route path="overtime-dashboard" element={
-                <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                  <OvertimeDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="timesheet" element={
-                <ProtectedRoute requiredRoles={['admin', 'manager']}>
-                  <Timesheet />
-                </ProtectedRoute>
-              } />
-              <Route path="import-export" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <ImportExport />
-                </ProtectedRoute>
-              } />
-              <Route path="equipment" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <Equipment />
-                </ProtectedRoute>
-              } />
-              <Route path="teacher-module" element={
-                <ProtectedRoute requiredRoles={['admin']}>
-                  <TeacherModule />
-                </ProtectedRoute>
-              } />
-              <Route path="super-admin" element={
-                <ProtectedRoute requiredRoles={['super_admin']}>
-                  <SuperAdmin />
-                </ProtectedRoute>
-              } />
-            </Route>
-            
+                <Route path="my-records" element={<MyRecords />} />
+                <Route path="category/:categoryId" element={<CategoryPage />} />
+                <Route path="employees" element={
+                  <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                    <Employees />
+                  </ProtectedRoute>
+                } />
+                <Route path="employees/register" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <RegisterEmployee />
+                  </ProtectedRoute>
+                } />
+                <Route path="positions-departments" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <PositionsDepartments />
+                  </ProtectedRoute>
+                } />
+                <Route path="schedules" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <WorkSchedules />
+                  </ProtectedRoute>
+                } />
+                <Route path="adjustments" element={
+                  <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                    <Adjustments />
+                  </ProtectedRoute>
+                } />
+                <Route path="reports" element={
+                  <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                    <Reports />
+                  </ProtectedRoute>
+                } />
+                <Route path="company" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <Company />
+                  </ProtectedRoute>
+                } />
+                <Route path="holidays" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <Holidays />
+                  </ProtectedRoute>
+                } />
+                <Route path="time-bank" element={<TimeBank />} />
+                <Route path="absences" element={
+                  <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                    <Absences />
+                  </ProtectedRoute>
+                } />
+                <Route path="users" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <Users />
+                  </ProtectedRoute>
+                } />
+                <Route path="overtime-dashboard" element={
+                  <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                    <OvertimeDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="timesheet" element={
+                  <ProtectedRoute requiredRoles={['admin', 'manager']}>
+                    <Timesheet />
+                  </ProtectedRoute>
+                } />
+                <Route path="import-export" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <ImportExport />
+                  </ProtectedRoute>
+                } />
+                <Route path="equipment" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <Equipment />
+                  </ProtectedRoute>
+                } />
+                <Route path="teacher-module" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <TeacherModule />
+                  </ProtectedRoute>
+                } />
+                <Route path="super-admin" element={
+                  <ProtectedRoute requiredRoles={['super_admin']}>
+                    <SuperAdmin />
+                  </ProtectedRoute>
+                } />
+              </Route>
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
