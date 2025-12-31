@@ -571,6 +571,286 @@ const processPendingRecords = async (supabase: any) => {
   return { processed, errors };
 };
 
+// Send employee to device - manufacturer specific implementations
+const sendEmployeeToDevice = async (equipment: any, employee: { id: string; name: string; pis: string; registration: string }): Promise<{ success: boolean; error?: string }> => {
+  const manufacturer = equipment.manufacturer.toLowerCase();
+  const url = `${equipment.protocol}://${equipment.ip_address}:${equipment.port}`;
+  
+  try {
+    switch (manufacturer) {
+      case 'henry':
+        // Henry SOAP API for employee registration
+        const henryResponse = await fetch(`${url}${equipment.api_endpoint || '/iDClass/SyncDataService.svc'}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/soap+xml; charset=utf-8',
+            ...(equipment.username && { 'Authorization': `Basic ${btoa(`${equipment.username}:${equipment.password}`)}` }),
+          },
+          body: `<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <SetEmployee xmlns="http://tempuri.org/">
+      <employee>
+        <PIS>${employee.pis || employee.id}</PIS>
+        <Name>${employee.name}</Name>
+        <Registration>${employee.registration || employee.id}</Registration>
+      </employee>
+    </SetEmployee>
+  </soap12:Body>
+</soap12:Envelope>`,
+        });
+        return { success: henryResponse.ok };
+        
+      case 'dimep':
+      case 'controlid':
+        const controlIdResponse = await fetch(`${url}${equipment.api_endpoint || '/api/v1/users'}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(equipment.password && { 'Authorization': `Bearer ${equipment.password}` }),
+          },
+          body: JSON.stringify({
+            user_id: employee.id,
+            name: employee.name,
+            registration: employee.registration,
+            pis: employee.pis,
+          }),
+        });
+        return { success: controlIdResponse.ok };
+        
+      case 'zkteco':
+        const zktecoResponse = await fetch(`${url}/iclock/api/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pin: employee.id,
+            name: employee.name,
+            privilege: 0,
+          }),
+        });
+        return { success: zktecoResponse.ok };
+        
+      case 'hikvision':
+        const hikvisionResponse = await fetch(`${url}/ISAPI/AccessControl/UserInfo/Record`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(equipment.username && { 'Authorization': `Basic ${btoa(`${equipment.username}:${equipment.password}`)}` }),
+          },
+          body: JSON.stringify({
+            UserInfo: {
+              employeeNo: employee.id,
+              name: employee.name,
+              userType: 'normal',
+              Valid: { enable: true },
+            },
+          }),
+        });
+        return { success: hikvisionResponse.ok };
+        
+      default:
+        // Generic REST API
+        const genericResponse = await fetch(`${url}/api/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(equipment.username && { 'Authorization': `Basic ${btoa(`${equipment.username}:${equipment.password}`)}` }),
+          },
+          body: JSON.stringify({
+            id: employee.id,
+            name: employee.name,
+            pis: employee.pis,
+            registration: employee.registration,
+          }),
+        });
+        return { success: genericResponse.ok };
+    }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+};
+
+// Receive employees from device
+const receiveEmployeesFromDevice = async (equipment: any): Promise<{ success: boolean; employees?: any[]; error?: string }> => {
+  const manufacturer = equipment.manufacturer.toLowerCase();
+  const url = `${equipment.protocol}://${equipment.ip_address}:${equipment.port}`;
+  
+  try {
+    switch (manufacturer) {
+      case 'henry':
+        const henryResponse = await fetch(`${url}${equipment.api_endpoint || '/iDClass/SyncDataService.svc'}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/soap+xml; charset=utf-8',
+            ...(equipment.username && { 'Authorization': `Basic ${btoa(`${equipment.username}:${equipment.password}`)}` }),
+          },
+          body: `<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <GetEmployees xmlns="http://tempuri.org/" />
+  </soap12:Body>
+</soap12:Envelope>`,
+        });
+        const henryData = await henryResponse.text();
+        // Parse SOAP response
+        const employees: any[] = [];
+        const matches = henryData.matchAll(/<Employee>.*?<PIS>(\d+)<\/PIS>.*?<Name>([^<]+)<\/Name>.*?<\/Employee>/gs);
+        for (const match of matches) {
+          employees.push({ identifier: match[1], name: match[2] });
+        }
+        return { success: true, employees };
+        
+      case 'dimep':
+      case 'controlid':
+        const controlIdResponse = await fetch(`${url}${equipment.api_endpoint || '/api/v1/users'}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(equipment.password && { 'Authorization': `Bearer ${equipment.password}` }),
+          },
+        });
+        const controlIdData = await controlIdResponse.json();
+        return { 
+          success: true, 
+          employees: (controlIdData.users || controlIdData || []).map((u: any) => ({
+            identifier: u.user_id || u.id || u.pis,
+            name: u.name,
+            registration: u.registration,
+            pis: u.pis,
+          })),
+        };
+        
+      case 'zkteco':
+        const zktecoResponse = await fetch(`${url}/iclock/api/users`, {
+          method: 'GET',
+        });
+        const zktecoData = await zktecoResponse.json();
+        return { 
+          success: true, 
+          employees: (zktecoData.data || zktecoData || []).map((u: any) => ({
+            identifier: u.pin || u.id,
+            name: u.name,
+          })),
+        };
+        
+      case 'hikvision':
+        const hikvisionResponse = await fetch(`${url}/ISAPI/AccessControl/UserInfo/Search`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(equipment.username && { 'Authorization': `Basic ${btoa(`${equipment.username}:${equipment.password}`)}` }),
+          },
+          body: JSON.stringify({
+            UserInfoSearchCond: {
+              searchID: '1',
+              maxResults: 1000,
+              searchResultPosition: 0,
+            },
+          }),
+        });
+        const hikvisionData = await hikvisionResponse.json();
+        return { 
+          success: true, 
+          employees: (hikvisionData.UserInfoSearch?.UserInfo || []).map((u: any) => ({
+            identifier: u.employeeNo,
+            name: u.name,
+          })),
+        };
+        
+      default:
+        const genericResponse = await fetch(`${url}/api/users`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(equipment.username && { 'Authorization': `Basic ${btoa(`${equipment.username}:${equipment.password}`)}` }),
+          },
+        });
+        const genericData = await genericResponse.json();
+        return { 
+          success: true, 
+          employees: (genericData.users || genericData || []).map((u: any) => ({
+            identifier: u.id || u.user_id || u.pis,
+            name: u.name,
+          })),
+        };
+    }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+};
+
+// Delete employee from device
+const deleteEmployeeFromDevice = async (equipment: any, identifier: string): Promise<{ success: boolean; error?: string }> => {
+  const manufacturer = equipment.manufacturer.toLowerCase();
+  const url = `${equipment.protocol}://${equipment.ip_address}:${equipment.port}`;
+  
+  try {
+    switch (manufacturer) {
+      case 'henry':
+        const henryResponse = await fetch(`${url}${equipment.api_endpoint || '/iDClass/SyncDataService.svc'}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/soap+xml; charset=utf-8',
+            ...(equipment.username && { 'Authorization': `Basic ${btoa(`${equipment.username}:${equipment.password}`)}` }),
+          },
+          body: `<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <DeleteEmployee xmlns="http://tempuri.org/">
+      <pis>${identifier}</pis>
+    </DeleteEmployee>
+  </soap12:Body>
+</soap12:Envelope>`,
+        });
+        return { success: henryResponse.ok };
+        
+      case 'dimep':
+      case 'controlid':
+        const controlIdResponse = await fetch(`${url}${equipment.api_endpoint || '/api/v1/users'}/${identifier}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(equipment.password && { 'Authorization': `Bearer ${equipment.password}` }),
+          },
+        });
+        return { success: controlIdResponse.ok };
+        
+      case 'zkteco':
+        const zktecoResponse = await fetch(`${url}/iclock/api/users?pin=${identifier}`, {
+          method: 'DELETE',
+        });
+        return { success: zktecoResponse.ok };
+        
+      case 'hikvision':
+        const hikvisionResponse = await fetch(`${url}/ISAPI/AccessControl/UserInfo/Delete`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(equipment.username && { 'Authorization': `Basic ${btoa(`${equipment.username}:${equipment.password}`)}` }),
+          },
+          body: JSON.stringify({
+            UserInfoDelCond: {
+              EmployeeNoList: [{ employeeNo: identifier }],
+            },
+          }),
+        });
+        return { success: hikvisionResponse.ok };
+        
+      default:
+        const genericResponse = await fetch(`${url}/api/users/${identifier}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(equipment.username && { 'Authorization': `Basic ${btoa(`${equipment.username}:${equipment.password}`)}` }),
+          },
+        });
+        return { success: genericResponse.ok };
+    }
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -790,6 +1070,171 @@ serve(async (req) => {
           processed: processResult.processed,
           errors: processResult.errors,
         }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'send_employees') {
+      // Send employees to a time clock equipment
+      const { data: reqBody } = await req.json().catch(() => ({ data: null }));
+      const { profileIds } = reqBody || (await req.json());
+      
+      const { data: equipment, error: fetchError } = await supabase
+        .from('time_clock_equipment')
+        .select('*')
+        .eq('id', equipmentId)
+        .single();
+
+      if (fetchError || !equipment) {
+        throw new Error(`Equipment not found: ${fetchError?.message}`);
+      }
+
+      // Get employees to send
+      let query = supabase
+        .from('profiles')
+        .select('id, full_name, registration_number, pis, cpf, photo_url')
+        .eq('is_active', true);
+      
+      if (profileIds && profileIds.length > 0) {
+        query = query.in('id', profileIds);
+      } else if (equipment.company_id) {
+        query = query.eq('company_id', equipment.company_id);
+      }
+
+      const { data: employees, error: empError } = await query;
+
+      if (empError) {
+        throw new Error(`Failed to fetch employees: ${empError.message}`);
+      }
+
+      let sent = 0;
+      let errors = 0;
+      const results: any[] = [];
+
+      for (const employee of employees || []) {
+        try {
+          const identifier = employee.registration_number || employee.pis || employee.cpf || '';
+          if (!identifier) {
+            console.log(`Skipping employee ${employee.full_name}: no identifier`);
+            errors++;
+            results.push({ id: employee.id, name: employee.full_name, success: false, error: 'No identifier' });
+            continue;
+          }
+
+          // Build employee data based on manufacturer
+          const employeeData = {
+            id: identifier,
+            name: employee.full_name,
+            pis: employee.pis || '',
+            registration: employee.registration_number || '',
+          };
+
+          // Try to send employee to the device
+          const sendResult = await sendEmployeeToDevice(equipment, employeeData);
+          
+          if (sendResult.success) {
+            sent++;
+            results.push({ id: employee.id, name: employee.full_name, success: true });
+          } else {
+            errors++;
+            results.push({ id: employee.id, name: employee.full_name, success: false, error: sendResult.error });
+          }
+        } catch (e) {
+          errors++;
+          results.push({ id: employee.id, name: employee.full_name, success: false, error: getErrorMessage(e) });
+        }
+      }
+
+      // Log communication
+      await supabase
+        .from('equipment_communication_logs')
+        .insert({
+          equipment_id: equipmentId,
+          company_id: equipment.company_id,
+          status: sent > 0 ? 'success' : 'error',
+          message: `Sent ${sent} employees, ${errors} errors`,
+          request_type: 'send_employees',
+          records_synced: sent,
+        });
+
+      return new Response(
+        JSON.stringify({ success: true, sent, errors, results }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'receive_employees') {
+      // Receive employees from a time clock equipment
+      const { data: equipment, error: fetchError } = await supabase
+        .from('time_clock_equipment')
+        .select('*')
+        .eq('id', equipmentId)
+        .single();
+
+      if (fetchError || !equipment) {
+        throw new Error(`Equipment not found: ${fetchError?.message}`);
+      }
+
+      // Try to get employees from the device
+      const receiveResult = await receiveEmployeesFromDevice(equipment);
+
+      // Log communication
+      await supabase
+        .from('equipment_communication_logs')
+        .insert({
+          equipment_id: equipmentId,
+          company_id: equipment.company_id,
+          status: receiveResult.success ? 'success' : 'error',
+          message: receiveResult.success ? `Received ${receiveResult.employees?.length || 0} employees` : receiveResult.error,
+          request_type: 'receive_employees',
+          records_synced: receiveResult.employees?.length || 0,
+        });
+
+      return new Response(
+        JSON.stringify({ 
+          success: receiveResult.success, 
+          employees: receiveResult.employees || [],
+          error: receiveResult.error,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'delete_employee') {
+      // Delete an employee from a time clock equipment
+      const { data: reqBody } = await req.json().catch(() => ({ data: null }));
+      const { identifier } = reqBody || (await req.json());
+
+      const { data: equipment, error: fetchError } = await supabase
+        .from('time_clock_equipment')
+        .select('*')
+        .eq('id', equipmentId)
+        .single();
+
+      if (fetchError || !equipment) {
+        throw new Error(`Equipment not found: ${fetchError?.message}`);
+      }
+
+      if (!identifier) {
+        throw new Error('Employee identifier is required');
+      }
+
+      // Try to delete employee from the device
+      const deleteResult = await deleteEmployeeFromDevice(equipment, identifier);
+
+      // Log communication
+      await supabase
+        .from('equipment_communication_logs')
+        .insert({
+          equipment_id: equipmentId,
+          company_id: equipment.company_id,
+          status: deleteResult.success ? 'success' : 'error',
+          message: deleteResult.success ? `Deleted employee ${identifier}` : deleteResult.error,
+          request_type: 'delete_employee',
+        });
+
+      return new Response(
+        JSON.stringify({ success: deleteResult.success, error: deleteResult.error }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
