@@ -27,6 +27,7 @@ import SuperAdminAuth from "@/pages/SuperAdminAuth";
 import TeacherModule from "@/pages/TeacherModule";
 import Timesheet from "@/pages/Timesheet";
 import ImportExport from "@/pages/ImportExport";
+import Equipment from "@/pages/Equipment";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -115,6 +116,11 @@ const App = () => (
               <Route path="import-export" element={
                 <ProtectedRoute requiredRoles={['admin']}>
                   <ImportExport />
+                </ProtectedRoute>
+              } />
+              <Route path="equipment" element={
+                <ProtectedRoute requiredRoles={['admin']}>
+                  <Equipment />
                 </ProtectedRoute>
               } />
               <Route path="teacher-module" element={

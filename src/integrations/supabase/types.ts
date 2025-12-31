@@ -654,6 +654,131 @@ export type Database = {
           },
         ]
       }
+      equipment_communication_logs: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          equipment_id: string
+          id: string
+          message: string | null
+          records_synced: number | null
+          request_type: string | null
+          response_data: Json | null
+          status: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          equipment_id: string
+          id?: string
+          message?: string | null
+          records_synced?: number | null
+          request_type?: string | null
+          response_data?: Json | null
+          status: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          message?: string | null
+          records_synced?: number | null
+          request_type?: string | null
+          response_data?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_communication_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_communication_logs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_pending_records: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          employee_identifier: string
+          equipment_id: string
+          id: string
+          is_processed: boolean
+          processed_at: string | null
+          profile_id: string | null
+          raw_data: Json | null
+          record_type: string | null
+          recorded_at: string
+          time_record_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          employee_identifier: string
+          equipment_id: string
+          id?: string
+          is_processed?: boolean
+          processed_at?: string | null
+          profile_id?: string | null
+          raw_data?: Json | null
+          record_type?: string | null
+          recorded_at: string
+          time_record_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          employee_identifier?: string
+          equipment_id?: string
+          id?: string
+          is_processed?: boolean
+          processed_at?: string | null
+          profile_id?: string | null
+          raw_data?: Json | null
+          record_type?: string | null
+          recorded_at?: string
+          time_record_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_pending_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_pending_records_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_pending_records_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_pending_records_time_record_id_fkey"
+            columns: ["time_record_id"]
+            isOneToOne: false
+            referencedRelation: "time_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       holidays: {
         Row: {
           company_id: string | null
@@ -1088,6 +1213,92 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_clock_equipment: {
+        Row: {
+          api_endpoint: string | null
+          communication_type: string
+          company_id: string | null
+          created_at: string
+          firmware_version: string | null
+          id: string
+          ip_address: string
+          is_active: boolean
+          is_online: boolean
+          last_communication: string | null
+          last_sync: string | null
+          location: string | null
+          manufacturer: string
+          model: string
+          name: string
+          notes: string | null
+          password: string | null
+          port: number
+          protocol: string
+          serial_number: string | null
+          sync_interval_seconds: number
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          api_endpoint?: string | null
+          communication_type?: string
+          company_id?: string | null
+          created_at?: string
+          firmware_version?: string | null
+          id?: string
+          ip_address: string
+          is_active?: boolean
+          is_online?: boolean
+          last_communication?: string | null
+          last_sync?: string | null
+          location?: string | null
+          manufacturer: string
+          model: string
+          name: string
+          notes?: string | null
+          password?: string | null
+          port?: number
+          protocol?: string
+          serial_number?: string | null
+          sync_interval_seconds?: number
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          api_endpoint?: string | null
+          communication_type?: string
+          company_id?: string | null
+          created_at?: string
+          firmware_version?: string | null
+          id?: string
+          ip_address?: string
+          is_active?: boolean
+          is_online?: boolean
+          last_communication?: string | null
+          last_sync?: string | null
+          location?: string | null
+          manufacturer?: string
+          model?: string
+          name?: string
+          notes?: string | null
+          password?: string | null
+          port?: number
+          protocol?: string
+          serial_number?: string | null
+          sync_interval_seconds?: number
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_clock_equipment_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

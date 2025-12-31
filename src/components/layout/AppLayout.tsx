@@ -46,6 +46,7 @@ import {
   GraduationCap,
   ClipboardList,
   ArrowUpDown,
+  Server,
 } from 'lucide-react';
 
 const menuItems = [
@@ -63,6 +64,7 @@ const menuItems = [
   { title: 'Ajustes', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
   { title: 'Relatórios', icon: FileText, href: '/reports', roles: ['admin', 'manager'] },
   { title: 'Import/Export', icon: ArrowUpDown, href: '/import-export', roles: ['admin'] },
+  { title: 'Equipamentos REP', icon: Server, href: '/equipment', roles: ['admin'] },
   { title: 'Dashboard HE', icon: TrendingUp, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
   { title: 'Usuários', icon: UserCog, href: '/users', roles: ['admin'] },
   { title: 'Empresa', icon: Building2, href: '/company', roles: ['admin'] },

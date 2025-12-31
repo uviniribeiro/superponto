@@ -27,3 +27,6 @@ verify_jwt = false
 
 [functions.admin-change-password]
 verify_jwt = true
+
+[functions.equipment-sync]
+verify_jwt = false
