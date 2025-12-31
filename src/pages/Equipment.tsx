@@ -1341,30 +1341,32 @@ export default function Equipment() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 items-center">
                             {!record.profile_id && !record.is_processed && (
-                              <Select
-                                onValueChange={(value) => {
-                                  linkEmployeeMutation.mutate({ recordId: record.id, profileId: value });
-                                }}
-                              >
-                                <SelectTrigger className="w-[180px] h-8">
-                                  <SelectValue placeholder="Vincular funcionário" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {employees.map((emp) => (
-                                    <SelectItem key={emp.id} value={emp.id}>
-                                      <div className="flex flex-col">
-                                        <span>{emp.full_name}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                          {emp.registration_number ? `Mat: ${emp.registration_number}` : ''}
-                                          {emp.pis ? ` | PIS: ${emp.pis}` : ''}
-                                        </span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <div className="w-[180px]">
+                                <Select
+                                  onValueChange={(value) => {
+                                    linkEmployeeMutation.mutate({ recordId: record.id, profileId: value });
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Vincular funcionário" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {employees.map((emp) => (
+                                      <SelectItem key={emp.id} value={emp.id}>
+                                        <div className="flex flex-col">
+                                          <span>{emp.full_name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {emp.registration_number ? `Mat: ${emp.registration_number}` : ''}
+                                            {emp.pis ? ` | PIS: ${emp.pis}` : ''}
+                                          </span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             )}
                             <Button
                               variant="ghost"

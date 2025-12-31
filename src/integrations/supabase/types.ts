@@ -242,6 +242,7 @@ export type Database = {
           id: string
           is_active: boolean
           license_status: string | null
+          logo_url: string | null
           name: string
           organization_type: Database["public"]["Enums"]["organization_type"]
           parent_organization_id: string | null
@@ -258,6 +259,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           license_status?: string | null
+          logo_url?: string | null
           name: string
           organization_type?: Database["public"]["Enums"]["organization_type"]
           parent_organization_id?: string | null
@@ -274,6 +276,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           license_status?: string | null
+          logo_url?: string | null
           name?: string
           organization_type?: Database["public"]["Enums"]["organization_type"]
           parent_organization_id?: string | null
@@ -302,6 +305,7 @@ export type Database = {
           created_at: string
           daily_overtime_limit_hours: number | null
           id: string
+          logo_url: string | null
           monthly_overtime_limit_hours: number | null
           overtime_alert_email: string | null
           rep_manufacturer: string | null
@@ -322,6 +326,7 @@ export type Database = {
           created_at?: string
           daily_overtime_limit_hours?: number | null
           id?: string
+          logo_url?: string | null
           monthly_overtime_limit_hours?: number | null
           overtime_alert_email?: string | null
           rep_manufacturer?: string | null
@@ -342,6 +347,7 @@ export type Database = {
           created_at?: string
           daily_overtime_limit_hours?: number | null
           id?: string
+          logo_url?: string | null
           monthly_overtime_limit_hours?: number | null
           overtime_alert_email?: string | null
           rep_manufacturer?: string | null
