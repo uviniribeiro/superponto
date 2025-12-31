@@ -45,6 +45,7 @@ import {
   CalendarClock,
   GraduationCap,
   ClipboardList,
+  ArrowUpDown,
 } from 'lucide-react';
 
 const menuItems = [
@@ -61,6 +62,7 @@ const menuItems = [
   { title: 'Faltas', icon: UserX, href: '/absences', roles: ['admin', 'manager'] },
   { title: 'Ajustes', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
   { title: 'Relatórios', icon: FileText, href: '/reports', roles: ['admin', 'manager'] },
+  { title: 'Import/Export', icon: ArrowUpDown, href: '/import-export', roles: ['admin'] },
   { title: 'Dashboard HE', icon: TrendingUp, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
   { title: 'Usuários', icon: UserCog, href: '/users', roles: ['admin'] },
   { title: 'Empresa', icon: Building2, href: '/company', roles: ['admin'] },
