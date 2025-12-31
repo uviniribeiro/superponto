@@ -1,0 +1,31 @@
+[Unit]
+Description=Agente de Sincronização de Equipamentos REP
+Documentation=https://github.com/seu-projeto/equipment-agent
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=equipment-agent
+Group=equipment-agent
+ExecStart=/usr/local/bin/equipment-agent --system --daemon
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=equipment-agent
+
+# Segurança
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/equipment-agent /var/log/equipment-agent /etc/equipment-agent
+
+# Limites
+LimitNOFILE=65536
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
