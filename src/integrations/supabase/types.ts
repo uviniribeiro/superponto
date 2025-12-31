@@ -1044,12 +1044,26 @@ export type Database = {
           description: string | null
           friday_end: string | null
           friday_start: string | null
+          holiday_treatment:
+            | Database["public"]["Enums"]["holiday_treatment"]
+            | null
           id: string
+          interjornada_hours: number | null
+          intrajornada_minutes: number | null
+          is_active: boolean | null
           monday_end: string | null
           monday_start: string | null
+          monthly_hours: number | null
           name: string
+          night_shift_end: string | null
+          night_shift_reduction_percent: number | null
+          night_shift_start: string | null
+          off_days: number | null
+          overtime_100_percent_limit: number | null
+          overtime_50_percent_limit: number | null
           saturday_end: string | null
           saturday_start: string | null
+          scale_type: Database["public"]["Enums"]["scale_type"] | null
           sunday_end: string | null
           sunday_start: string | null
           thursday_end: string | null
@@ -1060,6 +1074,10 @@ export type Database = {
           updated_at: string
           wednesday_end: string | null
           wednesday_start: string | null
+          weekly_hours: number | null
+          work_days: number | null
+          work_hours_per_day: number | null
+          workload_type: Database["public"]["Enums"]["workload_type"] | null
         }
         Insert: {
           break_duration_minutes?: number | null
@@ -1068,12 +1086,26 @@ export type Database = {
           description?: string | null
           friday_end?: string | null
           friday_start?: string | null
+          holiday_treatment?:
+            | Database["public"]["Enums"]["holiday_treatment"]
+            | null
           id?: string
+          interjornada_hours?: number | null
+          intrajornada_minutes?: number | null
+          is_active?: boolean | null
           monday_end?: string | null
           monday_start?: string | null
+          monthly_hours?: number | null
           name: string
+          night_shift_end?: string | null
+          night_shift_reduction_percent?: number | null
+          night_shift_start?: string | null
+          off_days?: number | null
+          overtime_100_percent_limit?: number | null
+          overtime_50_percent_limit?: number | null
           saturday_end?: string | null
           saturday_start?: string | null
+          scale_type?: Database["public"]["Enums"]["scale_type"] | null
           sunday_end?: string | null
           sunday_start?: string | null
           thursday_end?: string | null
@@ -1084,6 +1116,10 @@ export type Database = {
           updated_at?: string
           wednesday_end?: string | null
           wednesday_start?: string | null
+          weekly_hours?: number | null
+          work_days?: number | null
+          work_hours_per_day?: number | null
+          workload_type?: Database["public"]["Enums"]["workload_type"] | null
         }
         Update: {
           break_duration_minutes?: number | null
@@ -1092,12 +1128,26 @@ export type Database = {
           description?: string | null
           friday_end?: string | null
           friday_start?: string | null
+          holiday_treatment?:
+            | Database["public"]["Enums"]["holiday_treatment"]
+            | null
           id?: string
+          interjornada_hours?: number | null
+          intrajornada_minutes?: number | null
+          is_active?: boolean | null
           monday_end?: string | null
           monday_start?: string | null
+          monthly_hours?: number | null
           name?: string
+          night_shift_end?: string | null
+          night_shift_reduction_percent?: number | null
+          night_shift_start?: string | null
+          off_days?: number | null
+          overtime_100_percent_limit?: number | null
+          overtime_50_percent_limit?: number | null
           saturday_end?: string | null
           saturday_start?: string | null
+          scale_type?: Database["public"]["Enums"]["scale_type"] | null
           sunday_end?: string | null
           sunday_start?: string | null
           thursday_end?: string | null
@@ -1108,6 +1158,10 @@ export type Database = {
           updated_at?: string
           wednesday_end?: string | null
           wednesday_start?: string | null
+          weekly_hours?: number | null
+          work_days?: number | null
+          work_hours_per_day?: number | null
+          workload_type?: Database["public"]["Enums"]["workload_type"] | null
         }
         Relationships: [
           {
@@ -1151,6 +1205,7 @@ export type Database = {
       holiday_treatment: "normal" | "overtime" | "off"
       organization_type: "company" | "city_hall"
       scale_type: "standard" | "5x1" | "6x1" | "12x36"
+      workload_type: "daily" | "weekly" | "monthly"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1294,6 +1349,7 @@ export const Constants = {
       holiday_treatment: ["normal", "overtime", "off"],
       organization_type: ["company", "city_hall"],
       scale_type: ["standard", "5x1", "6x1", "12x36"],
+      workload_type: ["daily", "weekly", "monthly"],
     },
   },
 } as const
