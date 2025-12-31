@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Wifi, WifiOff, Server, Activity, RefreshCw, Clock, AlertTriangle } from 'lucide-react';
 import { useEquipmentData, getManufacturerLabel, getModelLabel } from '@/hooks/useEquipmentData';
+import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -13,16 +14,57 @@ type StatusFilter = 'all' | 'online' | 'offline' | 'inactive';
 
 export default function EquipmentStatusDashboard() {
   const { equipments, isLoading, onlineCount, offlineCount, syncAllMutation, testConnectionMutation } = useEquipmentData();
+  const { checkEquipmentOfflineNotifications } = useNotifications();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [lastSync, setLastSync] = useState<Date>(new Date());
+  const [countdown, setCountdown] = useState(30);
+  const reconnectingRef = useRef<Set<string>>(new Set());
 
   // Update time every second for real-time display
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
+      // Update countdown
+      const elapsed = Math.floor((Date.now() - lastSync.getTime()) / 1000);
+      const remaining = Math.max(0, 30 - elapsed);
+      setCountdown(remaining);
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [lastSync]);
+
+  // Auto-sync every 30 seconds and check for offline equipment
+  useEffect(() => {
+    const syncInterval = setInterval(() => {
+      syncAllMutation.mutate();
+      setLastSync(new Date());
+      checkEquipmentOfflineNotifications();
+    }, 30000);
+
+    // Initial check
+    checkEquipmentOfflineNotifications();
+
+    return () => clearInterval(syncInterval);
+  }, [syncAllMutation, checkEquipmentOfflineNotifications]);
+
+  // Auto-reconnect for offline equipment
+  useEffect(() => {
+    const reconnectInterval = setInterval(() => {
+      // Try to reconnect offline equipment that isn't already reconnecting
+      equipments.forEach(eq => {
+        if (!eq.is_online && eq.is_active && !reconnectingRef.current.has(eq.id)) {
+          reconnectingRef.current.add(eq.id);
+          testConnectionMutation.mutate(eq.id, {
+            onSettled: () => {
+              reconnectingRef.current.delete(eq.id);
+            }
+          });
+        }
+      });
+    }, 60000); // Try reconnect every 60 seconds for offline equipment
+
+    return () => clearInterval(reconnectInterval);
+  }, [equipments, testConnectionMutation]);
 
   const filteredEquipments = equipments.filter(eq => {
     switch (statusFilter) {
@@ -111,22 +153,31 @@ export default function EquipmentStatusDashboard() {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Última Atualização</CardTitle>
+            <CardTitle className="text-sm font-medium">Atualização Automática</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-mono">
-              {currentTime.toLocaleTimeString('pt-BR')}
+            <div className="flex items-center justify-between">
+              <div className="text-lg font-mono">
+                {currentTime.toLocaleTimeString('pt-BR')}
+              </div>
+              <Badge variant="outline" className="font-mono">
+                {countdown}s
+              </Badge>
             </div>
+            <Progress value={((30 - countdown) / 30) * 100} className="h-1 mt-2" />
             <Button 
               variant="outline" 
               size="sm" 
               className="mt-2 w-full"
-              onClick={() => syncAllMutation.mutate()}
+              onClick={() => {
+                syncAllMutation.mutate();
+                setLastSync(new Date());
+              }}
               disabled={syncAllMutation.isPending}
             >
               <RefreshCw className={`h-3 w-3 mr-1 ${syncAllMutation.isPending ? 'animate-spin' : ''}`} />
-              Sincronizar
+              Sincronizar Agora
             </Button>
           </CardContent>
         </Card>
