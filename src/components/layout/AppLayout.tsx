@@ -167,16 +167,6 @@ const menuCategories: MenuCategory[] = [
       { title: 'Ajuda', icon: HelpCircle, href: '/equipment/help', roles: ['admin'] },
     ]
   },
-  {
-    id: 'configuracoes',
-    title: 'Configurações',
-    icon: Cog,
-    roles: ['admin'],
-    items: [
-      { title: 'Usuários', icon: UserCog, href: '/users', roles: ['admin'] },
-      { title: 'Empresa', icon: Building2, href: '/company', roles: ['admin'] },
-    ]
-  },
 ];
 
 // Get all menu items flattened
@@ -527,11 +517,27 @@ export default function AppLayout() {
                 <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/profile">
+                  <Link to="/account-settings">
                     <Settings className="mr-2 h-4 w-4" />
-                    Perfil
+                    Configurações
                   </Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link to="/users">
+                        <UserCog className="mr-2 h-4 w-4" />
+                        Usuários
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/company">
+                        <Building2 className="mr-2 h-4 w-4" />
+                        Empresa
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
