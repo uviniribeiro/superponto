@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +18,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -29,11 +29,9 @@ import {
   Clock,
   LayoutDashboard,
   Users,
-  Calendar,
   FileText,
   Settings,
   LogOut,
-  Fingerprint,
   ClipboardCheck,
   Building2,
   CalendarDays,
@@ -48,6 +46,11 @@ import {
   ArrowUpDown,
   Server,
 } from 'lucide-react';
+
+interface CompanySettings {
+  company_name: string;
+  logo_url: string | null;
+}
 
 const menuItems = [
   { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: ['admin', 'manager', 'employee'] },
@@ -74,6 +77,23 @@ export default function AppLayout() {
   const { profile, roles, signOut, isAdmin, isManager } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+
+  useEffect(() => {
+    const fetchCompanySettings = async () => {
+      const { data } = await supabase
+        .from('company_settings')
+        .select('company_name, logo_url')
+        .limit(1)
+        .maybeSingle();
+      
+      if (data) {
+        setCompanySettings(data as CompanySettings);
+      }
+    };
+
+    fetchCompanySettings();
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -98,22 +118,32 @@ export default function AppLayout() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <Sidebar>
-          <SidebarHeader className="border-b border-sidebar-border p-4">
+        <Sidebar className="border-r border-sidebar-border">
+          <SidebarHeader className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-sidebar-primary rounded-lg">
-                <Fingerprint className="w-6 h-6 text-sidebar-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="font-bold text-lg text-sidebar-foreground">PontoMax</h1>
-                <p className="text-xs text-sidebar-foreground/60">Controle de Ponto</p>
+              {companySettings?.logo_url ? (
+                <Avatar className="h-10 w-10 rounded-lg">
+                  <AvatarImage src={companySettings.logo_url} alt="Logo" className="object-cover" />
+                  <AvatarFallback className="rounded-lg bg-sidebar-primary text-sidebar-primary-foreground text-sm font-semibold">
+                    {companySettings.company_name ? getInitials(companySettings.company_name) : 'CO'}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="h-10 w-10 rounded-lg bg-sidebar-primary flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-sidebar-primary-foreground" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <h1 className="font-semibold text-sm text-sidebar-foreground truncate">
+                  {companySettings?.company_name || 'PontoMax'}
+                </h1>
+                <p className="text-xs text-sidebar-foreground/50">Controle de Ponto</p>
               </div>
             </div>
           </SidebarHeader>
 
-          <SidebarContent>
+          <SidebarContent className="px-2">
             <SidebarGroup>
-              <SidebarGroupLabel>Menu</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {filteredMenuItems.map((item) => (
@@ -121,10 +151,11 @@ export default function AppLayout() {
                       <SidebarMenuButton
                         asChild
                         isActive={location.pathname === item.href}
+                        className="h-9"
                       >
                         <Link to={item.href}>
-                          <item.icon className="w-5 h-5" />
-                          <span>{item.title}</span>
+                          <item.icon className="w-4 h-4" />
+                          <span className="text-sm">{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -134,20 +165,20 @@ export default function AppLayout() {
             </SidebarGroup>
           </SidebarContent>
 
-          <SidebarFooter className="border-t border-sidebar-border p-4">
+          <SidebarFooter className="p-3 border-t border-sidebar-border">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start gap-3 h-auto py-3">
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm">
+                <Button variant="ghost" className="w-full justify-start gap-3 h-auto py-2 px-2 hover:bg-sidebar-accent">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
                       {profile?.full_name ? getInitials(profile.full_name) : 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col items-start text-left">
-                    <span className="text-sm font-medium text-sidebar-foreground">
+                  <div className="flex flex-col items-start text-left flex-1 min-w-0">
+                    <span className="text-sm font-medium text-sidebar-foreground truncate w-full">
                       {profile?.full_name || 'Usuário'}
                     </span>
-                    <span className="text-xs text-sidebar-foreground/60 capitalize">
+                    <span className="text-xs text-sidebar-foreground/50 capitalize">
                       {roles[0] || 'employee'}
                     </span>
                   </div>
@@ -173,10 +204,10 @@ export default function AppLayout() {
         </Sidebar>
 
         <main className="flex-1 overflow-auto">
-          <header className="sticky top-0 z-10 glass border-b px-6 py-4">
+          <header className="sticky top-0 z-10 glass px-6 py-3">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
-              <h2 className="text-lg font-semibold">
+              <h2 className="text-base font-medium">
                 {menuItems.find(item => item.href === location.pathname)?.title || 'Dashboard'}
               </h2>
             </div>
