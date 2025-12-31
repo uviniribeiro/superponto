@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useBrasiliaTime } from '@/hooks/useBrasiliaTime';
+import { useDailyMessage } from '@/hooks/useDailyMessage';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,11 +16,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -47,6 +55,12 @@ import {
   ArrowUpDown,
   Server,
   Home,
+  ChevronDown,
+  ChevronRight,
+  ArrowLeft,
+  FolderOpen,
+  FileBarChart,
+  Cog,
 } from 'lucide-react';
 
 interface CompanySettings {
@@ -54,26 +68,83 @@ interface CompanySettings {
   logo_url: string | null;
 }
 
-const menuItems = [
-  { title: 'Início', icon: Home, href: '/home', roles: ['admin', 'manager', 'employee'] },
-  { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: ['admin', 'manager', 'employee'] },
-  { title: 'Registrar Ponto', icon: Clock, href: '/time-clock', roles: ['admin', 'manager', 'employee'] },
-  { title: 'Meus Registros', icon: FileText, href: '/my-records', roles: ['admin', 'manager', 'employee'] },
-  { title: 'Banco de Horas', icon: Timer, href: '/time-bank', roles: ['admin', 'manager', 'employee'] },
-  { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
-  { title: 'Cargos e Deptos', icon: Briefcase, href: '/positions-departments', roles: ['admin'] },
-  { title: 'Jornadas e Escalas', icon: CalendarClock, href: '/schedules', roles: ['admin'] },
-  { title: 'Espelho de Ponto', icon: ClipboardList, href: '/timesheet', roles: ['admin', 'manager'] },
-  { title: 'Módulo Professor', icon: GraduationCap, href: '/teacher-module', roles: ['admin'] },
-  { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
-  { title: 'Faltas', icon: UserX, href: '/absences', roles: ['admin', 'manager'] },
-  { title: 'Ajustes', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
-  { title: 'Relatórios', icon: FileText, href: '/reports', roles: ['admin', 'manager'] },
-  { title: 'Import/Export', icon: ArrowUpDown, href: '/import-export', roles: ['admin'] },
-  { title: 'Equipamentos REP', icon: Server, href: '/equipment', roles: ['admin'] },
-  { title: 'Dashboard HE', icon: TrendingUp, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
-  { title: 'Usuários', icon: UserCog, href: '/users', roles: ['admin'] },
-  { title: 'Empresa', icon: Building2, href: '/company', roles: ['admin'] },
+interface MenuCategory {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: MenuItem[];
+  roles: string[];
+}
+
+interface MenuItem {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  href: string;
+  roles: string[];
+}
+
+// Categories with their items
+const menuCategories: MenuCategory[] = [
+  {
+    title: 'Principal',
+    icon: Home,
+    roles: ['admin', 'manager', 'employee'],
+    items: [
+      { title: 'Início', icon: Home, href: '/home', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Registrar Ponto', icon: Clock, href: '/time-clock', roles: ['admin', 'manager', 'employee'] },
+    ]
+  },
+  {
+    title: 'Meus Dados',
+    icon: FileText,
+    roles: ['admin', 'manager', 'employee'],
+    items: [
+      { title: 'Meus Registros', icon: FileText, href: '/my-records', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Banco de Horas', icon: Timer, href: '/time-bank', roles: ['admin', 'manager', 'employee'] },
+    ]
+  },
+  {
+    title: 'Cadastros',
+    icon: FolderOpen,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
+      { title: 'Cargos e Deptos', icon: Briefcase, href: '/positions-departments', roles: ['admin'] },
+      { title: 'Jornadas e Escalas', icon: CalendarClock, href: '/schedules', roles: ['admin'] },
+      { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
+      { title: 'Módulo Professor', icon: GraduationCap, href: '/teacher-module', roles: ['admin'] },
+    ]
+  },
+  {
+    title: 'Espelhos de Ponto',
+    icon: ClipboardList,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Espelho de Ponto', icon: ClipboardList, href: '/timesheet', roles: ['admin', 'manager'] },
+      { title: 'Faltas', icon: UserX, href: '/absences', roles: ['admin', 'manager'] },
+      { title: 'Ajustes', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
+    ]
+  },
+  {
+    title: 'Relatórios',
+    icon: FileBarChart,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Relatórios', icon: FileText, href: '/reports', roles: ['admin', 'manager'] },
+      { title: 'Dashboard HE', icon: TrendingUp, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
+      { title: 'Import/Export', icon: ArrowUpDown, href: '/import-export', roles: ['admin'] },
+    ]
+  },
+  {
+    title: 'Configurações',
+    icon: Cog,
+    roles: ['admin'],
+    items: [
+      { title: 'Equipamentos REP', icon: Server, href: '/equipment', roles: ['admin'] },
+      { title: 'Usuários', icon: UserCog, href: '/users', roles: ['admin'] },
+      { title: 'Empresa', icon: Building2, href: '/company', roles: ['admin'] },
+    ]
+  },
 ];
 
 export default function AppLayout() {
@@ -81,6 +152,9 @@ export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [openCategories, setOpenCategories] = useState<string[]>(['Principal']);
+  const { getFormattedDate, getFormattedTime } = useBrasiliaTime();
+  const dailyMessage = useDailyMessage();
 
   useEffect(() => {
     const fetchCompanySettings = async () => {
@@ -98,6 +172,16 @@ export default function AppLayout() {
     fetchCompanySettings();
   }, []);
 
+  // Determine which category contains the current route and open it
+  useEffect(() => {
+    for (const category of menuCategories) {
+      const hasActiveItem = category.items.some(item => item.href === location.pathname);
+      if (hasActiveItem && !openCategories.includes(category.title)) {
+        setOpenCategories(prev => [...prev, category.title]);
+      }
+    }
+  }, [location.pathname]);
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
@@ -112,17 +196,40 @@ export default function AppLayout() {
       .slice(0, 2);
   };
 
-  const filteredMenuItems = menuItems.filter(item => {
+  const toggleCategory = (categoryTitle: string) => {
+    setOpenCategories(prev => 
+      prev.includes(categoryTitle)
+        ? prev.filter(c => c !== categoryTitle)
+        : [...prev, categoryTitle]
+    );
+  };
+
+  const filterCategory = (category: MenuCategory) => {
+    if (isAdmin) return true;
+    if (isManager && category.roles.includes('manager')) return true;
+    return category.roles.includes('employee');
+  };
+
+  const filterItem = (item: MenuItem) => {
     if (isAdmin) return true;
     if (isManager && item.roles.includes('manager')) return true;
     return item.roles.includes('employee');
-  });
+  };
+
+  const getCurrentPageTitle = () => {
+    for (const category of menuCategories) {
+      const item = category.items.find(i => i.href === location.pathname);
+      if (item) return item.title;
+    }
+    return 'Início';
+  };
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <Sidebar className="border-r border-sidebar-border">
-          <SidebarHeader className="p-4">
+          <SidebarHeader className="p-4 space-y-3">
+            {/* Company Logo and Name */}
             <div className="flex items-center gap-3">
               {companySettings?.logo_url ? (
                 <Avatar className="h-10 w-10 rounded-lg">
@@ -143,48 +250,94 @@ export default function AppLayout() {
                 <p className="text-xs text-sidebar-foreground/50">Controle de Ponto</p>
               </div>
             </div>
+
+            {/* User Info */}
+            <div className="bg-sidebar-accent/50 rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
+                    {profile?.full_name ? getInitials(profile.full_name) : 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-sidebar-foreground truncate">
+                    {profile?.full_name || 'Usuário'}
+                  </p>
+                  <p className="text-[10px] text-sidebar-foreground/50 capitalize">
+                    {roles[0] || 'employee'}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Date/Time */}
+              <div className="text-[10px] text-sidebar-foreground/70 space-y-0.5">
+                <p className="capitalize">{getFormattedDate()}</p>
+                <p className="font-mono text-sidebar-foreground">{getFormattedTime()}</p>
+              </div>
+              
+              {/* Daily Message */}
+              <div className="pt-1 border-t border-sidebar-border/50">
+                <p className="text-[10px] italic text-sidebar-foreground/60 leading-relaxed">
+                  "{dailyMessage.text}"
+                </p>
+                <p className="text-[9px] text-sidebar-foreground/40 mt-0.5">
+                  — {dailyMessage.author}
+                </p>
+              </div>
+            </div>
           </SidebarHeader>
 
           <SidebarContent className="px-2">
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {filteredMenuItems.map((item) => (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={location.pathname === item.href}
-                        className="h-9"
-                      >
-                        <Link to={item.href}>
-                          <item.icon className="w-4 h-4" />
-                          <span className="text-sm">{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            {menuCategories.filter(filterCategory).map((category) => (
+              <SidebarGroup key={category.title}>
+                <Collapsible 
+                  open={openCategories.includes(category.title)} 
+                  onOpenChange={() => toggleCategory(category.title)}
+                >
+                  <CollapsibleTrigger asChild>
+                    <SidebarGroupLabel className="cursor-pointer hover:bg-sidebar-accent/50 rounded-md px-2 py-1.5 flex items-center justify-between w-full text-xs font-medium text-sidebar-foreground/70">
+                      <div className="flex items-center gap-2">
+                        <category.icon className="w-3.5 h-3.5" />
+                        <span>{category.title}</span>
+                      </div>
+                      {openCategories.includes(category.title) ? (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      )}
+                    </SidebarGroupLabel>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {category.items.filter(filterItem).map((item) => (
+                          <SidebarMenuItem key={item.href}>
+                            <SidebarMenuButton
+                              asChild
+                              isActive={location.pathname === item.href}
+                              className="h-8 pl-6"
+                            >
+                              <Link to={item.href}>
+                                <item.icon className="w-3.5 h-3.5" />
+                                <span className="text-xs">{item.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </SidebarGroup>
+            ))}
           </SidebarContent>
 
           <SidebarFooter className="p-3 border-t border-sidebar-border">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start gap-3 h-auto py-2 px-2 hover:bg-sidebar-accent">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
-                      {profile?.full_name ? getInitials(profile.full_name) : 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start text-left flex-1 min-w-0">
-                    <span className="text-sm font-medium text-sidebar-foreground truncate w-full">
-                      {profile?.full_name || 'Usuário'}
-                    </span>
-                    <span className="text-xs text-sidebar-foreground/50 capitalize">
-                      {roles[0] || 'employee'}
-                    </span>
-                  </div>
+                  <Settings className="h-4 w-4" />
+                  <span className="text-sm">Configurações</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
@@ -193,7 +346,7 @@ export default function AppLayout() {
                 <DropdownMenuItem asChild>
                   <Link to="/profile">
                     <Settings className="mr-2 h-4 w-4" />
-                    Configurações
+                    Perfil
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -209,15 +362,23 @@ export default function AppLayout() {
         <main className="flex-1 overflow-auto">
           <header className="sticky top-0 z-10 glass px-6 py-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <SidebarTrigger />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => navigate(-1)}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
                 <Link to="/home">
-                  <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
                     <Home className="h-4 w-4" />
                   </Button>
                 </Link>
-                <h2 className="text-base font-medium">
-                  {menuItems.find(item => item.href === location.pathname)?.title || 'Início'}
+                <h2 className="text-sm font-medium">
+                  {getCurrentPageTitle()}
                 </h2>
               </div>
               <ThemeToggle />
