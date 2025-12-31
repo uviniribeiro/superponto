@@ -96,37 +96,67 @@ export type Database = {
       }
       class_hour_configurations: {
         Row: {
+          activity_hours_percent: number | null
           company_id: string | null
+          contract_type: string | null
           created_at: string
           description: string | null
           duration_minutes: number
           hourly_rate: number | null
           id: string
           is_active: boolean
+          max_consecutive_classes: number | null
+          min_interval_between_classes: number | null
+          monthly_class_hours: number | null
           name: string
+          night_class_end: string | null
+          night_class_rate_multiplier: number | null
+          night_class_start: string | null
+          preparation_minutes_per_class: number | null
           updated_at: string
+          weekly_class_hours: number | null
         }
         Insert: {
+          activity_hours_percent?: number | null
           company_id?: string | null
+          contract_type?: string | null
           created_at?: string
           description?: string | null
           duration_minutes?: number
           hourly_rate?: number | null
           id?: string
           is_active?: boolean
+          max_consecutive_classes?: number | null
+          min_interval_between_classes?: number | null
+          monthly_class_hours?: number | null
           name: string
+          night_class_end?: string | null
+          night_class_rate_multiplier?: number | null
+          night_class_start?: string | null
+          preparation_minutes_per_class?: number | null
           updated_at?: string
+          weekly_class_hours?: number | null
         }
         Update: {
+          activity_hours_percent?: number | null
           company_id?: string | null
+          contract_type?: string | null
           created_at?: string
           description?: string | null
           duration_minutes?: number
           hourly_rate?: number | null
           id?: string
           is_active?: boolean
+          max_consecutive_classes?: number | null
+          min_interval_between_classes?: number | null
+          monthly_class_hours?: number | null
           name?: string
+          night_class_end?: string | null
+          night_class_rate_multiplier?: number | null
+          night_class_start?: string | null
+          preparation_minutes_per_class?: number | null
           updated_at?: string
+          weekly_class_hours?: number | null
         }
         Relationships: [
           {
@@ -381,6 +411,9 @@ export type Database = {
         Row: {
           class_hour_configuration_id: string
           company_id: string | null
+          contract_monthly_hours: number | null
+          contract_type: string | null
+          contract_weekly_hours: number | null
           created_at: string
           end_date: string | null
           id: string
@@ -388,10 +421,14 @@ export type Database = {
           profile_id: string
           start_date: string
           updated_at: string
+          work_schedule_id: string | null
         }
         Insert: {
           class_hour_configuration_id: string
           company_id?: string | null
+          contract_monthly_hours?: number | null
+          contract_type?: string | null
+          contract_weekly_hours?: number | null
           created_at?: string
           end_date?: string | null
           id?: string
@@ -399,10 +436,14 @@ export type Database = {
           profile_id: string
           start_date: string
           updated_at?: string
+          work_schedule_id?: string | null
         }
         Update: {
           class_hour_configuration_id?: string
           company_id?: string | null
+          contract_monthly_hours?: number | null
+          contract_type?: string | null
+          contract_weekly_hours?: number | null
           created_at?: string
           end_date?: string | null
           id?: string
@@ -410,6 +451,7 @@ export type Database = {
           profile_id?: string
           start_date?: string
           updated_at?: string
+          work_schedule_id?: string | null
         }
         Relationships: [
           {
@@ -431,6 +473,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_class_hour_assignments_work_schedule_id_fkey"
+            columns: ["work_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
             referencedColumns: ["id"]
           },
         ]

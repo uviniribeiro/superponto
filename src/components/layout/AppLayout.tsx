@@ -54,7 +54,7 @@ const menuItems = [
   { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
   { title: 'Cargos e Deptos', icon: Briefcase, href: '/positions-departments', roles: ['admin'] },
   { title: 'Jornadas e Escalas', icon: CalendarClock, href: '/schedules', roles: ['admin'] },
-  { title: 'Hora Aula', icon: GraduationCap, href: '/class-hours', roles: ['admin'] },
+  { title: 'Módulo Professor', icon: GraduationCap, href: '/teacher-module', roles: ['admin'] },
   { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
   { title: 'Faltas', icon: UserX, href: '/absences', roles: ['admin', 'manager'] },
   { title: 'Ajustes', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
