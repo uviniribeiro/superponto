@@ -126,6 +126,14 @@ interface Profile {
   department: string | null;
 }
 
+// Grouped employee - same person with multiple registrations
+interface GroupedEmployee {
+  key: string; // CPF or first profile ID if no CPF
+  full_name: string;
+  cpf: string | null;
+  profiles: Profile[];
+}
+
 interface CompanySettings {
   company_name: string;
   cnpj: string | null;
@@ -169,6 +177,8 @@ export default function TeacherModule() {
   const [editingAssignment, setEditingAssignment] = useState<TeacherAssignment | null>(null);
   
   // Timesheet state
+  const [selectedEmployeeGroup, setSelectedEmployeeGroup] = useState<string>('');
+  const [selectedRegistration, setSelectedRegistration] = useState<string>('');
   const [selectedTeacher, setSelectedTeacher] = useState<string>('');
   const [timesheetData, setTimesheetData] = useState<DailyTimesheet[]>([]);
 
@@ -532,6 +542,35 @@ export default function TeacherModule() {
     if (!time) return '-';
     return time.slice(0, 5);
   };
+
+  // Group employees by CPF for the timesheet view (same person with multiple registrations)
+  const groupedEmployees = React.useMemo(() => {
+    const groups: Map<string, GroupedEmployee> = new Map();
+    
+    employees.forEach(emp => {
+      const key = emp.cpf || emp.id; // Group by CPF if available, otherwise use ID
+      
+      if (groups.has(key)) {
+        groups.get(key)!.profiles.push(emp);
+      } else {
+        groups.set(key, {
+          key,
+          full_name: emp.full_name,
+          cpf: emp.cpf,
+          profiles: [emp],
+        });
+      }
+    });
+    
+    return Array.from(groups.values());
+  }, [employees]);
+
+  // Get available registrations for the selected employee group
+  const availableRegistrations = React.useMemo(() => {
+    if (!selectedEmployeeGroup) return [];
+    const group = groupedEmployees.find(g => g.key === selectedEmployeeGroup);
+    return group?.profiles || [];
+  }, [selectedEmployeeGroup, groupedEmployees]);
 
   // Fetch time records for selected teacher
   const fetchTeacherTimeRecords = async (profileId: string) => {
@@ -1221,24 +1260,60 @@ export default function TeacherModule() {
               <div className="space-y-2">
                 <Label>Professor</Label>
                 <Select
-                  value={selectedTeacher}
+                  value={selectedEmployeeGroup}
                   onValueChange={(v) => {
-                    setSelectedTeacher(v);
-                    if (v) fetchTeacherTimeRecords(v);
+                    setSelectedEmployeeGroup(v);
+                    setSelectedRegistration('');
+                    setSelectedTeacher('');
+                    setTimesheetData([]);
+                    // Auto-select first registration if only one exists
+                    const group = groupedEmployees.find(g => g.key === v);
+                    if (group && group.profiles.length === 1) {
+                      setSelectedRegistration(group.profiles[0].id);
+                      setSelectedTeacher(group.profiles[0].id);
+                      fetchTeacherTimeRecords(group.profiles[0].id);
+                    }
                   }}
                 >
                   <SelectTrigger className="w-[250px]">
                     <SelectValue placeholder="Selecione o professor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.full_name}
+                    {groupedEmployees.map((group) => (
+                      <SelectItem key={group.key} value={group.key}>
+                        {group.full_name} {group.profiles.length > 1 ? `(${group.profiles.length} matrículas)` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+              
+              {availableRegistrations.length > 1 && (
+                <div className="space-y-2">
+                  <Label>Matrícula</Label>
+                  <Select
+                    value={selectedRegistration}
+                    onValueChange={(v) => {
+                      setSelectedRegistration(v);
+                      setSelectedTeacher(v);
+                      fetchTeacherTimeRecords(v);
+                    }}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Selecione a matrícula" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRegistrations.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.registration_number || 'Sem matrícula'} 
+                          {profile.position ? ` - ${profile.position}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Mês</Label>
                 <Popover>
@@ -1319,9 +1394,17 @@ export default function TeacherModule() {
                     <ClipboardList className="h-5 w-5" />
                     Espelho de Ponto - {employees.find(e => e.id === selectedTeacher)?.full_name}
                   </CardTitle>
-                  <CardDescription>
-                    Período: {format(startOfMonth(filterMonth), 'dd/MM/yyyy')} a {format(endOfMonth(filterMonth), 'dd/MM/yyyy')} | 
-                    Conforme Portaria 671/2021 MTE
+                  <CardDescription className="space-y-1">
+                    <div>
+                      Matrícula: {employees.find(e => e.id === selectedTeacher)?.registration_number || 'Não informada'}
+                      {employees.find(e => e.id === selectedTeacher)?.position && 
+                        ` | Cargo: ${employees.find(e => e.id === selectedTeacher)?.position}`
+                      }
+                    </div>
+                    <div>
+                      Período: {format(startOfMonth(filterMonth), 'dd/MM/yyyy')} a {format(endOfMonth(filterMonth), 'dd/MM/yyyy')} | 
+                      Conforme Portaria 671/2021 MTE
+                    </div>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -1414,24 +1497,60 @@ export default function TeacherModule() {
             <div className="space-y-2">
               <Label>Professor</Label>
               <Select
-                value={selectedTeacher}
+                value={selectedEmployeeGroup}
                 onValueChange={(v) => {
-                  setSelectedTeacher(v);
-                  if (v) fetchTeacherTimeRecords(v);
+                  setSelectedEmployeeGroup(v);
+                  setSelectedRegistration('');
+                  setSelectedTeacher('');
+                  setTimesheetData([]);
+                  // Auto-select first registration if only one exists
+                  const group = groupedEmployees.find(g => g.key === v);
+                  if (group && group.profiles.length === 1) {
+                    setSelectedRegistration(group.profiles[0].id);
+                    setSelectedTeacher(group.profiles[0].id);
+                    fetchTeacherTimeRecords(group.profiles[0].id);
+                  }
                 }}
               >
                 <SelectTrigger className="w-[250px]">
                   <SelectValue placeholder="Selecione o professor" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.full_name}
+                  {groupedEmployees.map((group) => (
+                    <SelectItem key={group.key} value={group.key}>
+                      {group.full_name} {group.profiles.length > 1 ? `(${group.profiles.length} matrículas)` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            
+            {availableRegistrations.length > 1 && (
+              <div className="space-y-2">
+                <Label>Matrícula</Label>
+                <Select
+                  value={selectedRegistration}
+                  onValueChange={(v) => {
+                    setSelectedRegistration(v);
+                    setSelectedTeacher(v);
+                    fetchTeacherTimeRecords(v);
+                  }}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Selecione a matrícula" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRegistrations.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.registration_number || 'Sem matrícula'} 
+                        {profile.position ? ` - ${profile.position}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Mês</Label>
               <Popover>
