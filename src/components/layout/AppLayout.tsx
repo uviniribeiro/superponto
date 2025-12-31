@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ import {
   ClipboardList,
   ArrowUpDown,
   Server,
+  Home,
 } from 'lucide-react';
 
 interface CompanySettings {
@@ -53,6 +55,7 @@ interface CompanySettings {
 }
 
 const menuItems = [
+  { title: 'Início', icon: Home, href: '/home', roles: ['admin', 'manager', 'employee'] },
   { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: ['admin', 'manager', 'employee'] },
   { title: 'Registrar Ponto', icon: Clock, href: '/time-clock', roles: ['admin', 'manager', 'employee'] },
   { title: 'Meus Registros', icon: FileText, href: '/my-records', roles: ['admin', 'manager', 'employee'] },
@@ -205,11 +208,19 @@ export default function AppLayout() {
 
         <main className="flex-1 overflow-auto">
           <header className="sticky top-0 z-10 glass px-6 py-3">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger />
-              <h2 className="text-base font-medium">
-                {menuItems.find(item => item.href === location.pathname)?.title || 'Dashboard'}
-              </h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+                <Link to="/home">
+                  <Button variant="ghost" size="icon" className="h-9 w-9">
+                    <Home className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <h2 className="text-base font-medium">
+                  {menuItems.find(item => item.href === location.pathname)?.title || 'Início'}
+                </h2>
+              </div>
+              <ThemeToggle />
             </div>
           </header>
           <div className="p-6">
