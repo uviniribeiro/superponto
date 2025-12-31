@@ -87,6 +87,7 @@ const defaultFields: ExportField[] = [
   { id: '8', name: 'Email', source: 'email', position: 8, length: 50, padding: 'right', paddingChar: ' ', enabled: true },
 ];
 
+// Layout Gaia
 const gaiaLayout: ExportLayout = {
   id: 'gaia',
   name: 'Sistema Gaia',
@@ -110,6 +111,306 @@ const gaiaLayout: ExportLayout = {
   encoding: 'UTF-8',
 };
 
+// Layout Domínio (Thomson Reuters)
+const dominioLayout: ExportLayout = {
+  id: 'dominio',
+  name: 'Domínio Sistemas',
+  description: 'Layout de importação para Domínio Contábil/Folha (Thomson Reuters)',
+  fields: [
+    { id: '1', name: 'Empresa', source: 'company_code', position: 1, length: 4, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'Código Funcionário', source: 'registration_number', position: 2, length: 6, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '3', name: 'Data', source: 'record_date', position: 3, length: 10, padding: 'none', paddingChar: '', format: 'dd/MM/yyyy', enabled: true },
+    { id: '4', name: 'Entrada 1', source: 'entry_time', position: 4, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '5', name: 'Saída 1', source: 'break_start_time', position: 5, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '6', name: 'Entrada 2', source: 'break_end_time', position: 6, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '7', name: 'Saída 2', source: 'exit_time', position: 7, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+  ],
+  delimiter: ';',
+  includeHeader: true,
+  dateFormat: 'dd/MM/yyyy',
+  timeFormat: 'HH:mm',
+  encoding: 'UTF-8',
+};
+
+// Layout Fortes Pessoal
+const fortesLayout: ExportLayout = {
+  id: 'fortes',
+  name: 'Fortes Pessoal',
+  description: 'Layout de importação para Fortes AC Pessoal',
+  fields: [
+    { id: '1', name: 'PIS', source: 'pis', position: 1, length: 11, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'Data', source: 'record_date', position: 2, length: 8, padding: 'none', paddingChar: '', format: 'ddMMyyyy', enabled: true },
+    { id: '3', name: 'Hora 1', source: 'entry_time', position: 3, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '4', name: 'Hora 2', source: 'break_start_time', position: 4, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '5', name: 'Hora 3', source: 'break_end_time', position: 5, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '6', name: 'Hora 4', source: 'exit_time', position: 6, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+  ],
+  delimiter: '',
+  includeHeader: false,
+  dateFormat: 'ddMMyyyy',
+  timeFormat: 'HHmm',
+  encoding: 'UTF-8',
+};
+
+// Layout Senior Sistemas
+const seniorLayout: ExportLayout = {
+  id: 'senior',
+  name: 'Senior Sistemas',
+  description: 'Layout de importação para Senior HCM/Rubi',
+  fields: [
+    { id: '1', name: 'Empresa', source: 'company_code', position: 1, length: 4, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'Filial', source: 'branch_code', position: 2, length: 4, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '3', name: 'Matrícula', source: 'registration_number', position: 3, length: 9, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '4', name: 'Data', source: 'record_date', position: 4, length: 10, padding: 'none', paddingChar: '', format: 'dd/MM/yyyy', enabled: true },
+    { id: '5', name: 'Marcação 1', source: 'entry_time', position: 5, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '6', name: 'Marcação 2', source: 'break_start_time', position: 6, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '7', name: 'Marcação 3', source: 'break_end_time', position: 7, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '8', name: 'Marcação 4', source: 'exit_time', position: 8, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+  ],
+  delimiter: ';',
+  includeHeader: false,
+  dateFormat: 'dd/MM/yyyy',
+  timeFormat: 'HH:mm',
+  encoding: 'UTF-8',
+};
+
+// Layout TOTVS Protheus
+const totvsLayout: ExportLayout = {
+  id: 'totvs',
+  name: 'TOTVS Protheus',
+  description: 'Layout de importação para TOTVS Protheus RH',
+  fields: [
+    { id: '1', name: 'Filial', source: 'branch_code', position: 1, length: 2, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'Matrícula', source: 'registration_number', position: 2, length: 6, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '3', name: 'Data', source: 'record_date', position: 3, length: 8, padding: 'none', paddingChar: '', format: 'yyyyMMdd', enabled: true },
+    { id: '4', name: 'Hora 1', source: 'entry_time', position: 4, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '5', name: 'Hora 2', source: 'break_start_time', position: 5, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '6', name: 'Hora 3', source: 'break_end_time', position: 6, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '7', name: 'Hora 4', source: 'exit_time', position: 7, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '8', name: 'PIS', source: 'pis', position: 8, length: 11, padding: 'left', paddingChar: '0', enabled: true },
+  ],
+  delimiter: '',
+  includeHeader: false,
+  dateFormat: 'yyyyMMdd',
+  timeFormat: 'HHmm',
+  encoding: 'UTF-8',
+};
+
+// Layout ADP
+const adpLayout: ExportLayout = {
+  id: 'adp',
+  name: 'ADP Brasil',
+  description: 'Layout de importação para ADP Expert/Celeridade',
+  fields: [
+    { id: '1', name: 'Código Empresa', source: 'company_code', position: 1, length: 6, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'Matrícula', source: 'registration_number', position: 2, length: 10, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '3', name: 'CPF', source: 'cpf', position: 3, length: 11, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '4', name: 'Data', source: 'record_date', position: 4, length: 10, padding: 'none', paddingChar: '', format: 'dd/MM/yyyy', enabled: true },
+    { id: '5', name: 'Entrada', source: 'entry_time', position: 5, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '6', name: 'Saída Almoço', source: 'break_start_time', position: 6, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '7', name: 'Retorno Almoço', source: 'break_end_time', position: 7, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '8', name: 'Saída', source: 'exit_time', position: 8, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+  ],
+  delimiter: ';',
+  includeHeader: true,
+  dateFormat: 'dd/MM/yyyy',
+  timeFormat: 'HH:mm',
+  encoding: 'UTF-8',
+};
+
+// Layout Questor
+const questorLayout: ExportLayout = {
+  id: 'questor',
+  name: 'Questor Sistemas',
+  description: 'Layout de importação para Questor Folha',
+  fields: [
+    { id: '1', name: 'Empresa', source: 'company_code', position: 1, length: 3, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'Funcionário', source: 'registration_number', position: 2, length: 5, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '3', name: 'Data', source: 'record_date', position: 3, length: 8, padding: 'none', paddingChar: '', format: 'ddMMyyyy', enabled: true },
+    { id: '4', name: 'Batida 1', source: 'entry_time', position: 4, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '5', name: 'Batida 2', source: 'break_start_time', position: 5, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '6', name: 'Batida 3', source: 'break_end_time', position: 6, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '7', name: 'Batida 4', source: 'exit_time', position: 7, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+  ],
+  delimiter: '',
+  includeHeader: false,
+  dateFormat: 'ddMMyyyy',
+  timeFormat: 'HHmm',
+  encoding: 'UTF-8',
+};
+
+// Layout Alterdata
+const alterdataLayout: ExportLayout = {
+  id: 'alterdata',
+  name: 'Alterdata Pack',
+  description: 'Layout de importação para Alterdata Departamento Pessoal',
+  fields: [
+    { id: '1', name: 'Empresa', source: 'company_code', position: 1, length: 4, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'Matrícula', source: 'registration_number', position: 2, length: 6, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '3', name: 'PIS', source: 'pis', position: 3, length: 11, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '4', name: 'Data', source: 'record_date', position: 4, length: 10, padding: 'none', paddingChar: '', format: 'dd/MM/yyyy', enabled: true },
+    { id: '5', name: 'Hora 1', source: 'entry_time', position: 5, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '6', name: 'Hora 2', source: 'break_start_time', position: 6, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '7', name: 'Hora 3', source: 'break_end_time', position: 7, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '8', name: 'Hora 4', source: 'exit_time', position: 8, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+  ],
+  delimiter: ';',
+  includeHeader: false,
+  dateFormat: 'dd/MM/yyyy',
+  timeFormat: 'HH:mm',
+  encoding: 'UTF-8',
+};
+
+// Layout Sage
+const sageLayout: ExportLayout = {
+  id: 'sage',
+  name: 'Sage Folha',
+  description: 'Layout de importação para Sage IOB Folha',
+  fields: [
+    { id: '1', name: 'CNPJ Empresa', source: 'company_cnpj', position: 1, length: 14, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'CPF', source: 'cpf', position: 2, length: 11, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '3', name: 'PIS', source: 'pis', position: 3, length: 11, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '4', name: 'Data', source: 'record_date', position: 4, length: 8, padding: 'none', paddingChar: '', format: 'ddMMyyyy', enabled: true },
+    { id: '5', name: 'Entrada', source: 'entry_time', position: 5, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '6', name: 'Intervalo Início', source: 'break_start_time', position: 6, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '7', name: 'Intervalo Fim', source: 'break_end_time', position: 7, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '8', name: 'Saída', source: 'exit_time', position: 8, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+  ],
+  delimiter: '',
+  includeHeader: false,
+  dateFormat: 'ddMMyyyy',
+  timeFormat: 'HHmm',
+  encoding: 'UTF-8',
+};
+
+// Layout Contmatic
+const contmaticLayout: ExportLayout = {
+  id: 'contmatic',
+  name: 'Contmatic Phoenix',
+  description: 'Layout de importação para Contmatic Folha Phoenix',
+  fields: [
+    { id: '1', name: 'Código', source: 'registration_number', position: 1, length: 5, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'Data', source: 'record_date', position: 2, length: 8, padding: 'none', paddingChar: '', format: 'ddMMyyyy', enabled: true },
+    { id: '3', name: 'Marcação 1', source: 'entry_time', position: 3, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '4', name: 'Marcação 2', source: 'break_start_time', position: 4, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '5', name: 'Marcação 3', source: 'break_end_time', position: 5, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '6', name: 'Marcação 4', source: 'exit_time', position: 6, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+  ],
+  delimiter: '',
+  includeHeader: false,
+  dateFormat: 'ddMMyyyy',
+  timeFormat: 'HHmm',
+  encoding: 'UTF-8',
+};
+
+// Layout Metadados
+const metadadosLayout: ExportLayout = {
+  id: 'metadados',
+  name: 'Metadados RH',
+  description: 'Layout de importação para Metadados Sistemas',
+  fields: [
+    { id: '1', name: 'Empresa', source: 'company_code', position: 1, length: 4, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'Matrícula', source: 'registration_number', position: 2, length: 8, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '3', name: 'CPF', source: 'cpf', position: 3, length: 11, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '4', name: 'Data', source: 'record_date', position: 4, length: 10, padding: 'none', paddingChar: '', format: 'dd/MM/yyyy', enabled: true },
+    { id: '5', name: 'Ent 1', source: 'entry_time', position: 5, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '6', name: 'Sai 1', source: 'break_start_time', position: 6, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '7', name: 'Ent 2', source: 'break_end_time', position: 7, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '8', name: 'Sai 2', source: 'exit_time', position: 8, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+  ],
+  delimiter: ';',
+  includeHeader: true,
+  dateFormat: 'dd/MM/yyyy',
+  timeFormat: 'HH:mm',
+  encoding: 'UTF-8',
+};
+
+// Layout FPW (Folha de Pagamento Windows)
+const fpwLayout: ExportLayout = {
+  id: 'fpw',
+  name: 'FPW Folha',
+  description: 'Layout de importação para FPW Folha de Pagamento',
+  fields: [
+    { id: '1', name: 'Matrícula', source: 'registration_number', position: 1, length: 6, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'Nome', source: 'full_name', position: 2, length: 40, padding: 'right', paddingChar: ' ', enabled: true },
+    { id: '3', name: 'Data', source: 'record_date', position: 3, length: 8, padding: 'none', paddingChar: '', format: 'ddMMyyyy', enabled: true },
+    { id: '4', name: 'H1', source: 'entry_time', position: 4, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '5', name: 'H2', source: 'break_start_time', position: 5, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '6', name: 'H3', source: 'break_end_time', position: 6, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+    { id: '7', name: 'H4', source: 'exit_time', position: 7, length: 4, padding: 'left', paddingChar: '0', format: 'HHmm', enabled: true },
+  ],
+  delimiter: '',
+  includeHeader: false,
+  dateFormat: 'ddMMyyyy',
+  timeFormat: 'HHmm',
+  encoding: 'UTF-8',
+};
+
+// Layout eSocial (Formato padrão do governo)
+const esocialLayout: ExportLayout = {
+  id: 'esocial',
+  name: 'eSocial S-1200',
+  description: 'Layout compatível com eventos do eSocial para ponto',
+  fields: [
+    { id: '1', name: 'CPF Trabalhador', source: 'cpf', position: 1, length: 11, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '2', name: 'NIS (PIS)', source: 'pis', position: 2, length: 11, padding: 'left', paddingChar: '0', enabled: true },
+    { id: '3', name: 'Matrícula', source: 'registration_number', position: 3, length: 30, padding: 'right', paddingChar: ' ', enabled: true },
+    { id: '4', name: 'Data', source: 'record_date', position: 4, length: 10, padding: 'none', paddingChar: '', format: 'yyyy-MM-dd', enabled: true },
+    { id: '5', name: 'Hora Entrada', source: 'entry_time', position: 5, length: 8, padding: 'none', paddingChar: '', format: 'HH:mm:ss', enabled: true },
+    { id: '6', name: 'Hora Saída Int.', source: 'break_start_time', position: 6, length: 8, padding: 'none', paddingChar: '', format: 'HH:mm:ss', enabled: true },
+    { id: '7', name: 'Hora Retorno Int.', source: 'break_end_time', position: 7, length: 8, padding: 'none', paddingChar: '', format: 'HH:mm:ss', enabled: true },
+    { id: '8', name: 'Hora Saída', source: 'exit_time', position: 8, length: 8, padding: 'none', paddingChar: '', format: 'HH:mm:ss', enabled: true },
+  ],
+  delimiter: ';',
+  includeHeader: true,
+  dateFormat: 'yyyy-MM-dd',
+  timeFormat: 'HH:mm:ss',
+  encoding: 'UTF-8',
+};
+
+// Layout CSV Genérico
+const csvGenericoLayout: ExportLayout = {
+  id: 'csv_generico',
+  name: 'CSV Genérico',
+  description: 'Layout CSV genérico para importação em qualquer sistema',
+  fields: [
+    { id: '1', name: 'Matrícula', source: 'registration_number', position: 1, length: 20, padding: 'none', paddingChar: '', enabled: true },
+    { id: '2', name: 'Nome', source: 'full_name', position: 2, length: 60, padding: 'none', paddingChar: '', enabled: true },
+    { id: '3', name: 'CPF', source: 'cpf', position: 3, length: 14, padding: 'none', paddingChar: '', enabled: true },
+    { id: '4', name: 'PIS', source: 'pis', position: 4, length: 14, padding: 'none', paddingChar: '', enabled: true },
+    { id: '5', name: 'Data', source: 'record_date', position: 5, length: 10, padding: 'none', paddingChar: '', format: 'dd/MM/yyyy', enabled: true },
+    { id: '6', name: 'Entrada', source: 'entry_time', position: 6, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '7', name: 'Saída Intervalo', source: 'break_start_time', position: 7, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '8', name: 'Retorno Intervalo', source: 'break_end_time', position: 8, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '9', name: 'Saída', source: 'exit_time', position: 9, length: 5, padding: 'none', paddingChar: '', format: 'HH:mm', enabled: true },
+    { id: '10', name: 'Departamento', source: 'department', position: 10, length: 30, padding: 'none', paddingChar: '', enabled: true },
+    { id: '11', name: 'Cargo', source: 'position', position: 11, length: 30, padding: 'none', paddingChar: '', enabled: true },
+  ],
+  delimiter: ';',
+  includeHeader: true,
+  dateFormat: 'dd/MM/yyyy',
+  timeFormat: 'HH:mm',
+  encoding: 'UTF-8',
+};
+
+// Array com todos os layouts nativos
+const nativeLayouts: ExportLayout[] = [
+  gaiaLayout,
+  dominioLayout,
+  fortesLayout,
+  seniorLayout,
+  totvsLayout,
+  adpLayout,
+  questorLayout,
+  alterdataLayout,
+  sageLayout,
+  contmaticLayout,
+  metadadosLayout,
+  fpwLayout,
+  esocialLayout,
+  csvGenericoLayout,
+];
+
 export default function ImportExport() {
   const [activeTab, setActiveTab] = useState('import');
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
@@ -125,7 +426,7 @@ export default function ImportExport() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Export states
-  const [exportLayouts, setExportLayouts] = useState<ExportLayout[]>([gaiaLayout]);
+  const [exportLayouts, setExportLayouts] = useState<ExportLayout[]>(nativeLayouts);
   const [selectedLayout, setSelectedLayout] = useState<ExportLayout | null>(gaiaLayout);
   const [layoutDialogOpen, setLayoutDialogOpen] = useState(false);
   const [editingLayout, setEditingLayout] = useState<ExportLayout | null>(null);
@@ -169,7 +470,7 @@ export default function ImportExport() {
     if (saved) {
       try {
         const layouts = JSON.parse(saved);
-        setExportLayouts([gaiaLayout, ...layouts]);
+        setExportLayouts([...nativeLayouts, ...layouts]);
       } catch (e) {
         console.error('Error loading layouts:', e);
       }
@@ -177,22 +478,24 @@ export default function ImportExport() {
   };
 
   const saveLayout = (layout: ExportLayout) => {
-    const customLayouts = exportLayouts.filter(l => l.id !== 'gaia' && l.id !== layout.id);
+    const nativeIds = nativeLayouts.map(l => l.id);
+    const customLayouts = exportLayouts.filter(l => !nativeIds.includes(l.id) && l.id !== layout.id);
     customLayouts.push(layout);
     localStorage.setItem('exportLayouts', JSON.stringify(customLayouts));
-    setExportLayouts([gaiaLayout, ...customLayouts]);
+    setExportLayouts([...nativeLayouts, ...customLayouts]);
     setSelectedLayout(layout);
     toast.success('Layout salvo com sucesso!');
   };
 
   const deleteLayout = (layoutId: string) => {
-    if (layoutId === 'gaia') {
-      toast.error('Não é possível excluir o layout padrão Gaia');
+    const nativeIds = nativeLayouts.map(l => l.id);
+    if (nativeIds.includes(layoutId)) {
+      toast.error('Não é possível excluir layouts nativos do sistema');
       return;
     }
-    const customLayouts = exportLayouts.filter(l => l.id !== 'gaia' && l.id !== layoutId);
+    const customLayouts = exportLayouts.filter(l => !nativeIds.includes(l.id) && l.id !== layoutId);
     localStorage.setItem('exportLayouts', JSON.stringify(customLayouts));
-    setExportLayouts([gaiaLayout, ...customLayouts]);
+    setExportLayouts([...nativeLayouts, ...customLayouts]);
     setSelectedLayout(gaiaLayout);
     toast.success('Layout excluído com sucesso!');
   };
