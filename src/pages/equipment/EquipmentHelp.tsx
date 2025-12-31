@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, Check, Info, HelpCircle, Download, Monitor, Wifi, Server, FileCode, Terminal, Bot, Settings, Gauge, Package, Cpu } from 'lucide-react';
+import { Copy, Check, Info, HelpCircle, Download, Monitor, Wifi, Server, FileCode, Terminal, Bot, Settings, Gauge, Package, Cpu, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { generateEquipmentDocPDF } from '@/components/equipment/EquipmentDocPDF';
 
 export default function EquipmentHelp() {
   const [copied, setCopied] = useState<string | null>(null);
@@ -28,11 +29,22 @@ export default function EquipmentHelp() {
     toast.success(`Download iniciado: ${filename}`);
   };
 
+  const handleDownloadPDF = () => {
+    generateEquipmentDocPDF();
+    toast.success('PDF gerado com sucesso!');
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Ajuda na Configuração</h1>
-        <p className="text-muted-foreground">Como configurar os relógios de ponto</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Ajuda na Configuração</h1>
+          <p className="text-muted-foreground">Como configurar os relógios de ponto</p>
+        </div>
+        <Button onClick={handleDownloadPDF} className="flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          Baixar Manual PDF
+        </Button>
       </div>
 
       {/* Tabs for Windows/Linux */}
