@@ -1917,14 +1917,14 @@ export default function TeacherModule() {
               <div className="space-y-2">
                 <Label>Jornada/Escala (opcional)</Label>
                 <Select
-                  value={assignmentForm.work_schedule_id}
-                  onValueChange={(v) => setAssignmentForm({ ...assignmentForm, work_schedule_id: v })}
+                  value={assignmentForm.work_schedule_id || "none"}
+                  onValueChange={(v) => setAssignmentForm({ ...assignmentForm, work_schedule_id: v === "none" ? "" : v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="none">Nenhuma</SelectItem>
                     {schedules.map((schedule) => (
                       <SelectItem key={schedule.id} value={schedule.id}>
                         {schedule.name}
