@@ -12,26 +12,140 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Plus, Wifi, WifiOff, RefreshCw, Settings, Trash2, Edit, Activity, Clock, Server } from 'lucide-react';
+import { Plus, Wifi, WifiOff, RefreshCw, Trash2, Edit, Activity, Clock, Server, HelpCircle, Copy, Check, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const MANUFACTURERS = [
-  { value: 'henry', label: 'Henry', protocol: 'SOAP/REP-C' },
-  { value: 'dimep', label: 'Dimep', protocol: 'REST API' },
-  { value: 'controlid', label: 'Control iD', protocol: 'REST API' },
-  { value: 'topdata', label: 'Topdata', protocol: 'Inner REP' },
-  { value: 'madis', label: 'Madis', protocol: 'REST API' },
-  { value: 'secullum', label: 'Secullum', protocol: 'SOAP' },
-  { value: 'zkteco', label: 'ZKTeco', protocol: 'PUSH/HTTP' },
-  { value: 'anviz', label: 'Anviz', protocol: 'REST API' },
-  { value: 'suprema', label: 'Suprema (BioStar)', protocol: 'REST API' },
-  { value: 'trix', label: 'Trix', protocol: 'REST API' },
-  { value: 'rwtech', label: 'RWTech', protocol: 'REST API' },
-  { value: 'hikvision', label: 'Hikvision', protocol: 'ISAPI' },
-  { value: 'intelbras', label: 'Intelbras', protocol: 'REST API' },
-  { value: 'generic', label: 'Genérico (HTTP)', protocol: 'HTTP/REST' },
+// Equipment manufacturers and their models
+const EQUIPMENT_CATALOG = [
+  {
+    manufacturer: 'henry',
+    label: 'Henry',
+    models: [
+      { value: 'prisma_super_facil', label: 'Prisma Super Fácil', port: 80, protocol: 'http', endpoint: '/iDClass/SyncDataService.svc' },
+      { value: 'orion_6', label: 'Orion 6', port: 80, protocol: 'http', endpoint: '/iDClass/SyncDataService.svc' },
+      { value: 'hexa', label: 'Hexa', port: 80, protocol: 'http', endpoint: '/iDClass/SyncDataService.svc' },
+      { value: 'primme', label: 'Primme', port: 80, protocol: 'http', endpoint: '/iDClass/SyncDataService.svc' },
+    ],
+  },
+  {
+    manufacturer: 'dimep',
+    label: 'Dimep',
+    models: [
+      { value: 'printpoint_iii', label: 'PrintPoint III', port: 80, protocol: 'http', endpoint: '/api/v1/records' },
+      { value: 'smart_print', label: 'Smart Print', port: 80, protocol: 'http', endpoint: '/api/v1/records' },
+      { value: 'face_plus', label: 'FacePlus', port: 80, protocol: 'http', endpoint: '/api/v1/records' },
+      { value: 'biopoint_ii', label: 'BioPoint II', port: 80, protocol: 'http', endpoint: '/api/v1/records' },
+    ],
+  },
+  {
+    manufacturer: 'controlid',
+    label: 'Control iD',
+    models: [
+      { value: 'idclass', label: 'iDClass', port: 80, protocol: 'http', endpoint: '/api/v1/afd' },
+      { value: 'idface', label: 'iDFace', port: 80, protocol: 'http', endpoint: '/api/v1/afd' },
+      { value: 'idbox', label: 'iDBox', port: 80, protocol: 'http', endpoint: '/api/v1/afd' },
+      { value: 'idflex', label: 'iDFlex', port: 80, protocol: 'http', endpoint: '/api/v1/afd' },
+    ],
+  },
+  {
+    manufacturer: 'topdata',
+    label: 'Topdata',
+    models: [
+      { value: 'inner_rep', label: 'Inner Rep', port: 80, protocol: 'http', endpoint: '/inner/api' },
+      { value: 'inner_rep_plus', label: 'Inner Rep Plus', port: 80, protocol: 'http', endpoint: '/inner/api' },
+      { value: 'inner_bio', label: 'Inner Bio', port: 80, protocol: 'http', endpoint: '/inner/api' },
+    ],
+  },
+  {
+    manufacturer: 'madis',
+    label: 'Madis',
+    models: [
+      { value: 'md_6705', label: 'MD 6705', port: 80, protocol: 'http', endpoint: '/api/records' },
+      { value: 'md_6710', label: 'MD 6710', port: 80, protocol: 'http', endpoint: '/api/records' },
+      { value: 'md_faceid', label: 'MD FaceID', port: 80, protocol: 'http', endpoint: '/api/records' },
+    ],
+  },
+  {
+    manufacturer: 'secullum',
+    label: 'Secullum',
+    models: [
+      { value: 'rep_4', label: 'REP 4', port: 80, protocol: 'http', endpoint: '/webservice/ponto' },
+      { value: 'rep_bio', label: 'REP Bio', port: 80, protocol: 'http', endpoint: '/webservice/ponto' },
+      { value: 'rep_facial', label: 'REP Facial', port: 80, protocol: 'http', endpoint: '/webservice/ponto' },
+    ],
+  },
+  {
+    manufacturer: 'zkteco',
+    label: 'ZKTeco',
+    models: [
+      { value: 'k40', label: 'K40', port: 80, protocol: 'http', endpoint: '/iclock/cdata' },
+      { value: 'k50', label: 'K50', port: 80, protocol: 'http', endpoint: '/iclock/cdata' },
+      { value: 'mb10', label: 'MB10-VL', port: 80, protocol: 'http', endpoint: '/iclock/cdata' },
+      { value: 'speedface', label: 'SpeedFace', port: 80, protocol: 'http', endpoint: '/iclock/cdata' },
+      { value: 'uface800', label: 'UFace 800', port: 80, protocol: 'http', endpoint: '/iclock/cdata' },
+    ],
+  },
+  {
+    manufacturer: 'anviz',
+    label: 'Anviz',
+    models: [
+      { value: 'c2pro', label: 'C2 Pro', port: 80, protocol: 'http', endpoint: '/api/transaction' },
+      { value: 'facepass7', label: 'FacePass 7', port: 80, protocol: 'http', endpoint: '/api/transaction' },
+      { value: 'w2pro', label: 'W2 Pro', port: 80, protocol: 'http', endpoint: '/api/transaction' },
+    ],
+  },
+  {
+    manufacturer: 'suprema',
+    label: 'Suprema (BioStar)',
+    models: [
+      { value: 'biostation2', label: 'BioStation 2', port: 443, protocol: 'https', endpoint: '/api/v2/events' },
+      { value: 'bioentry', label: 'BioEntry W2', port: 443, protocol: 'https', endpoint: '/api/v2/events' },
+      { value: 'facelite', label: 'FaceLite', port: 443, protocol: 'https', endpoint: '/api/v2/events' },
+    ],
+  },
+  {
+    manufacturer: 'trix',
+    label: 'Trix',
+    models: [
+      { value: 'ss_710', label: 'SS 710', port: 80, protocol: 'http', endpoint: '/api/v1/marcacoes' },
+      { value: 'ss_810', label: 'SS 810', port: 80, protocol: 'http', endpoint: '/api/v1/marcacoes' },
+    ],
+  },
+  {
+    manufacturer: 'rwtech',
+    label: 'RWTech',
+    models: [
+      { value: 'rw_bio', label: 'RW Bio', port: 80, protocol: 'http', endpoint: '/api/records' },
+      { value: 'rw_facial', label: 'RW Facial', port: 80, protocol: 'http', endpoint: '/api/records' },
+    ],
+  },
+  {
+    manufacturer: 'hikvision',
+    label: 'Hikvision',
+    models: [
+      { value: 'ds_k1t671m', label: 'DS-K1T671M', port: 80, protocol: 'http', endpoint: '/ISAPI/AccessControl/AcsEvent' },
+      { value: 'ds_k1t341', label: 'DS-K1T341', port: 80, protocol: 'http', endpoint: '/ISAPI/AccessControl/AcsEvent' },
+    ],
+  },
+  {
+    manufacturer: 'intelbras',
+    label: 'Intelbras',
+    models: [
+      { value: 'ss_411', label: 'SS 411', port: 80, protocol: 'http', endpoint: '/api/records' },
+      { value: 'ss_611', label: 'SS 611', port: 80, protocol: 'http', endpoint: '/api/records' },
+    ],
+  },
+  {
+    manufacturer: 'generic',
+    label: 'Genérico (HTTP)',
+    models: [
+      { value: 'generic_http', label: 'HTTP/REST Genérico', port: 80, protocol: 'http', endpoint: '/' },
+      { value: 'generic_https', label: 'HTTPS/REST Genérico', port: 443, protocol: 'https', endpoint: '/' },
+    ],
+  },
 ];
 
 interface Equipment {
@@ -72,7 +186,7 @@ interface CommunicationLog {
 
 const defaultEquipment: Partial<Equipment> = {
   name: '',
-  manufacturer: 'generic',
+  manufacturer: '',
   model: '',
   serial_number: '',
   ip_address: '',
@@ -94,6 +208,10 @@ export default function Equipment() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Partial<Equipment>>(defaultEquipment);
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Get server URL for configuration help
+  const serverUrl = 'https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync';
 
   // Fetch equipment list
   const { data: equipments = [], isLoading } = useQuery({
@@ -149,6 +267,37 @@ export default function Equipment() {
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
+
+  // Get selected manufacturer and model info
+  const selectedManufacturer = EQUIPMENT_CATALOG.find(m => m.manufacturer === editingEquipment.manufacturer);
+  const selectedModel = selectedManufacturer?.models.find(m => m.value === editingEquipment.model);
+
+  // Update equipment settings when model changes
+  const handleModelChange = (modelValue: string) => {
+    const model = selectedManufacturer?.models.find(m => m.value === modelValue);
+    if (model) {
+      setEditingEquipment({
+        ...editingEquipment,
+        model: modelValue,
+        port: model.port,
+        protocol: model.protocol,
+        api_endpoint: model.endpoint,
+      });
+    }
+  };
+
+  // Handle manufacturer change
+  const handleManufacturerChange = (manufacturerValue: string) => {
+    const manufacturer = EQUIPMENT_CATALOG.find(m => m.manufacturer === manufacturerValue);
+    setEditingEquipment({
+      ...editingEquipment,
+      manufacturer: manufacturerValue,
+      model: '',
+      port: manufacturer?.models[0]?.port || 80,
+      protocol: manufacturer?.models[0]?.protocol || 'http',
+      api_endpoint: manufacturer?.models[0]?.endpoint || '',
+    });
+  };
 
   // Save equipment mutation
   const saveMutation = useMutation({
@@ -264,15 +413,27 @@ export default function Equipment() {
   };
 
   const handleSave = () => {
-    if (!editingEquipment.name || !editingEquipment.ip_address) {
-      toast.error('Nome e endereço IP são obrigatórios');
+    if (!editingEquipment.name || !editingEquipment.ip_address || !editingEquipment.manufacturer) {
+      toast.error('Nome, fabricante e endereço IP são obrigatórios');
       return;
     }
     saveMutation.mutate(editingEquipment);
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success('Copiado para a área de transferência');
+  };
+
   const getManufacturerLabel = (value: string) => {
-    return MANUFACTURERS.find(m => m.value === value)?.label || value;
+    return EQUIPMENT_CATALOG.find(m => m.manufacturer === value)?.label || value;
+  };
+
+  const getModelLabel = (manufacturer: string, model: string) => {
+    const mfr = EQUIPMENT_CATALOG.find(m => m.manufacturer === manufacturer);
+    return mfr?.models.find(m => m.value === model)?.label || model;
   };
 
   const onlineCount = equipments.filter(e => e.is_online).length;
@@ -307,125 +468,80 @@ export default function Equipment() {
                 <DialogDescription>Configure os dados do relógio de ponto</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                {/* Name - Text input */}
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome do Equipamento *</Label>
+                  <Input
+                    id="name"
+                    value={editingEquipment.name || ''}
+                    onChange={(e) => setEditingEquipment({ ...editingEquipment, name: e.target.value })}
+                    placeholder="REP Entrada Principal"
+                  />
+                </div>
+
+                {/* Manufacturer - Dropdown */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nome *</Label>
-                    <Input
-                      id="name"
-                      value={editingEquipment.name || ''}
-                      onChange={(e) => setEditingEquipment({ ...editingEquipment, name: e.target.value })}
-                      placeholder="REP Entrada Principal"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="manufacturer">Fabricante</Label>
+                    <Label htmlFor="manufacturer">Fabricante *</Label>
                     <Select
-                      value={editingEquipment.manufacturer || 'generic'}
-                      onValueChange={(value) => setEditingEquipment({ ...editingEquipment, manufacturer: value })}
+                      value={editingEquipment.manufacturer || ''}
+                      onValueChange={handleManufacturerChange}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Selecione o fabricante" />
                       </SelectTrigger>
                       <SelectContent>
-                        {MANUFACTURERS.map((m) => (
+                        {EQUIPMENT_CATALOG.map((m) => (
+                          <SelectItem key={m.manufacturer} value={m.manufacturer}>
+                            {m.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Model - Dropdown (depends on manufacturer) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="model">Modelo *</Label>
+                    <Select
+                      value={editingEquipment.model || ''}
+                      onValueChange={handleModelChange}
+                      disabled={!editingEquipment.manufacturer}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o modelo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedManufacturer?.models.map((m) => (
                           <SelectItem key={m.value} value={m.value}>
-                            {m.label} ({m.protocol})
+                            {m.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
+
+                {/* Serial Number - Text input */}
+                <div className="space-y-2">
+                  <Label htmlFor="serial_number">Número de Série</Label>
+                  <Input
+                    id="serial_number"
+                    value={editingEquipment.serial_number || ''}
+                    onChange={(e) => setEditingEquipment({ ...editingEquipment, serial_number: e.target.value })}
+                    placeholder="Ex: ABC123456"
+                  />
+                </div>
+
+                {/* IP Address - Text input */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="model">Modelo</Label>
-                    <Input
-                      id="model"
-                      value={editingEquipment.model || ''}
-                      onChange={(e) => setEditingEquipment({ ...editingEquipment, model: e.target.value })}
-                      placeholder="Prisma Super Fácil"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="serial_number">Número de Série</Label>
-                    <Input
-                      id="serial_number"
-                      value={editingEquipment.serial_number || ''}
-                      onChange={(e) => setEditingEquipment({ ...editingEquipment, serial_number: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="protocol">Protocolo</Label>
-                    <Select
-                      value={editingEquipment.protocol || 'http'}
-                      onValueChange={(value) => setEditingEquipment({ ...editingEquipment, protocol: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="http">HTTP</SelectItem>
-                        <SelectItem value="https">HTTPS</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ip_address">Endereço IP *</Label>
+                    <Label htmlFor="ip_address">Endereço IP do Equipamento *</Label>
                     <Input
                       id="ip_address"
                       value={editingEquipment.ip_address || ''}
                       onChange={(e) => setEditingEquipment({ ...editingEquipment, ip_address: e.target.value })}
                       placeholder="192.168.1.100"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="port">Porta</Label>
-                    <Input
-                      id="port"
-                      type="number"
-                      value={editingEquipment.port || 80}
-                      onChange={(e) => setEditingEquipment({ ...editingEquipment, port: parseInt(e.target.value) })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="api_endpoint">Endpoint da API (opcional)</Label>
-                  <Input
-                    id="api_endpoint"
-                    value={editingEquipment.api_endpoint || ''}
-                    onChange={(e) => setEditingEquipment({ ...editingEquipment, api_endpoint: e.target.value })}
-                    placeholder="/api/v1/records"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Usuário</Label>
-                    <Input
-                      id="username"
-                      value={editingEquipment.username || ''}
-                      onChange={(e) => setEditingEquipment({ ...editingEquipment, username: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Senha</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={editingEquipment.password || ''}
-                      onChange={(e) => setEditingEquipment({ ...editingEquipment, password: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sync_interval">Intervalo de Sincronização (segundos)</Label>
-                    <Input
-                      id="sync_interval"
-                      type="number"
-                      value={editingEquipment.sync_interval_seconds || 60}
-                      onChange={(e) => setEditingEquipment({ ...editingEquipment, sync_interval_seconds: parseInt(e.target.value) })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -438,21 +554,52 @@ export default function Equipment() {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Observações</Label>
-                  <Input
-                    id="notes"
-                    value={editingEquipment.notes || ''}
-                    onChange={(e) => setEditingEquipment({ ...editingEquipment, notes: e.target.value })}
-                  />
+
+                {/* Credentials (optional) */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Usuário (se necessário)</Label>
+                    <Input
+                      id="username"
+                      value={editingEquipment.username || ''}
+                      onChange={(e) => setEditingEquipment({ ...editingEquipment, username: e.target.value })}
+                      placeholder="admin"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Senha (se necessário)</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={editingEquipment.password || ''}
+                      onChange={(e) => setEditingEquipment({ ...editingEquipment, password: e.target.value })}
+                    />
+                  </div>
                 </div>
+
+                {/* Auto-configured fields (read-only info) */}
+                {selectedModel && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Configuração Automática</AlertTitle>
+                    <AlertDescription>
+                      Os seguintes parâmetros foram configurados automaticamente para o modelo selecionado:
+                      <ul className="mt-2 text-sm space-y-1">
+                        <li><strong>Porta:</strong> {selectedModel.port}</li>
+                        <li><strong>Protocolo:</strong> {selectedModel.protocol.toUpperCase()}</li>
+                        <li><strong>Endpoint:</strong> {selectedModel.endpoint}</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="is_active"
                     checked={editingEquipment.is_active ?? true}
                     onCheckedChange={(checked) => setEditingEquipment({ ...editingEquipment, is_active: checked })}
                   />
-                  <Label htmlFor="is_active">Ativo</Label>
+                  <Label htmlFor="is_active">Equipamento Ativo</Label>
                 </div>
               </div>
               <DialogFooter>
@@ -512,13 +659,19 @@ export default function Equipment() {
         <TabsList>
           <TabsTrigger value="equipment">Equipamentos</TabsTrigger>
           <TabsTrigger value="logs">Logs de Comunicação</TabsTrigger>
+          <TabsTrigger value="help">
+            <HelpCircle className="h-4 w-4 mr-1" />
+            Ajuda de Configuração
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="equipment">
           <Card>
             <CardHeader>
               <CardTitle>Lista de Equipamentos</CardTitle>
-              <CardDescription>Relógios de ponto cadastrados no sistema</CardDescription>
+              <CardDescription>
+                Relógios de ponto cadastrados no sistema. A sincronização automática ocorre a cada minuto.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -533,8 +686,7 @@ export default function Equipment() {
                     <TableRow>
                       <TableHead>Status</TableHead>
                       <TableHead>Nome</TableHead>
-                      <TableHead>Fabricante</TableHead>
-                      <TableHead>Modelo</TableHead>
+                      <TableHead>Fabricante / Modelo</TableHead>
                       <TableHead>IP:Porta</TableHead>
                       <TableHead>Última Comunicação</TableHead>
                       <TableHead>Ações</TableHead>
@@ -562,8 +714,14 @@ export default function Equipment() {
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">{equipment.name}</TableCell>
-                        <TableCell>{getManufacturerLabel(equipment.manufacturer)}</TableCell>
-                        <TableCell>{equipment.model || '-'}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span>{getManufacturerLabel(equipment.manufacturer)}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {getModelLabel(equipment.manufacturer, equipment.model)}
+                            </span>
+                          </div>
+                        </TableCell>
                         <TableCell className="font-mono text-sm">
                           {equipment.ip_address}:{equipment.port}
                         </TableCell>
@@ -675,6 +833,136 @@ export default function Equipment() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="help">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Server className="h-5 w-5" />
+                  Configuração do Relógio de Ponto
+                </CardTitle>
+                <CardDescription>
+                  Siga as instruções abaixo para configurar seu relógio de ponto
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>URL do Servidor</AlertTitle>
+                  <AlertDescription>
+                    <p className="mb-2">Configure o seguinte endereço no seu relógio de ponto:</p>
+                    <div className="flex items-center gap-2 bg-muted p-3 rounded-md font-mono text-sm">
+                      <span className="flex-1 break-all">{serverUrl}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyToClipboard(serverUrl)}
+                      >
+                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-3">
+                  <h4 className="font-semibold">Passos para Configuração:</h4>
+                  <ol className="list-decimal list-inside space-y-2 text-sm">
+                    <li>Acesse o menu de configurações do seu relógio de ponto</li>
+                    <li>Localize a opção de comunicação (WebService, HTTP, PUSH, etc.)</li>
+                    <li>Configure a URL do servidor conforme mostrado acima</li>
+                    <li>Defina o intervalo de comunicação (recomendado: 1 minuto)</li>
+                    <li>Salve as configurações e reinicie o equipamento</li>
+                    <li>Cadastre o equipamento neste sistema com o IP do relógio</li>
+                    <li>Teste a conexão usando o botão de sincronização</li>
+                  </ol>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Sincronização Automática
+                </CardTitle>
+                <CardDescription>
+                  Como funciona a comunicação 24h
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                    <div className="p-2 bg-green-100 dark:bg-green-900 rounded-full">
+                      <RefreshCw className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                      <h5 className="font-medium">Sincronização a Cada Minuto</h5>
+                      <p className="text-sm text-muted-foreground">
+                        O sistema verifica automaticamente todos os equipamentos ativos a cada minuto, 24 horas por dia.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
+                      <Clock className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h5 className="font-medium">Importação Automática</h5>
+                      <p className="text-sm text-muted-foreground">
+                        Os registros de ponto são importados automaticamente para o sistema e vinculados aos funcionários.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                    <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-full">
+                      <Wifi className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <h5 className="font-medium">Monitoramento em Tempo Real</h5>
+                      <p className="text-sm text-muted-foreground">
+                        O status de cada equipamento é atualizado em tempo real na interface.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Alert variant="default">
+                  <HelpCircle className="h-4 w-4" />
+                  <AlertTitle>Dica</AlertTitle>
+                  <AlertDescription>
+                    Certifique-se de que o relógio de ponto está na mesma rede ou tem acesso à internet para se comunicar com o servidor.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Fabricantes Suportados</CardTitle>
+                <CardDescription>
+                  Lista de fabricantes e modelos compatíveis com o sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+                  {EQUIPMENT_CATALOG.map((manufacturer) => (
+                    <div key={manufacturer.manufacturer} className="border rounded-lg p-3">
+                      <h5 className="font-semibold mb-2">{manufacturer.label}</h5>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        {manufacturer.models.map((model) => (
+                          <li key={model.value}>• {model.label}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
