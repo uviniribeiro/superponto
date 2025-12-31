@@ -22,8 +22,9 @@ import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, CalendarIcon, Clock, Users, BookOpen, 
   DollarSign, GraduationCap, Moon, AlertCircle, FileText, School,
-  Download, Printer, ClipboardList
+  Download, Printer, ClipboardList, LayoutGrid
 } from 'lucide-react';
+import TeacherScheduleBoard, { educatorTypes, teachingLevels, subjects } from '@/components/teachers/TeacherScheduleBoard';
 
 interface TeacherConfiguration {
   id: string;
@@ -62,6 +63,9 @@ interface TeacherAssignment {
   contract_monthly_hours: number | null;
   contract_type: string | null;
   work_schedule_id: string | null;
+  educator_type: string | null;
+  teaching_level: string | null;
+  subject: string | null;
   profile?: {
     full_name: string;
     registration_number: string | null;
@@ -194,6 +198,9 @@ export default function TeacherModule() {
     contract_weekly_hours: '',
     contract_monthly_hours: '',
     work_schedule_id: '',
+    educator_type: 'PEB_II',
+    teaching_level: 'fundamental_2',
+    subject: '',
   });
 
   const [recordForm, setRecordForm] = useState({
@@ -327,6 +334,9 @@ export default function TeacherModule() {
         contract_weekly_hours: assignmentForm.contract_weekly_hours ? parseFloat(assignmentForm.contract_weekly_hours) : null,
         contract_monthly_hours: assignmentForm.contract_monthly_hours ? parseFloat(assignmentForm.contract_monthly_hours) : null,
         work_schedule_id: assignmentForm.work_schedule_id || null,
+        educator_type: assignmentForm.educator_type,
+        teaching_level: assignmentForm.teaching_level,
+        subject: assignmentForm.subject || null,
         company_id: profile?.company_id,
       };
 
@@ -440,6 +450,9 @@ export default function TeacherModule() {
       contract_weekly_hours: '',
       contract_monthly_hours: '',
       work_schedule_id: '',
+      educator_type: 'PEB_II',
+      teaching_level: 'fundamental_2',
+      subject: '',
     });
     setEditingAssignment(null);
   };
@@ -486,6 +499,9 @@ export default function TeacherModule() {
       contract_weekly_hours: assignment.contract_weekly_hours?.toString() || '',
       contract_monthly_hours: assignment.contract_monthly_hours?.toString() || '',
       work_schedule_id: assignment.work_schedule_id || '',
+      educator_type: assignment.educator_type || 'PEB_II',
+      teaching_level: assignment.teaching_level || 'fundamental_2',
+      subject: assignment.subject || '',
     });
     setAssignmentDialogOpen(true);
   };
@@ -914,7 +930,7 @@ export default function TeacherModule() {
       </div>
 
       <Tabs defaultValue="configurations" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="configurations" className="gap-2">
             <School className="h-4 w-4" />
             <span className="hidden md:inline">Configurações</span>
@@ -923,13 +939,17 @@ export default function TeacherModule() {
             <Users className="h-4 w-4" />
             <span className="hidden md:inline">Professores</span>
           </TabsTrigger>
+          <TabsTrigger value="schedule-board" className="gap-2">
+            <LayoutGrid className="h-4 w-4" />
+            <span className="hidden md:inline">Quadro Horários</span>
+          </TabsTrigger>
           <TabsTrigger value="records" className="gap-2">
             <BookOpen className="h-4 w-4" />
             <span className="hidden md:inline">Aulas</span>
           </TabsTrigger>
           <TabsTrigger value="timesheet" className="gap-2">
             <ClipboardList className="h-4 w-4" />
-            <span className="hidden md:inline">Espelho de Ponto</span>
+            <span className="hidden md:inline">Espelho</span>
           </TabsTrigger>
           <TabsTrigger value="reports" className="gap-2">
             <FileText className="h-4 w-4" />
@@ -1102,6 +1122,15 @@ export default function TeacherModule() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Schedule Board Tab */}
+        <TabsContent value="schedule-board" className="space-y-4">
+          <TeacherScheduleBoard
+            assignments={assignments}
+            employees={employees}
+            onRefresh={fetchData}
+          />
         </TabsContent>
 
         {/* Records Tab */}
@@ -1935,7 +1964,60 @@ export default function TeacherModule() {
               </div>
             </div>
 
+            {/* Educator Type and Teaching Level - EducaNet Compatible */}
             <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo de Educador (EducaNet)</Label>
+                <Select
+                  value={assignmentForm.educator_type}
+                  onValueChange={(v) => setAssignmentForm({ ...assignmentForm, educator_type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(educatorTypes).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Nível de Ensino</Label>
+                <Select
+                  value={assignmentForm.teaching_level}
+                  onValueChange={(v) => setAssignmentForm({ ...assignmentForm, teaching_level: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(teachingLevels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Disciplina</Label>
+                <Select
+                  value={assignmentForm.subject || "none"}
+                  onValueChange={(v) => setAssignmentForm({ ...assignmentForm, subject: v === "none" ? "" : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Selecione...</SelectItem>
+                    {subjects.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label>Carga Semanal (h)</Label>
                 <Input
@@ -1945,6 +2027,9 @@ export default function TeacherModule() {
                   placeholder="Ex: 20"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Carga Mensal (h)</Label>
                 <Input
