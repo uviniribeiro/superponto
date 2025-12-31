@@ -210,6 +210,9 @@ export type Database = {
           is_active: boolean
           license_status: string | null
           name: string
+          organization_type: Database["public"]["Enums"]["organization_type"]
+          parent_organization_id: string | null
+          sector: Database["public"]["Enums"]["city_hall_sector"] | null
           state: string | null
           updated_at: string
         }
@@ -223,6 +226,9 @@ export type Database = {
           is_active?: boolean
           license_status?: string | null
           name: string
+          organization_type?: Database["public"]["Enums"]["organization_type"]
+          parent_organization_id?: string | null
+          sector?: Database["public"]["Enums"]["city_hall_sector"] | null
           state?: string | null
           updated_at?: string
         }
@@ -236,10 +242,21 @@ export type Database = {
           is_active?: boolean
           license_status?: string | null
           name?: string
+          organization_type?: Database["public"]["Enums"]["organization_type"]
+          parent_organization_id?: string | null
+          sector?: Database["public"]["Enums"]["city_hall_sector"] | null
           state?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_parent_organization_id_fkey"
+            columns: ["parent_organization_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_settings: {
         Row: {
@@ -1120,7 +1137,19 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "employee" | "super_admin"
+      city_hall_sector:
+        | "education"
+        | "health"
+        | "culture"
+        | "transport"
+        | "administration"
+        | "finance"
+        | "environment"
+        | "social_assistance"
+        | "urban_planning"
+        | "other"
       holiday_treatment: "normal" | "overtime" | "off"
+      organization_type: "company" | "city_hall"
       scale_type: "standard" | "5x1" | "6x1" | "12x36"
     }
     CompositeTypes: {
@@ -1250,7 +1279,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "employee", "super_admin"],
+      city_hall_sector: [
+        "education",
+        "health",
+        "culture",
+        "transport",
+        "administration",
+        "finance",
+        "environment",
+        "social_assistance",
+        "urban_planning",
+        "other",
+      ],
       holiday_treatment: ["normal", "overtime", "off"],
+      organization_type: ["company", "city_hall"],
       scale_type: ["standard", "5x1", "6x1", "12x36"],
     },
   },
