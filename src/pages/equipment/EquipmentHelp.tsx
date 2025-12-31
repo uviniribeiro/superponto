@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Check, Info, HelpCircle, Download, Monitor, Wifi, Server, FileCode, Terminal, Bot } from 'lucide-react';
+import { Copy, Check, Info, HelpCircle, Download, Monitor, Wifi, Server, FileCode, Terminal, Bot, Settings, Gauge } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function EquipmentHelp() {
@@ -34,16 +34,135 @@ export default function EquipmentHelp() {
         <p className="text-muted-foreground">Como configurar os relógios de ponto</p>
       </div>
 
+      {/* Windows Service Section */}
+      <Card className="border-green-500/50 bg-gradient-to-r from-green-500/5 to-green-500/10">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-green-500" />
+            Serviço Windows com Dashboard
+            <Badge className="bg-green-500">Novo</Badge>
+          </CardTitle>
+          <CardDescription>
+            Instale como serviço Windows que inicia automaticamente com o sistema e inclui dashboard de monitoramento
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert className="border-green-500/30 bg-green-500/5">
+            <Gauge className="h-4 w-4" />
+            <AlertTitle>Dashboard de Monitoramento</AlertTitle>
+            <AlertDescription className="mt-2">
+              Após a instalação, acesse <code className="bg-muted px-2 py-0.5 rounded">http://localhost:8765</code> para 
+              monitorar sincronizações, ver histórico de eventos, erros e configurar o agente.
+            </AlertDescription>
+          </Alert>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="bg-card hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => downloadFile('install-service.bat')}>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="p-3 rounded-full bg-green-500/10">
+                    <Settings className="h-8 w-8 text-green-500" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Instalador Windows</h4>
+                    <p className="text-sm text-muted-foreground">install-service.bat</p>
+                    <p className="text-xs text-muted-foreground mt-1">Execute como Administrador</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => downloadFile('equipment-service.py')}>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="p-3 rounded-full bg-blue-500/10">
+                    <FileCode className="h-8 w-8 text-blue-500" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Script do Serviço</h4>
+                    <p className="text-sm text-muted-foreground">equipment-service.py</p>
+                    <p className="text-xs text-muted-foreground mt-1">Código fonte do serviço</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+            <h4 className="font-medium flex items-center gap-2">
+              <Gauge className="h-4 w-4" />
+              Recursos do Dashboard:
+            </h4>
+            <ul className="grid gap-2 md:grid-cols-2 text-sm text-muted-foreground">
+              <li className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                Estatísticas de sincronizações em tempo real
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                Histórico completo de eventos
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                Log de erros com detalhes
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                Configuração via interface web
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                Scan manual de rede
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                Sincronização sob demanda
+              </li>
+            </ul>
+          </div>
+
+          <div className="bg-muted/30 rounded-lg p-4">
+            <h4 className="font-medium mb-2">Comandos do Serviço:</h4>
+            <div className="grid gap-2 text-sm font-mono">
+              <div className="flex items-center gap-2">
+                <code className="bg-muted px-2 py-1 rounded flex-1">python equipment-service.py install</code>
+                <span className="text-muted-foreground text-xs">Instala o serviço</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="bg-muted px-2 py-1 rounded flex-1">python equipment-service.py start</code>
+                <span className="text-muted-foreground text-xs">Inicia o serviço</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="bg-muted px-2 py-1 rounded flex-1">python equipment-service.py stop</code>
+                <span className="text-muted-foreground text-xs">Para o serviço</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="bg-muted px-2 py-1 rounded flex-1">python equipment-service.py remove</code>
+                <span className="text-muted-foreground text-xs">Remove o serviço</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Agent Download Section */}
       <Card className="border-primary/50 bg-gradient-to-r from-primary/5 to-primary/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
             Agente de Sincronização Automática
-            <Badge variant="secondary">Recomendado</Badge>
+            <Badge variant="secondary">Modo Simples</Badge>
           </CardTitle>
           <CardDescription>
-            Baixe o agente para detectar e configurar automaticamente os relógios de ponto na sua rede
+            Versão simplificada para detecção e configuração manual de relógios
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -181,7 +300,7 @@ export default function EquipmentHelp() {
             <AlertTitle className="text-amber-500">Nota sobre IPv4</AlertTitle>
             <AlertDescription className="text-muted-foreground">
               Este é um endpoint cloud que funciona globalmente via HTTPS. Se seu equipamento requer um endereço IPv4 fixo, 
-              utilize o <strong>Agente de Sincronização</strong> acima para fazer a ponte entre o equipamento e o servidor cloud.
+              utilize o <strong>Serviço Windows</strong> ou o <strong>Agente de Sincronização</strong> acima para fazer a ponte entre o equipamento e o servidor cloud.
             </AlertDescription>
           </Alert>
 
@@ -252,6 +371,7 @@ export default function EquipmentHelp() {
               'RWTech',
               'Hikvision',
               'Intelbras (SS 411, SS 611)',
+              'Primme Acesso',
             ].map(brand => (
               <div key={brand} className="p-2 bg-muted/50 rounded text-sm flex items-center gap-2">
                 <Check className="h-4 w-4 text-green-500 shrink-0" />
