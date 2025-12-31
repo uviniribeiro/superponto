@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { NotificationCenter } from '@/components/NotificationCenter';
 import { useBrasiliaTime } from '@/hooks/useBrasiliaTime';
 import { useDailyMessage } from '@/hooks/useDailyMessage';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -563,7 +564,10 @@ export default function AppLayout() {
                   {getCurrentPageTitle()}
                 </h2>
               </div>
-              <ThemeToggle />
+              <div className="flex items-center gap-2">
+                <NotificationCenter />
+                <ThemeToggle />
+              </div>
             </div>
           </header>
           <div className="p-6">
