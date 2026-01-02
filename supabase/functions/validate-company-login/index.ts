@@ -115,6 +115,75 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (action === 'get-user-email' && companyCode && body.username) {
+      // Get user email for login - used when RLS prevents direct profile access
+      const { username } = body;
+      
+      // First find the company
+      let companyData = null;
+      
+      // Try exact match first
+      const { data: exactMatch } = await supabase
+        .from('companies')
+        .select('id, company_code')
+        .eq('company_code', companyCode)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (exactMatch) {
+        companyData = exactMatch;
+      } else {
+        // Try normalized CNPJ
+        const normalizedCnpj = companyCode.replace(/[^\d]/g, '');
+        const { data: cnpjMatch } = await supabase
+          .from('companies')
+          .select('id, company_code')
+          .eq('company_code', normalizedCnpj)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (cnpjMatch) {
+          companyData = cnpjMatch;
+        }
+      }
+
+      if (!companyData) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Empresa não encontrada' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Generate internal email format
+      const sanitizedUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const internalEmail = `${sanitizedUsername}@${companyData.id.slice(0, 8)}.pontomax.local`;
+
+      // Check if profile exists with this email pattern
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('email, user_id, company_id')
+        .eq('company_id', companyData.id)
+        .ilike('email', `${username.toLowerCase()}%`)
+        .maybeSingle();
+
+      console.log('User email lookup:', { 
+        username, 
+        companyId: companyData.id, 
+        found: !!profileData,
+        internalEmail 
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          companyId: companyData.id,
+          internalEmail,
+          storedEmail: profileData?.email || null
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ success: false, error: 'Invalid action' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
