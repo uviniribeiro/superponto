@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, getDay, startOfWeek, endOfWeek, eachWeekOfInterval, isSameWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Download, Clock, TrendingUp, TrendingDown, Minus, CalendarCheck } from 'lucide-react';
+import { Download, Clock, TrendingUp, TrendingDown, Minus, CalendarCheck, Plus, Edit } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
+import { TimeBankAdjustmentDialog } from '@/components/timebank/TimeBankAdjustmentDialog';
 
 interface Profile {
   id: string;
@@ -75,6 +76,7 @@ const TimeBank = () => {
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [dailyBalances, setDailyBalances] = useState<DailyBalance[]>([]);
   const [loading, setLoading] = useState(false);
+  const [adjustmentDialogOpen, setAdjustmentDialogOpen] = useState(false);
   const [summary, setSummary] = useState({
     totalExpected: 0,
     totalWorked: 0,
@@ -82,6 +84,9 @@ const TimeBank = () => {
     overtimeHours: 0,
     deficitHours: 0
   });
+
+  const selectedEmployeeName = employees.find(e => e.id === selectedEmployee)?.full_name || '';
+  
   useEffect(() => {
     if (isAdmin) {
       fetchEmployees();
@@ -282,17 +287,25 @@ const TimeBank = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Banco de Horas</h1>
           <p className="text-muted-foreground">
             Relatório de horas extras e débitos
           </p>
         </div>
-        <Button onClick={exportToCSV} disabled={dailyBalances.length === 0}>
-          <Download className="mr-2 h-4 w-4" />
-          Exportar CSV
-        </Button>
+        <div className="flex gap-2">
+          {isAdmin && selectedEmployee && (
+            <Button onClick={() => setAdjustmentDialogOpen(true)} variant="outline">
+              <Edit className="mr-2 h-4 w-4" />
+              Ajuste Manual
+            </Button>
+          )}
+          <Button onClick={exportToCSV} disabled={dailyBalances.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Exportar CSV
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -480,6 +493,18 @@ const TimeBank = () => {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Adjustment Dialog */}
+      {isAdmin && (
+        <TimeBankAdjustmentDialog
+          open={adjustmentDialogOpen}
+          onOpenChange={setAdjustmentDialogOpen}
+          employeeId={selectedEmployee}
+          employeeName={selectedEmployeeName}
+          companyId={profile?.company_id || ''}
+          onSave={calculateTimeBank}
+        />
       )}
     </div>
   );

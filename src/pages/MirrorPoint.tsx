@@ -10,12 +10,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { FileText, Printer, Calendar, User, Building2, Clock, AlertCircle } from 'lucide-react';
+import { FileText, Printer, Calendar, User, Building2, Clock, AlertCircle, Edit2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, differenceInMinutes, addDays, isWeekend, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCPF, formatPIS } from '@/hooks/useDocumentMask';
+import { DayEditDialog } from '@/components/mirrorpoint/DayEditDialog';
 
 interface TimeRecord {
   id: string;
@@ -83,7 +84,8 @@ interface DailySummary {
 }
 
 export default function MirrorPoint() {
-  const { profile, company } = useAuth();
+  const { profile, company, isAdmin: isAdminRole, isManager: isManagerRole } = useAuth();
+  const isAdmin = isAdminRole || isManagerRole;
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [selectedEmployeeData, setSelectedEmployeeData] = useState<Employee | null>(null);
@@ -95,6 +97,23 @@ export default function MirrorPoint() {
   const [loading, setLoading] = useState(false);
   const [month, setMonth] = useState(format(new Date(), 'yyyy-MM'));
   const printRef = useRef<HTMLDivElement>(null);
+  
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<DailySummary | null>(null);
+
+  const handleEditDay = (day: DailySummary) => {
+    if (!isAdmin) {
+      toast.error('Apenas administradores podem editar registros');
+      return;
+    }
+    setSelectedDay(day);
+    setEditDialogOpen(true);
+  };
+
+  const handleDaySaved = () => {
+    fetchRecords();
+  };
 
   useEffect(() => {
     fetchEmployees();
@@ -551,6 +570,7 @@ export default function MirrorPoint() {
             <CardTitle>Registros do Período</CardTitle>
             <CardDescription>
               {format(new Date(month + '-01'), 'MMMM/yyyy', { locale: ptBR }).toUpperCase()}
+              {isAdmin && <span className="ml-2 text-primary">(clique em um dia para editar)</span>}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -567,13 +587,15 @@ export default function MirrorPoint() {
                     <TableHead>Trabalhado</TableHead>
                     <TableHead>Saldo</TableHead>
                     <TableHead>Observações</TableHead>
+                    {isAdmin && <TableHead className="w-10">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {dailySummaries.map((day) => (
                     <TableRow 
                       key={day.date.toISOString()} 
-                      className={day.isHoliday ? 'bg-amber-500/10' : day.isWeekend ? 'bg-muted/50' : ''}
+                      className={`${day.isHoliday ? 'bg-amber-500/10' : day.isWeekend ? 'bg-muted/50' : ''} ${isAdmin ? 'cursor-pointer hover:bg-muted/80' : ''}`}
+                      onClick={() => isAdmin && handleEditDay(day)}
                     >
                       <TableCell className="font-mono">{format(day.date, 'dd/MM')}</TableCell>
                       <TableCell className="font-medium uppercase">
@@ -607,6 +629,20 @@ export default function MirrorPoint() {
                           </div>
                         ) : null}
                       </TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditDay(day);
+                            }}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -630,6 +666,16 @@ export default function MirrorPoint() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Day Edit Dialog */}
+      <DayEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        day={selectedDay}
+        employeeId={selectedEmployee}
+        companyId={company?.id || ''}
+        onSave={handleDaySaved}
+      />
     </div>
   );
 }
