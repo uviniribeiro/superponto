@@ -1,6 +1,6 @@
 import React from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
-import { Shield, LogOut, Building2, Landmark, Key, Moon, Sun } from 'lucide-react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Shield, LogOut, Building2, Landmark, Key, Moon, Sun, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,7 +8,15 @@ import { useTheme } from 'next-themes';
 
 export default function SuperAdminLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, setTheme } = useTheme();
+
+  const isActive = (path: string) => {
+    if (path === '/super-admin') {
+      return location.pathname === '/super-admin';
+    }
+    return location.pathname.startsWith(path);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -33,16 +41,25 @@ export default function SuperAdminLayout() {
 
           <nav className="hidden md:flex items-center gap-1">
             <Button
-              variant="ghost"
+              variant={isActive('/super-admin') && location.pathname === '/super-admin' ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => navigate('/super-admin')}
+              className="flex items-center gap-2"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
+            </Button>
+            <Button
+              variant={isActive('/super-admin/companies') ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/super-admin/companies')}
               className="flex items-center gap-2"
             >
               <Building2 className="h-4 w-4" />
               Empresas
             </Button>
             <Button
-              variant="ghost"
+              variant={isActive('/super-admin/city-halls') ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => navigate('/super-admin/city-halls')}
               className="flex items-center gap-2"
@@ -51,7 +68,7 @@ export default function SuperAdminLayout() {
               Prefeituras
             </Button>
             <Button
-              variant="ghost"
+              variant={isActive('/super-admin/licenses') ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => navigate('/super-admin/licenses')}
               className="flex items-center gap-2"
@@ -83,16 +100,25 @@ export default function SuperAdminLayout() {
       <div className="md:hidden border-b bg-background">
         <div className="container flex gap-1 py-2 overflow-x-auto">
           <Button
-            variant="ghost"
+            variant={isActive('/super-admin') && location.pathname === '/super-admin' ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => navigate('/super-admin')}
+            className="flex items-center gap-2 whitespace-nowrap"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Dashboard
+          </Button>
+          <Button
+            variant={isActive('/super-admin/companies') ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => navigate('/super-admin/companies')}
             className="flex items-center gap-2 whitespace-nowrap"
           >
             <Building2 className="h-4 w-4" />
             Empresas
           </Button>
           <Button
-            variant="ghost"
+            variant={isActive('/super-admin/city-halls') ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => navigate('/super-admin/city-halls')}
             className="flex items-center gap-2 whitespace-nowrap"
@@ -101,7 +127,7 @@ export default function SuperAdminLayout() {
             Prefeituras
           </Button>
           <Button
-            variant="ghost"
+            variant={isActive('/super-admin/licenses') ? 'secondary' : 'ghost'}
             size="sm"
             onClick={() => navigate('/super-admin/licenses')}
             className="flex items-center gap-2 whitespace-nowrap"

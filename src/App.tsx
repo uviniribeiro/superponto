@@ -27,6 +27,7 @@ import Users from "@/pages/Users";
 import OvertimeDashboard from "@/pages/OvertimeDashboard";
 import PositionsDepartments from "@/pages/PositionsDepartments";
 import SuperAdminAuth from "@/pages/SuperAdminAuth";
+import SuperAdminDashboard from "@/pages/superadmin/Dashboard";
 import SuperAdminCompanies from "@/pages/superadmin/Companies";
 import SuperAdminCityHalls from "@/pages/superadmin/CityHalls";
 import SuperAdminLicenses from "@/pages/superadmin/Licenses";
@@ -68,7 +69,8 @@ const App = () => (
                   <SuperAdminLayout />
                 </SuperAdminProtectedRoute>
               }>
-                <Route index element={<SuperAdminCompanies />} />
+                <Route index element={<SuperAdminDashboard />} />
+                <Route path="companies" element={<SuperAdminCompanies />} />
                 <Route path="city-halls" element={<SuperAdminCityHalls />} />
                 <Route path="licenses" element={<SuperAdminLicenses />} />
               </Route>
