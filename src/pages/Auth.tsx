@@ -75,34 +75,40 @@ export default function Auth() {
   }, [selectedCityHall]);
 
   const fetchCityHalls = async () => {
-    const { data } = await supabase
-      .from('companies')
-      .select('id, name, company_code')
-      .eq('organization_type', 'city_hall')
-      .is('parent_organization_id', null)
-      .eq('is_active', true)
-      .order('name');
-    
-    if (data) {
-      setCityHalls(data.map(ch => ({ id: ch.id, name: ch.name, code: ch.company_code })));
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-company-login', {
+        body: { action: 'list-city-halls' }
+      });
+      
+      if (error) {
+        console.error('Error fetching city halls:', error);
+        return;
+      }
+      
+      if (data?.success && data?.data) {
+        setCityHalls(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching city halls:', error);
     }
   };
 
   const fetchSectors = async (cityHallId: string) => {
-    const { data } = await supabase
-      .from('companies')
-      .select('id, name, sector, company_code')
-      .eq('parent_organization_id', cityHallId)
-      .eq('is_active', true)
-      .order('name');
-    
-    if (data) {
-      setSectors(data.map(s => ({ 
-        id: s.id, 
-        name: s.name, 
-        sector: s.sector || 'other',
-        code: s.company_code 
-      })));
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-company-login', {
+        body: { action: 'list-sectors', cityHallId }
+      });
+      
+      if (error) {
+        console.error('Error fetching sectors:', error);
+        return;
+      }
+      
+      if (data?.success && data?.data) {
+        setSectors(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching sectors:', error);
     }
   };
 
