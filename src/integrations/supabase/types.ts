@@ -248,6 +248,7 @@ export type Database = {
           parent_organization_id: string | null
           sector: Database["public"]["Enums"]["city_hall_sector"] | null
           state: string | null
+          teacher_module_enabled: boolean | null
           updated_at: string
         }
         Insert: {
@@ -265,6 +266,7 @@ export type Database = {
           parent_organization_id?: string | null
           sector?: Database["public"]["Enums"]["city_hall_sector"] | null
           state?: string | null
+          teacher_module_enabled?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -282,6 +284,7 @@ export type Database = {
           parent_organization_id?: string | null
           sector?: Database["public"]["Enums"]["city_hall_sector"] | null
           state?: string | null
+          teacher_module_enabled?: boolean | null
           updated_at?: string
         }
         Relationships: [

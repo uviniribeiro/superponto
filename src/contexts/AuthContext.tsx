@@ -9,6 +9,9 @@ interface Company {
   name: string;
   company_code: string;
   cnpj: string | null;
+  sector: string | null;
+  organization_type: 'company' | 'city_hall';
+  teacher_module_enabled: boolean;
 }
 
 interface Profile {
@@ -44,6 +47,7 @@ interface AuthContextType {
   isManager: boolean;
   isSuperAdmin: boolean;
   mustChangePassword: boolean;
+  hasTeacherModule: boolean;
   createEmployee: (employeeData: CreateEmployeeData) => Promise<{ error: Error | null; user?: any }>;
 }
 
@@ -123,12 +127,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if ((profileData as any).company_id) {
           const { data: companyData } = await supabase
             .from('companies')
-            .select('id, name, company_code, cnpj')
+            .select('id, name, company_code, cnpj, sector, organization_type, teacher_module_enabled')
             .eq('id', (profileData as any).company_id)
             .maybeSingle();
 
           if (companyData) {
-            setCompany(companyData as Company);
+            setCompany(companyData as unknown as Company);
           }
         }
       }
@@ -371,6 +375,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = hasRole('admin') || isSuperAdmin;
   const isManager = hasRole('manager') || isAdmin;
   const mustChangePassword = profile?.must_change_password === true;
+  
+  // Teacher module is available if:
+  // 1. Company is a city_hall with education sector
+  // 2. OR Company has teacher_module_enabled = true
+  const hasTeacherModule = company?.sector === 'education' || company?.teacher_module_enabled === true;
 
   return (
     <AuthContext.Provider value={{
@@ -388,6 +397,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isManager,
       isSuperAdmin,
       mustChangePassword,
+      hasTeacherModule,
       createEmployee
     }}>
       {children}
