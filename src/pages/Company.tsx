@@ -8,18 +8,20 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Building2, Save, Upload, X, Key, Calendar, Users, AlertCircle } from 'lucide-react';
+import { Building2, Save, Upload, X, Key, Calendar, Users, AlertCircle, MapPin, Phone, FileText } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface CompanySettings {
   id?: string;
   company_name: string;
+  trade_name: string;
   cnpj: string;
   cei: string;
   address: string;
   city: string;
   state: string;
+  phone: string;
   rep_number: string;
   rep_manufacturer: string;
   rep_model: string;
@@ -46,11 +48,13 @@ export default function Company() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [settings, setSettings] = useState<CompanySettings>({
     company_name: '',
+    trade_name: '',
     cnpj: '',
     cei: '',
     address: '',
     city: '',
     state: '',
+    phone: '',
     rep_number: '',
     rep_manufacturer: '',
     rep_model: '',
@@ -83,11 +87,13 @@ export default function Company() {
         setSettings({
           id: settingsData.id,
           company_name: settingsData.company_name || '',
+          trade_name: (settingsData as any).trade_name || '',
           cnpj: settingsData.cnpj || '',
           cei: settingsData.cei || '',
           address: settingsData.address || '',
           city: settingsData.city || '',
           state: settingsData.state || '',
+          phone: (settingsData as any).phone || '',
           rep_number: settingsData.rep_number || '',
           rep_manufacturer: settingsData.rep_manufacturer || '',
           rep_model: settingsData.rep_model || '',
@@ -110,10 +116,12 @@ export default function Company() {
           setSettings(prev => ({
             ...prev,
             company_name: companyData.name || '',
+            trade_name: (companyData as any).trade_name || '',
             cnpj: companyData.cnpj || '',
             address: companyData.address || '',
             city: companyData.city || '',
             state: companyData.state || '',
+            phone: (companyData as any).phone || '',
             logo_url: companyData.logo_url || ''
           }));
         }
@@ -429,69 +437,72 @@ export default function Company() {
         </CardContent>
       </Card>
 
+      {/* Dados Cadastrais - Somente Leitura */}
+      <Card className="border-muted">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Dados Cadastrais</CardTitle>
+              <CardDescription>
+                Informações registradas no cadastro da empresa (somente leitura)
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Razão Social</p>
+              <p className="text-sm font-medium">{settings.company_name || '-'}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Nome Fantasia</p>
+              <p className="text-sm font-medium">{settings.trade_name || '-'}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">CNPJ</p>
+              <p className="text-sm font-medium font-mono">{settings.cnpj || '-'}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Phone className="h-3 w-3" /> Telefone
+              </p>
+              <p className="text-sm font-medium">{settings.phone || '-'}</p>
+            </div>
+            <div className="space-y-1 md:col-span-2">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> Endereço
+              </p>
+              <p className="text-sm font-medium">
+                {settings.address ? `${settings.address}${settings.city ? `, ${settings.city}` : ''}${settings.state ? ` - ${settings.state}` : ''}` : '-'}
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-4 pt-4 border-t">
+            Estes dados são definidos no cadastro inicial e não podem ser alterados por aqui. Entre em contato com o suporte para solicitar alterações.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Dados Editáveis */}
       <Card>
         <CardHeader className="pb-4">
-          <CardTitle className="text-base">Dados da Empresa</CardTitle>
+          <CardTitle className="text-base">Dados do REP e CEI</CardTitle>
           <CardDescription>
-            Informações utilizadas na geração dos arquivos legais
+            Informações utilizadas na geração dos arquivos legais (editáveis)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 md:col-span-2">
-              <Label className="text-sm">Razão Social *</Label>
-              <Input
-                value={settings.company_name}
-                onChange={(e) => setSettings({ ...settings, company_name: e.target.value })}
-                placeholder="Nome da empresa"
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">CNPJ *</Label>
-              <Input
-                value={settings.cnpj}
-                onChange={(e) => setSettings({ ...settings, cnpj: e.target.value })}
-                placeholder="00.000.000/0000-00"
-                required
-                className="h-9"
-              />
-              <p className="text-xs text-muted-foreground">O CNPJ é usado como código de acesso da empresa no login</p>
-            </div>
             <div className="space-y-2">
               <Label className="text-sm">CEI</Label>
               <Input
                 value={settings.cei}
                 onChange={(e) => setSettings({ ...settings, cei: e.target.value })}
                 placeholder="00.000.00000/00"
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label className="text-sm">Endereço</Label>
-              <Input
-                value={settings.address}
-                onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-                placeholder="Endereço completo"
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Cidade</Label>
-              <Input
-                value={settings.city}
-                onChange={(e) => setSettings({ ...settings, city: e.target.value })}
-                placeholder="Cidade"
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm">Estado</Label>
-              <Input
-                value={settings.state}
-                onChange={(e) => setSettings({ ...settings, state: e.target.value })}
-                placeholder="UF"
-                maxLength={2}
                 className="h-9"
               />
             </div>

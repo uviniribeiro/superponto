@@ -246,9 +246,11 @@ export type Database = {
           name: string
           organization_type: Database["public"]["Enums"]["organization_type"]
           parent_organization_id: string | null
+          phone: string | null
           sector: Database["public"]["Enums"]["city_hall_sector"] | null
           state: string | null
           teacher_module_enabled: boolean | null
+          trade_name: string | null
           updated_at: string
         }
         Insert: {
@@ -264,9 +266,11 @@ export type Database = {
           name: string
           organization_type?: Database["public"]["Enums"]["organization_type"]
           parent_organization_id?: string | null
+          phone?: string | null
           sector?: Database["public"]["Enums"]["city_hall_sector"] | null
           state?: string | null
           teacher_module_enabled?: boolean | null
+          trade_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -282,9 +286,11 @@ export type Database = {
           name?: string
           organization_type?: Database["public"]["Enums"]["organization_type"]
           parent_organization_id?: string | null
+          phone?: string | null
           sector?: Database["public"]["Enums"]["city_hall_sector"] | null
           state?: string | null
           teacher_module_enabled?: boolean | null
+          trade_name?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -311,10 +317,12 @@ export type Database = {
           logo_url: string | null
           monthly_overtime_limit_hours: number | null
           overtime_alert_email: string | null
+          phone: string | null
           rep_manufacturer: string | null
           rep_model: string | null
           rep_number: string | null
           state: string | null
+          trade_name: string | null
           updated_at: string
           weekly_overtime_limit_hours: number | null
           whatsapp_alert_phone: string | null
@@ -332,10 +340,12 @@ export type Database = {
           logo_url?: string | null
           monthly_overtime_limit_hours?: number | null
           overtime_alert_email?: string | null
+          phone?: string | null
           rep_manufacturer?: string | null
           rep_model?: string | null
           rep_number?: string | null
           state?: string | null
+          trade_name?: string | null
           updated_at?: string
           weekly_overtime_limit_hours?: number | null
           whatsapp_alert_phone?: string | null
@@ -353,10 +363,12 @@ export type Database = {
           logo_url?: string | null
           monthly_overtime_limit_hours?: number | null
           overtime_alert_email?: string | null
+          phone?: string | null
           rep_manufacturer?: string | null
           rep_model?: string | null
           rep_number?: string | null
           state?: string | null
+          trade_name?: string | null
           updated_at?: string
           weekly_overtime_limit_hours?: number | null
           whatsapp_alert_phone?: string | null
