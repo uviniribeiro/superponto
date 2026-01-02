@@ -14,7 +14,7 @@ import { PhotoCapture } from '@/components/employees/PhotoCapture';
 
 const employeeSchema = z.object({
   fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
-  email: z.string().trim().email('Email inválido').max(255),
+  login: z.string().trim().min(3, 'Login deve ter pelo menos 3 caracteres').max(50).regex(/^[a-zA-Z0-9._-]+$/, 'Login pode conter apenas letras, números, pontos, underscores e hífens'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(100),
   cpf: z.string().optional(),
   pis: z.string().optional(),
@@ -55,7 +55,7 @@ export default function RegisterEmployee() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
-    email: '',
+    login: '',
     password: '',
     cpf: '',
     pis: '',
@@ -161,7 +161,7 @@ export default function RegisterEmployee() {
       const validData = employeeSchema.parse(formData);
       
       const { error, user } = await createEmployee({
-        email: validData.email,
+        username: validData.login,
         password: validData.password,
         fullName: validData.fullName,
         cpf: formData.cpf || undefined,
@@ -174,8 +174,8 @@ export default function RegisterEmployee() {
       });
 
       if (error) {
-        if (error.message.includes('already registered')) {
-          toast.error('Este email já está cadastrado');
+        if (error.message.includes('já está em uso')) {
+          toast.error('Este login já está cadastrado');
         } else {
           toast.error(error.message);
         }
@@ -218,7 +218,7 @@ export default function RegisterEmployee() {
       handlePhotoClear();
       setFormData({
         fullName: '',
-        email: '',
+        login: '',
         password: '',
         cpf: '',
         pis: '',
@@ -296,15 +296,18 @@ export default function RegisterEmployee() {
               <p className="text-sm font-medium">Credenciais de Acesso</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="login">Login *</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="funcionario@empresa.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    id="login"
+                    type="text"
+                    placeholder="joao.silva"
+                    value={formData.login}
+                    onChange={(e) => setFormData({ ...formData, login: e.target.value })}
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Apenas letras, números, pontos, underscores e hífens
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Senha Inicial *</Label>

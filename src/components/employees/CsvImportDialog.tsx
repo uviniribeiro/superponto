@@ -16,7 +16,7 @@ interface CsvImportDialogProps {
 
 interface EmployeeRow {
   full_name: string;
-  email: string;
+  login: string;
   password: string;
   cpf?: string;
   pis?: string;
@@ -37,8 +37,8 @@ export function CsvImportDialog({ open, onOpenChange, onImportComplete }: CsvImp
   const [importComplete, setImportComplete] = useState(false);
 
   const downloadTemplate = () => {
-    const headers = 'nome_completo,email,senha,cpf,pis,matricula,departamento,cargo,data_admissao,telefone';
-    const example = 'João Silva,joao@email.com,senha123,123.456.789-00,12345678901,EMP001,TI,Desenvolvedor,2024-01-15,11999999999';
+    const headers = 'nome_completo,login,senha,cpf,pis,matricula,departamento,cargo,data_admissao,telefone';
+    const example = 'João Silva,joao.silva,senha123,123.456.789-00,12345678901,EMP001,TI,Desenvolvedor,2024-01-15,11999999999';
     const csvContent = `${headers}\n${example}`;
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -68,7 +68,7 @@ export function CsvImportDialog({ open, onOpenChange, onImportComplete }: CsvImp
 
       const row: EmployeeRow = {
         full_name: getVal('nome') || getVal('name') || getVal('full_name') || getVal('nome_completo') || values[0],
-        email: getVal('email') || values[1],
+        login: getVal('login') || getVal('usuario') || values[1],
         password: getVal('senha') || getVal('password') || values[2],
         cpf: getVal('cpf'),
         pis: getVal('pis'),
@@ -81,15 +81,15 @@ export function CsvImportDialog({ open, onOpenChange, onImportComplete }: CsvImp
       };
 
       // Validate required fields
-      if (!row.full_name || !row.email || !row.password) {
+      if (!row.full_name || !row.login || !row.password) {
         row.status = 'error';
-        row.error = 'Nome, email e senha são obrigatórios';
+        row.error = 'Nome, login e senha são obrigatórios';
       } else if (row.password.length < 6) {
         row.status = 'error';
         row.error = 'Senha deve ter pelo menos 6 caracteres';
-      } else if (!row.email.includes('@')) {
+      } else if (row.login.length < 3) {
         row.status = 'error';
-        row.error = 'Email inválido';
+        row.error = 'Login deve ter pelo menos 3 caracteres';
       }
 
       rows.push(row);
@@ -131,7 +131,7 @@ export function CsvImportDialog({ open, onOpenChange, onImportComplete }: CsvImp
 
       try {
         const { error } = await createEmployee({
-          email: row.email,
+          username: row.login,
           password: row.password,
           fullName: row.full_name,
           cpf: row.cpf,
@@ -259,7 +259,7 @@ export function CsvImportDialog({ open, onOpenChange, onImportComplete }: CsvImp
                   <TableRow>
                     <TableHead>Status</TableHead>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead>Login</TableHead>
                     <TableHead>Departamento</TableHead>
                     <TableHead>Cargo</TableHead>
                     <TableHead>Erro</TableHead>
@@ -280,7 +280,7 @@ export function CsvImportDialog({ open, onOpenChange, onImportComplete }: CsvImp
                         )}
                       </TableCell>
                       <TableCell className="font-medium">{row.full_name}</TableCell>
-                      <TableCell>{row.email}</TableCell>
+                      <TableCell>{row.login}</TableCell>
                       <TableCell>{row.department || '-'}</TableCell>
                       <TableCell>{row.position || '-'}</TableCell>
                       <TableCell className="text-destructive text-sm">
