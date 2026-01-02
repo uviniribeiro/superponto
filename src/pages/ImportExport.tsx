@@ -50,6 +50,44 @@ interface AFDRecord {
   profileId: string | null;
   profileName: string | null;
   error?: string;
+  lineNumber?: number;
+  portaria?: string;
+}
+
+interface AFDParseResult {
+  records: AFDRecord[];
+  errors: AFDParseError[];
+  warnings: string[];
+  detectedFormat: string;
+  headerInfo: AFDHeader | null;
+  trailerInfo: AFDTrailer | null;
+  totalLines: number;
+  validLines: number;
+  invalidLines: number;
+}
+
+interface AFDParseError {
+  line: number;
+  content: string;
+  error: string;
+  severity: 'error' | 'warning';
+  portaria?: string;
+}
+
+interface AFDHeader {
+  tipoRegistro: string;
+  cnpjCpf: string;
+  razaoSocial: string;
+  repNumero: string;
+  dataInicio: string;
+  dataFim: string;
+  dataGeracao: string;
+  horaGeracao: string;
+}
+
+interface AFDTrailer {
+  tipoRegistro: string;
+  totalRegistros: number;
 }
 
 interface ExportLayout {
@@ -421,6 +459,7 @@ export default function ImportExport() {
   // Import states
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importRecords, setImportRecords] = useState<AFDRecord[]>([]);
+  const [parseResult, setParseResult] = useState<AFDParseResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [importComplete, setImportComplete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -500,86 +539,323 @@ export default function ImportExport() {
     toast.success('Layout excluído com sucesso!');
   };
 
+  // ========== AFD VALIDATION FUNCTIONS ==========
+  
+  const validatePISFormat = (pis: string): { valid: boolean; error?: string } => {
+    if (!pis || pis.length === 0) {
+      return { valid: false, error: 'PIS não informado' };
+    }
+    const cleanPis = pis.replace(/\D/g, '');
+    if (cleanPis.length !== 11) {
+      return { valid: false, error: `PIS deve ter 11 dígitos (encontrado: ${cleanPis.length})` };
+    }
+    if (/^0+$/.test(cleanPis) || /^1+$/.test(cleanPis)) {
+      return { valid: false, error: 'PIS inválido (sequência repetida)' };
+    }
+    return { valid: true };
+  };
+
+  const validateDate = (dateStr: string): { valid: boolean; error?: string; formatted?: string } => {
+    if (!dateStr || dateStr.length !== 8) {
+      return { valid: false, error: `Data inválida: "${dateStr}" (esperado 8 dígitos)` };
+    }
+    const day = parseInt(dateStr.substring(0, 2));
+    const month = parseInt(dateStr.substring(2, 4));
+    const year = parseInt(dateStr.substring(4, 8));
+    
+    if (day < 1 || day > 31) {
+      return { valid: false, error: `Dia inválido: ${day}` };
+    }
+    if (month < 1 || month > 12) {
+      return { valid: false, error: `Mês inválido: ${month}` };
+    }
+    if (year < 1900 || year > 2100) {
+      return { valid: false, error: `Ano inválido: ${year}` };
+    }
+    
+    return { valid: true, formatted: `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}` };
+  };
+
+  const validateTime = (timeStr: string): { valid: boolean; error?: string; formatted?: string } => {
+    if (!timeStr || timeStr.length !== 4) {
+      return { valid: false, error: `Hora inválida: "${timeStr}" (esperado 4 dígitos)` };
+    }
+    const hour = parseInt(timeStr.substring(0, 2));
+    const minute = parseInt(timeStr.substring(2, 4));
+    
+    if (hour < 0 || hour > 23) {
+      return { valid: false, error: `Hora inválida: ${hour}` };
+    }
+    if (minute < 0 || minute > 59) {
+      return { valid: false, error: `Minuto inválido: ${minute}` };
+    }
+    
+    return { valid: true, formatted: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}` };
+  };
+
+  const validateNSR = (nsrStr: string): { valid: boolean; error?: string; value?: number } => {
+    const nsr = parseInt(nsrStr);
+    if (isNaN(nsr) || nsr < 0) {
+      return { valid: false, error: `NSR inválido: "${nsrStr}"` };
+    }
+    return { valid: true, value: nsr };
+  };
+
   // ========== IMPORT FUNCTIONS ==========
   
-  const parseAFDFile = async (file: File) => {
+  const parseAFDFile = async (file: File): Promise<AFDParseResult> => {
     const text = await file.text();
-    const lines = text.split(/\r?\n/).filter(line => line.trim());
-    const records: AFDRecord[] = [];
+    const lines = text.split(/\r?\n/);
     
-    for (const line of lines) {
-      // Skip header (type 1) and trailer (type 9)
-      const recordType = line.charAt(0);
+    const result: AFDParseResult = {
+      records: [],
+      errors: [],
+      warnings: [],
+      detectedFormat: 'Desconhecido',
+      headerInfo: null,
+      trailerInfo: null,
+      totalLines: lines.length,
+      validLines: 0,
+      invalidLines: 0,
+    };
+
+    let lineNumber = 0;
+    let hasType1Header = false;
+    let hasType9Trailer = false;
+
+    for (const rawLine of lines) {
+      lineNumber++;
+      const line = rawLine.trim();
       
-      if (recordType === '3') {
-        // Portaria 1510/671 - Registro de marcação
-        // Formato: Tipo(1) + NSR(9) + TipoIdent(1) + PIS(11) + Data(8) + Hora(4)
-        try {
-          const nsr = parseInt(line.substring(1, 10));
-          const pis = line.substring(11, 22).trim();
-          const dateStr = line.substring(22, 30);
-          const timeStr = line.substring(30, 34);
+      if (!line) continue;
+
+      const recordType = line.charAt(0);
+
+      // Tipo 1 - Cabeçalho (Portaria 1510/671)
+      if (recordType === '1') {
+        hasType1Header = true;
+        result.detectedFormat = 'Portaria 1510/671 (REP)';
+        
+        if (line.length < 232) {
+          result.errors.push({
+            line: lineNumber,
+            content: line.substring(0, 50) + '...',
+            error: `Cabeçalho tipo 1 incompleto. Esperado mínimo 232 caracteres, encontrado ${line.length}`,
+            severity: 'warning',
+            portaria: '1510/671'
+          });
+        } else {
+          try {
+            result.headerInfo = {
+              tipoRegistro: '1',
+              cnpjCpf: line.substring(11, 25).trim(),
+              razaoSocial: line.substring(26, 176).trim(),
+              repNumero: line.substring(176, 193).trim(),
+              dataInicio: line.substring(193, 201),
+              dataFim: line.substring(201, 209),
+              dataGeracao: line.substring(209, 217),
+              horaGeracao: line.substring(217, 221),
+            };
+            result.validLines++;
+          } catch (e) {
+            result.errors.push({
+              line: lineNumber,
+              content: line.substring(0, 50) + '...',
+              error: 'Erro ao interpretar cabeçalho',
+              severity: 'warning',
+              portaria: '1510/671'
+            });
+          }
+        }
+        continue;
+      }
+
+      // Tipo 2 - Inclusão/Alteração de funcionário (Portaria 1510) ou marcação (Portaria 373)
+      if (recordType === '2') {
+        // Verificar se é Portaria 1510 (funcionário) ou 373 (marcação)
+        if (hasType1Header && line.length >= 200) {
+          // Portaria 1510 - Registro de funcionário (ignorar)
+          result.validLines++;
+          continue;
+        } else if (line.includes(';')) {
+          // Portaria 373 - Formato delimitado
+          result.detectedFormat = 'Portaria 373 (Sistema Alternativo)';
+          const parts = line.split(';');
           
-          const day = dateStr.substring(0, 2);
-          const month = dateStr.substring(2, 4);
-          const year = dateStr.substring(4, 8);
-          const hour = timeStr.substring(0, 2);
-          const minute = timeStr.substring(2, 4);
-          
-          const formattedDate = `${day}/${month}/${year}`;
-          const formattedTime = `${hour}:${minute}`;
-          
-          // Find matching profile by PIS
-          const matchedProfile = profiles.find(p => p.pis === pis);
-          
-          records.push({
-            nsr,
+          if (parts.length < 4) {
+            result.errors.push({
+              line: lineNumber,
+              content: line.substring(0, 80),
+              error: `Formato inválido. Esperado mínimo 4 campos separados por ";", encontrado ${parts.length}`,
+              severity: 'error',
+              portaria: '373'
+            });
+            result.invalidLines++;
+            continue;
+          }
+
+          const pis = parts[1]?.trim().replace(/\D/g, '');
+          const dateStr = parts[2]?.trim();
+          const timeStr = parts[3]?.trim();
+
+          const pisValidation = validatePISFormat(pis);
+          if (!pisValidation.valid) {
+            result.errors.push({
+              line: lineNumber,
+              content: line.substring(0, 80),
+              error: pisValidation.error || 'PIS inválido',
+              severity: 'warning',
+              portaria: '373'
+            });
+          }
+
+          const matchedProfile = profiles.find(p => p.pis?.replace(/\D/g, '') === pis);
+
+          result.records.push({
+            nsr: result.records.length + 1,
             pis,
-            date: formattedDate,
-            time: formattedTime,
+            date: dateStr,
+            time: timeStr,
             recordType: 'marcacao',
             matched: !!matchedProfile,
             profileId: matchedProfile?.id || null,
             profileName: matchedProfile?.full_name || null,
+            lineNumber,
+            portaria: '373',
           });
-        } catch (e) {
-          console.error('Error parsing line:', line, e);
+          result.validLines++;
         }
-      } else if (recordType === '2') {
-        // Portaria 373 - Registro simplificado
-        // Formato pode variar, tentar formato comum
-        try {
-          const parts = line.split(';');
-          if (parts.length >= 4) {
-            const pis = parts[1]?.trim();
-            const dateStr = parts[2]?.trim();
-            const timeStr = parts[3]?.trim();
-            
-            const matchedProfile = profiles.find(p => p.pis === pis);
-            
-            records.push({
-              nsr: records.length + 1,
-              pis,
-              date: dateStr,
-              time: timeStr,
-              recordType: 'marcacao',
-              matched: !!matchedProfile,
-              profileId: matchedProfile?.id || null,
-              profileName: matchedProfile?.full_name || null,
-            });
-          }
-        } catch (e) {
-          console.error('Error parsing Portaria 373 line:', line, e);
+        continue;
+      }
+
+      // Tipo 3 - Marcação de ponto (Portaria 1510/671)
+      if (recordType === '3') {
+        result.detectedFormat = 'Portaria 1510/671 (REP)';
+        
+        // Validar tamanho mínimo
+        if (line.length < 34) {
+          result.errors.push({
+            line: lineNumber,
+            content: line,
+            error: `Registro tipo 3 incompleto. Esperado mínimo 34 caracteres, encontrado ${line.length}`,
+            severity: 'error',
+            portaria: '1510/671'
+          });
+          result.invalidLines++;
+          continue;
         }
+
+        // Extrair campos
+        const nsrStr = line.substring(1, 10);
+        const tipoIdent = line.charAt(10);
+        const pis = line.substring(11, 22).trim();
+        const dateStr = line.substring(22, 30);
+        const timeStr = line.substring(30, 34);
+
+        // Validar NSR
+        const nsrValidation = validateNSR(nsrStr);
+        if (!nsrValidation.valid) {
+          result.errors.push({
+            line: lineNumber,
+            content: line.substring(0, 40),
+            error: nsrValidation.error || 'NSR inválido',
+            severity: 'error',
+            portaria: '1510/671'
+          });
+          result.invalidLines++;
+          continue;
+        }
+
+        // Validar tipo de identificação
+        if (!['1', '2', '3'].includes(tipoIdent)) {
+          result.errors.push({
+            line: lineNumber,
+            content: line.substring(0, 40),
+            error: `Tipo de identificação inválido: "${tipoIdent}" (esperado 1=PIS, 2=CPF, 3=Outro)`,
+            severity: 'warning',
+            portaria: '1510/671'
+          });
+        }
+
+        // Validar PIS
+        const pisValidation = validatePISFormat(pis);
+        if (!pisValidation.valid) {
+          result.errors.push({
+            line: lineNumber,
+            content: line.substring(0, 40),
+            error: pisValidation.error || 'PIS inválido',
+            severity: 'warning',
+            portaria: '1510/671'
+          });
+        }
+
+        // Validar Data
+        const dateValidation = validateDate(dateStr);
+        if (!dateValidation.valid) {
+          result.errors.push({
+            line: lineNumber,
+            content: line.substring(0, 40),
+            error: dateValidation.error || 'Data inválida',
+            severity: 'error',
+            portaria: '1510/671'
+          });
+          result.invalidLines++;
+          continue;
+        }
+
+        // Validar Hora
+        const timeValidation = validateTime(timeStr);
+        if (!timeValidation.valid) {
+          result.errors.push({
+            line: lineNumber,
+            content: line.substring(0, 40),
+            error: timeValidation.error || 'Hora inválida',
+            severity: 'error',
+            portaria: '1510/671'
+          });
+          result.invalidLines++;
+          continue;
+        }
+
+        // Buscar funcionário pelo PIS
+        const matchedProfile = profiles.find(p => p.pis?.replace(/\D/g, '') === pis.replace(/\D/g, ''));
+
+        result.records.push({
+          nsr: nsrValidation.value!,
+          pis,
+          date: dateValidation.formatted!,
+          time: timeValidation.formatted!,
+          recordType: 'marcacao',
+          matched: !!matchedProfile,
+          profileId: matchedProfile?.id || null,
+          profileName: matchedProfile?.full_name || null,
+          lineNumber,
+          portaria: '1510/671',
+        });
+        result.validLines++;
+        continue;
+      }
+
+      // Tipo 9 - Trailer (Portaria 1510/671)
+      if (recordType === '9') {
+        hasType9Trailer = true;
+        if (line.length >= 10) {
+          result.trailerInfo = {
+            tipoRegistro: '9',
+            totalRegistros: parseInt(line.substring(1, 10)) || 0,
+          };
+        }
+        result.validLines++;
+        continue;
       }
     }
-    
-    // Try CSV format if no records found
-    if (records.length === 0 && (file.name.endsWith('.csv') || text.includes(';') || text.includes(','))) {
+
+    // Tentar CSV se nenhum registro encontrado
+    if (result.records.length === 0 && (file.name.endsWith('.csv') || text.includes(';') || text.includes(','))) {
+      result.detectedFormat = 'CSV Genérico';
       const delimiter = text.includes(';') ? ';' : ',';
-      const csvLines = text.split(/\r?\n/).filter(line => line.trim());
+      const csvLines = lines.filter(line => line.trim());
       
-      // Skip header if present
       const startIndex = csvLines[0]?.toLowerCase().includes('pis') || 
                         csvLines[0]?.toLowerCase().includes('matricula') ? 1 : 0;
       
@@ -591,10 +867,10 @@ export default function ImportExport() {
           const timeStr = parts[2]?.trim();
           
           const matchedProfile = profiles.find(p => 
-            p.pis === pis || p.registration_number === parts[0]?.trim()
+            p.pis?.replace(/\D/g, '') === pis || p.registration_number === parts[0]?.trim()
           );
           
-          records.push({
+          result.records.push({
             nsr: i,
             pis,
             date: dateStr,
@@ -603,12 +879,35 @@ export default function ImportExport() {
             matched: !!matchedProfile,
             profileId: matchedProfile?.id || null,
             profileName: matchedProfile?.full_name || null,
+            lineNumber: i + 1,
+            portaria: 'CSV',
           });
+          result.validLines++;
         }
       }
     }
+
+    // Adicionar warnings gerais
+    if (hasType1Header && !hasType9Trailer) {
+      result.warnings.push('Arquivo sem registro de trailer (tipo 9). O arquivo pode estar incompleto.');
+    }
     
-    return records;
+    if (result.trailerInfo && result.trailerInfo.totalRegistros !== result.records.length) {
+      result.warnings.push(
+        `Total de registros no trailer (${result.trailerInfo.totalRegistros}) difere do total encontrado (${result.records.length})`
+      );
+    }
+
+    if (result.records.length === 0 && result.errors.length === 0) {
+      result.errors.push({
+        line: 0,
+        content: '',
+        error: 'Nenhum registro de marcação encontrado. Verifique se o arquivo está no formato AFD correto.',
+        severity: 'error'
+      });
+    }
+
+    return result;
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -617,15 +916,21 @@ export default function ImportExport() {
     
     setImportFile(file);
     setImportComplete(false);
+    setParseResult(null);
     
     try {
-      const records = await parseAFDFile(file);
-      setImportRecords(records);
+      const result = await parseAFDFile(file);
+      setParseResult(result);
+      setImportRecords(result.records);
       
-      const matched = records.filter(r => r.matched).length;
-      const unmatched = records.length - matched;
+      const matched = result.records.filter(r => r.matched).length;
+      const unmatched = result.records.length - matched;
       
-      toast.success(`${records.length} registros encontrados. ${matched} vinculados, ${unmatched} não vinculados.`);
+      if (result.errors.filter(e => e.severity === 'error').length > 0) {
+        toast.warning(`${result.records.length} registros. ${result.errors.length} problemas encontrados.`);
+      } else {
+        toast.success(`${result.records.length} registros encontrados. ${matched} vinculados, ${unmatched} não vinculados.`);
+      }
     } catch (error) {
       console.error('Error parsing file:', error);
       toast.error('Erro ao processar arquivo. Verifique o formato.');
@@ -1190,22 +1495,148 @@ export default function ImportExport() {
                 </div>
               </div>
 
-              {importFile && (
-                <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
-                  <FileText className="h-10 w-10 text-primary" />
-                  <div className="flex-1">
-                    <p className="font-medium">{importFile.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {(importFile.size / 1024).toFixed(2)} KB
-                    </p>
+              {importFile && parseResult && (
+                <div className="space-y-4">
+                  {/* File Info */}
+                  <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+                    <FileText className="h-10 w-10 text-primary" />
+                    <div className="flex-1">
+                      <p className="font-medium">{importFile.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(importFile.size / 1024).toFixed(2)} KB • {parseResult.detectedFormat}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="secondary">{parseResult.records.length} registros</Badge>
+                      <Badge variant="default" className="bg-green-500">{matchedCount} vinculados</Badge>
+                      {unmatchedCount > 0 && (
+                        <Badge variant="destructive">{unmatchedCount} não vinculados</Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">{importRecords.length} registros</Badge>
-                    <Badge variant="default" className="bg-green-500">{matchedCount} vinculados</Badge>
-                    {unmatchedCount > 0 && (
-                      <Badge variant="destructive">{unmatchedCount} não vinculados</Badge>
-                    )}
+
+                  {/* Parse Statistics */}
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-primary">{parseResult.totalLines}</p>
+                      <p className="text-xs text-muted-foreground">Linhas no arquivo</p>
+                    </div>
+                    <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-green-600">{parseResult.validLines}</p>
+                      <p className="text-xs text-muted-foreground">Linhas válidas</p>
+                    </div>
+                    <div className="p-3 bg-red-50 dark:bg-red-950 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-red-600">{parseResult.invalidLines}</p>
+                      <p className="text-xs text-muted-foreground">Linhas inválidas</p>
+                    </div>
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-amber-600">{parseResult.errors.length}</p>
+                      <p className="text-xs text-muted-foreground">Problemas encontrados</p>
+                    </div>
                   </div>
+
+                  {/* Header Info */}
+                  {parseResult.headerInfo && (
+                    <div className="p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/50">
+                      <h4 className="font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                        Informações do Cabeçalho AFD
+                      </h4>
+                      <div className="grid gap-2 md:grid-cols-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">CNPJ/CPF:</span>
+                          <span className="ml-2 font-mono">{parseResult.headerInfo.cnpjCpf}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">REP:</span>
+                          <span className="ml-2 font-mono">{parseResult.headerInfo.repNumero}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Período:</span>
+                          <span className="ml-2">
+                            {parseResult.headerInfo.dataInicio.substring(0, 2)}/{parseResult.headerInfo.dataInicio.substring(2, 4)}/{parseResult.headerInfo.dataInicio.substring(4, 8)} a{' '}
+                            {parseResult.headerInfo.dataFim.substring(0, 2)}/{parseResult.headerInfo.dataFim.substring(2, 4)}/{parseResult.headerInfo.dataFim.substring(4, 8)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Gerado em:</span>
+                          <span className="ml-2">
+                            {parseResult.headerInfo.dataGeracao.substring(0, 2)}/{parseResult.headerInfo.dataGeracao.substring(2, 4)}/{parseResult.headerInfo.dataGeracao.substring(4, 8)} às{' '}
+                            {parseResult.headerInfo.horaGeracao.substring(0, 2)}:{parseResult.headerInfo.horaGeracao.substring(2, 4)}
+                          </span>
+                        </div>
+                      </div>
+                      {parseResult.headerInfo.razaoSocial && (
+                        <p className="mt-2 text-sm">
+                          <span className="text-muted-foreground">Empresa:</span>
+                          <span className="ml-2">{parseResult.headerInfo.razaoSocial}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Warnings */}
+                  {parseResult.warnings.length > 0 && (
+                    <div className="p-4 border border-amber-300 rounded-lg bg-amber-50 dark:bg-amber-950/50">
+                      <h4 className="font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        Avisos ({parseResult.warnings.length})
+                      </h4>
+                      <ul className="mt-2 space-y-1 text-sm text-amber-800 dark:text-amber-200">
+                        {parseResult.warnings.map((warning, idx) => (
+                          <li key={idx}>• {warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Errors */}
+                  {parseResult.errors.length > 0 && (
+                    <div className="p-4 border border-red-300 rounded-lg bg-red-50 dark:bg-red-950/50">
+                      <h4 className="font-semibold text-red-700 dark:text-red-300 flex items-center gap-2">
+                        <XCircle className="h-4 w-4" />
+                        Erros de Parsing ({parseResult.errors.length})
+                      </h4>
+                      <div className="mt-2 max-h-48 overflow-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-16">Linha</TableHead>
+                              <TableHead className="w-24">Portaria</TableHead>
+                              <TableHead className="w-20">Tipo</TableHead>
+                              <TableHead>Erro</TableHead>
+                              <TableHead>Conteúdo</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {parseResult.errors.slice(0, 50).map((error, idx) => (
+                              <TableRow key={idx}>
+                                <TableCell className="font-mono">{error.line}</TableCell>
+                                <TableCell>
+                                  <Badge variant={error.portaria ? 'outline' : 'secondary'}>
+                                    {error.portaria || 'N/A'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={error.severity === 'error' ? 'destructive' : 'secondary'}>
+                                    {error.severity === 'error' ? 'Erro' : 'Aviso'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-sm">{error.error}</TableCell>
+                                <TableCell className="font-mono text-xs max-w-xs truncate">
+                                  {error.content}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        {parseResult.errors.length > 50 && (
+                          <p className="text-center text-sm text-muted-foreground mt-2">
+                            Mostrando 50 de {parseResult.errors.length} erros
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1228,7 +1659,14 @@ export default function ImportExport() {
           {importRecords.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Prévia dos Registros AFD</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Prévia dos Registros AFD</span>
+                  {parseResult && (
+                    <Badge variant="outline" className="font-normal">
+                      {parseResult.detectedFormat}
+                    </Badge>
+                  )}
+                </CardTitle>
                 <CardDescription>
                   Verifique os registros antes de importar. Registros não vinculados serão ignorados.
                 </CardDescription>
@@ -1239,11 +1677,13 @@ export default function ImportExport() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Status</TableHead>
+                        <TableHead>Linha</TableHead>
                         <TableHead>NSR</TableHead>
                         <TableHead>PIS</TableHead>
                         <TableHead>Data</TableHead>
                         <TableHead>Hora</TableHead>
                         <TableHead>Funcionário</TableHead>
+                        <TableHead>Portaria</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1256,6 +1696,7 @@ export default function ImportExport() {
                               <XCircle className="h-5 w-5 text-destructive" />
                             )}
                           </TableCell>
+                          <TableCell className="font-mono text-xs">{record.lineNumber || '-'}</TableCell>
                           <TableCell className="font-mono">{record.nsr}</TableCell>
                           <TableCell className="font-mono">{record.pis}</TableCell>
                           <TableCell>{record.date}</TableCell>
@@ -1264,6 +1705,11 @@ export default function ImportExport() {
                             {record.profileName || (
                               <span className="text-muted-foreground italic">PIS não cadastrado</span>
                             )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {record.portaria || 'N/A'}
+                            </Badge>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1282,6 +1728,7 @@ export default function ImportExport() {
                     onClick={() => {
                       setImportFile(null);
                       setImportRecords([]);
+                      setParseResult(null);
                       if (fileInputRef.current) {
                         fileInputRef.current.value = '';
                       }
