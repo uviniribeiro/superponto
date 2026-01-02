@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTheme } from 'next-themes';
+import { getVersionString } from '@/lib/version';
 
 export default function SuperAdminLayout() {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export default function SuperAdminLayout() {
             </div>
             <div>
               <h1 className="text-lg font-bold">PontoMax</h1>
-              <p className="text-xs text-muted-foreground">Super Administrador</p>
+              <p className="text-xs text-muted-foreground">Super Administrador • {getVersionString()}</p>
             </div>
           </div>
 
@@ -160,6 +161,13 @@ export default function SuperAdminLayout() {
       <main className="container py-6">
         <Outlet />
       </main>
+
+      {/* Footer with version */}
+      <footer className="border-t py-4">
+        <div className="container flex items-center justify-center text-xs text-muted-foreground">
+          PontoMax {getVersionString()} • Sistema de Registro de Ponto Eletrônico
+        </div>
+      </footer>
     </div>
   );
 }

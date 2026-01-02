@@ -10,6 +10,7 @@ import { SupportChat } from '@/components/support/SupportChat';
 import { useBrasiliaTime } from '@/hooks/useBrasiliaTime';
 import { useDailyMessage } from '@/hooks/useDailyMessage';
 import { useFavorites } from '@/hooks/useFavorites';
+import { getVersionString } from '@/lib/version';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -339,7 +340,7 @@ export default function AppLayout() {
                 <h1 className="font-semibold text-sm text-sidebar-foreground truncate">
                   {companySettings?.company_name || 'PontoMax'}
                 </h1>
-                <p className="text-xs text-sidebar-foreground/50">Controle de Ponto</p>
+                <p className="text-xs text-sidebar-foreground/50">Controle de Ponto • {getVersionString()}</p>
               </div>
             </div>
 
