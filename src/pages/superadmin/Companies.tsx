@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,10 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap } from 'lucide-react';
-import { format } from 'date-fns';
+import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap, Calendar, Users } from 'lucide-react';
+import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
@@ -25,20 +27,62 @@ interface Company {
   created_at: string;
   organization_type: 'company' | 'city_hall';
   teacher_module_enabled: boolean;
+  address: string | null;
+  city: string | null;
+  state: string | null;
 }
+
+const licenseTypeOptions = [
+  { value: 'monthly', label: 'Mensal', months: 1 },
+  { value: 'annual', label: 'Anual', months: 12 },
+  { value: 'lifetime', label: 'Vitalícia', months: 1200 },
+];
+
+const employeeLimits = [
+  { value: 50, label: '50 funcionários' },
+  { value: 100, label: '100 funcionários' },
+  { value: 200, label: '200 funcionários' },
+  { value: 300, label: '300 funcionários' },
+  { value: 500, label: '500 funcionários' },
+  { value: 1000, label: '1.000 funcionários' },
+  { value: -1, label: 'Ilimitado' },
+];
 
 const companySchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
   cnpj: z.string().min(14, 'CNPJ inválido').max(18),
 });
 
+const generateLicenseKey = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const parts: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    let segment = '';
+    for (let j = 0; j < 4; j++) {
+      segment += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    parts.push(segment);
+  }
+  return parts.join('-');
+};
+
 export default function SuperAdminCompanies() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '', cnpj: '', teacherModuleEnabled: false });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    cnpj: '',
+    address: '',
+    city: '',
+    state: '',
+    teacherModuleEnabled: false,
+    licenseType: 'annual',
+    maxEmployees: 100
+  });
 
   useEffect(() => {
     fetchCompanies();
@@ -63,6 +107,11 @@ export default function SuperAdminCompanies() {
   };
 
   const handleCreateCompany = async () => {
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
     try {
       const validData = companySchema.parse(formData);
       const normalizedCnpj = formData.cnpj.replace(/[^\d]/g, '');
@@ -85,13 +134,50 @@ export default function SuperAdminCompanies() {
           cnpj: formData.cnpj,
           company_code: normalizedCnpj,
           organization_type: 'company',
-          license_status: 'pending',
-          teacher_module_enabled: formData.teacherModuleEnabled
+          license_status: 'active',
+          teacher_module_enabled: formData.teacherModuleEnabled,
+          address: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null
         } as any)
         .select()
         .single();
 
       if (error) throw error;
+
+      // Create the license
+      const licenseKey = generateLicenseKey();
+      const validFrom = new Date();
+      const licenseTypeInfo = licenseTypeOptions.find(t => t.value === formData.licenseType);
+      const validUntil = addMonths(validFrom, licenseTypeInfo?.months || 12);
+      const maxEmployees = formData.maxEmployees === -1 ? null : formData.maxEmployees;
+
+      const { error: licenseError } = await supabase.from('licenses').insert({
+        company_id: newCompany.id,
+        license_key: licenseKey,
+        valid_from: validFrom.toISOString().split('T')[0],
+        valid_until: validUntil.toISOString().split('T')[0],
+        max_employees: maxEmployees,
+        is_active: true,
+        created_by: user.id,
+        license_type: formData.licenseType,
+        notes: `Licença ${licenseTypeInfo?.label || formData.licenseType}`
+      });
+
+      if (licenseError) {
+        console.error('Error creating license:', licenseError);
+        toast.warning('Empresa criada, mas houve erro ao criar licença');
+      }
+
+      // Create company_settings
+      await supabase.from('company_settings').insert({
+        company_id: newCompany.id,
+        company_name: validData.name,
+        cnpj: formData.cnpj,
+        address: formData.address || null,
+        city: formData.city || null,
+        state: formData.state || null
+      });
 
       // Create support and admin users for the new company
       try {
@@ -107,12 +193,13 @@ export default function SuperAdminCompanies() {
           toast.warning('Empresa criada, mas houve erro ao criar usuários');
         } else if (usersData?.success) {
           const creds = usersData.credentials;
+          const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
           if (creds?.support?.temporaryPassword || creds?.admin?.temporaryPassword) {
             const supportInfo = creds?.support ? `Suporte: suporte/${creds.support.temporaryPassword}` : '';
             const adminInfo = creds?.admin ? `Admin: admin/${creds.admin.temporaryPassword}` : '';
-            toast.success(`Empresa cadastrada! ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
+            toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
           } else {
-            toast.success('Empresa cadastrada! Usuários criados (já existiam ou foram criados anteriormente).');
+            toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}.`);
           }
         }
       } catch (err) {
@@ -121,7 +208,7 @@ export default function SuperAdminCompanies() {
       }
 
       setIsDialogOpen(false);
-      setFormData({ name: '', cnpj: '', teacherModuleEnabled: false });
+      setFormData({ name: '', cnpj: '', address: '', city: '', state: '', teacherModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
       fetchCompanies();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -268,14 +355,14 @@ export default function SuperAdminCompanies() {
 
       {/* Create Company Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Nova Empresa</DialogTitle>
-            <DialogDescription>Cadastre uma nova empresa no sistema</DialogDescription>
+            <DialogDescription>Cadastre uma nova empresa com licença</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome da Empresa</Label>
+              <Label htmlFor="name">Nome da Empresa *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -284,13 +371,43 @@ export default function SuperAdminCompanies() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ</Label>
+              <Label htmlFor="cnpj">CNPJ *</Label>
               <Input
                 id="cnpj"
                 value={formData.cnpj}
                 onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
                 placeholder="00.000.000/0000-00"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Endereço</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Endereço completo"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">Cidade</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="Cidade"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">Estado</Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  placeholder="UF"
+                  maxLength={2}
+                />
+              </div>
             </div>
             
             <div className="p-3 bg-muted/50 rounded-lg space-y-3">
@@ -308,6 +425,60 @@ export default function SuperAdminCompanies() {
               </div>
               <p className="text-xs text-muted-foreground">
                 O módulo professor permite gerenciar hora-aula e escalas de docentes
+              </p>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                Dados da Licença
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="licenseType" className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Tipo de Licença
+                  </Label>
+                  <Select 
+                    value={formData.licenseType} 
+                    onValueChange={(value) => setFormData({ ...formData, licenseType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {licenseTypeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxEmployees" className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    Limite de Funcionários
+                  </Label>
+                  <Select 
+                    value={formData.maxEmployees.toString()} 
+                    onValueChange={(value) => setFormData({ ...formData, maxEmployees: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o limite" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employeeLimits.map((option) => (
+                        <SelectItem key={option.value} value={option.value.toString()}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                A licença será gerada automaticamente com a validade de acordo com o tipo selecionado.
               </p>
             </div>
           </div>
