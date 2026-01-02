@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { PhotoCapture } from '@/components/employees/PhotoCapture';
+import { MaskedInput } from '@/components/ui/masked-input';
 
 const employeeSchema = z.object({
   fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
@@ -392,23 +393,23 @@ export default function RegisterEmployee() {
               
               <div className="space-y-2">
                 <Label htmlFor="cpf">CPF</Label>
-                <Input
+                <MaskedInput
                   id="cpf"
-                  type="text"
-                  placeholder="000.000.000-00"
+                  mask="cpf"
                   value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, cpf: value })}
+                  showValidation
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="pis">PIS</Label>
-                <Input
+                <Label htmlFor="pis">PIS/PASEP</Label>
+                <MaskedInput
                   id="pis"
-                  type="text"
-                  placeholder="PIS/PASEP"
+                  mask="pis"
                   value={formData.pis}
-                  onChange={(e) => setFormData({ ...formData, pis: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, pis: value })}
+                  showValidation
                 />
               </div>
               
@@ -425,12 +426,11 @@ export default function RegisterEmployee() {
               
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone/WhatsApp</Label>
-                <Input
+                <MaskedInput
                   id="phone"
-                  type="tel"
-                  placeholder="(11) 99999-9999"
+                  mask="phone"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(value) => setFormData({ ...formData, phone: value })}
                 />
               </div>
               
