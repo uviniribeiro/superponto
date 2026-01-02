@@ -19,6 +19,7 @@ import RegisterEmployee from "@/pages/RegisterEmployee";
 import WorkSchedules from "@/pages/WorkSchedules";
 import Adjustments from "@/pages/Adjustments";
 import Reports from "@/pages/Reports";
+import MirrorPoint from "@/pages/MirrorPoint";
 import Company from "@/pages/Company";
 import Holidays from "@/pages/Holidays";
 import TimeBank from "@/pages/TimeBank";
@@ -94,6 +95,7 @@ const App = () => (
                 <Route path="schedules" element={<ProtectedRoute requiredRoles={['admin']}><WorkSchedules /></ProtectedRoute>} />
                 <Route path="adjustments" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Adjustments /></ProtectedRoute>} />
                 <Route path="reports" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Reports /></ProtectedRoute>} />
+                <Route path="mirror-point" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><MirrorPoint /></ProtectedRoute>} />
                 <Route path="company" element={<ProtectedRoute requiredRoles={['admin']}><Company /></ProtectedRoute>} />
                 <Route path="holidays" element={<ProtectedRoute requiredRoles={['admin']}><Holidays /></ProtectedRoute>} />
                 <Route path="time-bank" element={<TimeBank />} />

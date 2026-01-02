@@ -143,7 +143,8 @@ const menuCategories: MenuCategory[] = [
     icon: ClipboardList,
     roles: ['admin', 'manager'],
     items: [
-      { title: 'Espelho de Ponto', icon: ClipboardList, href: '/timesheet', roles: ['admin', 'manager'] },
+      { title: 'Espelho de Ponto', icon: ClipboardList, href: '/mirror-point', roles: ['admin', 'manager'] },
+      { title: 'Folha de Ponto', icon: ClipboardList, href: '/timesheet', roles: ['admin', 'manager'] },
       { title: 'Faltas', icon: UserX, href: '/absences', roles: ['admin', 'manager'] },
       { title: 'Ajustes', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
     ]
