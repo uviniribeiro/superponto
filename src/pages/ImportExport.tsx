@@ -412,7 +412,7 @@ const nativeLayouts: ExportLayout[] = [
 ];
 
 export default function ImportExport() {
-  const [activeTab, setActiveTab] = useState('import');
+  const [activeTab, setActiveTab] = useState('import-afd');
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
@@ -1113,10 +1113,14 @@ export default function ImportExport() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="import" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+          <TabsTrigger value="import-afd" className="flex items-center gap-2">
             <FileUp className="h-4 w-4" />
-            Importação
+            Importar AFD
+          </TabsTrigger>
+          <TabsTrigger value="import" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Importar Dados
           </TabsTrigger>
           <TabsTrigger value="export" className="flex items-center gap-2">
             <FileDown className="h-4 w-4" />
@@ -1124,19 +1128,41 @@ export default function ImportExport() {
           </TabsTrigger>
         </TabsList>
 
-        {/* ========== IMPORT TAB ========== */}
-        <TabsContent value="import" className="space-y-6">
+        {/* ========== IMPORT AFD TAB ========== */}
+        <TabsContent value="import-afd" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                Importar Arquivo AFD
+                <FileText className="h-5 w-5" />
+                Importação de Arquivo AFD (Portarias MTE)
               </CardTitle>
               <CardDescription>
-                Compatível com equipamentos Portaria 1510, 373 e 671 do MTE. Formatos: .txt e .csv
+                Importar arquivos AFD (Arquivo-Fonte de Dados) de relógios de ponto conforme Portaria 1510/2009, Portaria 373/2011 e Portaria 671/2021
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Informações sobre formatos suportados */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950">
+                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">Portaria 1510/2009</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Formato padrão para REP (Registrador Eletrônico de Ponto). Arquivo .txt com registros tipo 3.
+                  </p>
+                </div>
+                <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950">
+                  <h4 className="font-semibold text-green-700 dark:text-green-300">Portaria 373/2011</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Sistemas alternativos de controle de ponto. Formato flexível com identificador tipo 2.
+                  </p>
+                </div>
+                <div className="p-4 border rounded-lg bg-purple-50 dark:bg-purple-950">
+                  <h4 className="font-semibold text-purple-700 dark:text-purple-300">Portaria 671/2021</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Consolidação das regras. Compatível com REP-C, REP-A e REP-P.
+                  </p>
+                </div>
+              </div>
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>REP Cadastrado</Label>
@@ -1148,29 +1174,32 @@ export default function ImportExport() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Selecionar Arquivo</Label>
+                  <Label>Selecionar Arquivo AFD</Label>
                   <div className="flex gap-2">
                     <Input
                       ref={fileInputRef}
                       type="file"
-                      accept=".txt,.csv"
+                      accept=".txt,.afd,.csv"
                       onChange={handleFileSelect}
                       className="flex-1"
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Formatos aceitos: .txt, .afd, .csv
+                  </p>
                 </div>
               </div>
 
               {importFile && (
-                <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-                  <FileText className="h-8 w-8 text-primary" />
+                <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+                  <FileText className="h-10 w-10 text-primary" />
                   <div className="flex-1">
                     <p className="font-medium">{importFile.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {(importFile.size / 1024).toFixed(2)} KB
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Badge variant="secondary">{importRecords.length} registros</Badge>
                     <Badge variant="default" className="bg-green-500">{matchedCount} vinculados</Badge>
                     {unmatchedCount > 0 && (
@@ -1179,13 +1208,27 @@ export default function ImportExport() {
                   </div>
                 </div>
               )}
+
+              {/* Instruções de uso */}
+              <div className="p-4 border rounded-lg bg-muted/50">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Importante
+                </h4>
+                <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
+                  <li>Certifique-se de que os funcionários estejam cadastrados com o PIS correto</li>
+                  <li>Registros duplicados (mesma data/hora/funcionário) serão ignorados automaticamente</li>
+                  <li>Registros não vinculados a funcionários não serão importados</li>
+                  <li>O arquivo AFD deve ser extraído diretamente do equipamento REP</li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
 
           {importRecords.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Prévia dos Registros</CardTitle>
+                <CardTitle>Prévia dos Registros AFD</CardTitle>
                 <CardDescription>
                   Verifique os registros antes de importar. Registros não vinculados serão ignorados.
                 </CardDescription>
@@ -1268,6 +1311,67 @@ export default function ImportExport() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* ========== IMPORT DATA TAB ========== */}
+        <TabsContent value="import" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5" />
+                Importar Dados de Funcionários
+              </CardTitle>
+              <CardDescription>
+                Importe dados de funcionários em formato CSV para atualização em lote
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Tipo de Importação</Label>
+                  <Select defaultValue="employees">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="employees">Funcionários (CSV)</SelectItem>
+                      <SelectItem value="schedules">Horários de Trabalho (CSV)</SelectItem>
+                      <SelectItem value="departments">Departamentos (CSV)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Selecionar Arquivo CSV</Label>
+                  <Input
+                    type="file"
+                    accept=".csv"
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 border rounded-lg bg-muted/50">
+                <h4 className="font-semibold">Formato do arquivo CSV para Funcionários:</h4>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Colunas obrigatórias: nome, email, cpf
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Colunas opcionais: pis, matricula, departamento, cargo, telefone, data_admissao
+                </p>
+                <div className="mt-3 p-2 bg-background rounded text-xs font-mono">
+                  nome;email;cpf;pis;matricula;departamento;cargo<br/>
+                  João Silva;joao@empresa.com;12345678900;12345678901;001;TI;Analista
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button disabled className="gradient-primary">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Importar Dados
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ========== EXPORT TAB ========== */}

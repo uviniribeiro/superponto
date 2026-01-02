@@ -94,6 +94,65 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          company_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          ip_address: string | null
+          menu_section: string | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          ip_address?: string | null
+          menu_section?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          ip_address?: string | null
+          menu_section?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_hour_configurations: {
         Row: {
           activity_hours_percent: number | null
@@ -1469,6 +1528,92 @@ export type Database = {
           {
             foreignKeyName: "time_records_profile_id_fkey"
             columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timesheet_locks: {
+        Row: {
+          calculated_absence_minutes: number | null
+          calculated_overtime_minutes: number | null
+          calculated_worked_minutes: number | null
+          company_id: string | null
+          created_at: string
+          id: string
+          is_locked: boolean
+          locked_at: string | null
+          locked_by: string | null
+          month: number
+          notes: string | null
+          profile_id: string
+          unlocked_at: string | null
+          unlocked_by: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          calculated_absence_minutes?: number | null
+          calculated_overtime_minutes?: number | null
+          calculated_worked_minutes?: number | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          month: number
+          notes?: string | null
+          profile_id: string
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          calculated_absence_minutes?: number | null
+          calculated_overtime_minutes?: number | null
+          calculated_worked_minutes?: number | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          locked_by?: string | null
+          month?: number
+          notes?: string | null
+          profile_id?: string
+          unlocked_at?: string | null
+          unlocked_by?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheet_locks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_locks_locked_by_fkey"
+            columns: ["locked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_locks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timesheet_locks_unlocked_by_fkey"
+            columns: ["unlocked_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
