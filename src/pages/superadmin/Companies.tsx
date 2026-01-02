@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap, Calendar, Users, Trash2, Loader2, Phone } from 'lucide-react';
+import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap, Calendar, Users, Trash2, Loader2, Phone, Pencil } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
@@ -76,6 +76,8 @@ export default function SuperAdminCompanies() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [lookingUpCnpj, setLookingUpCnpj] = useState(false);
   const [formData, setFormData] = useState({ 
     name: '', 
@@ -262,6 +264,68 @@ export default function SuperAdminCompanies() {
     }
   };
 
+  const handleEditCompany = (company: Company) => {
+    setEditingCompany(company);
+    setFormData({
+      name: company.name,
+      tradeName: company.trade_name || '',
+      cnpj: company.cnpj || '',
+      address: company.address || '',
+      city: company.city || '',
+      state: company.state || '',
+      phone: company.phone || '',
+      teacherModuleEnabled: company.teacher_module_enabled || false,
+      licenseType: 'annual',
+      maxEmployees: 100
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateCompany = async () => {
+    if (!editingCompany) return;
+
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          name: formData.name,
+          trade_name: formData.tradeName || null,
+          cnpj: formData.cnpj,
+          address: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null,
+          phone: formData.phone || null,
+          teacher_module_enabled: formData.teacherModuleEnabled
+        })
+        .eq('id', editingCompany.id);
+
+      if (error) throw error;
+
+      // Update company_settings
+      await supabase
+        .from('company_settings')
+        .update({
+          company_name: formData.name,
+          trade_name: formData.tradeName || null,
+          cnpj: formData.cnpj,
+          address: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null,
+          phone: formData.phone || null
+        })
+        .eq('company_id', editingCompany.id);
+
+      toast.success('Empresa atualizada com sucesso');
+      setIsEditDialogOpen(false);
+      setEditingCompany(null);
+      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
+      fetchCompanies();
+    } catch (error) {
+      console.error('Error updating company:', error);
+      toast.error('Erro ao atualizar empresa');
+    }
+  };
+
   const toggleCompanyStatus = async (company: Company) => {
     try {
       const { error } = await supabase
@@ -280,28 +344,212 @@ export default function SuperAdminCompanies() {
 
   const handleDeleteCompany = async (company: Company) => {
     try {
-      // Delete related records first
+      // Delete ALL related records in order of dependencies
+      // 1. Delete time records
+      await supabase.from('time_records').delete().eq('company_id', company.id);
+      
+      // 2. Delete adjustment requests
+      await supabase.from('adjustment_requests').delete().eq('company_id', company.id);
+      
+      // 3. Delete employee schedules
+      await supabase.from('employee_schedules').delete().eq('company_id', company.id);
+      
+      // 4. Delete employee scale assignments
+      await supabase.from('employee_scale_assignments').delete().eq('company_id', company.id);
+      
+      // 5. Delete employee class hour assignments
+      await supabase.from('employee_class_hour_assignments').delete().eq('company_id', company.id);
+      
+      // 6. Delete employee off days
+      await supabase.from('employee_off_days').delete().eq('company_id', company.id);
+      
+      // 7. Delete class records
+      await supabase.from('class_records').delete().eq('company_id', company.id);
+      
+      // 8. Delete teacher schedule slots
+      await supabase.from('teacher_schedule_slots').delete().eq('company_id', company.id);
+      
+      // 9. Delete overtime alerts
+      await supabase.from('overtime_alerts').delete().eq('company_id', company.id);
+      
+      // 10. Delete equipment pending records
+      await supabase.from('equipment_pending_records').delete().eq('company_id', company.id);
+      
+      // 11. Delete equipment communication logs
+      await supabase.from('equipment_communication_logs').delete().eq('company_id', company.id);
+      
+      // 12. Delete time clock equipment
+      await supabase.from('time_clock_equipment').delete().eq('company_id', company.id);
+      
+      // 13. Delete positions
+      await supabase.from('positions').delete().eq('company_id', company.id);
+      
+      // 14. Delete departments
+      await supabase.from('departments').delete().eq('company_id', company.id);
+      
+      // 15. Delete work schedules
+      await supabase.from('work_schedules').delete().eq('company_id', company.id);
+      
+      // 16. Delete scale configurations
+      await supabase.from('scale_configurations').delete().eq('company_id', company.id);
+      
+      // 17. Delete class hour configurations
+      await supabase.from('class_hour_configurations').delete().eq('company_id', company.id);
+      
+      // 18. Delete holidays
+      await supabase.from('holidays').delete().eq('company_id', company.id);
+      
+      // 19. Delete role change history
+      await supabase.from('role_change_history').delete().eq('company_id', company.id);
+      
+      // 20. Delete profiles (this will cascade to user_roles via trigger if needed)
+      await supabase.from('profiles').delete().eq('company_id', company.id);
+      
+      // 21. Delete license renewals (via license_id)
+      const { data: licenses } = await supabase.from('licenses').select('id').eq('company_id', company.id);
+      if (licenses) {
+        for (const license of licenses) {
+          await supabase.from('license_renewals').delete().eq('license_id', license.id);
+        }
+      }
+      
+      // 22. Delete licenses
       await supabase.from('licenses').delete().eq('company_id', company.id);
+      
+      // 23. Delete company settings
       await supabase.from('company_settings').delete().eq('company_id', company.id);
       
-      // Delete the company
+      // 24. Delete pending company users
+      await supabase.from('pending_company_users').delete().eq('company_id', company.id);
+      
+      // 25. Finally delete the company
       const { error } = await supabase
         .from('companies')
         .delete()
         .eq('id', company.id);
 
       if (error) throw error;
-      toast.success('Empresa excluída com sucesso');
+      toast.success('Empresa e todos os dados vinculados excluídos com sucesso');
       fetchCompanies();
     } catch (error) {
       console.error('Error deleting company:', error);
-      toast.error('Erro ao excluir empresa. Verifique se há dados vinculados.');
+      toast.error('Erro ao excluir empresa');
     }
   };
 
   const filteredCompanies = companies.filter(company =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.cnpj?.includes(searchTerm)
+  );
+
+  const renderFormFields = () => (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="name">Nome da Empresa *</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Nome da empresa"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="cnpj">CNPJ *</Label>
+        <div className="flex gap-2">
+          <Input
+            id="cnpj"
+            value={formData.cnpj}
+            onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+            onBlur={() => handleCnpjLookup(formData.cnpj)}
+            placeholder="00.000.000/0000-00"
+            className="flex-1"
+          />
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => handleCnpjLookup(formData.cnpj)}
+            disabled={lookingUpCnpj}
+          >
+            {lookingUpCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">Digite o CNPJ e os dados serão preenchidos automaticamente</p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="tradeName">Nome Fantasia</Label>
+        <Input
+          id="tradeName"
+          value={formData.tradeName}
+          onChange={(e) => setFormData({ ...formData, tradeName: e.target.value })}
+          placeholder="Nome fantasia"
+          disabled={lookingUpCnpj}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="address">Endereço</Label>
+        <Input
+          id="address"
+          value={formData.address}
+          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          placeholder="Endereço completo"
+          disabled={lookingUpCnpj}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="city">Cidade</Label>
+          <Input
+            id="city"
+            value={formData.city}
+            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+            placeholder="Cidade"
+            disabled={lookingUpCnpj}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="state">Estado</Label>
+          <Input
+            id="state"
+            value={formData.state}
+            onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+            placeholder="UF"
+            maxLength={2}
+            disabled={lookingUpCnpj}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="phone" className="flex items-center gap-1">
+          <Phone className="h-3 w-3" />
+          Telefone
+        </Label>
+        <Input
+          id="phone"
+          value={formData.phone}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          placeholder="(00) 00000-0000"
+          disabled={lookingUpCnpj}
+        />
+      </div>
+      
+      <div className="p-3 bg-muted/50 rounded-lg space-y-3">
+        <Label className="text-sm font-medium">Módulos Adicionais</Label>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="teacher-module"
+            checked={formData.teacherModuleEnabled}
+            onCheckedChange={(checked) => setFormData({ ...formData, teacherModuleEnabled: checked as boolean })}
+          />
+          <Label htmlFor="teacher-module" className="text-sm cursor-pointer flex items-center gap-2">
+            <GraduationCap className="h-4 w-4" />
+            Habilitar Módulo Professor
+          </Label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          O módulo professor permite gerenciar hora-aula e escalas de docentes
+        </p>
+      </div>
+    </>
   );
 
   return (
@@ -387,6 +635,14 @@ export default function SuperAdminCompanies() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleEditCompany(company)}
+                        >
+                          <Pencil className="h-4 w-4 mr-1" />
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => navigate(`/super-admin/licenses?company=${company.id}`)}
                         >
                           <Key className="h-4 w-4 mr-1" />
@@ -409,13 +665,23 @@ export default function SuperAdminCompanies() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Excluir Empresa</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Tem certeza que deseja excluir a empresa "{company.name}"? Esta ação não pode ser desfeita e todos os dados serão perdidos.
+                                Tem certeza que deseja excluir a empresa "{company.name}"? 
+                                <br /><br />
+                                <strong className="text-destructive">ATENÇÃO: Esta ação irá excluir TODOS os dados vinculados:</strong>
+                                <ul className="list-disc list-inside mt-2 text-sm">
+                                  <li>Funcionários e seus registros de ponto</li>
+                                  <li>Equipamentos e logs de comunicação</li>
+                                  <li>Escalas e horários de trabalho</li>
+                                  <li>Licenças e configurações</li>
+                                </ul>
+                                <br />
+                                Esta ação <strong>NÃO PODE SER DESFEITA</strong>.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction onClick={() => handleDeleteCompany(company)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Excluir
+                                Excluir Tudo
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -445,111 +711,7 @@ export default function SuperAdminCompanies() {
             <DialogDescription>Cadastre uma nova empresa com licença</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome da Empresa *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nome da empresa"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="cnpj"
-                  value={formData.cnpj}
-                  onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                  onBlur={() => handleCnpjLookup(formData.cnpj)}
-                  placeholder="00.000.000/0000-00"
-                  className="flex-1"
-                />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => handleCnpjLookup(formData.cnpj)}
-                  disabled={lookingUpCnpj}
-                >
-                  {lookingUpCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">Digite o CNPJ e os dados serão preenchidos automaticamente</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tradeName">Nome Fantasia</Label>
-              <Input
-                id="tradeName"
-                value={formData.tradeName}
-                onChange={(e) => setFormData({ ...formData, tradeName: e.target.value })}
-                placeholder="Nome fantasia"
-                disabled={lookingUpCnpj}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">Endereço</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="Endereço completo"
-                disabled={lookingUpCnpj}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">Cidade</Label>
-                <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="Cidade"
-                  disabled={lookingUpCnpj}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">Estado</Label>
-                <Input
-                  id="state"
-                  value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  placeholder="UF"
-                  maxLength={2}
-                  disabled={lookingUpCnpj}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                Telefone
-              </Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(00) 00000-0000"
-                disabled={lookingUpCnpj}
-              />
-            </div>
-            
-            <div className="p-3 bg-muted/50 rounded-lg space-y-3">
-              <Label className="text-sm font-medium">Módulos Adicionais</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="teacher-module"
-                  checked={formData.teacherModuleEnabled}
-                  onCheckedChange={(checked) => setFormData({ ...formData, teacherModuleEnabled: checked as boolean })}
-                />
-                <Label htmlFor="teacher-module" className="text-sm cursor-pointer flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4" />
-                  Habilitar Módulo Professor
-                </Label>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                O módulo professor permite gerenciar hora-aula e escalas de docentes
-              </p>
-            </div>
+            {renderFormFields()}
 
             <div className="border-t pt-4 mt-4">
               <p className="text-sm font-medium mb-3 flex items-center gap-2">
@@ -608,6 +770,27 @@ export default function SuperAdminCompanies() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleCreateCompany} className="gradient-primary">Cadastrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Company Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Empresa</DialogTitle>
+            <DialogDescription>Atualize os dados da empresa</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            {renderFormFields()}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditDialogOpen(false);
+              setEditingCompany(null);
+              setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
+            }}>Cancelar</Button>
+            <Button onClick={handleUpdateCompany} className="gradient-primary">Salvar Alterações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

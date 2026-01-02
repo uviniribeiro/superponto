@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { Landmark, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, ChevronDown, Trash2, GraduationCap, Heart, Palette, Bus, Settings2, Building2, Users, Calendar, Loader2, Phone } from 'lucide-react';
+import { Landmark, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, ChevronDown, Trash2, GraduationCap, Heart, Palette, Bus, Settings2, Building2, Users, Calendar, Loader2, Phone, Pencil } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
@@ -102,6 +102,8 @@ export default function SuperAdminCityHalls() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingCityHall, setEditingCityHall] = useState<Company | null>(null);
   const [lookingUpCnpj, setLookingUpCnpj] = useState(false);
   const [formData, setFormData] = useState({ 
     name: '', 
@@ -345,6 +347,81 @@ export default function SuperAdminCityHalls() {
     }
   };
 
+  const handleEditCityHall = (cityHall: Company) => {
+    setEditingCityHall(cityHall);
+    setFormData({
+      name: cityHall.name,
+      tradeName: cityHall.trade_name || '',
+      cnpj: cityHall.cnpj || '',
+      address: cityHall.address || '',
+      city: cityHall.city || '',
+      state: cityHall.state || '',
+      phone: cityHall.phone || '',
+      contractDuration: 12,
+      contractEndDate: '',
+      maxEmployees: 100
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateCityHall = async () => {
+    if (!editingCityHall) return;
+
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          name: formData.name,
+          trade_name: formData.tradeName || null,
+          cnpj: formData.cnpj,
+          address: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null,
+          phone: formData.phone || null
+        })
+        .eq('id', editingCityHall.id);
+
+      if (error) throw error;
+
+      // Update company_settings
+      await supabase
+        .from('company_settings')
+        .update({
+          company_name: formData.name,
+          trade_name: formData.tradeName || null,
+          cnpj: formData.cnpj,
+          address: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null,
+          phone: formData.phone || null
+        })
+        .eq('company_id', editingCityHall.id);
+
+      // Update all sectors with same address info
+      const sectors = getSectors(editingCityHall.id);
+      for (const sector of sectors) {
+        await supabase
+          .from('companies')
+          .update({
+            address: formData.address || null,
+            city: formData.city || null,
+            state: formData.state || null,
+            phone: formData.phone || null
+          })
+          .eq('id', sector.id);
+      }
+
+      toast.success('Prefeitura atualizada com sucesso');
+      setIsEditDialogOpen(false);
+      setEditingCityHall(null);
+      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', contractDuration: 12, contractEndDate: '', maxEmployees: 100 });
+      fetchCompanies();
+    } catch (error) {
+      console.error('Error updating city hall:', error);
+      toast.error('Erro ao atualizar prefeitura');
+    }
+  };
+
   const handleCreateSector = async () => {
     if (!selectedCityHall) return;
 
@@ -417,17 +494,53 @@ export default function SuperAdminCityHalls() {
     }
   };
 
-  const handleDeleteSector = async (sectorId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este setor?')) return;
+  const deleteCompanyWithAllData = async (companyId: string) => {
+    // Delete ALL related records in order of dependencies
+    await supabase.from('time_records').delete().eq('company_id', companyId);
+    await supabase.from('adjustment_requests').delete().eq('company_id', companyId);
+    await supabase.from('employee_schedules').delete().eq('company_id', companyId);
+    await supabase.from('employee_scale_assignments').delete().eq('company_id', companyId);
+    await supabase.from('employee_class_hour_assignments').delete().eq('company_id', companyId);
+    await supabase.from('employee_off_days').delete().eq('company_id', companyId);
+    await supabase.from('class_records').delete().eq('company_id', companyId);
+    await supabase.from('teacher_schedule_slots').delete().eq('company_id', companyId);
+    await supabase.from('overtime_alerts').delete().eq('company_id', companyId);
+    await supabase.from('equipment_pending_records').delete().eq('company_id', companyId);
+    await supabase.from('equipment_communication_logs').delete().eq('company_id', companyId);
+    await supabase.from('time_clock_equipment').delete().eq('company_id', companyId);
+    await supabase.from('positions').delete().eq('company_id', companyId);
+    await supabase.from('departments').delete().eq('company_id', companyId);
+    await supabase.from('work_schedules').delete().eq('company_id', companyId);
+    await supabase.from('scale_configurations').delete().eq('company_id', companyId);
+    await supabase.from('class_hour_configurations').delete().eq('company_id', companyId);
+    await supabase.from('holidays').delete().eq('company_id', companyId);
+    await supabase.from('role_change_history').delete().eq('company_id', companyId);
+    await supabase.from('profiles').delete().eq('company_id', companyId);
+    
+    // Delete license renewals via license_id
+    const { data: licenses } = await supabase.from('licenses').select('id').eq('company_id', companyId);
+    if (licenses) {
+      for (const license of licenses) {
+        await supabase.from('license_renewals').delete().eq('license_id', license.id);
+      }
+    }
+    
+    await supabase.from('licenses').delete().eq('company_id', companyId);
+    await supabase.from('company_settings').delete().eq('company_id', companyId);
+    await supabase.from('pending_company_users').delete().eq('company_id', companyId);
+  };
 
+  const handleDeleteSector = async (sectorId: string) => {
     try {
+      await deleteCompanyWithAllData(sectorId);
+      
       const { error } = await supabase
         .from('companies')
         .delete()
         .eq('id', sectorId);
 
       if (error) throw error;
-      toast.success('Setor excluído com sucesso');
+      toast.success('Setor e todos os dados vinculados excluídos com sucesso');
       fetchCompanies();
     } catch (error) {
       console.error('Error deleting sector:', error);
@@ -462,27 +575,27 @@ export default function SuperAdminCityHalls() {
     try {
       const sectors = getSectors(cityHall.id);
       
-      // Delete sectors first
+      // Delete sectors with all data first
       for (const sector of sectors) {
+        await deleteCompanyWithAllData(sector.id);
         await supabase.from('companies').delete().eq('id', sector.id);
       }
       
-      // Delete related records
-      await supabase.from('licenses').delete().eq('company_id', cityHall.id);
-      await supabase.from('company_settings').delete().eq('company_id', cityHall.id);
+      // Delete city hall data
+      await deleteCompanyWithAllData(cityHall.id);
       
-      // Delete the city hall
+      // Finally delete the city hall
       const { error } = await supabase
         .from('companies')
         .delete()
         .eq('id', cityHall.id);
 
       if (error) throw error;
-      toast.success('Prefeitura excluída com sucesso');
+      toast.success('Prefeitura, setores e todos os dados vinculados excluídos com sucesso');
       fetchCompanies();
     } catch (error) {
       console.error('Error deleting city hall:', error);
-      toast.error('Erro ao excluir prefeitura. Verifique se há dados vinculados.');
+      toast.error('Erro ao excluir prefeitura');
     }
   };
 
@@ -500,6 +613,99 @@ export default function SuperAdminCityHalls() {
   const filteredCityHalls = cityHalls.filter(ch =>
     ch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     ch.cnpj?.includes(searchTerm)
+  );
+
+  const renderFormFields = () => (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="cnpj">CNPJ *</Label>
+        <div className="flex gap-2">
+          <Input
+            id="cnpj"
+            value={formData.cnpj}
+            onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+            onBlur={() => handleCnpjLookup(formData.cnpj)}
+            placeholder="00.000.000/0000-00"
+            className="flex-1"
+          />
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => handleCnpjLookup(formData.cnpj)}
+            disabled={lookingUpCnpj}
+          >
+            {lookingUpCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">Digite o CNPJ e os dados serão preenchidos automaticamente</p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="name">Razão Social *</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Prefeitura Municipal de..."
+          disabled={lookingUpCnpj}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="tradeName">Nome Fantasia</Label>
+        <Input
+          id="tradeName"
+          value={formData.tradeName}
+          onChange={(e) => setFormData({ ...formData, tradeName: e.target.value })}
+          placeholder="Nome fantasia"
+          disabled={lookingUpCnpj}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="address">Endereço</Label>
+        <Input
+          id="address"
+          value={formData.address}
+          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          placeholder="Endereço completo"
+          disabled={lookingUpCnpj}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="city">Cidade</Label>
+          <Input
+            id="city"
+            value={formData.city}
+            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+            placeholder="Cidade"
+            disabled={lookingUpCnpj}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="state">Estado</Label>
+          <Input
+            id="state"
+            value={formData.state}
+            onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+            placeholder="UF"
+            maxLength={2}
+            disabled={lookingUpCnpj}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="phone" className="flex items-center gap-1">
+          <Phone className="h-3 w-3" />
+          Telefone
+        </Label>
+        <Input
+          id="phone"
+          value={formData.phone}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          placeholder="(00) 00000-0000"
+          disabled={lookingUpCnpj}
+        />
+      </div>
+    </>
   );
 
   return (
@@ -574,6 +780,14 @@ export default function SuperAdminCityHalls() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => handleEditCityHall(cityHall)}
+                          >
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => {
                               setSelectedCityHall(cityHall);
                               setSectorFormData({ name: '', sector: 'education' });
@@ -608,13 +822,24 @@ export default function SuperAdminCityHalls() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Excluir Prefeitura</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Tem certeza que deseja excluir a prefeitura "{cityHall.name}" e todos os seus setores? Esta ação não pode ser desfeita e todos os dados serão perdidos.
+                                  Tem certeza que deseja excluir a prefeitura "{cityHall.name}"?
+                                  <br /><br />
+                                  <strong className="text-destructive">ATENÇÃO: Esta ação irá excluir TODOS os dados vinculados:</strong>
+                                  <ul className="list-disc list-inside mt-2 text-sm">
+                                    <li>Todos os {sectors.length} setores e seus dados</li>
+                                    <li>Funcionários e seus registros de ponto</li>
+                                    <li>Equipamentos e logs de comunicação</li>
+                                    <li>Escalas e horários de trabalho</li>
+                                    <li>Licenças e configurações</li>
+                                  </ul>
+                                  <br />
+                                  Esta ação <strong>NÃO PODE SER DESFEITA</strong>.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                 <AlertDialogAction onClick={() => handleDeleteCityHall(cityHall)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                  Excluir
+                                  Excluir Tudo
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -640,13 +865,29 @@ export default function SuperAdminCityHalls() {
                                     <TableCell>{getSectorLabel(sector.sector || '')}</TableCell>
                                     <TableCell className="font-mono text-sm">{sector.company_code}</TableCell>
                                     <TableCell className="text-right">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleDeleteSector(sector.id)}
-                                      >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button variant="ghost" size="sm">
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Excluir Setor</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Tem certeza que deseja excluir o setor "{sector.name}"?
+                                              <br /><br />
+                                              <strong className="text-destructive">Todos os dados do setor serão excluídos permanentemente.</strong>
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteSector(sector.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                              Excluir
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </TableCell>
                                   </TableRow>
                                 ))}
@@ -680,94 +921,7 @@ export default function SuperAdminCityHalls() {
             <DialogDescription>Cadastre uma nova prefeitura com contrato e licença</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="cnpj"
-                  value={formData.cnpj}
-                  onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                  onBlur={() => handleCnpjLookup(formData.cnpj)}
-                  placeholder="00.000.000/0000-00"
-                  className="flex-1"
-                />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => handleCnpjLookup(formData.cnpj)}
-                  disabled={lookingUpCnpj}
-                >
-                  {lookingUpCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">Digite o CNPJ e os dados serão preenchidos automaticamente</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Razão Social *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Prefeitura Municipal de..."
-                disabled={lookingUpCnpj}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tradeName">Nome Fantasia</Label>
-              <Input
-                id="tradeName"
-                value={formData.tradeName}
-                onChange={(e) => setFormData({ ...formData, tradeName: e.target.value })}
-                placeholder="Nome fantasia"
-                disabled={lookingUpCnpj}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">Endereço</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="Endereço completo"
-                disabled={lookingUpCnpj}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">Cidade</Label>
-                <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="Cidade"
-                  disabled={lookingUpCnpj}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="state">Estado</Label>
-                <Input
-                  id="state"
-                  value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  placeholder="UF"
-                  maxLength={2}
-                  disabled={lookingUpCnpj}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-1">
-                <Phone className="h-3 w-3" />
-                Telefone
-              </Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(00) 00000-0000"
-                disabled={lookingUpCnpj}
-              />
-            </div>
+            {renderFormFields()}
 
             <div className="border-t pt-4 mt-4">
               <p className="text-sm font-medium mb-3 flex items-center gap-2">
@@ -842,6 +996,27 @@ export default function SuperAdminCityHalls() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleCreateCityHall} className="gradient-primary">Cadastrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit City Hall Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Prefeitura</DialogTitle>
+            <DialogDescription>Atualize os dados da prefeitura</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            {renderFormFields()}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsEditDialogOpen(false);
+              setEditingCityHall(null);
+              setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', contractDuration: 12, contractEndDate: '', maxEmployees: 100 });
+            }}>Cancelar</Button>
+            <Button onClick={handleUpdateCityHall} className="gradient-primary">Salvar Alterações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
