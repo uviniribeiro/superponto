@@ -6,7 +6,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import SuperAdminProtectedRoute from "@/components/SuperAdminProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
+import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import Home from "@/pages/Home";
@@ -24,8 +26,10 @@ import Absences from "@/pages/Absences";
 import Users from "@/pages/Users";
 import OvertimeDashboard from "@/pages/OvertimeDashboard";
 import PositionsDepartments from "@/pages/PositionsDepartments";
-import SuperAdmin from "@/pages/SuperAdmin";
 import SuperAdminAuth from "@/pages/SuperAdminAuth";
+import SuperAdminCompanies from "@/pages/superadmin/Companies";
+import SuperAdminCityHalls from "@/pages/superadmin/CityHalls";
+import SuperAdminLicenses from "@/pages/superadmin/Licenses";
 import TeacherModule from "@/pages/TeacherModule";
 import Timesheet from "@/pages/Timesheet";
 import ImportExport from "@/pages/ImportExport";
@@ -58,6 +62,18 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
               
+              {/* Super Admin Routes - Completely Separate */}
+              <Route path="/super-admin" element={
+                <SuperAdminProtectedRoute>
+                  <SuperAdminLayout />
+                </SuperAdminProtectedRoute>
+              }>
+                <Route index element={<SuperAdminCompanies />} />
+                <Route path="city-halls" element={<SuperAdminCityHalls />} />
+                <Route path="licenses" element={<SuperAdminLicenses />} />
+              </Route>
+              
+              {/* Regular App Routes */}
               <Route path="/" element={
                 <ProtectedRoute>
                   <AppLayout />
@@ -84,7 +100,6 @@ const App = () => (
                 <Route path="import-export" element={<ProtectedRoute requiredRoles={['admin']}><ImportExport /></ProtectedRoute>} />
                 <Route path="teacher-module" element={<ProtectedRoute requiredRoles={['admin']}><TeacherModule /></ProtectedRoute>} />
                 <Route path="account-settings" element={<AccountSettings />} />
-                <Route path="super-admin" element={<ProtectedRoute requiredRoles={['super_admin']}><SuperAdmin /></ProtectedRoute>} />
                 
                 {/* Equipment Routes */}
                 <Route path="equipment" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentStatus /></ProtectedRoute>} />
