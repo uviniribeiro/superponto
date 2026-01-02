@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Clock, Fingerprint, Shield, Users, Building2, Landmark, GraduationCap, Heart, Palette, Bus, Settings2, Eye, EyeOff } from 'lucide-react';
@@ -33,55 +32,33 @@ const loginSchema = z.object({
   companyCode: z.string().trim().min(1, 'Código é obrigatório').max(50),
 });
 
-const cnpjRegex = /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/;
-
-const signupSchema = z.object({
-  username: z.string().trim().min(3, 'Login deve ter pelo menos 3 caracteres').max(50).regex(/^[a-zA-Z0-9._-]+$/, 'Login pode conter apenas letras, números, pontos, underscores e hífens'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(100),
-  confirmPassword: z.string(),
-  fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
-  companyName: z.string().trim().min(2, 'Nome da organização é obrigatório').max(100),
-  companyCnpj: z.string().trim().min(14, 'CNPJ é obrigatório').max(18).refine(
-    (val) => cnpjRegex.test(val),
-    { message: 'CNPJ inválido' }
-  ),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Senhas não coincidem",
-  path: ["confirmPassword"],
-});
-
 export default function Auth() {
   const navigate = useNavigate();
-  const { signIn, signUp, user, loading } = useAuth();
+  const { signIn, user, loading, mustChangePassword, isSuperAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [loginType, setLoginType] = useState<LoginType>('company');
   const [cityHalls, setCityHalls] = useState<{ id: string; name: string; code: string }[]>([]);
   const [sectors, setSectors] = useState<{ id: string; name: string; sector: string; code: string }[]>([]);
   const [selectedCityHall, setSelectedCityHall] = useState('');
-  const [signupOrgType, setSignupOrgType] = useState<'company' | 'city_hall'>('company');
   const [showPassword, setShowPassword] = useState(false);
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [loginData, setLoginData] = useState({ 
     username: '', 
     password: '', 
     companyCode: '' 
   });
-  const [signupData, setSignupData] = useState({ 
-    username: '', 
-    password: '', 
-    confirmPassword: '', 
-    fullName: '',
-    companyName: '',
-    companyCnpj: ''
-  });
 
   useEffect(() => {
     if (!loading && user) {
+      // Check if user must change password
+      if (mustChangePassword && !isSuperAdmin) {
+        toast.info('Você precisa alterar sua senha antes de continuar');
+        navigate('/settings');
+        return;
+      }
       navigate('/dashboard');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, mustChangePassword, isSuperAdmin]);
 
   useEffect(() => {
     if (loginType === 'city_hall') {
@@ -178,41 +155,8 @@ export default function Auth() {
           }
         } else {
           toast.success('Login realizado com sucesso!');
-          navigate('/dashboard');
+          // The redirect will be handled by the useEffect based on mustChangePassword
         }
-      }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const validData = signupSchema.parse(signupData);
-      const { error } = await signUp(
-        validData.username, 
-        validData.password, 
-        validData.fullName,
-        validData.companyName,
-        validData.companyCnpj || ''
-      );
-      
-      if (error) {
-        if (error.message.includes('já cadastrado')) {
-          toast.error('Este login ou CNPJ já está cadastrado');
-        } else {
-          toast.error(error.message);
-        }
-      } else {
-        toast.success('Empresa e conta criadas com sucesso! Você já pode fazer login.');
-        navigate('/dashboard');
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -297,7 +241,7 @@ export default function Auth() {
         </p>
       </div>
 
-      {/* Right Panel - Auth Forms */}
+      {/* Right Panel - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md animate-fade-in">
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
@@ -306,358 +250,189 @@ export default function Auth() {
           </div>
 
           <Card className="border-0 shadow-xl">
-            <Tabs defaultValue="login" className="w-full">
+            <form onSubmit={handleLogin}>
               <CardHeader className="pb-4">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Entrar</TabsTrigger>
-                  <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-                </TabsList>
+                <CardTitle>Bem-vindo de volta</CardTitle>
+                <CardDescription>
+                  Selecione o tipo de acesso e informe suas credenciais
+                </CardDescription>
               </CardHeader>
+              
+              <CardContent className="space-y-4">
+                {/* Login Type Selector */}
+                <div className="space-y-2">
+                  <Label>Tipo de Acesso</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      type="button"
+                      variant={loginType === 'company' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-3 gap-1"
+                      onClick={() => {
+                        setLoginType('company');
+                        setLoginData({ ...loginData, companyCode: '' });
+                      }}
+                    >
+                      <Building2 className="h-5 w-5" />
+                      <span className="text-xs">Empresa</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={loginType === 'city_hall' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-3 gap-1"
+                      onClick={() => {
+                        setLoginType('city_hall');
+                        setLoginData({ ...loginData, companyCode: '' });
+                        setSelectedCityHall('');
+                      }}
+                    >
+                      <Landmark className="h-5 w-5" />
+                      <span className="text-xs">Prefeitura</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={loginType === 'super_admin' ? 'default' : 'outline'}
+                      className="flex flex-col h-auto py-3 gap-1"
+                      onClick={() => setLoginType('super_admin')}
+                    >
+                      <Shield className="h-5 w-5" />
+                      <span className="text-xs">Super Admin</span>
+                    </Button>
+                  </div>
+                </div>
 
-              <TabsContent value="login">
-                <form onSubmit={handleLogin}>
-                  <CardContent className="space-y-4">
-                    <CardTitle>Bem-vindo de volta</CardTitle>
-                    <CardDescription>
-                      Selecione o tipo de acesso e informe suas credenciais
-                    </CardDescription>
+                {loginType === 'company' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="login-company">CNPJ da Empresa</Label>
+                    <Input
+                      id="login-company"
+                      type="text"
+                      placeholder="00.000.000/0000-00"
+                      value={loginData.companyCode}
+                      onChange={(e) => setLoginData({ ...loginData, companyCode: e.target.value })}
+                      required
+                    />
+                  </div>
+                )}
 
-                    {/* Login Type Selector */}
+                {loginType === 'city_hall' && (
+                  <>
                     <div className="space-y-2">
-                      <Label>Tipo de Acesso</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Button
-                          type="button"
-                          variant={loginType === 'company' ? 'default' : 'outline'}
-                          className="flex flex-col h-auto py-3 gap-1"
-                          onClick={() => {
-                            setLoginType('company');
-                            setLoginData({ ...loginData, companyCode: '' });
-                          }}
-                        >
-                          <Building2 className="h-5 w-5" />
-                          <span className="text-xs">Empresa</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={loginType === 'city_hall' ? 'default' : 'outline'}
-                          className="flex flex-col h-auto py-3 gap-1"
-                          onClick={() => {
-                            setLoginType('city_hall');
-                            setLoginData({ ...loginData, companyCode: '' });
-                            setSelectedCityHall('');
-                          }}
-                        >
-                          <Landmark className="h-5 w-5" />
-                          <span className="text-xs">Prefeitura</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={loginType === 'super_admin' ? 'default' : 'outline'}
-                          className="flex flex-col h-auto py-3 gap-1"
-                          onClick={() => setLoginType('super_admin')}
-                        >
-                          <Shield className="h-5 w-5" />
-                          <span className="text-xs">Super Admin</span>
-                        </Button>
-                      </div>
+                      <Label>Prefeitura</Label>
+                      <Select
+                        value={selectedCityHall}
+                        onValueChange={(value) => {
+                          setSelectedCityHall(value);
+                          setLoginData({ ...loginData, companyCode: '' });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a prefeitura" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cityHalls.map((ch) => (
+                            <SelectItem key={ch.id} value={ch.id}>
+                              {ch.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
-                    {loginType === 'company' && (
+                    {selectedCityHall && (
                       <div className="space-y-2">
-                        <Label htmlFor="login-company">CNPJ da Empresa</Label>
-                        <Input
-                          id="login-company"
-                          type="text"
-                          placeholder="00.000.000/0000-00"
+                        <Label>Setor</Label>
+                        <Select
                           value={loginData.companyCode}
-                          onChange={(e) => setLoginData({ ...loginData, companyCode: e.target.value })}
-                          required
-                        />
-                      </div>
-                    )}
-
-                    {loginType === 'city_hall' && (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Prefeitura</Label>
-                          <Select
-                            value={selectedCityHall}
-                            onValueChange={(value) => {
-                              setSelectedCityHall(value);
-                              setLoginData({ ...loginData, companyCode: '' });
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione a prefeitura" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {cityHalls.map((ch) => (
-                                <SelectItem key={ch.id} value={ch.id}>
-                                  {ch.name}
+                          onValueChange={(value) => setLoginData({ ...loginData, companyCode: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o setor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sectors.map((s) => {
+                              const sectorInfo = sectorLabels[s.sector] || sectorLabels.other;
+                              const Icon = sectorInfo.icon;
+                              return (
+                                <SelectItem key={s.id} value={s.code}>
+                                  <div className="flex items-center gap-2">
+                                    <Icon className="h-4 w-4" />
+                                    {s.name}
+                                  </div>
                                 </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {selectedCityHall && (
-                          <div className="space-y-2">
-                            <Label>Setor</Label>
-                            <Select
-                              value={loginData.companyCode}
-                              onValueChange={(value) => setLoginData({ ...loginData, companyCode: value })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o setor" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {sectors.map((s) => {
-                                  const sectorInfo = sectorLabels[s.sector] || sectorLabels.other;
-                                  const Icon = sectorInfo.icon;
-                                  return (
-                                    <SelectItem key={s.id} value={s.code}>
-                                      <div className="flex items-center gap-2">
-                                        <Icon className="h-4 w-4" />
-                                        {s.name}
-                                      </div>
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        {cityHalls.length === 0 && (
-                          <p className="text-sm text-muted-foreground">
-                            Nenhuma prefeitura cadastrada. Entre em contato com o administrador.
-                          </p>
-                        )}
-                      </>
-                    )}
-
-                    {loginType !== 'super_admin' && (
-                      <div className="p-3 bg-muted rounded-lg text-xs text-muted-foreground">
-                        {loginType === 'company' 
-                          ? 'Use o CNPJ da sua empresa como código de acesso' 
-                          : 'Selecione sua prefeitura e o setor onde trabalha'}
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="login-username">{loginType === 'super_admin' ? 'Email' : 'Login'}</Label>
-                      <Input
-                        id="login-username"
-                        type={loginType === 'super_admin' ? 'email' : 'text'}
-                        placeholder={loginType === 'super_admin' ? 'admin@email.com' : 'seu.login'}
-                        value={loginData.username}
-                        onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="login-password">Senha</Label>
-                      <div className="relative">
-                        <Input
-                          id="login-password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          value={loginData.password}
-                          onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                          required
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                    </div>
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button 
-                      type="submit" 
-                      className="w-full gradient-primary"
-                      disabled={isLoading || (loginType === 'city_hall' && !loginData.companyCode)}
-                    >
-                      {isLoading ? 'Entrando...' : 'Entrar'}
-                    </Button>
-                  </CardFooter>
-                </form>
-              </TabsContent>
 
-              <TabsContent value="signup">
-                <form onSubmit={handleSignup}>
-                  <CardContent className="space-y-4">
-                    <CardTitle>Cadastrar Organização</CardTitle>
-                    <CardDescription>
-                      Crie uma conta para sua empresa
-                    </CardDescription>
-
-                    <div className="space-y-2">
-                      <Label>Tipo de Organização</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button
-                          type="button"
-                          variant={signupOrgType === 'company' ? 'default' : 'outline'}
-                          className="flex items-center gap-2"
-                          onClick={() => setSignupOrgType('company')}
-                        >
-                          <Building2 className="h-4 w-4" />
-                          Empresa
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={signupOrgType === 'city_hall' ? 'default' : 'outline'}
-                          className="flex items-center gap-2"
-                          onClick={() => setSignupOrgType('city_hall')}
-                        >
-                          <Landmark className="h-4 w-4" />
-                          Prefeitura
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="p-3 bg-muted rounded-lg">
-                      <p className="text-sm font-medium mb-2">
-                        {signupOrgType === 'company' ? 'Dados da Empresa' : 'Dados da Prefeitura'}
+                    {cityHalls.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma prefeitura cadastrada. Entre em contato com o administrador.
                       </p>
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="signup-company-name">
-                            {signupOrgType === 'company' ? 'Razão Social *' : 'Nome da Prefeitura *'}
-                          </Label>
-                          <Input
-                            id="signup-company-name"
-                            type="text"
-                            placeholder={signupOrgType === 'company' ? 'Razão Social' : 'Prefeitura Municipal de...'}
-                            value={signupData.companyName}
-                            onChange={(e) => setSignupData({ ...signupData, companyName: e.target.value })}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="signup-cnpj">CNPJ *</Label>
-                          <Input
-                            id="signup-cnpj"
-                            type="text"
-                            placeholder="00.000.000/0000-00"
-                            value={signupData.companyCnpj}
-                            onChange={(e) => setSignupData({ ...signupData, companyCnpj: e.target.value })}
-                            required
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            O CNPJ será usado como código de acesso
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {signupOrgType === 'city_hall' && (
-                      <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                        <p className="text-sm text-blue-700 dark:text-blue-300">
-                          <strong>Nota:</strong> Após criar a prefeitura, você poderá adicionar os setores (Educação, Saúde, etc.) pelo painel de Super Admin.
-                        </p>
-                      </div>
                     )}
+                  </>
+                )}
 
-                    <div className="p-3 bg-muted rounded-lg">
-                      <p className="text-sm font-medium mb-2">Administrador</p>
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="signup-name">Nome Completo *</Label>
-                          <Input
-                            id="signup-name"
-                            type="text"
-                            placeholder="Seu nome"
-                            value={signupData.fullName}
-                            onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
-                            required
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="signup-username">Login *</Label>
-                          <Input
-                            id="signup-username"
-                            type="text"
-                            placeholder="admin"
-                            value={signupData.username}
-                            onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
-                            required
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Apenas letras, números, pontos, underscores e hífens
-                          </p>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="signup-password">Senha *</Label>
-                            <div className="relative">
-                              <Input
-                                id="signup-password"
-                                type={showSignupPassword ? "text" : "password"}
-                                placeholder="••••••"
-                                value={signupData.password}
-                                onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                                required
-                                className="pr-10"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowSignupPassword(!showSignupPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="signup-confirm">Confirmar *</Label>
-                            <div className="relative">
-                              <Input
-                                id="signup-confirm"
-                                type={showConfirmPassword ? "text" : "password"}
-                                placeholder="••••••"
-                                value={signupData.confirmPassword}
-                                onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                                required
-                                className="pr-10"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button 
-                      type="submit" 
-                      className="w-full gradient-primary"
-                      disabled={isLoading}
+                {loginType !== 'super_admin' && (
+                  <div className="p-3 bg-muted rounded-lg text-xs text-muted-foreground">
+                    Use o CNPJ da sua organização como código de acesso
+                  </div>
+                )}
+
+                {loginType === 'super_admin' && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-700 dark:text-amber-300">
+                    Área restrita para administradores do sistema
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="login-username">
+                    {loginType === 'super_admin' ? 'Email' : 'Login'}
+                  </Label>
+                  <Input
+                    id="login-username"
+                    type="text"
+                    placeholder={loginType === 'super_admin' ? 'admin@sistema.com' : 'seu.login'}
+                    value={loginData.username}
+                    onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="login-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••"
+                      value={loginData.password}
+                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                      required
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {isLoading ? 'Cadastrando...' : signupOrgType === 'company' ? 'Criar Empresa' : 'Criar Prefeitura'}
-                    </Button>
-                  </CardFooter>
-                </form>
-              </TabsContent>
-            </Tabs>
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              </CardContent>
+              
+              <CardFooter>
+                <Button 
+                  type="submit" 
+                  className="w-full gradient-primary"
+                  disabled={isLoading || (loginType === 'city_hall' && !loginData.companyCode)}
+                >
+                  {isLoading ? 'Entrando...' : 'Entrar'}
+                </Button>
+              </CardFooter>
+            </form>
           </Card>
         </div>
       </div>

@@ -104,7 +104,7 @@ export default function SuperAdminCompanies() {
           console.error('Error creating support user:', supportError);
           toast.warning('Empresa criada, mas houve erro ao criar usuário de suporte');
         } else if (supportData) {
-          toast.success(`Empresa cadastrada! Login de suporte: ${supportData.email} / Senha: V1n1@`);
+          toast.success(`Empresa cadastrada! Login de suporte: ${supportData.email} / Senha: Super@25`);
         }
       } catch (supportErr) {
         console.error('Error calling create-support-user:', supportErr);
