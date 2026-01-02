@@ -6,8 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Building2, Save, Upload, X } from 'lucide-react';
+import { Building2, Save, Upload, X, Key, Calendar, Users, AlertCircle } from 'lucide-react';
+import { format, differenceInDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface CompanySettings {
   id?: string;
@@ -26,6 +29,16 @@ interface CompanySettings {
   overtime_alert_email: string;
   whatsapp_alert_phone: string;
   logo_url: string;
+}
+
+interface LicenseInfo {
+  id: string;
+  license_key: string;
+  license_type: string;
+  max_employees: number | null;
+  valid_from: string;
+  valid_until: string;
+  is_active: boolean;
 }
 
 export default function Company() {
@@ -48,41 +61,78 @@ export default function Company() {
     whatsapp_alert_phone: '',
     logo_url: ''
   });
+  const [license, setLicense] = useState<LicenseInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [company?.id]);
 
   const fetchSettings = async () => {
     try {
-      const { data } = await supabase
+      // Fetch company settings
+      const { data: settingsData } = await supabase
         .from('company_settings')
         .select('*')
         .limit(1)
         .maybeSingle();
 
-      if (data) {
+      if (settingsData) {
         setSettings({
-          id: data.id,
-          company_name: data.company_name || '',
-          cnpj: data.cnpj || '',
-          cei: data.cei || '',
-          address: data.address || '',
-          city: data.city || '',
-          state: data.state || '',
-          rep_number: data.rep_number || '',
-          rep_manufacturer: data.rep_manufacturer || '',
-          rep_model: data.rep_model || '',
-          daily_overtime_limit_hours: data.daily_overtime_limit_hours ?? 2,
-          weekly_overtime_limit_hours: data.weekly_overtime_limit_hours ?? 10,
-          monthly_overtime_limit_hours: data.monthly_overtime_limit_hours ?? 44,
-          overtime_alert_email: data.overtime_alert_email || '',
-          whatsapp_alert_phone: (data as any).whatsapp_alert_phone || '',
-          logo_url: (data as any).logo_url || ''
+          id: settingsData.id,
+          company_name: settingsData.company_name || '',
+          cnpj: settingsData.cnpj || '',
+          cei: settingsData.cei || '',
+          address: settingsData.address || '',
+          city: settingsData.city || '',
+          state: settingsData.state || '',
+          rep_number: settingsData.rep_number || '',
+          rep_manufacturer: settingsData.rep_manufacturer || '',
+          rep_model: settingsData.rep_model || '',
+          daily_overtime_limit_hours: settingsData.daily_overtime_limit_hours ?? 2,
+          weekly_overtime_limit_hours: settingsData.weekly_overtime_limit_hours ?? 10,
+          monthly_overtime_limit_hours: settingsData.monthly_overtime_limit_hours ?? 44,
+          overtime_alert_email: settingsData.overtime_alert_email || '',
+          whatsapp_alert_phone: (settingsData as any).whatsapp_alert_phone || '',
+          logo_url: (settingsData as any).logo_url || ''
         });
+      } else if (company) {
+        // If no settings exist, try to populate from company data
+        const { data: companyData } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('id', company.id)
+          .single();
+        
+        if (companyData) {
+          setSettings(prev => ({
+            ...prev,
+            company_name: companyData.name || '',
+            cnpj: companyData.cnpj || '',
+            address: companyData.address || '',
+            city: companyData.city || '',
+            state: companyData.state || '',
+            logo_url: companyData.logo_url || ''
+          }));
+        }
+      }
+
+      // Fetch license info
+      if (company?.id) {
+        const { data: licenseData } = await supabase
+          .from('licenses')
+          .select('*')
+          .eq('company_id', company.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (licenseData) {
+          setLicense(licenseData as LicenseInfo);
+        }
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -165,7 +215,8 @@ export default function Company() {
         monthly_overtime_limit_hours: settings.monthly_overtime_limit_hours,
         overtime_alert_email: settings.overtime_alert_email || null,
         whatsapp_alert_phone: settings.whatsapp_alert_phone || null,
-        logo_url: settings.logo_url || null
+        logo_url: settings.logo_url || null,
+        company_id: company?.id || null
       };
 
       if (settings.id) {
@@ -192,7 +243,10 @@ export default function Company() {
             cnpj: settings.cnpj,
             company_code: normalizedCnpj,
             name: settings.company_name,
-            logo_url: settings.logo_url || null
+            logo_url: settings.logo_url || null,
+            address: settings.address || null,
+            city: settings.city || null,
+            state: settings.state || null
           })
           .eq('id', company.id);
         
@@ -221,6 +275,28 @@ export default function Company() {
       .slice(0, 2);
   };
 
+  const getLicenseTypeLabel = (type: string) => {
+    const types: Record<string, string> = {
+      'monthly': 'Mensal',
+      'annual': 'Anual',
+      'lifetime': 'Vitalícia'
+    };
+    return types[type] || type;
+  };
+
+  const getLicenseStatus = () => {
+    if (!license) return { label: 'Sem licença', variant: 'destructive' as const, icon: AlertCircle };
+    
+    const today = new Date();
+    const validUntil = new Date(license.valid_until);
+    const daysLeft = differenceInDays(validUntil, today);
+    
+    if (!license.is_active) return { label: 'Inativa', variant: 'secondary' as const, icon: AlertCircle };
+    if (daysLeft < 0) return { label: 'Expirada', variant: 'destructive' as const, icon: AlertCircle };
+    if (daysLeft <= 30) return { label: `${daysLeft} dias restantes`, variant: 'outline' as const, icon: AlertCircle };
+    return { label: 'Ativa', variant: 'default' as const, icon: Key };
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -228,6 +304,8 @@ export default function Company() {
       </div>
     );
   }
+
+  const licenseStatus = getLicenseStatus();
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
@@ -238,6 +316,63 @@ export default function Company() {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Configure os dados da empresa para os relatórios AFD/AFDT</p>
       </div>
+
+      {/* License Card */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Key className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Licença de Uso</CardTitle>
+                <CardDescription>
+                  Informações da sua licença do sistema
+                </CardDescription>
+              </div>
+            </div>
+            <Badge variant={licenseStatus.variant}>
+              {licenseStatus.label}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {license ? (
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Chave da Licença</p>
+                <p className="font-mono text-sm font-medium">{license.license_key}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Tipo</p>
+                <p className="text-sm font-medium">{getLicenseTypeLabel(license.license_type)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Users className="h-3 w-3" /> Funcionários
+                </p>
+                <p className="text-sm font-medium">
+                  {license.max_employees === null ? 'Ilimitado' : `Até ${license.max_employees}`}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> Validade
+                </p>
+                <p className="text-sm font-medium">
+                  {format(new Date(license.valid_until), "dd/MM/yyyy", { locale: ptBR })}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <AlertCircle className="h-5 w-5" />
+              <p className="text-sm">Nenhuma licença ativa encontrada. Entre em contato com o suporte.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-4">

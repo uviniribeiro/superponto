@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,8 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { Landmark, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, ChevronDown, Trash2, GraduationCap, Heart, Palette, Bus, Settings2, Building2, Users } from 'lucide-react';
-import { format } from 'date-fns';
+import { Landmark, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, ChevronDown, Trash2, GraduationCap, Heart, Palette, Bus, Settings2, Building2, Users, Calendar } from 'lucide-react';
+import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +28,9 @@ interface Company {
   organization_type: 'company' | 'city_hall';
   sector: string | null;
   parent_organization_id: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
 }
 
 const sectorOptions = [
@@ -42,18 +46,61 @@ const sectorOptions = [
   { value: 'other', label: 'Outros', icon: Settings2 },
 ];
 
+const contractDurationOptions = [
+  { value: 1, label: '1 mês' },
+  { value: 6, label: '6 meses' },
+  { value: 12, label: '1 ano' },
+  { value: 24, label: '2 anos' },
+  { value: 36, label: '3 anos' },
+  { value: 48, label: '4 anos' },
+  { value: 60, label: '5 anos' },
+  { value: 1200, label: 'Vitalício' },
+];
+
+const employeeLimits = [
+  { value: 50, label: '50 funcionários' },
+  { value: 100, label: '100 funcionários' },
+  { value: 200, label: '200 funcionários' },
+  { value: 300, label: '300 funcionários' },
+  { value: 500, label: '500 funcionários' },
+  { value: 1000, label: '1.000 funcionários' },
+  { value: -1, label: 'Ilimitado' },
+];
+
 const cityHallSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
   cnpj: z.string().min(14, 'CNPJ inválido').max(18),
 });
 
+const generateLicenseKey = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const parts: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    let segment = '';
+    for (let j = 0; j < 4; j++) {
+      segment += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    parts.push(segment);
+  }
+  return parts.join('-');
+};
+
 export default function SuperAdminCityHalls() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '', cnpj: '' });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    cnpj: '',
+    address: '',
+    city: '',
+    state: '',
+    contractDuration: 12,
+    maxEmployees: 100
+  });
   
   const [isSectorDialogOpen, setIsSectorDialogOpen] = useState(false);
   const [selectedCityHall, setSelectedCityHall] = useState<Company | null>(null);
@@ -85,6 +132,11 @@ export default function SuperAdminCityHalls() {
   const getSectors = (cityHallId: string) => companies.filter(c => c.parent_organization_id === cityHallId);
 
   const handleCreateCityHall = async () => {
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
     try {
       const validData = cityHallSchema.parse(formData);
       const normalizedCnpj = formData.cnpj.replace(/[^\d]/g, '');
@@ -100,6 +152,7 @@ export default function SuperAdminCityHalls() {
         return;
       }
 
+      // Create the city hall
       const { data: newCityHall, error } = await supabase
         .from('companies')
         .insert({
@@ -107,12 +160,52 @@ export default function SuperAdminCityHalls() {
           cnpj: formData.cnpj,
           company_code: normalizedCnpj,
           organization_type: 'city_hall',
-          license_status: 'pending'
+          license_status: 'active',
+          address: formData.address || null,
+          city: formData.city || null,
+          state: formData.state || null
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Create the license based on contract duration
+      const licenseKey = generateLicenseKey();
+      const validFrom = new Date();
+      const validUntil = addMonths(validFrom, formData.contractDuration);
+      const maxEmployees = formData.maxEmployees === -1 ? null : formData.maxEmployees;
+      
+      let licenseType = 'annual';
+      if (formData.contractDuration === 1) licenseType = 'monthly';
+      else if (formData.contractDuration >= 1200) licenseType = 'lifetime';
+
+      const { error: licenseError } = await supabase.from('licenses').insert({
+        company_id: newCityHall.id,
+        license_key: licenseKey,
+        valid_from: validFrom.toISOString().split('T')[0],
+        valid_until: validUntil.toISOString().split('T')[0],
+        max_employees: maxEmployees,
+        is_active: true,
+        created_by: user.id,
+        license_type: licenseType,
+        notes: `Contrato de ${contractDurationOptions.find(c => c.value === formData.contractDuration)?.label || formData.contractDuration + ' meses'}`
+      });
+
+      if (licenseError) {
+        console.error('Error creating license:', licenseError);
+        toast.warning('Prefeitura criada, mas houve erro ao criar licença');
+      }
+
+      // Create company_settings
+      await supabase.from('company_settings').insert({
+        company_id: newCityHall.id,
+        company_name: validData.name,
+        cnpj: formData.cnpj,
+        address: formData.address || null,
+        city: formData.city || null,
+        state: formData.state || null
+      });
 
       // Create support and admin users for the new city hall
       try {
@@ -128,12 +221,13 @@ export default function SuperAdminCityHalls() {
           toast.warning('Prefeitura criada, mas houve erro ao criar usuários');
         } else if (usersData?.success) {
           const creds = usersData.credentials;
+          const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
           if (creds?.support?.temporaryPassword || creds?.admin?.temporaryPassword) {
             const supportInfo = creds?.support ? `Suporte: suporte/${creds.support.temporaryPassword}` : '';
             const adminInfo = creds?.admin ? `Admin: admin/${creds.admin.temporaryPassword}` : '';
-            toast.success(`Prefeitura cadastrada! ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
+            toast.success(`Prefeitura cadastrada! Licença válida até ${validUntilFormatted}. ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
           } else {
-            toast.success('Prefeitura cadastrada! Usuários criados (já existiam ou foram criados anteriormente).');
+            toast.success(`Prefeitura cadastrada! Licença válida até ${validUntilFormatted}.`);
           }
         }
       } catch (err) {
@@ -142,7 +236,7 @@ export default function SuperAdminCityHalls() {
       }
 
       setIsDialogOpen(false);
-      setFormData({ name: '', cnpj: '' });
+      setFormData({ name: '', cnpj: '', address: '', city: '', state: '', contractDuration: 12, maxEmployees: 100 });
       fetchCompanies();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -434,14 +528,14 @@ export default function SuperAdminCityHalls() {
 
       {/* Create City Hall Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Nova Prefeitura</DialogTitle>
-            <DialogDescription>Cadastre uma nova prefeitura no sistema</DialogDescription>
+            <DialogDescription>Cadastre uma nova prefeitura com contrato e licença</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome da Prefeitura</Label>
+              <Label htmlFor="name">Nome da Prefeitura *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -450,13 +544,97 @@ export default function SuperAdminCityHalls() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ</Label>
+              <Label htmlFor="cnpj">CNPJ *</Label>
               <Input
                 id="cnpj"
                 value={formData.cnpj}
                 onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
                 placeholder="00.000.000/0000-00"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Endereço</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Endereço completo"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">Cidade</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="Cidade"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">Estado</Label>
+                <Input
+                  id="state"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  placeholder="UF"
+                  maxLength={2}
+                />
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <p className="text-sm font-medium mb-3 flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                Dados do Contrato e Licença
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contractDuration" className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Tempo de Contrato
+                  </Label>
+                  <Select 
+                    value={formData.contractDuration.toString()} 
+                    onValueChange={(value) => setFormData({ ...formData, contractDuration: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contractDurationOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value.toString()}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxEmployees" className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    Limite de Funcionários
+                  </Label>
+                  <Select 
+                    value={formData.maxEmployees.toString()} 
+                    onValueChange={(value) => setFormData({ ...formData, maxEmployees: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o limite" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employeeLimits.map((option) => (
+                        <SelectItem key={option.value} value={option.value.toString()}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                A licença será gerada automaticamente com a validade de acordo com o tempo de contrato selecionado.
+              </p>
             </div>
           </div>
           <DialogFooter>
@@ -472,39 +650,39 @@ export default function SuperAdminCityHalls() {
           <DialogHeader>
             <DialogTitle>Novo Setor</DialogTitle>
             <DialogDescription>
-              Adicionar setor para: {selectedCityHall?.name}
+              Adicione um setor para {selectedCityHall?.name}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="sector-type">Tipo de Setor</Label>
-              <Select 
-                value={sectorFormData.sector} 
-                onValueChange={(value) => setSectorFormData({ ...sectorFormData, sector: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {sectorOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      <div className="flex items-center gap-2">
-                        <opt.icon className="h-4 w-4" />
-                        {opt.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <Label htmlFor="sector-name">Nome do Setor</Label>
               <Input
                 id="sector-name"
                 value={sectorFormData.name}
                 onChange={(e) => setSectorFormData({ ...sectorFormData, name: e.target.value })}
-                placeholder="Secretaria de..."
+                placeholder="Ex: Secretaria Municipal de Educação"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sector-type">Tipo do Setor</Label>
+              <Select value={sectorFormData.sector} onValueChange={(value) => setSectorFormData({ ...sectorFormData, sector: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sectorOptions.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          {option.label}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
