@@ -3,10 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wifi, WifiOff, RefreshCw, Trash2, Edit, Activity } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw, Trash2, Edit, Activity, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useEquipmentData, getManufacturerLabel, getModelLabel } from '@/hooks/useEquipmentData';
+import { useEquipmentData, getManufacturerLabel, getModelLabel, PORTARIA_OPTIONS } from '@/hooks/useEquipmentData';
 import EquipmentFormDialog from '@/components/equipment/EquipmentFormDialog';
 
 export default function EquipmentList() {
@@ -21,12 +21,25 @@ export default function EquipmentList() {
   const [editingEquipment, setEditingEquipment] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const getPortariaLabel = (value: string | null | undefined) => {
+    return PORTARIA_OPTIONS.find(p => p.value === value)?.label || 'Portaria 671';
+  };
+
+  const getPortariaBadgeVariant = (value: string | null | undefined) => {
+    switch (value) {
+      case 'portaria_671': return 'default';
+      case 'portaria_1510': return 'secondary';
+      case 'portaria_373': return 'outline';
+      default: return 'default';
+    }
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Lista de Equipamentos</h1>
-          <p className="text-muted-foreground">Relógios de ponto cadastrados no sistema</p>
+          <p className="text-muted-foreground">Relógios de ponto cadastrados conforme Portarias MTE</p>
         </div>
         <Button
           variant="outline"
@@ -40,9 +53,13 @@ export default function EquipmentList() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Equipamentos Cadastrados</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Equipamentos Cadastrados
+          </CardTitle>
           <CardDescription>
-            A sincronização automática ocorre a cada minuto.
+            Equipamentos homologados conforme Portarias 671, 1510 e 373 do MTE. 
+            Sincronização automática a cada minuto.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -58,9 +75,9 @@ export default function EquipmentList() {
                 <TableRow>
                   <TableHead>Status</TableHead>
                   <TableHead>Nome</TableHead>
+                  <TableHead>Portaria</TableHead>
                   <TableHead>Fabricante / Modelo</TableHead>
                   <TableHead>IP:Porta</TableHead>
-                  <TableHead>Localização</TableHead>
                   <TableHead>Última Comunicação</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
@@ -86,7 +103,21 @@ export default function EquipmentList() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{equipment.name}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{equipment.name}</span>
+                        {equipment.rep_number && (
+                          <span className="text-xs text-muted-foreground font-mono">
+                            REP: {equipment.rep_number}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getPortariaBadgeVariant((equipment as any).portaria_compliance)}>
+                        {getPortariaLabel((equipment as any).portaria_compliance)}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium">{getManufacturerLabel(equipment.manufacturer)}</span>
@@ -98,7 +129,6 @@ export default function EquipmentList() {
                     <TableCell className="font-mono text-sm">
                       {equipment.ip_address}:{equipment.port}
                     </TableCell>
-                    <TableCell>{equipment.location || '-'}</TableCell>
                     <TableCell>
                       {equipment.last_communication ? (
                         <span className="text-sm">

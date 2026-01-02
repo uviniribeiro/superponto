@@ -158,6 +158,9 @@ export interface Equipment {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  // Portaria compliance fields
+  portaria_compliance?: 'portaria_671' | 'portaria_1510' | 'portaria_373' | null;
+  rep_number?: string | null;
 }
 
 export interface CommunicationLog {
@@ -213,7 +216,16 @@ export const defaultEquipment: Partial<Equipment> = {
   sync_interval_seconds: 60,
   location: '',
   notes: '',
+  portaria_compliance: 'portaria_671',
+  rep_number: '',
 };
+
+// Portaria compliance options
+export const PORTARIA_OPTIONS = [
+  { value: 'portaria_671', label: 'Portaria 671 (REP-P/REP-A/REP-C)' },
+  { value: 'portaria_1510', label: 'Portaria 1510 (REP Convencional)' },
+  { value: 'portaria_373', label: 'Portaria 373 (Alternativo)' },
+];
 
 export function getManufacturerLabel(value: string) {
   return EQUIPMENT_CATALOG.find(m => m.manufacturer === value)?.label || value;
