@@ -7,11 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap, Calendar, Users } from 'lucide-react';
+import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap, Calendar, Users, Trash2, Loader2, Phone } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
@@ -30,6 +31,8 @@ interface Company {
   address: string | null;
   city: string | null;
   state: string | null;
+  phone: string | null;
+  trade_name: string | null;
 }
 
 const licenseTypeOptions = [
@@ -73,12 +76,15 @@ export default function SuperAdminCompanies() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [lookingUpCnpj, setLookingUpCnpj] = useState(false);
   const [formData, setFormData] = useState({ 
     name: '', 
+    tradeName: '',
     cnpj: '',
     address: '',
     city: '',
     state: '',
+    phone: '',
     teacherModuleEnabled: false,
     licenseType: 'annual',
     maxEmployees: 100
@@ -103,6 +109,38 @@ export default function SuperAdminCompanies() {
       toast.error('Erro ao carregar empresas');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCnpjLookup = async (cnpj: string) => {
+    const cleanCnpj = cnpj.replace(/[^\d]/g, '');
+    if (cleanCnpj.length !== 14) return;
+
+    setLookingUpCnpj(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('cnpj-lookup', {
+        body: { cnpj: cleanCnpj }
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          name: data.razao_social || prev.name,
+          tradeName: data.nome_fantasia || '',
+          address: data.address || prev.address,
+          city: data.city || prev.city,
+          state: data.state || prev.state,
+          phone: data.phone || prev.phone,
+        }));
+        toast.success('Dados do CNPJ carregados com sucesso!');
+      }
+    } catch (error: any) {
+      console.error('Error looking up CNPJ:', error);
+      toast.error(error.message || 'Erro ao consultar CNPJ');
+    } finally {
+      setLookingUpCnpj(false);
     }
   };
 
@@ -131,11 +169,13 @@ export default function SuperAdminCompanies() {
         .from('companies')
         .insert({
           name: validData.name,
+          trade_name: formData.tradeName || null,
           cnpj: formData.cnpj,
           company_code: normalizedCnpj,
           organization_type: 'company',
           license_status: 'active',
           teacher_module_enabled: formData.teacherModuleEnabled,
+          phone: formData.phone || null,
           address: formData.address || null,
           city: formData.city || null,
           state: formData.state || null
@@ -173,10 +213,12 @@ export default function SuperAdminCompanies() {
       await supabase.from('company_settings').insert({
         company_id: newCompany.id,
         company_name: validData.name,
+        trade_name: formData.tradeName || null,
         cnpj: formData.cnpj,
         address: formData.address || null,
         city: formData.city || null,
-        state: formData.state || null
+        state: formData.state || null,
+        phone: formData.phone || null
       });
 
       // Create support and admin users for the new company
@@ -208,7 +250,7 @@ export default function SuperAdminCompanies() {
       }
 
       setIsDialogOpen(false);
-      setFormData({ name: '', cnpj: '', address: '', city: '', state: '', teacherModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
+      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
       fetchCompanies();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -233,6 +275,27 @@ export default function SuperAdminCompanies() {
     } catch (error) {
       console.error('Error toggling status:', error);
       toast.error('Erro ao alterar status');
+    }
+  };
+
+  const handleDeleteCompany = async (company: Company) => {
+    try {
+      // Delete related records first
+      await supabase.from('licenses').delete().eq('company_id', company.id);
+      await supabase.from('company_settings').delete().eq('company_id', company.id);
+      
+      // Delete the company
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .eq('id', company.id);
+
+      if (error) throw error;
+      toast.success('Empresa excluída com sucesso');
+      fetchCompanies();
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      toast.error('Erro ao excluir empresa. Verifique se há dados vinculados.');
     }
   };
 
@@ -336,6 +399,27 @@ export default function SuperAdminCompanies() {
                         >
                           {company.is_active ? <XCircle className="h-4 w-4 text-destructive" /> : <CheckCircle className="h-4 w-4 text-green-500" />}
                         </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir Empresa</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir a empresa "{company.name}"? Esta ação não pode ser desfeita e todos os dados serão perdidos.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteCompany(company)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                         <Button variant="ghost" size="sm" onClick={fetchCompanies}>
                           <RefreshCw className="h-4 w-4" />
                         </Button>
@@ -372,11 +456,34 @@ export default function SuperAdminCompanies() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="cnpj">CNPJ *</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="cnpj"
+                  value={formData.cnpj}
+                  onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                  onBlur={() => handleCnpjLookup(formData.cnpj)}
+                  placeholder="00.000.000/0000-00"
+                  className="flex-1"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => handleCnpjLookup(formData.cnpj)}
+                  disabled={lookingUpCnpj}
+                >
+                  {lookingUpCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Digite o CNPJ e os dados serão preenchidos automaticamente</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tradeName">Nome Fantasia</Label>
               <Input
-                id="cnpj"
-                value={formData.cnpj}
-                onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                placeholder="00.000.000/0000-00"
+                id="tradeName"
+                value={formData.tradeName}
+                onChange={(e) => setFormData({ ...formData, tradeName: e.target.value })}
+                placeholder="Nome fantasia"
+                disabled={lookingUpCnpj}
               />
             </div>
             <div className="space-y-2">
@@ -386,6 +493,7 @@ export default function SuperAdminCompanies() {
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Endereço completo"
+                disabled={lookingUpCnpj}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -396,6 +504,7 @@ export default function SuperAdminCompanies() {
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   placeholder="Cidade"
+                  disabled={lookingUpCnpj}
                 />
               </div>
               <div className="space-y-2">
@@ -406,8 +515,22 @@ export default function SuperAdminCompanies() {
                   onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                   placeholder="UF"
                   maxLength={2}
+                  disabled={lookingUpCnpj}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                Telefone
+              </Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="(00) 00000-0000"
+                disabled={lookingUpCnpj}
+              />
             </div>
             
             <div className="p-3 bg-muted/50 rounded-lg space-y-3">
