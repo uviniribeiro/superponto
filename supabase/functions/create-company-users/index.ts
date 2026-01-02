@@ -10,8 +10,28 @@ interface CreateUsersRequest {
   companyId?: string;
 }
 
-const DEFAULT_SUPPORT_PASSWORD = 'Super@25';
-const DEFAULT_ADMIN_PASSWORD = 'Admin@25';
+// Generate a secure random password
+const generateSecurePassword = (): string => {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  let password = '';
+  for (let i = 0; i < bytes.length; i++) {
+    password += charset[bytes[i] % charset.length];
+  }
+  // Ensure at least one of each required character type
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const digit = '0123456789';
+  const special = '!@#$%^&*';
+  
+  password = password.slice(0, -4) + 
+    lower[bytes[0] % lower.length] +
+    upper[bytes[1] % upper.length] +
+    digit[bytes[2] % digit.length] +
+    special[bytes[3] % special.length];
+  
+  return password;
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -43,9 +63,8 @@ Deno.serve(async (req) => {
     // Helper function to create a user for a company
     const createUserForCompany = async (
       company: { id: string; name: string; company_code: string },
-      userType: 'suporte' | 'admin',
-      password: string
-    ) => {
+      userType: 'suporte' | 'admin'
+    ): Promise<{ success: boolean; exists?: boolean; userId?: string; error?: string; temporaryPassword?: string }> => {
       const username = userType;
       const email = generateInternalEmail(username, company.id);
       const fullName = userType === 'suporte' ? 'Usuário Suporte' : 'Administrador';
@@ -65,14 +84,18 @@ Deno.serve(async (req) => {
         return { success: true, exists: true, userId: existingProfile.user_id };
       }
 
-      // Create auth user
+      // Generate secure random password for this user
+      const securePassword = generateSecurePassword();
+
+      // Create auth user with must_change_password flag
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
-        password,
+        password: securePassword,
         email_confirm: true,
         user_metadata: {
           full_name: fullName,
-          company_id: company.id
+          company_id: company.id,
+          must_change_password: true
         }
       });
 
@@ -83,7 +106,7 @@ Deno.serve(async (req) => {
 
       const userId = authData.user.id;
 
-      // Create profile
+      // Create profile with must_change_password = true
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -92,7 +115,7 @@ Deno.serve(async (req) => {
           full_name: fullName,
           company_id: company.id,
           is_active: true,
-          must_change_password: userType === 'suporte' ? false : true
+          must_change_password: true
         });
 
       if (profileError) {
@@ -115,11 +138,6 @@ Deno.serve(async (req) => {
         console.error(`Error assigning role for ${userType}:`, roleError);
       }
 
-      // For admin, also add admin role
-      if (userType === 'admin') {
-        // Already inserted admin role above
-      }
-
       // For support, also add admin role so they can help
       if (userType === 'suporte') {
         const { error: adminRoleError } = await supabase
@@ -135,7 +153,7 @@ Deno.serve(async (req) => {
       }
 
       console.log(`Successfully created ${userType} user for company ${company.name}`);
-      return { success: true, exists: false, userId };
+      return { success: true, exists: false, userId, temporaryPassword: securePassword };
     };
 
     if (action === 'list-company-users' && companyId) {
@@ -150,6 +168,7 @@ Deno.serve(async (req) => {
           is_active,
           position,
           department,
+          must_change_password,
           created_at
         `)
         .eq('company_id', companyId)
@@ -193,18 +212,38 @@ Deno.serve(async (req) => {
         );
       }
 
-      const supportResult = await createUserForCompany(company, 'suporte', DEFAULT_SUPPORT_PASSWORD);
-      const adminResult = await createUserForCompany(company, 'admin', DEFAULT_ADMIN_PASSWORD);
+      const supportResult = await createUserForCompany(company, 'suporte');
+      const adminResult = await createUserForCompany(company, 'admin');
+
+      // Build credentials object only for new users
+      const credentials: {
+        support?: { username: string; temporaryPassword: string; mustChangePassword: boolean };
+        admin?: { username: string; temporaryPassword: string; mustChangePassword: boolean };
+      } = {};
+
+      if (!supportResult.exists && supportResult.temporaryPassword) {
+        credentials.support = {
+          username: 'suporte',
+          temporaryPassword: supportResult.temporaryPassword,
+          mustChangePassword: true
+        };
+      }
+
+      if (!adminResult.exists && adminResult.temporaryPassword) {
+        credentials.admin = {
+          username: 'admin',
+          temporaryPassword: adminResult.temporaryPassword,
+          mustChangePassword: true
+        };
+      }
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          support: supportResult,
-          admin: adminResult,
-          credentials: {
-            support: { username: 'suporte', password: DEFAULT_SUPPORT_PASSWORD },
-            admin: { username: 'admin', password: DEFAULT_ADMIN_PASSWORD }
-          }
+          support: { success: supportResult.success, exists: supportResult.exists, userId: supportResult.userId },
+          admin: { success: adminResult.success, exists: adminResult.exists, userId: adminResult.userId },
+          credentials,
+          note: 'Temporary passwords are shown only once. Users must change password on first login.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -224,15 +263,43 @@ Deno.serve(async (req) => {
       const results = [];
 
       for (const company of companies || []) {
-        const supportResult = await createUserForCompany(company, 'suporte', DEFAULT_SUPPORT_PASSWORD);
-        const adminResult = await createUserForCompany(company, 'admin', DEFAULT_ADMIN_PASSWORD);
+        const supportResult = await createUserForCompany(company, 'suporte');
+        const adminResult = await createUserForCompany(company, 'admin');
 
-        results.push({
+        // Only include temporary passwords for newly created users
+        const companyResult: {
+          company: string;
+          companyId: string;
+          support: { success: boolean; exists?: boolean };
+          admin: { success: boolean; exists?: boolean };
+          newCredentials?: {
+            support?: { username: string; temporaryPassword: string };
+            admin?: { username: string; temporaryPassword: string };
+          };
+        } = {
           company: company.name,
           companyId: company.id,
-          support: supportResult,
-          admin: adminResult
-        });
+          support: { success: supportResult.success, exists: supportResult.exists },
+          admin: { success: adminResult.success, exists: adminResult.exists }
+        };
+
+        if (!supportResult.exists || !adminResult.exists) {
+          companyResult.newCredentials = {};
+          if (!supportResult.exists && supportResult.temporaryPassword) {
+            companyResult.newCredentials.support = {
+              username: 'suporte',
+              temporaryPassword: supportResult.temporaryPassword
+            };
+          }
+          if (!adminResult.exists && adminResult.temporaryPassword) {
+            companyResult.newCredentials.admin = {
+              username: 'admin',
+              temporaryPassword: adminResult.temporaryPassword
+            };
+          }
+        }
+
+        results.push(companyResult);
       }
 
       console.log(`Created users for ${results.length} companies`);
@@ -241,10 +308,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           results,
-          defaultCredentials: {
-            support: { username: 'suporte', password: DEFAULT_SUPPORT_PASSWORD },
-            admin: { username: 'admin', password: DEFAULT_ADMIN_PASSWORD }
-          }
+          note: 'Temporary passwords are shown only once. Users must change password on first login.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
