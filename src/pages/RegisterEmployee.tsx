@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { UserPlus, Shield, ArrowLeft } from 'lucide-react';
+import { UserPlus, Shield, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Checkbox } from '@/components/ui/checkbox';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { PhotoCapture } from '@/components/employees/PhotoCapture';
@@ -53,6 +54,8 @@ export default function RegisterEmployee() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [mustChangePassword, setMustChangePassword] = useState(true);
   const [formData, setFormData] = useState({
     fullName: '',
     login: '',
@@ -182,35 +185,62 @@ export default function RegisterEmployee() {
         return;
       }
 
-      // Upload photo and update profile
-      if (user) {
-        const photoUrl = await uploadPhoto(user.id);
-        
-        if (photoUrl) {
-          const { data: newProfile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-
-          if (newProfile) {
-            await supabase
+        // Upload photo and update profile
+        if (user) {
+          const photoUrl = await uploadPhoto(user.id);
+          
+          if (photoUrl) {
+            const { data: newProfile } = await supabase
               .from('profiles')
-              .update({ photo_url: photoUrl })
-              .eq('id', newProfile.id);
+              .select('id')
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-            // Assign schedule if selected
-            if (formData.schedule_id) {
-              await supabase.from('employee_schedules').insert({
-                profile_id: newProfile.id,
-                schedule_id: formData.schedule_id,
-                start_date: new Date().toISOString().split('T')[0],
-                company_id: profile?.company_id
-              });
+            if (newProfile) {
+              await supabase
+                .from('profiles')
+                .update({ 
+                  photo_url: photoUrl,
+                  must_change_password: mustChangePassword
+                })
+                .eq('id', newProfile.id);
+
+              // Assign schedule if selected
+              if (formData.schedule_id) {
+                await supabase.from('employee_schedules').insert({
+                  profile_id: newProfile.id,
+                  schedule_id: formData.schedule_id,
+                  start_date: new Date().toISOString().split('T')[0],
+                  company_id: profile?.company_id
+                });
+              }
+            }
+          } else {
+            // Update must_change_password even without photo
+            const { data: newProfile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('user_id', user.id)
+              .maybeSingle();
+
+            if (newProfile) {
+              await supabase
+                .from('profiles')
+                .update({ must_change_password: mustChangePassword })
+                .eq('id', newProfile.id);
+
+              // Assign schedule if selected
+              if (formData.schedule_id) {
+                await supabase.from('employee_schedules').insert({
+                  profile_id: newProfile.id,
+                  schedule_id: formData.schedule_id,
+                  start_date: new Date().toISOString().split('T')[0],
+                  company_id: profile?.company_id
+                });
+              }
             }
           }
         }
-      }
 
       toast.success('Funcionário cadastrado com sucesso!');
       
@@ -311,15 +341,39 @@ export default function RegisterEmployee() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Senha Inicial *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Mínimo 6 caracteres"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Mínimo 6 caracteres"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
+              </div>
+              
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox
+                  id="must-change-password"
+                  checked={mustChangePassword}
+                  onCheckedChange={(checked) => setMustChangePassword(checked as boolean)}
+                />
+                <Label 
+                  htmlFor="must-change-password" 
+                  className="text-sm cursor-pointer"
+                >
+                  Exigir alteração de senha no primeiro login
+                </Label>
               </div>
             </div>
 

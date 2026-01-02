@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { User, Palette, FileSpreadsheet, Save, Building2, UserCog } from 'lucide-react';
+import { User, Palette, FileSpreadsheet, Save, Building2, UserCog, Lock, Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface ImportLayout {
@@ -28,7 +28,7 @@ interface ImportLayout {
 }
 
 export default function AccountSettings() {
-  const { profile, isAdmin } = useAuth();
+  const { profile, isAdmin, user } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   
   // Personalization settings
@@ -55,6 +55,18 @@ export default function AccountSettings() {
   });
 
   const [saving, setSaving] = useState(false);
+  
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Extract login from email
+  const userLogin = profile?.email?.split('@')[0] || '';
 
   useEffect(() => {
     loadSettings();
@@ -113,6 +125,42 @@ export default function AccountSettings() {
     toast.success('Configurações de personalização salvas');
   };
 
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast.error('Preencha todos os campos');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast.error('A nova senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      toast.error('As senhas não coincidem');
+      return;
+    }
+    
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Senha alterada com sucesso!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error('Error changing password:', error);
+      toast.error('Erro ao alterar senha. Verifique sua senha atual.');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const saveImportLayout = () => {
     setSaving(true);
     try {
@@ -164,10 +212,14 @@ export default function AccountSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
             Perfil
+          </TabsTrigger>
+          <TabsTrigger value="security" className="gap-2">
+            <Lock className="h-4 w-4" />
+            Segurança
           </TabsTrigger>
           <TabsTrigger value="personalization" className="gap-2">
             <Palette className="h-4 w-4" />
@@ -175,7 +227,7 @@ export default function AccountSettings() {
           </TabsTrigger>
           <TabsTrigger value="import-layouts" className="gap-2">
             <FileSpreadsheet className="h-4 w-4" />
-            Layouts de Importação
+            Layouts
           </TabsTrigger>
         </TabsList>
 
@@ -188,12 +240,12 @@ export default function AccountSettings() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Nome Completo</Label>
-                  <Input value={profile?.full_name || ''} disabled className="bg-muted" />
+                  <Label>Login</Label>
+                  <Input value={userLogin} disabled className="bg-muted font-mono" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input value={profile?.email || ''} disabled className="bg-muted" />
+                  <Label>Nome Completo</Label>
+                  <Input value={profile?.full_name || ''} disabled className="bg-muted" />
                 </div>
                 <div className="space-y-2">
                   <Label>Matrícula</Label>
@@ -235,6 +287,69 @@ export default function AccountSettings() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Lock className="h-4 w-4" />
+                Alterar Senha
+              </CardTitle>
+              <CardDescription>Atualize sua senha de acesso ao sistema</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Nova Senha</Label>
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="Mínimo 6 caracteres"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Digite novamente a nova senha"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              <Button 
+                onClick={handleChangePassword} 
+                disabled={changingPassword || !newPassword || !confirmPassword}
+                className="w-full"
+              >
+                {changingPassword ? 'Alterando...' : 'Alterar Senha'}
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="personalization" className="space-y-4 mt-6">

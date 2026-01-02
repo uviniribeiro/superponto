@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Shield, LogOut, Building2, Landmark, Key, Moon, Sun, LayoutDashboard } from 'lucide-react';
+import { Shield, LogOut, Building2, Landmark, Key, Moon, Sun, LayoutDashboard, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -76,6 +76,15 @@ export default function SuperAdminLayout() {
               <Key className="h-4 w-4" />
               Licenças
             </Button>
+            <Button
+              variant={isActive('/super-admin/users') ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/super-admin/users')}
+              className="flex items-center gap-2"
+            >
+              <Users className="h-4 w-4" />
+              Usuários
+            </Button>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -134,6 +143,15 @@ export default function SuperAdminLayout() {
           >
             <Key className="h-4 w-4" />
             Licenças
+          </Button>
+          <Button
+            variant={isActive('/super-admin/users') ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => navigate('/super-admin/users')}
+            className="flex items-center gap-2 whitespace-nowrap"
+          >
+            <Users className="h-4 w-4" />
+            Usuários
           </Button>
         </div>
       </div>

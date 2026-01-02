@@ -31,6 +31,7 @@ import SuperAdminDashboard from "@/pages/superadmin/Dashboard";
 import SuperAdminCompanies from "@/pages/superadmin/Companies";
 import SuperAdminCityHalls from "@/pages/superadmin/CityHalls";
 import SuperAdminLicenses from "@/pages/superadmin/Licenses";
+import SuperAdminUsers from "@/pages/superadmin/SuperAdminUsers";
 import TeacherModule from "@/pages/TeacherModule";
 import Timesheet from "@/pages/Timesheet";
 import ImportExport from "@/pages/ImportExport";
@@ -73,6 +74,7 @@ const App = () => (
                 <Route path="companies" element={<SuperAdminCompanies />} />
                 <Route path="city-halls" element={<SuperAdminCityHalls />} />
                 <Route path="licenses" element={<SuperAdminLicenses />} />
+                <Route path="users" element={<SuperAdminUsers />} />
               </Route>
               
               {/* Regular App Routes */}
