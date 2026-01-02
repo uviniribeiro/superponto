@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { Landmark, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, ChevronDown, Trash2, GraduationCap, Heart, Palette, Bus, Settings2, Building2, Users, Calendar } from 'lucide-react';
+import { Landmark, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, ChevronDown, Trash2, GraduationCap, Heart, Palette, Bus, Settings2, Building2, Users, Calendar, Loader2, Phone } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
@@ -31,6 +31,8 @@ interface Company {
   address: string | null;
   city: string | null;
   state: string | null;
+  phone: string | null;
+  trade_name: string | null;
 }
 
 const sectorOptions = [
@@ -44,6 +46,13 @@ const sectorOptions = [
   { value: 'social_assistance', label: 'Assistência Social', icon: Users },
   { value: 'urban_planning', label: 'Planejamento Urbano', icon: Building2 },
   { value: 'other', label: 'Outros', icon: Settings2 },
+];
+
+// Default sectors to create for every city hall
+const defaultSectors = [
+  { value: 'administration', label: 'Administração' },
+  { value: 'health', label: 'Saúde' },
+  { value: 'education', label: 'Educação' },
 ];
 
 const contractDurationOptions = [
@@ -92,12 +101,15 @@ export default function SuperAdminCityHalls() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [lookingUpCnpj, setLookingUpCnpj] = useState(false);
   const [formData, setFormData] = useState({ 
     name: '', 
+    tradeName: '',
     cnpj: '',
     address: '',
     city: '',
     state: '',
+    phone: '',
     contractDuration: 12,
     maxEmployees: 100
   });
@@ -131,6 +143,38 @@ export default function SuperAdminCityHalls() {
   const cityHalls = companies.filter(c => c.organization_type === 'city_hall' && !c.parent_organization_id);
   const getSectors = (cityHallId: string) => companies.filter(c => c.parent_organization_id === cityHallId);
 
+  const handleCnpjLookup = async (cnpj: string) => {
+    const cleanCnpj = cnpj.replace(/[^\d]/g, '');
+    if (cleanCnpj.length !== 14) return;
+
+    setLookingUpCnpj(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('cnpj-lookup', {
+        body: { cnpj: cleanCnpj }
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        setFormData(prev => ({
+          ...prev,
+          name: data.razao_social || prev.name,
+          tradeName: data.nome_fantasia || '',
+          address: data.address || prev.address,
+          city: data.city || prev.city,
+          state: data.state || prev.state,
+          phone: data.phone || prev.phone,
+        }));
+        toast.success('Dados do CNPJ carregados com sucesso!');
+      }
+    } catch (error: any) {
+      console.error('Error looking up CNPJ:', error);
+      toast.error(error.message || 'Erro ao consultar CNPJ');
+    } finally {
+      setLookingUpCnpj(false);
+    }
+  };
+
   const handleCreateCityHall = async () => {
     if (!user) {
       toast.error('Usuário não autenticado');
@@ -163,7 +207,9 @@ export default function SuperAdminCityHalls() {
           license_status: 'active',
           address: formData.address || null,
           city: formData.city || null,
-          state: formData.state || null
+          state: formData.state || null,
+          phone: formData.phone || null,
+          trade_name: formData.tradeName || null
         })
         .select()
         .single();
@@ -204,10 +250,52 @@ export default function SuperAdminCityHalls() {
         cnpj: formData.cnpj,
         address: formData.address || null,
         city: formData.city || null,
-        state: formData.state || null
+        state: formData.state || null,
+        phone: formData.phone || null,
+        trade_name: formData.tradeName || null
       });
 
-      // Create support and admin users for the new city hall
+      // Create default sectors (Administração, Saúde, Educação)
+      for (const sector of defaultSectors) {
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const sectorCode = `${normalizedCnpj}-${sector.value.toUpperCase().slice(0, 3)}-${timestamp}`;
+        
+        const { data: newSector, error: sectorError } = await supabase
+          .from('companies')
+          .insert({
+            name: `Secretaria de ${sector.label}`,
+            cnpj: newCityHall.cnpj,
+            company_code: sectorCode,
+            organization_type: 'city_hall' as const,
+            sector: sector.value as any,
+            parent_organization_id: newCityHall.id,
+            license_status: 'active',
+            address: formData.address || null,
+            city: formData.city || null,
+            state: formData.state || null,
+            phone: formData.phone || null,
+          })
+          .select()
+          .single();
+
+        if (sectorError) {
+          console.error(`Error creating ${sector.label} sector:`, sectorError);
+        } else if (newSector) {
+          // Create users for this sector
+          try {
+            await supabase.functions.invoke('create-company-users', {
+              body: { action: 'create-for-company', companyId: newSector.id }
+            });
+          } catch (err) {
+            console.error(`Error creating users for sector ${sector.label}:`, err);
+          }
+        }
+        
+        // Small delay to avoid timestamp collision
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      // Create support and admin users for the main city hall
       try {
         const { data: usersData, error: usersError } = await supabase.functions.invoke('create-company-users', {
           body: {
@@ -225,9 +313,9 @@ export default function SuperAdminCityHalls() {
           if (creds?.support?.temporaryPassword || creds?.admin?.temporaryPassword) {
             const supportInfo = creds?.support ? `Suporte: suporte/${creds.support.temporaryPassword}` : '';
             const adminInfo = creds?.admin ? `Admin: admin/${creds.admin.temporaryPassword}` : '';
-            toast.success(`Prefeitura cadastrada! Licença válida até ${validUntilFormatted}. ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
+            toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
           } else {
-            toast.success(`Prefeitura cadastrada! Licença válida até ${validUntilFormatted}.`);
+            toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}.`);
           }
         }
       } catch (err) {
@@ -236,7 +324,7 @@ export default function SuperAdminCityHalls() {
       }
 
       setIsDialogOpen(false);
-      setFormData({ name: '', cnpj: '', address: '', city: '', state: '', contractDuration: 12, maxEmployees: 100 });
+      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', contractDuration: 12, maxEmployees: 100 });
       fetchCompanies();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -535,21 +623,45 @@ export default function SuperAdminCityHalls() {
           </DialogHeader>
           <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome da Prefeitura *</Label>
+              <Label htmlFor="cnpj">CNPJ *</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="cnpj"
+                  value={formData.cnpj}
+                  onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                  onBlur={() => handleCnpjLookup(formData.cnpj)}
+                  placeholder="00.000.000/0000-00"
+                  className="flex-1"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => handleCnpjLookup(formData.cnpj)}
+                  disabled={lookingUpCnpj}
+                >
+                  {lookingUpCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Digite o CNPJ e os dados serão preenchidos automaticamente</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Razão Social *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Prefeitura Municipal de..."
+                disabled={lookingUpCnpj}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ *</Label>
+              <Label htmlFor="tradeName">Nome Fantasia</Label>
               <Input
-                id="cnpj"
-                value={formData.cnpj}
-                onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                placeholder="00.000.000/0000-00"
+                id="tradeName"
+                value={formData.tradeName}
+                onChange={(e) => setFormData({ ...formData, tradeName: e.target.value })}
+                placeholder="Nome fantasia"
+                disabled={lookingUpCnpj}
               />
             </div>
             <div className="space-y-2">
@@ -559,6 +671,7 @@ export default function SuperAdminCityHalls() {
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Endereço completo"
+                disabled={lookingUpCnpj}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -569,6 +682,7 @@ export default function SuperAdminCityHalls() {
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   placeholder="Cidade"
+                  disabled={lookingUpCnpj}
                 />
               </div>
               <div className="space-y-2">
@@ -579,8 +693,22 @@ export default function SuperAdminCityHalls() {
                   onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                   placeholder="UF"
                   maxLength={2}
+                  disabled={lookingUpCnpj}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                Telefone
+              </Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="(00) 00000-0000"
+                disabled={lookingUpCnpj}
+              />
             </div>
 
             <div className="border-t pt-4 mt-4">
@@ -633,7 +761,7 @@ export default function SuperAdminCityHalls() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                A licença será gerada automaticamente com a validade de acordo com o tempo de contrato selecionado.
+                A licença será gerada automaticamente. Os setores de Administração, Saúde e Educação serão criados automaticamente.
               </p>
             </div>
           </div>
