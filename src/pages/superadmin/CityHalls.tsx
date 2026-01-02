@@ -158,45 +158,29 @@ export default function SuperAdminCityHalls() {
     }
 
     try {
-      const sectorCode = `${selectedCityHall.company_code}-${sectorFormData.sector.toUpperCase().slice(0, 3)}`;
+      // Generate unique sector code with timestamp to avoid collisions
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const sectorCode = `${selectedCityHall.company_code}-${sectorFormData.sector.toUpperCase().slice(0, 3)}-${timestamp}`;
       
-      console.log('Creating sector with code:', sectorCode);
-      console.log('Sector data:', sectorFormData);
-      
-      const { data: existingSector } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('company_code', sectorCode)
-        .maybeSingle();
-      
-      if (existingSector) {
-        toast.error('Este setor já existe para esta prefeitura');
-        return;
-      }
-
       const insertData = {
         name: sectorFormData.name.trim(),
         cnpj: selectedCityHall.cnpj,
         company_code: sectorCode,
         organization_type: 'city_hall' as const,
-        sector: sectorFormData.sector as any,
+        sector: sectorFormData.sector as "education" | "health" | "culture" | "transport" | "administration" | "finance" | "environment" | "social_assistance" | "urban_planning" | "other",
         parent_organization_id: selectedCityHall.id,
         license_status: selectedCityHall.license_status
       };
 
-      console.log('Insert data:', insertData);
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('companies')
-        .insert(insertData)
+        .insert([insertData])
         .select();
 
       if (error) {
         console.error('Supabase error:', error);
         throw error;
       }
-
-      console.log('Created sector:', data);
 
       toast.success('Setor criado com sucesso!');
       setIsSectorDialogOpen(false);
