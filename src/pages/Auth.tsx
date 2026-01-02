@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Clock, Fingerprint, Shield, Users, Building2, Landmark, GraduationCap, Heart, Palette, Bus, Settings2 } from 'lucide-react';
+import { Clock, Fingerprint, Shield, Users, Building2, Landmark, GraduationCap, Heart, Palette, Bus, Settings2, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
 
 type LoginType = 'company' | 'city_hall' | 'super_admin';
@@ -59,6 +59,9 @@ export default function Auth() {
   const [sectors, setSectors] = useState<{ id: string; name: string; sector: string; code: string }[]>([]);
   const [selectedCityHall, setSelectedCityHall] = useState('');
   const [signupOrgType, setSignupOrgType] = useState<'company' | 'city_hall'>('company');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [loginData, setLoginData] = useState({ 
     username: '', 
@@ -456,14 +459,24 @@ export default function Auth() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="login-password">Senha</Label>
-                      <Input
-                        id="login-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={loginData.password}
-                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                        required
-                      />
+                      <div className="relative">
+                        <Input
+                          id="login-password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={loginData.password}
+                          onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                          required
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
                   </CardContent>
                   
@@ -587,26 +600,46 @@ export default function Auth() {
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-2">
                             <Label htmlFor="signup-password">Senha *</Label>
-                            <Input
-                              id="signup-password"
-                              type="password"
-                              placeholder="••••••"
-                              value={signupData.password}
-                              onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                              required
-                            />
+                            <div className="relative">
+                              <Input
+                                id="signup-password"
+                                type={showSignupPassword ? "text" : "password"}
+                                placeholder="••••••"
+                                value={signupData.password}
+                                onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                                required
+                                className="pr-10"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowSignupPassword(!showSignupPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
                           </div>
                           
                           <div className="space-y-2">
                             <Label htmlFor="signup-confirm">Confirmar *</Label>
-                            <Input
-                              id="signup-confirm"
-                              type="password"
-                              placeholder="••••••"
-                              value={signupData.confirmPassword}
-                              onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                              required
-                            />
+                            <div className="relative">
+                              <Input
+                                id="signup-confirm"
+                                type={showConfirmPassword ? "text" : "password"}
+                                placeholder="••••••"
+                                value={signupData.confirmPassword}
+                                onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
+                                required
+                                className="pr-10"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>

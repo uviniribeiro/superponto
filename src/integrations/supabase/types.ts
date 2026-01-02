@@ -1043,6 +1043,7 @@ export type Database = {
           hire_date: string | null
           id: string
           is_active: boolean
+          must_change_password: boolean | null
           phone: string | null
           photo_url: string | null
           pis: string | null
@@ -1061,6 +1062,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           is_active?: boolean
+          must_change_password?: boolean | null
           phone?: string | null
           photo_url?: string | null
           pis?: string | null
@@ -1079,6 +1081,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           is_active?: boolean
+          must_change_password?: boolean | null
           phone?: string | null
           photo_url?: string | null
           pis?: string | null
