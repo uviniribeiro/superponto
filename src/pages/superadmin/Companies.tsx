@@ -106,7 +106,14 @@ export default function SuperAdminCompanies() {
           console.error('Error creating company users:', usersError);
           toast.warning('Empresa criada, mas houve erro ao criar usuários');
         } else if (usersData?.success) {
-          toast.success(`Empresa cadastrada! Suporte: suporte/Super@25 | Admin: admin/Admin@25`);
+          const creds = usersData.credentials;
+          if (creds?.support?.temporaryPassword || creds?.admin?.temporaryPassword) {
+            const supportInfo = creds?.support ? `Suporte: suporte/${creds.support.temporaryPassword}` : '';
+            const adminInfo = creds?.admin ? `Admin: admin/${creds.admin.temporaryPassword}` : '';
+            toast.success(`Empresa cadastrada! ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
+          } else {
+            toast.success('Empresa cadastrada! Usuários criados (já existiam ou foram criados anteriormente).');
+          }
         }
       } catch (err) {
         console.error('Error calling create-company-users:', err);

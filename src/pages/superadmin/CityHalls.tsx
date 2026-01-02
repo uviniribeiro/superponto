@@ -127,7 +127,14 @@ export default function SuperAdminCityHalls() {
           console.error('Error creating city hall users:', usersError);
           toast.warning('Prefeitura criada, mas houve erro ao criar usuários');
         } else if (usersData?.success) {
-          toast.success(`Prefeitura cadastrada! Suporte: suporte/Super@25 | Admin: admin/Admin@25`);
+          const creds = usersData.credentials;
+          if (creds?.support?.temporaryPassword || creds?.admin?.temporaryPassword) {
+            const supportInfo = creds?.support ? `Suporte: suporte/${creds.support.temporaryPassword}` : '';
+            const adminInfo = creds?.admin ? `Admin: admin/${creds.admin.temporaryPassword}` : '';
+            toast.success(`Prefeitura cadastrada! ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
+          } else {
+            toast.success('Prefeitura cadastrada! Usuários criados (já existiam ou foram criados anteriormente).');
+          }
         }
       } catch (err) {
         console.error('Error calling create-company-users:', err);
@@ -195,7 +202,14 @@ export default function SuperAdminCityHalls() {
           console.error('Error creating sector users:', usersError);
           toast.warning('Setor criado, mas houve erro ao criar usuários');
         } else if (usersData?.success) {
-          toast.success(`Setor criado! Suporte: suporte/Super@25 | Admin: admin/Admin@25`);
+          const creds = usersData.credentials;
+          if (creds?.support?.temporaryPassword || creds?.admin?.temporaryPassword) {
+            const supportInfo = creds?.support ? `Suporte: suporte/${creds.support.temporaryPassword}` : '';
+            const adminInfo = creds?.admin ? `Admin: admin/${creds.admin.temporaryPassword}` : '';
+            toast.success(`Setor criado! ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
+          } else {
+            toast.success('Setor criado! Usuários criados (já existiam ou foram criados anteriormente).');
+          }
         }
       } catch (err) {
         console.error('Error calling create-company-users:', err);

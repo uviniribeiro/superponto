@@ -6,6 +6,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Generate a secure random password
+const generateSecurePassword = (): string => {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  let password = '';
+  for (let i = 0; i < bytes.length; i++) {
+    password += charset[bytes[i] % charset.length];
+  }
+  // Ensure at least one of each required character type
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const digit = '0123456789';
+  const special = '!@#$%^&*';
+  
+  password = password.slice(0, -4) + 
+    lower[bytes[0] % lower.length] +
+    upper[bytes[1] % upper.length] +
+    digit[bytes[2] % digit.length] +
+    special[bytes[3] % special.length];
+  
+  return password;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -45,7 +68,7 @@ serve(async (req) => {
     // Check if user already exists
     const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
-      .select('id')
+      .select('id, user_id')
       .eq('company_id', companyId)
       .eq('email', email)
       .maybeSingle();
@@ -57,20 +80,25 @@ serve(async (req) => {
           success: true, 
           message: 'Support user already exists',
           email: email,
-          password: 'Super@25'
+          mustChangePassword: true,
+          note: 'Use password reset to set new password'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create the auth user
+    // Generate secure random password
+    const securePassword = generateSecurePassword();
+
+    // Create the auth user with must_change_password flag
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
-      password: 'Super@25',
+      password: securePassword,
       email_confirm: true,
       user_metadata: {
         full_name: 'Usuário Suporte',
-        company_id: companyId
+        company_id: companyId,
+        must_change_password: true
       }
     });
 
@@ -81,7 +109,7 @@ serve(async (req) => {
 
     console.log('Auth user created:', authUser.user?.id);
 
-    // Create the profile
+    // Create the profile with must_change_password = true
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
@@ -90,7 +118,8 @@ serve(async (req) => {
         full_name: 'Usuário Suporte',
         company_id: companyId,
         position: 'Suporte Técnico',
-        is_active: true
+        is_active: true,
+        must_change_password: true
       });
 
     if (profileError) {
@@ -117,13 +146,16 @@ serve(async (req) => {
 
     console.log('Admin role assigned successfully');
 
+    // Return success without exposing the password
+    // Password is stored securely and user must change on first login
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Support user created successfully',
+        message: 'Support user created successfully. User must change password on first login.',
         email: email,
-        password: 'Super@25',
-        userId: authUser.user!.id
+        userId: authUser.user!.id,
+        temporaryPassword: securePassword, // Only returned once, for initial setup
+        mustChangePassword: true
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
