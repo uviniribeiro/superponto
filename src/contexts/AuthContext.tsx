@@ -153,96 +153,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (username: string, password: string, companyCode: string) => {
-    // Try to find company by exact company_code first (for city hall sectors)
-    // Then try with normalized CNPJ (for regular companies)
-    let companyData = null;
-    
-    // First try exact match (for sectors with suffix like 18715391000196-EDU-ABC123)
-    const { data: exactMatch, error: exactError } = await supabase
-      .from('companies')
-      .select('id, name, company_code, cnpj')
-      .eq('company_code', companyCode)
-      .eq('is_active', true)
-      .maybeSingle();
-    
-    if (exactMatch) {
-      companyData = exactMatch;
-    } else {
-      // Try with normalized CNPJ (for regular companies using CNPJ as code)
-      const normalizedCnpj = companyCode.replace(/[^\d]/g, '');
-      const { data: cnpjMatch, error: cnpjError } = await supabase
-        .from('companies')
-        .select('id, name, company_code, cnpj')
-        .eq('company_code', normalizedCnpj)
-        .eq('is_active', true)
-        .maybeSingle();
-      
-      if (cnpjMatch) {
-        companyData = cnpjMatch;
+    try {
+      // Use edge function to get user email (bypasses RLS)
+      const { data: lookupData, error: lookupError } = await supabase.functions.invoke('validate-company-login', {
+        body: { action: 'get-user-email', companyCode, username }
+      });
+
+      if (lookupError) {
+        console.error('Error looking up user:', lookupError);
+        return { error: new Error('Erro ao validar credenciais') };
       }
-    }
 
-    if (!companyData) {
-      return { error: new Error('Código da empresa inválido ou empresa inativa') };
-    }
+      if (!lookupData?.success) {
+        return { error: new Error('Código da empresa inválido ou empresa inativa') };
+      }
 
-    // Generate internal email from username
-    const internalEmail = generateInternalEmail(username, companyData.id);
+      const { companyId, internalEmail, storedEmail } = lookupData;
 
-    // Try to sign in with internal email
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ 
-      email: internalEmail, 
-      password 
-    });
+      // Try to sign in with internal email first
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ 
+        email: internalEmail, 
+        password 
+      });
 
-    if (authError) {
-      // If login fails with internal email, it might be an old account with real email
-      // Try to find profile by username pattern in email field
-      const { data: profileByUsername } = await supabase
-        .from('profiles')
-        .select('email, user_id, company_id')
-        .eq('company_id', companyData.id)
-        .ilike('email', `${username.toLowerCase()}%`)
-        .maybeSingle();
+      if (authError) {
+        // If login fails with internal email and we have a stored email, try that
+        if (storedEmail && storedEmail !== internalEmail) {
+          const { data: retryAuth, error: retryError } = await supabase.auth.signInWithPassword({
+            email: storedEmail,
+            password
+          });
 
-      if (profileByUsername) {
-        // Try with the stored email
-        const { data: retryAuth, error: retryError } = await supabase.auth.signInWithPassword({
-          email: profileByUsername.email,
-          password
-        });
+          if (retryError) {
+            console.error('Login retry failed:', retryError.message);
+            return { error: new Error('Login ou senha incorretos') };
+          }
 
-        if (retryError) {
-          return { error: new Error('Login ou senha incorretos') };
+          // Verify user belongs to the company after login
+          if (retryAuth.user) {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('company_id')
+              .eq('user_id', retryAuth.user.id)
+              .maybeSingle();
+
+            if (!profileData || profileData.company_id !== companyId) {
+              await supabase.auth.signOut();
+              return { error: new Error('Usuário não pertence a esta empresa') };
+            }
+          }
+
+          return { error: null };
         }
 
-        // Verify user belongs to the company
-        if (retryAuth.user && profileByUsername.company_id !== companyData.id) {
+        console.error('Login failed:', authError.message);
+        return { error: new Error('Login ou senha incorretos') };
+      }
+
+      // Verify user belongs to the company after successful login
+      if (authData.user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('user_id', authData.user.id)
+          .maybeSingle();
+
+        if (!profileData || profileData.company_id !== companyId) {
           await supabase.auth.signOut();
           return { error: new Error('Usuário não pertence a esta empresa') };
         }
-
-        return { error: null };
       }
 
-      return { error: new Error('Login ou senha incorretos') };
+      return { error: null };
+    } catch (err) {
+      console.error('SignIn error:', err);
+      return { error: new Error('Erro ao realizar login') };
     }
-
-    // Verify user belongs to the company
-    if (authData.user) {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('user_id', authData.user.id)
-        .maybeSingle();
-
-      if (!profileData || (profileData as any).company_id !== companyData.id) {
-        await supabase.auth.signOut();
-        return { error: new Error('Usuário não pertence a esta empresa') };
-      }
-    }
-
-    return { error: null };
   };
 
   const signUp = async (username: string, password: string, fullName: string, companyName: string, companyCnpj: string) => {
