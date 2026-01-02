@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
-import { useEquipmentData, EQUIPMENT_CATALOG, Equipment, defaultEquipment } from '@/hooks/useEquipmentData';
+import { Badge } from '@/components/ui/badge';
+import { Info, Shield, FileText } from 'lucide-react';
+import { useEquipmentData, EQUIPMENT_CATALOG, Equipment, defaultEquipment, PORTARIA_OPTIONS } from '@/hooks/useEquipmentData';
 
 interface EquipmentFormDialogProps {
   open: boolean;
@@ -67,22 +68,83 @@ export default function EquipmentFormDialog({ open, onOpenChange, equipment, onC
     });
   };
 
+  const getPortariaDescription = (value: string) => {
+    switch (value) {
+      case 'portaria_671':
+        return 'REP-P (Programa), REP-A (Aplicativo) ou REP-C (Certificado). Obrigatória desde 2021.';
+      case 'portaria_1510':
+        return 'REP Convencional com memória e impressora fiscal. Regulamentação anterior.';
+      case 'portaria_373':
+        return 'Sistema alternativo de controle de jornada. Requer acordo coletivo.';
+      default:
+        return '';
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{formData.id ? 'Editar Equipamento' : 'Novo Equipamento'}</DialogTitle>
-          <DialogDescription>Configure os dados do relógio de ponto</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            {formData.id ? 'Editar Equipamento' : 'Novo Equipamento'}
+            <Badge variant="outline" className="ml-2">
+              <Shield className="h-3 w-3 mr-1" />
+              MTE
+            </Badge>
+          </DialogTitle>
+          <DialogDescription>Configure os dados do relógio de ponto conforme as portarias do Ministério do Trabalho</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          {/* Portaria Compliance */}
           <div className="space-y-2">
-            <Label htmlFor="name">Nome do Equipamento *</Label>
-            <Input
-              id="name"
-              value={formData.name || ''}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="REP Entrada Principal"
-            />
+            <Label htmlFor="portaria" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Conformidade com Portaria *
+            </Label>
+            <Select 
+              value={formData.portaria_compliance || 'portaria_671'} 
+              onValueChange={(value: 'portaria_671' | 'portaria_1510' | 'portaria_373') => 
+                setFormData({ ...formData, portaria_compliance: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a portaria" />
+              </SelectTrigger>
+              <SelectContent>
+                {PORTARIA_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {formData.portaria_compliance && (
+              <p className="text-sm text-muted-foreground">
+                {getPortariaDescription(formData.portaria_compliance)}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome do Equipamento *</Label>
+              <Input
+                id="name"
+                value={formData.name || ''}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="REP Entrada Principal"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rep_number">Nº do REP (Registro MTE)</Label>
+              <Input
+                id="rep_number"
+                value={formData.rep_number || ''}
+                onChange={(e) => setFormData({ ...formData, rep_number: e.target.value })}
+                placeholder="00000000000000000"
+                maxLength={17}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -185,6 +247,21 @@ export default function EquipmentFormDialog({ open, onOpenChange, equipment, onC
                   <li><strong>Porta:</strong> {selectedModel.port}</li>
                   <li><strong>Protocolo:</strong> {selectedModel.protocol.toUpperCase()}</li>
                   <li><strong>Endpoint:</strong> {selectedModel.endpoint}</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {formData.portaria_compliance === 'portaria_671' && (
+            <Alert className="border-primary/50 bg-primary/5">
+              <Shield className="h-4 w-4 text-primary" />
+              <AlertTitle>Portaria 671 - Requisitos</AlertTitle>
+              <AlertDescription>
+                <ul className="mt-2 text-sm space-y-1">
+                  <li>• Identificação por <strong>Nº de Matrícula</strong>, PIS ou CPF</li>
+                  <li>• Geração de arquivos AFD e AFDT</li>
+                  <li>• NSR (Número Sequencial de Registro) obrigatório</li>
+                  <li>• Registro inviolável e inalterável</li>
                 </ul>
               </AlertDescription>
             </Alert>

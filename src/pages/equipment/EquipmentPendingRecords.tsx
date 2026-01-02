@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Clock, CheckCircle2, XCircle, FileWarning, User } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, FileWarning, User, Shield, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipmentData } from '@/hooks/useEquipmentData';
@@ -22,9 +22,26 @@ export default function EquipmentPendingRecords() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Registros Pendentes</h1>
-        <p className="text-muted-foreground">Registros importados dos relógios de ponto</p>
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Shield className="h-8 w-8" />
+          Registros Pendentes
+        </h1>
+        <p className="text-muted-foreground">Registros importados dos relógios de ponto - Portaria 671</p>
       </div>
+
+      {/* Informação sobre ordem de vinculação */}
+      <Alert className="border-primary/50 bg-primary/5">
+        <Info className="h-4 w-4 text-primary" />
+        <AlertTitle>Ordem de Identificação (Portaria 671)</AlertTitle>
+        <AlertDescription>
+          Os registros são vinculados automaticamente na seguinte ordem de prioridade:
+          <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
+            <li><strong>Número de Matrícula</strong> - Identificador principal do funcionário</li>
+            <li><strong>Número do PIS</strong> - Programa de Integração Social</li>
+            <li><strong>Número do CPF</strong> - Cadastro de Pessoa Física</li>
+          </ol>
+        </AlertDescription>
+      </Alert>
 
       {/* Status cards */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -64,12 +81,12 @@ export default function EquipmentPendingRecords() {
       </div>
 
       {pendingWithoutEmployee > 0 && (
-        <Alert>
+        <Alert variant="destructive">
           <User className="h-4 w-4" />
           <AlertTitle>Registros sem funcionário vinculado</AlertTitle>
           <AlertDescription>
-            Existem {pendingWithoutEmployee} registros que não foram vinculados automaticamente. 
-            A vinculação é feita prioritariamente pelo <strong>número de matrícula</strong>, seguido pelo PIS e CPF.
+            Existem <strong>{pendingWithoutEmployee}</strong> registros que não foram vinculados automaticamente. 
+            Verifique se os funcionários possuem <strong>Matrícula</strong>, <strong>PIS</strong> ou <strong>CPF</strong> cadastrados corretamente.
           </AlertDescription>
         </Alert>
       )}
@@ -81,13 +98,16 @@ export default function EquipmentPendingRecords() {
             Lista de Registros Pendentes
           </CardTitle>
           <CardDescription>
-            Vincule funcionários aos registros não identificados automaticamente.
+            Vincule funcionários manualmente aos registros não identificados. 
+            Registros processados são enviados para a folha de ponto.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {pendingRecords.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum registro pendente encontrado
+              <CheckCircle2 className="h-12 w-12 mx-auto mb-2 text-green-500" />
+              <p>Nenhum registro pendente encontrado</p>
+              <p className="text-sm">Todos os registros foram processados com sucesso.</p>
             </div>
           ) : (
             <Table>
@@ -125,8 +145,14 @@ export default function EquipmentPendingRecords() {
                     <TableCell className="text-sm">
                       {record.time_clock_equipment?.name || 'N/A'}
                     </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {record.employee_identifier}
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-mono text-sm">{record.employee_identifier}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {record.employee_identifier.length === 11 ? 'PIS/CPF' : 
+                           record.employee_identifier.length <= 10 ? 'Matrícula' : 'Identificador'}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       {format(new Date(record.recorded_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
@@ -134,7 +160,7 @@ export default function EquipmentPendingRecords() {
                     <TableCell>
                       {record.profiles ? (
                         <div className="flex flex-col">
-                          <span>{record.profiles.full_name}</span>
+                          <span className="font-medium">{record.profiles.full_name}</span>
                           {record.profiles.registration_number && (
                             <span className="text-xs text-muted-foreground">
                               Matrícula: {record.profiles.registration_number}
@@ -148,7 +174,7 @@ export default function EquipmentPendingRecords() {
                     <TableCell>
                       <div className="flex gap-1 items-center">
                         {!record.profile_id && !record.is_processed && (
-                          <div className="w-[180px]">
+                          <div className="w-[200px]">
                             <Select
                               onValueChange={(value) => {
                                 linkEmployeeMutation.mutate({ recordId: record.id, profileId: value });
@@ -160,7 +186,13 @@ export default function EquipmentPendingRecords() {
                               <SelectContent>
                                 {employees.map((emp) => (
                                   <SelectItem key={emp.id} value={emp.id}>
-                                    {emp.full_name} {emp.registration_number ? `(${emp.registration_number})` : ''}
+                                    <div className="flex flex-col">
+                                      <span>{emp.full_name}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {emp.registration_number ? `Mat: ${emp.registration_number}` : ''}
+                                        {emp.pis ? ` | PIS: ${emp.pis}` : ''}
+                                      </span>
+                                    </div>
                                   </SelectItem>
                                 ))}
                               </SelectContent>

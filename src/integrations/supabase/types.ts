@@ -1340,7 +1340,9 @@ export type Database = {
           notes: string | null
           password: string | null
           port: number
+          portaria_compliance: string | null
           protocol: string
+          rep_number: string | null
           serial_number: string | null
           sync_interval_seconds: number
           updated_at: string
@@ -1365,7 +1367,9 @@ export type Database = {
           notes?: string | null
           password?: string | null
           port?: number
+          portaria_compliance?: string | null
           protocol?: string
+          rep_number?: string | null
           serial_number?: string | null
           sync_interval_seconds?: number
           updated_at?: string
@@ -1390,7 +1394,9 @@ export type Database = {
           notes?: string | null
           password?: string | null
           port?: number
+          portaria_compliance?: string | null
           protocol?: string
+          rep_number?: string | null
           serial_number?: string | null
           sync_interval_seconds?: number
           updated_at?: string

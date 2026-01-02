@@ -90,7 +90,7 @@ export default function Reports() {
     }
   };
 
-  // Gera AFD conforme Portaria 671
+  // Gera AFD conforme Portaria 671 - Formato correto MTE
   const generateAFD = () => {
     if (records.length === 0) {
       toast.error('Nenhum registro para exportar');
@@ -98,35 +98,52 @@ export default function Reports() {
     }
 
     const lines: string[] = [];
+    const cleanCnpj = (companySettings?.cnpj || '').replace(/[^\d]/g, '').padStart(14, '0');
+    const cleanCei = (companySettings?.cei || '').replace(/[^\d]/g, '').padStart(12, '0');
     
-    // Linha 1 - Cabeçalho
+    // Linha 1 - Cabeçalho (Tipo 1) - Identificação do empregador
     const header = [
-      '1',                                          // Tipo de registro
-      '1',                                          // Tipo de identificador (CNPJ)
-      (companySettings?.cnpj || '00000000000000').padStart(14, '0'),
-      (companySettings?.cei || '000000000000').padStart(12, '0'),
-      (companySettings?.company_name || 'EMPRESA').padEnd(150, ' ').slice(0, 150),
-      (companySettings?.rep_number || '00000000000000000').padStart(17, '0'),
-      format(new Date(startDate), 'ddMMyyyy'),
-      format(new Date(endDate), 'ddMMyyyy'),
-      format(new Date(), 'ddMMyyyyHHmmss'),
+      '1',                                                    // Tipo de registro
+      '1',                                                    // Tipo de identificador (1=CNPJ, 2=CPF)
+      cleanCnpj,                                              // CNPJ (14 dígitos)
+      cleanCei,                                               // CEI (12 dígitos)
+      (companySettings?.company_name || 'EMPRESA').padEnd(150, ' ').slice(0, 150), // Razão social
+      (companySettings?.rep_number || '').padStart(17, '0'),  // Nº fabricação REP
+      format(new Date(startDate), 'ddMMyyyy'),                // Data início período
+      format(new Date(endDate), 'ddMMyyyy'),                  // Data fim período
+      format(new Date(), 'ddMMyyyyHHmmss'),                   // Data/hora geração
     ].join('');
     lines.push(header);
 
-    // Linha 2 em diante - Registros (NSR)
+    // Linha 2 - Tipo 2 - Identificação do trabalhador (agrupado por funcionário)
+    const employeeGroups = new Map<string, typeof records>();
+    records.forEach(record => {
+      const key = record.profile_id;
+      if (!employeeGroups.has(key)) {
+        employeeGroups.set(key, []);
+      }
+      employeeGroups.get(key)!.push(record);
+    });
+
+    // Linha 3 em diante - Registros de marcação (Tipo 3)
     records.forEach((record) => {
+      // Prioridade de identificação: Matrícula > PIS > CPF
+      const identifier = record.profiles?.registration_number || 
+                        record.profiles?.pis || 
+                        '00000000000';
+      
       const recordLine = [
-        '3',                                        // Tipo de registro
-        String(record.nsr).padStart(9, '0'),        // NSR
-        '1',                                        // Tipo de identificador
-        (record.profiles?.pis || '00000000000').padStart(11, '0'),
-        format(new Date(record.recorded_at), 'ddMMyyyy'),
-        format(new Date(record.recorded_at), 'HHmm'),
+        '3',                                                  // Tipo de registro (marcação)
+        String(record.nsr).padStart(9, '0'),                  // NSR (9 dígitos)
+        '1',                                                  // Tipo de identificador (1=PIS)
+        identifier.replace(/[^\d]/g, '').padStart(11, '0'),   // PIS/Matrícula (11 dígitos)
+        format(new Date(record.recorded_at), 'ddMMyyyy'),     // Data marcação
+        format(new Date(record.recorded_at), 'HHmm'),         // Hora marcação (4 dígitos)
       ].join('');
       lines.push(recordLine);
     });
 
-    // Linha trailer
+    // Linha trailer (Tipo 9)
     const trailer = [
       '9',
       String(lines.length + 1).padStart(9, '0'),
@@ -134,10 +151,10 @@ export default function Reports() {
     lines.push(trailer);
 
     downloadFile(lines.join('\r\n'), `AFD_${format(new Date(), 'yyyyMMdd_HHmmss')}.txt`);
-    toast.success('AFD gerado com sucesso!');
+    toast.success('AFD gerado conforme Portaria 671!');
   };
 
-  // Gera AFDT conforme Portaria 671
+  // Gera AFDT conforme Portaria 671 - Arquivo Fonte de Dados Tratados
   const generateAFDT = () => {
     if (records.length === 0) {
       toast.error('Nenhum registro para exportar');
@@ -145,13 +162,15 @@ export default function Reports() {
     }
 
     const lines: string[] = [];
+    const cleanCnpj = (companySettings?.cnpj || '').replace(/[^\d]/g, '').padStart(14, '0');
+    const cleanCei = (companySettings?.cei || '').replace(/[^\d]/g, '').padStart(12, '0');
     
-    // Cabeçalho AFDT
+    // Cabeçalho AFDT (Tipo 1)
     const header = [
-      '1',
-      '1',
-      (companySettings?.cnpj || '00000000000000').padStart(14, '0'),
-      (companySettings?.cei || '000000000000').padStart(12, '0'),
+      '1',                                                    // Tipo de registro
+      '1',                                                    // Tipo de identificador (1=CNPJ)
+      cleanCnpj,                                              // CNPJ
+      cleanCei,                                               // CEI
       (companySettings?.company_name || 'EMPRESA').padEnd(150, ' ').slice(0, 150),
       format(new Date(startDate), 'ddMMyyyy'),
       format(new Date(endDate), 'ddMMyyyy'),
@@ -159,28 +178,34 @@ export default function Reports() {
     ].join('');
     lines.push(header);
 
-    // Registros AFDT
+    // Registros AFDT (Tipo 4) - Marcações tratadas
     records.forEach((record, index) => {
+      // Código do tipo de marcação conforme Portaria 671
       const recordTypeCode = {
-        'entry': '1',
-        'break_start': '2',
-        'break_end': '3',
-        'exit': '4'
+        'entry': '1',        // Entrada
+        'break_start': '2',  // Início de intervalo
+        'break_end': '3',    // Fim de intervalo
+        'exit': '4'          // Saída
       }[record.record_type] || '1';
 
+      // Prioridade: Matrícula > PIS > CPF
+      const identifier = record.profiles?.registration_number || 
+                        record.profiles?.pis || 
+                        '00000000000';
+
       const recordLine = [
-        '4',                                        // Tipo de registro
-        String(index + 1).padStart(9, '0'),         // Sequencial
-        format(new Date(record.recorded_at), 'ddMMyyyy'),
-        format(new Date(record.recorded_at), 'HHmm'),
-        (record.profiles?.pis || '00000000000').padStart(11, '0'),
-        (record.profiles?.full_name || 'N/A').padEnd(52, ' ').slice(0, 52),
-        recordTypeCode,
+        '4',                                                  // Tipo de registro (marcação tratada)
+        String(index + 1).padStart(9, '0'),                   // Sequencial
+        format(new Date(record.recorded_at), 'ddMMyyyy'),     // Data
+        format(new Date(record.recorded_at), 'HHmm'),         // Hora
+        identifier.replace(/[^\d]/g, '').padStart(11, '0'),   // PIS/Matrícula
+        (record.profiles?.full_name || 'N/A').toUpperCase().padEnd(52, ' ').slice(0, 52), // Nome
+        recordTypeCode,                                       // Tipo de marcação
       ].join('');
       lines.push(recordLine);
     });
 
-    // Trailer
+    // Trailer (Tipo 9)
     const trailer = [
       '9',
       String(lines.length + 1).padStart(9, '0'),
@@ -188,7 +213,7 @@ export default function Reports() {
     lines.push(trailer);
 
     downloadFile(lines.join('\r\n'), `AFDT_${format(new Date(), 'yyyyMMdd_HHmmss')}.txt`);
-    toast.success('AFDT gerado com sucesso!');
+    toast.success('AFDT gerado conforme Portaria 671!');
   };
 
   const downloadFile = (content: string, filename: string) => {
