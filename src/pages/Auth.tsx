@@ -28,7 +28,7 @@ const sectorLabels: Record<string, { label: string; icon: React.ElementType }> =
 };
 
 const loginSchema = z.object({
-  email: z.string().trim().email('Email inválido').max(255),
+  username: z.string().trim().min(3, 'Login deve ter pelo menos 3 caracteres').max(50),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(100),
   companyCode: z.string().trim().min(1, 'Código é obrigatório').max(50),
 });
@@ -36,7 +36,7 @@ const loginSchema = z.object({
 const cnpjRegex = /^\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}$/;
 
 const signupSchema = z.object({
-  email: z.string().trim().email('Email inválido').max(255),
+  username: z.string().trim().min(3, 'Login deve ter pelo menos 3 caracteres').max(50).regex(/^[a-zA-Z0-9._-]+$/, 'Login pode conter apenas letras, números, pontos, underscores e hífens'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(100),
   confirmPassword: z.string(),
   fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
@@ -61,12 +61,12 @@ export default function Auth() {
   const [signupOrgType, setSignupOrgType] = useState<'company' | 'city_hall'>('company');
   
   const [loginData, setLoginData] = useState({ 
-    email: '', 
+    username: '', 
     password: '', 
     companyCode: '' 
   });
   const [signupData, setSignupData] = useState({ 
-    email: '', 
+    username: '', 
     password: '', 
     confirmPassword: '', 
     fullName: '',
@@ -132,14 +132,15 @@ export default function Auth() {
 
     try {
       if (loginType === 'super_admin') {
-        // Super admin login
+        // Super admin login - still uses email internally
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: loginData.email,
+          email: loginData.username, // For super admin, username is actually the email
           password: loginData.password
         });
 
         if (authError) {
           toast.error('Credenciais inválidas');
+          setIsLoading(false);
           return;
         }
 
@@ -154,6 +155,7 @@ export default function Auth() {
           if (!roleData) {
             await supabase.auth.signOut();
             toast.error('Acesso negado. Você não é um Super Administrador.');
+            setIsLoading(false);
             return;
           }
 
@@ -163,11 +165,11 @@ export default function Auth() {
       } else {
         // Company or City Hall login
         const validData = loginSchema.parse(loginData);
-        const { error } = await signIn(validData.email, validData.password, validData.companyCode);
+        const { error } = await signIn(validData.username, validData.password, validData.companyCode);
         
         if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error('Email ou senha incorretos');
+          if (error.message.includes('Login ou senha incorretos')) {
+            toast.error('Login ou senha incorretos');
           } else {
             toast.error(error.message);
           }
@@ -192,7 +194,7 @@ export default function Auth() {
     try {
       const validData = signupSchema.parse(signupData);
       const { error } = await signUp(
-        validData.email, 
+        validData.username, 
         validData.password, 
         validData.fullName,
         validData.companyName,
@@ -200,8 +202,8 @@ export default function Auth() {
       );
       
       if (error) {
-        if (error.message.includes('already registered')) {
-          toast.error('Este email já está cadastrado');
+        if (error.message.includes('já cadastrado')) {
+          toast.error('Este login ou CNPJ já está cadastrado');
         } else {
           toast.error(error.message);
         }
@@ -441,13 +443,13 @@ export default function Auth() {
                     )}
                     
                     <div className="space-y-2">
-                      <Label htmlFor="login-email">Email</Label>
+                      <Label htmlFor="login-username">{loginType === 'super_admin' ? 'Email' : 'Login'}</Label>
                       <Input
-                        id="login-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={loginData.email}
-                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                        id="login-username"
+                        type={loginType === 'super_admin' ? 'email' : 'text'}
+                        placeholder={loginType === 'super_admin' ? 'admin@email.com' : 'seu.login'}
+                        value={loginData.username}
+                        onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
                         required
                       />
                     </div>
@@ -568,15 +570,18 @@ export default function Auth() {
                         </div>
                         
                         <div className="space-y-2">
-                          <Label htmlFor="signup-email">Email *</Label>
+                          <Label htmlFor="signup-username">Login *</Label>
                           <Input
-                            id="signup-email"
-                            type="email"
-                            placeholder="seu@email.com"
-                            value={signupData.email}
-                            onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                            id="signup-username"
+                            type="text"
+                            placeholder="admin"
+                            value={signupData.username}
+                            onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
                             required
                           />
+                          <p className="text-xs text-muted-foreground">
+                            Apenas letras, números, pontos, underscores e hífens
+                          </p>
                         </div>
                         
                         <div className="grid grid-cols-2 gap-2">

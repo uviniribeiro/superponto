@@ -441,7 +441,7 @@ export default function Users() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Usuário</TableHead>
-                        <TableHead>Email</TableHead>
+                        <TableHead>Login</TableHead>
                         <TableHead>Departamento</TableHead>
                         <TableHead>Cargo</TableHead>
                         <TableHead>Nível de Acesso</TableHead>
@@ -461,7 +461,7 @@ export default function Users() {
                               <span className="font-medium">{userItem.full_name}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{userItem.email}</TableCell>
+                          <TableCell className="font-mono text-sm">{userItem.email.split('@')[0]}</TableCell>
                           <TableCell>{userItem.department || '-'}</TableCell>
                           <TableCell>{userItem.position || '-'}</TableCell>
                           <TableCell>

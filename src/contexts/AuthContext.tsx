@@ -35,8 +35,8 @@ interface AuthContextType {
   company: Company | null;
   roles: AppRole[];
   loading: boolean;
-  signIn: (email: string, password: string, companyCode: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string, companyName: string, companyCnpj: string) => Promise<{ error: Error | null }>;
+  signIn: (username: string, password: string, companyCode: string) => Promise<{ error: Error | null }>;
+  signUp: (username: string, password: string, fullName: string, companyName: string, companyCnpj: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
   isAdmin: boolean;
@@ -46,7 +46,7 @@ interface AuthContextType {
 }
 
 interface CreateEmployeeData {
-  email: string;
+  username: string;
   password: string;
   fullName: string;
   cpf?: string;
@@ -59,6 +59,12 @@ interface CreateEmployeeData {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Helper to generate internal email from username
+const generateInternalEmail = (username: string, companyId: string) => {
+  const sanitizedUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `${sanitizedUsername}@${companyId.slice(0, 8)}.pontomax.local`;
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -140,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signIn = async (email: string, password: string, companyCode: string) => {
+  const signIn = async (username: string, password: string, companyCode: string) => {
     // Normalize CNPJ - remove formatting for comparison
     const normalizedCnpj = companyCode.replace(/[^\d]/g, '');
     
@@ -156,14 +162,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: new Error('CNPJ da empresa inválido ou empresa inativa') };
     }
 
-    // Try to sign in
+    // Generate internal email from username
+    const internalEmail = generateInternalEmail(username, companyData.id);
+
+    // Try to sign in with internal email
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ 
-      email, 
+      email: internalEmail, 
       password 
     });
 
     if (authError) {
-      return { error: authError as Error };
+      // If login fails with internal email, it might be an old account with real email
+      // Try to find profile by username pattern in email field
+      const { data: profileByUsername } = await supabase
+        .from('profiles')
+        .select('email, user_id, company_id')
+        .eq('company_id', companyData.id)
+        .ilike('email', `${username.toLowerCase()}%`)
+        .maybeSingle();
+
+      if (profileByUsername) {
+        // Try with the stored email
+        const { data: retryAuth, error: retryError } = await supabase.auth.signInWithPassword({
+          email: profileByUsername.email,
+          password
+        });
+
+        if (retryError) {
+          return { error: new Error('Login ou senha incorretos') };
+        }
+
+        // Verify user belongs to the company
+        if (retryAuth.user && profileByUsername.company_id !== companyData.id) {
+          await supabase.auth.signOut();
+          return { error: new Error('Usuário não pertence a esta empresa') };
+        }
+
+        return { error: null };
+      }
+
+      return { error: new Error('Login ou senha incorretos') };
     }
 
     // Verify user belongs to the company
@@ -183,7 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string, companyName: string, companyCnpj: string) => {
+  const signUp = async (username: string, password: string, fullName: string, companyName: string, companyCnpj: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     // Use CNPJ as company code (normalized - only digits)
@@ -215,9 +253,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: companyError as Error };
     }
 
-    // Create user
+    // Generate internal email from username
+    const internalEmail = generateInternalEmail(username, companyData.id);
+
+    // Create user with internal email
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: internalEmail,
       password,
       options: {
         emailRedirectTo: redirectUrl,
@@ -232,11 +273,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (data.user) {
-      // Create profile with company_id
+      // Create profile with company_id - store username in email field for display
       const { error: profileError } = await supabase.from('profiles').insert({
         user_id: data.user.id,
         full_name: fullName,
-        email: email,
+        email: internalEmail, // Store internal email
         company_id: companyData.id
       });
 
@@ -260,9 +301,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: new Error('Você precisa estar vinculado a uma empresa') };
     }
 
-    // Create auth user for employee
+    // Generate internal email from username
+    const internalEmail = generateInternalEmail(employeeData.username, profile.company_id);
+
+    // Check if username already exists in this company
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('company_id', profile.company_id)
+      .eq('email', internalEmail)
+      .maybeSingle();
+
+    if (existingProfile) {
+      return { error: new Error('Este login já está em uso nesta empresa') };
+    }
+
+    // Create auth user for employee with internal email
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: employeeData.email,
+      email: internalEmail,
       password: employeeData.password,
       options: {
         emailRedirectTo: `${window.location.origin}/`,
@@ -279,7 +335,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error: profileError } = await supabase.from('profiles').insert({
         user_id: authData.user.id,
         full_name: employeeData.fullName,
-        email: employeeData.email,
+        email: internalEmail,
         cpf: employeeData.cpf || null,
         pis: employeeData.pis || null,
         registration_number: employeeData.registration_number || null,
