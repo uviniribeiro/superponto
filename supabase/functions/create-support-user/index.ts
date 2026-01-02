@@ -57,7 +57,7 @@ serve(async (req) => {
           success: true, 
           message: 'Support user already exists',
           email: email,
-          password: 'V1n1@'
+          password: 'Super@25'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -66,7 +66,7 @@ serve(async (req) => {
     // Create the auth user
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
-      password: 'V1n1@',
+      password: 'Super@25',
       email_confirm: true,
       user_metadata: {
         full_name: 'Usuário Suporte',
@@ -122,7 +122,7 @@ serve(async (req) => {
         success: true, 
         message: 'Support user created successfully',
         email: email,
-        password: 'V1n1@',
+        password: 'Super@25',
         userId: authUser.user!.id
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

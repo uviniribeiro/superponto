@@ -143,10 +143,13 @@ export default function Users() {
 
       const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
 
-      const usersWithRoles: UserWithRole[] = (profiles || []).map(profile => ({
-        ...profile,
-        role: (rolesMap.get(profile.user_id) as 'admin' | 'manager' | 'employee') || 'employee'
-      }));
+      // Filter out support users (they have emails ending with .pontomax.local and starting with suporte@)
+      const usersWithRoles: UserWithRole[] = (profiles || [])
+        .filter(profile => !profile.email.startsWith('suporte@') || !profile.email.endsWith('.pontomax.local'))
+        .map(profile => ({
+          ...profile,
+          role: (rolesMap.get(profile.user_id) as 'admin' | 'manager' | 'employee') || 'employee'
+        }));
 
       setUsers(usersWithRoles);
     } catch (error) {
@@ -164,7 +167,12 @@ export default function Users() {
         .select('id, user_id, full_name, email, department, position, photo_url')
         .order('full_name');
       
-      setAllEmployees(profiles || []);
+      // Filter out support users
+      const filteredProfiles = (profiles || []).filter(
+        profile => !profile.email.startsWith('suporte@') || !profile.email.endsWith('.pontomax.local')
+      );
+      
+      setAllEmployees(filteredProfiles);
     } catch (error) {
       console.error('Error fetching employees:', error);
     }
