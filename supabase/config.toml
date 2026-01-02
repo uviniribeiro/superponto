@@ -33,3 +33,6 @@ verify_jwt = false
 
 [functions.create-support-user]
 verify_jwt = false
+
+[functions.validate-company-login]
+verify_jwt = false
