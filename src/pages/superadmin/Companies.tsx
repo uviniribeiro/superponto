@@ -76,7 +76,7 @@ export default function SuperAdminCompanies() {
         return;
       }
 
-      const { error } = await supabase
+      const { data: newCompany, error } = await supabase
         .from('companies')
         .insert({
           name: validData.name,
@@ -84,11 +84,33 @@ export default function SuperAdminCompanies() {
           company_code: normalizedCnpj,
           organization_type: 'company',
           license_status: 'pending'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      toast.success('Empresa cadastrada com sucesso!');
+      // Create support user for the new company
+      try {
+        const { data: supportData, error: supportError } = await supabase.functions.invoke('create-support-user', {
+          body: {
+            companyId: newCompany.id,
+            companyName: validData.name,
+            organizationType: 'company'
+          }
+        });
+
+        if (supportError) {
+          console.error('Error creating support user:', supportError);
+          toast.warning('Empresa criada, mas houve erro ao criar usuário de suporte');
+        } else if (supportData) {
+          toast.success(`Empresa cadastrada! Login de suporte: ${supportData.email} / Senha: V1n1@`);
+        }
+      } catch (supportErr) {
+        console.error('Error calling create-support-user:', supportErr);
+        toast.warning('Empresa criada, mas houve erro ao criar usuário de suporte');
+      }
+
       setIsDialogOpen(false);
       setFormData({ name: '', cnpj: '' });
       fetchCompanies();

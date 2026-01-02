@@ -30,3 +30,6 @@ verify_jwt = true
 
 [functions.equipment-sync]
 verify_jwt = false
+
+[functions.create-support-user]
+verify_jwt = false
