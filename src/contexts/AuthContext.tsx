@@ -26,6 +26,7 @@ interface Profile {
   company_id: string | null;
   phone: string | null;
   photo_url: string | null;
+  must_change_password: boolean | null;
 }
 
 interface AuthContextType {
@@ -42,6 +43,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isManager: boolean;
   isSuperAdmin: boolean;
+  mustChangePassword: boolean;
   createEmployee: (employeeData: CreateEmployeeData) => Promise<{ error: Error | null; user?: any }>;
 }
 
@@ -368,6 +370,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isSuperAdmin = hasRole('super_admin');
   const isAdmin = hasRole('admin') || isSuperAdmin;
   const isManager = hasRole('manager') || isAdmin;
+  const mustChangePassword = profile?.must_change_password === true;
 
   return (
     <AuthContext.Provider value={{
@@ -384,6 +387,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin,
       isManager,
       isSuperAdmin,
+      mustChangePassword,
       createEmployee
     }}>
       {children}
