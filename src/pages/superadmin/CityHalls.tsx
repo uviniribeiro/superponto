@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -111,6 +112,7 @@ export default function SuperAdminCityHalls() {
     state: '',
     phone: '',
     contractDuration: 12,
+    contractEndDate: '',
     maxEmployees: 100
   });
   
@@ -216,10 +218,17 @@ export default function SuperAdminCityHalls() {
 
       if (error) throw error;
 
-      // Create the license based on contract duration
+      // Create the license based on contract duration or end date
       const licenseKey = generateLicenseKey();
       const validFrom = new Date();
-      const validUntil = addMonths(validFrom, formData.contractDuration);
+      let validUntil: Date;
+      
+      if (formData.contractEndDate) {
+        validUntil = new Date(formData.contractEndDate);
+      } else {
+        validUntil = addMonths(validFrom, formData.contractDuration);
+      }
+      
       const maxEmployees = formData.maxEmployees === -1 ? null : formData.maxEmployees;
       
       let licenseType = 'annual';
@@ -324,7 +333,7 @@ export default function SuperAdminCityHalls() {
       }
 
       setIsDialogOpen(false);
-      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', contractDuration: 12, maxEmployees: 100 });
+      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', contractDuration: 12, contractEndDate: '', maxEmployees: 100 });
       fetchCompanies();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -449,6 +458,34 @@ export default function SuperAdminCityHalls() {
     }
   };
 
+  const handleDeleteCityHall = async (cityHall: Company) => {
+    try {
+      const sectors = getSectors(cityHall.id);
+      
+      // Delete sectors first
+      for (const sector of sectors) {
+        await supabase.from('companies').delete().eq('id', sector.id);
+      }
+      
+      // Delete related records
+      await supabase.from('licenses').delete().eq('company_id', cityHall.id);
+      await supabase.from('company_settings').delete().eq('company_id', cityHall.id);
+      
+      // Delete the city hall
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .eq('id', cityHall.id);
+
+      if (error) throw error;
+      toast.success('Prefeitura excluída com sucesso');
+      fetchCompanies();
+    } catch (error) {
+      console.error('Error deleting city hall:', error);
+      toast.error('Erro ao excluir prefeitura. Verifique se há dados vinculados.');
+    }
+  };
+
   const toggleExpanded = (id: string) => {
     setExpandedCityHalls(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
@@ -561,6 +598,27 @@ export default function SuperAdminCityHalls() {
                           >
                             {cityHall.is_active ? <XCircle className="h-4 w-4 text-destructive" /> : <CheckCircle className="h-4 w-4 text-green-500" />}
                           </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir Prefeitura</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir a prefeitura "{cityHall.name}" e todos os seus setores? Esta ação não pode ser desfeita e todos os dados serão perdidos.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteCityHall(cityHall)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                       <CollapsibleContent>
@@ -737,6 +795,22 @@ export default function SuperAdminCityHalls() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contractEndDate" className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Data Fim de Contrato
+                  </Label>
+                  <Input
+                    id="contractEndDate"
+                    type="date"
+                    value={formData.contractEndDate}
+                    onChange={(e) => setFormData({ ...formData, contractEndDate: e.target.value })}
+                    min={format(new Date(), 'yyyy-MM-dd')}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Se preenchido, ignora o tempo de contrato acima
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="maxEmployees" className="flex items-center gap-1">
