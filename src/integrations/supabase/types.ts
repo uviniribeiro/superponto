@@ -831,6 +831,7 @@ export type Database = {
           id: string
           is_active: boolean
           license_key: string
+          license_type: string
           max_employees: number | null
           notes: string | null
           updated_at: string
@@ -844,6 +845,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           license_key: string
+          license_type?: string
           max_employees?: number | null
           notes?: string | null
           updated_at?: string
@@ -857,6 +859,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           license_key?: string
+          license_type?: string
           max_employees?: number | null
           notes?: string | null
           updated_at?: string
