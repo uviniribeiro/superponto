@@ -143,9 +143,9 @@ export default function Users() {
 
       const rolesMap = new Map(roles?.map(r => [r.user_id, r.role]) || []);
 
-      // Filter out support users (they have emails ending with .pontomax.local and starting with suporte@)
+      // Filter out support users (hide from normal user lists)
       const usersWithRoles: UserWithRole[] = (profiles || [])
-        .filter(profile => !profile.email.startsWith('suporte@') || !profile.email.endsWith('.pontomax.local'))
+        .filter(profile => !profile.email.toLowerCase().startsWith('suporte@'))
         .map(profile => ({
           ...profile,
           role: (rolesMap.get(profile.user_id) as 'admin' | 'manager' | 'employee') || 'employee'
@@ -169,7 +169,7 @@ export default function Users() {
       
       // Filter out support users
       const filteredProfiles = (profiles || []).filter(
-        profile => !profile.email.startsWith('suporte@') || !profile.email.endsWith('.pontomax.local')
+        profile => !profile.email.toLowerCase().startsWith('suporte@')
       );
       
       setAllEmployees(filteredProfiles);

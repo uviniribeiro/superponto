@@ -27,6 +27,88 @@ interface ImportLayout {
   encoding: string;
 }
 
+// ProfileEditor Component - allows admin to edit their name
+function ProfileEditor() {
+  const { profile, isAdmin } = useAuth();
+  const [fullName, setFullName] = useState(profile?.full_name || '');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const userLogin = profile?.email?.split('@')[0] || '';
+
+  useEffect(() => {
+    setFullName(profile?.full_name || '');
+  }, [profile?.full_name]);
+
+  const handleSaveProfile = async () => {
+    if (!fullName.trim()) {
+      toast.error('Nome não pode estar vazio');
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName.trim() })
+        .eq('id', profile?.id);
+
+      if (error) throw error;
+      toast.success('Nome atualizado com sucesso!');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Erro ao atualizar nome');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Informações do Perfil</CardTitle>
+        <CardDescription>Seus dados pessoais no sistema</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Login</Label>
+            <Input value={userLogin} disabled className="bg-muted font-mono" />
+          </div>
+          <div className="space-y-2">
+            <Label>Nome Completo {isAdmin && '*'}</Label>
+            {isAdmin ? (
+              <Input 
+                value={fullName} 
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Seu nome completo"
+              />
+            ) : (
+              <Input value={profile?.full_name || ''} disabled className="bg-muted" />
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label>Matrícula</Label>
+            <Input value={profile?.registration_number || '-'} disabled className="bg-muted" />
+          </div>
+          <div className="space-y-2">
+            <Label>Departamento</Label>
+            <Input value={profile?.department || '-'} disabled className="bg-muted" />
+          </div>
+        </div>
+        {isAdmin ? (
+          <Button onClick={handleSaveProfile} disabled={savingProfile}>
+            <Save className="h-4 w-4 mr-2" />
+            {savingProfile ? 'Salvando...' : 'Salvar Alterações'}
+          </Button>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Para alterar seus dados, entre em contato com o administrador do sistema.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AccountSettings() {
   const { profile, isAdmin, user } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
@@ -232,35 +314,7 @@ export default function AccountSettings() {
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Informações do Perfil</CardTitle>
-              <CardDescription>Seus dados pessoais no sistema</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Login</Label>
-                  <Input value={userLogin} disabled className="bg-muted font-mono" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Nome Completo</Label>
-                  <Input value={profile?.full_name || ''} disabled className="bg-muted" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Matrícula</Label>
-                  <Input value={profile?.registration_number || '-'} disabled className="bg-muted" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Departamento</Label>
-                  <Input value={profile?.department || '-'} disabled className="bg-muted" />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Para alterar seus dados, entre em contato com o administrador do sistema.
-              </p>
-            </CardContent>
-          </Card>
+          <ProfileEditor />
 
           {isAdmin && (
             <Card>

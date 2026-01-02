@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const messages = [
   { text: "O sucesso é a soma de pequenos esforços repetidos dia após dia.", author: "Robert Collier" },
@@ -34,19 +35,36 @@ const messages = [
   { text: "Clama a mim, e responder-te-ei.", author: "Jeremias 33:3" },
 ];
 
+// Simple hash function to generate a number from a string
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
+
 export function useDailyMessage() {
+  const { user } = useAuth();
+  
   const dailyMessage = useMemo(() => {
-    // Get day of year to have a consistent message for each day
+    // Get day of year
     const now = new Date();
     const start = new Date(now.getFullYear(), 0, 0);
     const diff = now.getTime() - start.getTime();
     const oneDay = 1000 * 60 * 60 * 24;
     const dayOfYear = Math.floor(diff / oneDay);
     
-    // Use day of year to select a message
-    const index = dayOfYear % messages.length;
+    // Combine user ID (if available) with day of year to create a unique seed per user per day
+    const userId = user?.id || 'anonymous';
+    const seed = hashString(userId + '-' + dayOfYear);
+    
+    // Use the seed to select a message (different for each user on the same day)
+    const index = seed % messages.length;
     return messages[index];
-  }, []);
+  }, [user?.id]);
 
   return dailyMessage;
 }
