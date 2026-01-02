@@ -823,6 +823,47 @@ export type Database = {
           },
         ]
       }
+      license_renewals: {
+        Row: {
+          created_at: string
+          id: string
+          license_id: string
+          new_valid_until: string
+          notes: string | null
+          previous_valid_until: string
+          renewal_type: string
+          renewed_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          license_id: string
+          new_valid_until: string
+          notes?: string | null
+          previous_valid_until: string
+          renewal_type: string
+          renewed_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          license_id?: string
+          new_valid_until?: string
+          notes?: string | null
+          previous_valid_until?: string
+          renewal_type?: string
+          renewed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_renewals_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       licenses: {
         Row: {
           company_id: string
