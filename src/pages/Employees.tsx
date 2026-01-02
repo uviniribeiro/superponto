@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Users, Search, Edit, UserCheck, UserX, UserPlus, Key, Upload, Camera } from 'lucide-react';
+import { Users, Search, Edit, UserCheck, UserX, UserPlus, Key, Upload, Camera, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +19,7 @@ import { CsvImportDialog } from '@/components/employees/CsvImportDialog';
 import { PhotoCapture } from '@/components/employees/PhotoCapture';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { validateCPF, validatePIS, formatCPF, formatPIS } from '@/lib/validators';
 
 interface Employee {
   id: string;
@@ -534,19 +536,42 @@ export default function Employees() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>CPF</Label>
+                  <Label className="flex items-center gap-2">
+                    CPF
+                    {formData.cpf && (
+                      validateCPF(formData.cpf).valid ? 
+                        <CheckCircle2 className="h-4 w-4 text-green-500" /> :
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                    )}
+                  </Label>
                   <Input
                     value={formData.cpf}
                     onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                     placeholder="000.000.000-00"
+                    className={formData.cpf && !validateCPF(formData.cpf).valid ? 'border-red-500' : ''}
                   />
+                  {formData.cpf && !validateCPF(formData.cpf).valid && (
+                    <p className="text-xs text-red-500">{validateCPF(formData.cpf).message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label>PIS</Label>
+                  <Label className="flex items-center gap-2">
+                    PIS
+                    {formData.pis && (
+                      validatePIS(formData.pis).valid ? 
+                        <CheckCircle2 className="h-4 w-4 text-green-500" /> :
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                    )}
+                  </Label>
                   <Input
                     value={formData.pis}
                     onChange={(e) => setFormData({ ...formData, pis: e.target.value })}
+                    placeholder="000.00000.00-0"
+                    className={formData.pis && !validatePIS(formData.pis).valid ? 'border-red-500' : ''}
                   />
+                  {formData.pis && !validatePIS(formData.pis).valid && (
+                    <p className="text-xs text-red-500">{validatePIS(formData.pis).message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Matrícula</Label>
