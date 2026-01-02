@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export function useBrasiliaTime() {
   const [dateTime, setDateTime] = useState(new Date());
@@ -26,6 +28,16 @@ export function useBrasiliaTime() {
   };
 
   const getFormattedDate = () => {
+    // Format as DD/MM/YYYY
+    return dateTime.toLocaleDateString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const getFormattedDateFull = () => {
     return dateTime.toLocaleDateString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
       weekday: 'long',
@@ -36,6 +48,17 @@ export function useBrasiliaTime() {
   };
 
   const getFormattedTime = () => {
+    // Format as HH:MM:SS
+    return dateTime.toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const getFormattedTimeShort = () => {
+    // Format as HH:MM (without seconds)
     return dateTime.toLocaleTimeString('pt-BR', {
       timeZone: 'America/Sao_Paulo',
       hour: '2-digit',
@@ -43,10 +66,20 @@ export function useBrasiliaTime() {
     });
   };
 
+  const getFormattedDateTime = () => {
+    // Format as DD/MM/YYYY, HH:MM:SS
+    const date = getFormattedDate();
+    const time = getFormattedTime();
+    return `${date}, ${time}`;
+  };
+
   return {
     dateTime,
     formatBrasiliaTime,
     getFormattedDate,
-    getFormattedTime
+    getFormattedDateFull,
+    getFormattedTime,
+    getFormattedTimeShort,
+    getFormattedDateTime
   };
 }
