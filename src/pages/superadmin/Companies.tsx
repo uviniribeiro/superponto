@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
@@ -23,6 +24,7 @@ interface Company {
   license_status: string | null;
   created_at: string;
   organization_type: 'company' | 'city_hall';
+  teacher_module_enabled: boolean;
 }
 
 const companySchema = z.object({
@@ -36,7 +38,7 @@ export default function SuperAdminCompanies() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '', cnpj: '' });
+  const [formData, setFormData] = useState({ name: '', cnpj: '', teacherModuleEnabled: false });
 
   useEffect(() => {
     fetchCompanies();
@@ -83,8 +85,9 @@ export default function SuperAdminCompanies() {
           cnpj: formData.cnpj,
           company_code: normalizedCnpj,
           organization_type: 'company',
-          license_status: 'pending'
-        })
+          license_status: 'pending',
+          teacher_module_enabled: formData.teacherModuleEnabled
+        } as any)
         .select()
         .single();
 
@@ -112,7 +115,7 @@ export default function SuperAdminCompanies() {
       }
 
       setIsDialogOpen(false);
-      setFormData({ name: '', cnpj: '' });
+      setFormData({ name: '', cnpj: '', teacherModuleEnabled: false });
       fetchCompanies();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -194,6 +197,7 @@ export default function SuperAdminCompanies() {
                   <TableHead>CNPJ</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Licença</TableHead>
+                  <TableHead>Módulos</TableHead>
                   <TableHead>Cadastro</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -212,6 +216,14 @@ export default function SuperAdminCompanies() {
                       <Badge variant={company.license_status === 'active' ? 'default' : company.license_status === 'expired' ? 'destructive' : 'secondary'}>
                         {company.license_status === 'active' ? 'Ativa' : company.license_status === 'expired' ? 'Expirada' : 'Pendente'}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {company.teacher_module_enabled && (
+                        <Badge variant="outline" className="gap-1">
+                          <GraduationCap className="h-3 w-3" />
+                          Professor
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>{format(new Date(company.created_at), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                     <TableCell className="text-right">
@@ -273,6 +285,24 @@ export default function SuperAdminCompanies() {
                 onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
                 placeholder="00.000.000/0000-00"
               />
+            </div>
+            
+            <div className="p-3 bg-muted/50 rounded-lg space-y-3">
+              <Label className="text-sm font-medium">Módulos Adicionais</Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="teacher-module"
+                  checked={formData.teacherModuleEnabled}
+                  onCheckedChange={(checked) => setFormData({ ...formData, teacherModuleEnabled: checked as boolean })}
+                />
+                <Label htmlFor="teacher-module" className="text-sm cursor-pointer flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4" />
+                  Habilitar Módulo Professor
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O módulo professor permite gerenciar hora-aula e escalas de docentes
+              </p>
             </div>
           </div>
           <DialogFooter>

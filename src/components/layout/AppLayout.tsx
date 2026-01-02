@@ -126,6 +126,14 @@ const menuCategories: MenuCategory[] = [
       { title: 'Cargos e Deptos', icon: Briefcase, href: '/positions-departments', roles: ['admin'] },
       { title: 'Jornadas e Escalas', icon: CalendarClock, href: '/schedules', roles: ['admin'] },
       { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
+    ]
+  },
+  {
+    id: 'professor',
+    title: 'Módulo Professor',
+    icon: GraduationCap,
+    roles: ['admin'],
+    items: [
       { title: 'Módulo Professor', icon: GraduationCap, href: '/teacher-module', roles: ['admin'] },
     ]
   },
@@ -175,7 +183,7 @@ const getAllMenuItems = (): MenuItem[] => {
 };
 
 export default function AppLayout() {
-  const { profile, roles, signOut, isAdmin, isManager } = useAuth();
+  const { profile, roles, signOut, isAdmin, isManager, hasTeacherModule } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
@@ -238,12 +246,20 @@ export default function AppLayout() {
   };
 
   const filterCategory = (category: MenuCategory) => {
+    // Filter professor category based on hasTeacherModule permission
+    if (category.id === 'professor' && !hasTeacherModule) {
+      return false;
+    }
     if (isAdmin) return true;
     if (isManager && category.roles.includes('manager')) return true;
     return category.roles.includes('employee');
   };
 
   const filterItem = (item: MenuItem) => {
+    // Filter teacher module based on hasTeacherModule permission
+    if (item.href === '/teacher-module' && !hasTeacherModule) {
+      return false;
+    }
     if (isAdmin) return true;
     if (isManager && item.roles.includes('manager')) return true;
     return item.roles.includes('employee');
