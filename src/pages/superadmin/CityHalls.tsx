@@ -114,25 +114,24 @@ export default function SuperAdminCityHalls() {
 
       if (error) throw error;
 
-      // Create support user for the new city hall
+      // Create support and admin users for the new city hall
       try {
-        const { data: supportData, error: supportError } = await supabase.functions.invoke('create-support-user', {
+        const { data: usersData, error: usersError } = await supabase.functions.invoke('create-company-users', {
           body: {
-            companyId: newCityHall.id,
-            companyName: validData.name,
-            organizationType: 'city_hall'
+            action: 'create-for-company',
+            companyId: newCityHall.id
           }
         });
 
-        if (supportError) {
-          console.error('Error creating support user:', supportError);
-          toast.warning('Prefeitura criada, mas houve erro ao criar usuário de suporte');
-        } else if (supportData) {
-          toast.success(`Prefeitura cadastrada! Login de suporte: ${supportData.email} / Senha: Super@25`);
+        if (usersError) {
+          console.error('Error creating city hall users:', usersError);
+          toast.warning('Prefeitura criada, mas houve erro ao criar usuários');
+        } else if (usersData?.success) {
+          toast.success(`Prefeitura cadastrada! Suporte: suporte/Super@25 | Admin: admin/Admin@25`);
         }
-      } catch (supportErr) {
-        console.error('Error calling create-support-user:', supportErr);
-        toast.warning('Prefeitura criada, mas houve erro ao criar usuário de suporte');
+      } catch (err) {
+        console.error('Error calling create-company-users:', err);
+        toast.warning('Prefeitura criada, mas houve erro ao criar usuários');
       }
 
       setIsDialogOpen(false);
@@ -172,17 +171,37 @@ export default function SuperAdminCityHalls() {
         license_status: selectedCityHall.license_status
       };
 
-      const { error } = await supabase
+      const { data: newSector, error } = await supabase
         .from('companies')
         .insert([insertData])
-        .select();
+        .select()
+        .single();
 
       if (error) {
         console.error('Supabase error:', error);
         throw error;
       }
 
-      toast.success('Setor criado com sucesso!');
+      // Create support and admin users for the new sector
+      try {
+        const { data: usersData, error: usersError } = await supabase.functions.invoke('create-company-users', {
+          body: {
+            action: 'create-for-company',
+            companyId: newSector.id
+          }
+        });
+
+        if (usersError) {
+          console.error('Error creating sector users:', usersError);
+          toast.warning('Setor criado, mas houve erro ao criar usuários');
+        } else if (usersData?.success) {
+          toast.success(`Setor criado! Suporte: suporte/Super@25 | Admin: admin/Admin@25`);
+        }
+      } catch (err) {
+        console.error('Error calling create-company-users:', err);
+        toast.success('Setor criado com sucesso!');
+      }
+
       setIsSectorDialogOpen(false);
       setSectorFormData({ name: '', sector: 'education' });
       setSelectedCityHall(null);

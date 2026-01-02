@@ -93,25 +93,24 @@ export default function SuperAdminCompanies() {
 
       if (error) throw error;
 
-      // Create support user for the new company
+      // Create support and admin users for the new company
       try {
-        const { data: supportData, error: supportError } = await supabase.functions.invoke('create-support-user', {
+        const { data: usersData, error: usersError } = await supabase.functions.invoke('create-company-users', {
           body: {
-            companyId: newCompany.id,
-            companyName: validData.name,
-            organizationType: 'company'
+            action: 'create-for-company',
+            companyId: newCompany.id
           }
         });
 
-        if (supportError) {
-          console.error('Error creating support user:', supportError);
-          toast.warning('Empresa criada, mas houve erro ao criar usuário de suporte');
-        } else if (supportData) {
-          toast.success(`Empresa cadastrada! Login de suporte: ${supportData.email} / Senha: Super@25`);
+        if (usersError) {
+          console.error('Error creating company users:', usersError);
+          toast.warning('Empresa criada, mas houve erro ao criar usuários');
+        } else if (usersData?.success) {
+          toast.success(`Empresa cadastrada! Suporte: suporte/Super@25 | Admin: admin/Admin@25`);
         }
-      } catch (supportErr) {
-        console.error('Error calling create-support-user:', supportErr);
-        toast.warning('Empresa criada, mas houve erro ao criar usuário de suporte');
+      } catch (err) {
+        console.error('Error calling create-company-users:', err);
+        toast.warning('Empresa criada, mas houve erro ao criar usuários');
       }
 
       setIsDialogOpen(false);
