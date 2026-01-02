@@ -3,11 +3,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Camera, X, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Camera, X, ShieldCheck, ShieldAlert, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
+import TimeRecordReceipt from '@/components/time-records/TimeRecordReceipt';
 
 type RecordType = 'entry' | 'break_start' | 'break_end' | 'exit';
 
@@ -30,7 +32,7 @@ export default function TimeClock() {
   const [location, setLocation] = useState<Location>({ latitude: null, longitude: null, address: null });
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [todayRecords, setTodayRecords] = useState<{ record_type: string; recorded_at: string }[]>([]);
+  const [todayRecords, setTodayRecords] = useState<{ id?: string; nsr?: number; record_type: string; recorded_at: string; latitude?: number | null; longitude?: number | null; address?: string | null }[]>([]);
   
   // Camera states
   const [showCamera, setShowCamera] = useState(false);
@@ -44,6 +46,11 @@ export default function TimeClock() {
   const [isValidatingFace, setIsValidatingFace] = useState(false);
   const [faceValidation, setFaceValidation] = useState<FaceValidationResult | null>(null);
 
+  // Receipt states
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastRecord, setLastRecord] = useState<any>(null);
+  const [companySettings, setCompanySettings] = useState<any>(null);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -51,8 +58,19 @@ export default function TimeClock() {
 
   useEffect(() => {
     getLocation();
-    if (profile) fetchTodayRecords();
+    if (profile) {
+      fetchTodayRecords();
+      fetchCompanySettings();
+    }
   }, [profile]);
+
+  const fetchCompanySettings = async () => {
+    const { data } = await supabase
+      .from('company_settings')
+      .select('*')
+      .maybeSingle();
+    setCompanySettings(data);
+  };
 
   useEffect(() => {
     return () => {
@@ -105,7 +123,7 @@ export default function TimeClock() {
 
     const { data } = await supabase
       .from('time_records')
-      .select('record_type, recorded_at')
+      .select('id, nsr, record_type, recorded_at, latitude, longitude, address')
       .eq('profile_id', profile.id)
       .gte('recorded_at', startOfDay)
       .lte('recorded_at', endOfDay)
@@ -332,21 +350,37 @@ export default function TimeClock() {
 
     try {
       const photoUrl = await uploadPhoto(capturedPhoto);
+      const recordedAt = new Date().toISOString();
 
-      const { error } = await supabase.from('time_records').insert({
+      const { data: newRecord, error } = await supabase.from('time_records').insert({
         profile_id: profile.id,
         record_type: pendingRecordType,
-        recorded_at: new Date().toISOString(),
+        recorded_at: recordedAt,
         latitude: location.latitude,
         longitude: location.longitude,
         address: location.address,
         device_info: navigator.userAgent,
         photo_url: photoUrl
-      });
+      }).select('id, nsr, recorded_at, record_type, latitude, longitude, address').single();
 
       if (error) throw error;
 
       toast.success('Ponto registrado com sucesso!');
+      
+      // Show receipt
+      if (newRecord) {
+        setLastRecord({
+          id: newRecord.id,
+          nsr: newRecord.nsr,
+          recorded_at: newRecord.recorded_at,
+          record_type: newRecord.record_type,
+          latitude: newRecord.latitude,
+          longitude: newRecord.longitude,
+          address: newRecord.address
+        });
+        setShowReceipt(true);
+      }
+      
       cancelCamera();
       fetchTodayRecords();
     } catch (error) {
@@ -519,6 +553,7 @@ export default function TimeClock() {
   }
 
   return (
+    <>
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       {/* Clock Display */}
       <Card className="text-center overflow-hidden">
@@ -625,5 +660,32 @@ export default function TimeClock() {
         </CardContent>
       </Card>
     </div>
+
+    {/* Receipt Dialog */}
+    <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
+      <DialogContent className="max-w-md p-0 overflow-hidden">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Comprovante de Registro de Ponto</DialogTitle>
+        </DialogHeader>
+        {lastRecord && profile && companySettings && (
+          <TimeRecordReceipt
+            record={lastRecord}
+            employee={{
+              full_name: profile.full_name,
+              pis: profile.pis,
+              cpf: profile.cpf,
+              registration_number: profile.registration_number
+            }}
+            company={{
+              company_name: companySettings?.company_name || 'Empresa',
+              cnpj: companySettings?.cnpj,
+              address: companySettings?.address
+            }}
+            onClose={() => setShowReceipt(false)}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

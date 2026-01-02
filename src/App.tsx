@@ -49,6 +49,7 @@ import EquipmentLogs from "@/pages/equipment/EquipmentLogs";
 import EquipmentStatus from "@/pages/equipment/EquipmentStatus";
 import EquipmentSync from "@/pages/equipment/EquipmentSync";
 import EquipmentHelp from "@/pages/equipment/EquipmentHelp";
+import MTECompliancePanel from "@/pages/equipment/MTECompliancePanel";
 
 const queryClient = new QueryClient();
 
@@ -116,6 +117,7 @@ const App = () => (
                 <Route path="equipment/logs" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentLogs /></ProtectedRoute>} />
                 <Route path="equipment/status" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentStatus /></ProtectedRoute>} />
                 <Route path="equipment/sync" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentSync /></ProtectedRoute>} />
+                <Route path="equipment/compliance" element={<ProtectedRoute requiredRoles={['admin']}><MTECompliancePanel /></ProtectedRoute>} />
                 <Route path="equipment/help" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentHelp /></ProtectedRoute>} />
               </Route>
               

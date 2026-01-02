@@ -72,6 +72,7 @@ import {
   RefreshCw,
   HelpCircle,
   Activity,
+  Shield,
 } from 'lucide-react';
 
 interface CompanySettings {
@@ -172,6 +173,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Adicionar Equipamento', icon: Plus, href: '/equipment/add', roles: ['admin'] },
       { title: 'Funcionários no REP', icon: Users, href: '/equipment/employees', roles: ['admin'] },
       { title: 'Registros Pendentes', icon: FileWarning, href: '/equipment/pending', roles: ['admin'] },
+      { title: 'Conformidade MTE', icon: Shield, href: '/equipment/compliance', roles: ['admin'] },
       { title: 'Logs de Comunicação', icon: FileText, href: '/equipment/logs', roles: ['admin'] },
       { title: 'Sincronizar', icon: RefreshCw, href: '/equipment/sync', roles: ['admin'] },
       { title: 'Ajuda', icon: HelpCircle, href: '/equipment/help', roles: ['admin'] },
