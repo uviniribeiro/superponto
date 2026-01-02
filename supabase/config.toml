@@ -36,3 +36,9 @@ verify_jwt = false
 
 [functions.validate-company-login]
 verify_jwt = false
+
+[functions.create-company-users]
+verify_jwt = false
+
+[functions.manage-super-admin]
+verify_jwt = false
