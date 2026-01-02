@@ -153,19 +153,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (username: string, password: string, companyCode: string) => {
-    // Normalize CNPJ - remove formatting for comparison
-    const normalizedCnpj = companyCode.replace(/[^\d]/g, '');
+    // Try to find company by exact company_code first (for city hall sectors)
+    // Then try with normalized CNPJ (for regular companies)
+    let companyData = null;
     
-    // First validate company CNPJ exists
-    const { data: companyData, error: companyError } = await supabase
+    // First try exact match (for sectors with suffix like 18715391000196-EDU-ABC123)
+    const { data: exactMatch, error: exactError } = await supabase
       .from('companies')
       .select('id, name, company_code, cnpj')
-      .eq('company_code', normalizedCnpj)
+      .eq('company_code', companyCode)
       .eq('is_active', true)
       .maybeSingle();
+    
+    if (exactMatch) {
+      companyData = exactMatch;
+    } else {
+      // Try with normalized CNPJ (for regular companies using CNPJ as code)
+      const normalizedCnpj = companyCode.replace(/[^\d]/g, '');
+      const { data: cnpjMatch, error: cnpjError } = await supabase
+        .from('companies')
+        .select('id, name, company_code, cnpj')
+        .eq('company_code', normalizedCnpj)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (cnpjMatch) {
+        companyData = cnpjMatch;
+      }
+    }
 
-    if (companyError || !companyData) {
-      return { error: new Error('CNPJ da empresa inválido ou empresa inativa') };
+    if (!companyData) {
+      return { error: new Error('Código da empresa inválido ou empresa inativa') };
     }
 
     // Generate internal email from username
