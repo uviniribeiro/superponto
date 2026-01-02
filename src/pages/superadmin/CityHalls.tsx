@@ -151,8 +151,17 @@ export default function SuperAdminCityHalls() {
   const handleCreateSector = async () => {
     if (!selectedCityHall) return;
 
+    // Validate sector name
+    if (!sectorFormData.name.trim()) {
+      toast.error('O nome do setor é obrigatório');
+      return;
+    }
+
     try {
       const sectorCode = `${selectedCityHall.company_code}-${sectorFormData.sector.toUpperCase().slice(0, 3)}`;
+      
+      console.log('Creating sector with code:', sectorCode);
+      console.log('Sector data:', sectorFormData);
       
       const { data: existingSector } = await supabase
         .from('companies')
@@ -165,19 +174,29 @@ export default function SuperAdminCityHalls() {
         return;
       }
 
-      const { error } = await supabase
-        .from('companies')
-        .insert({
-          name: sectorFormData.name,
-          cnpj: selectedCityHall.cnpj,
-          company_code: sectorCode,
-          organization_type: 'city_hall',
-          sector: sectorFormData.sector,
-          parent_organization_id: selectedCityHall.id,
-          license_status: selectedCityHall.license_status
-        } as any);
+      const insertData = {
+        name: sectorFormData.name.trim(),
+        cnpj: selectedCityHall.cnpj,
+        company_code: sectorCode,
+        organization_type: 'city_hall' as const,
+        sector: sectorFormData.sector as any,
+        parent_organization_id: selectedCityHall.id,
+        license_status: selectedCityHall.license_status
+      };
 
-      if (error) throw error;
+      console.log('Insert data:', insertData);
+
+      const { data, error } = await supabase
+        .from('companies')
+        .insert(insertData)
+        .select();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Created sector:', data);
 
       toast.success('Setor criado com sucesso!');
       setIsSectorDialogOpen(false);
