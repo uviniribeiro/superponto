@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Key, Search, CheckCircle, XCircle, Calendar, Users, Infinity, Building2, Landmark, RefreshCw, History, Clock } from 'lucide-react';
+import { Key, Search, CheckCircle, XCircle, Calendar, Users, Infinity, Building2, Landmark, RefreshCw, History, Clock, Trash2 } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSearchParams } from 'react-router-dom';
@@ -248,6 +249,31 @@ export default function SuperAdminLicenses() {
     }
   };
 
+  const handleDeleteLicense = async (license: License) => {
+    try {
+      // Delete renewals first
+      await supabase.from('license_renewals').delete().eq('license_id', license.id);
+      
+      // Delete the license
+      const { error } = await supabase.from('licenses').delete().eq('id', license.id);
+      if (error) throw error;
+      
+      // Check if company has other licenses
+      const remainingLicenses = licenses.filter(l => l.company_id === license.company_id && l.id !== license.id);
+      const hasActiveLicense = remainingLicenses.some(l => l.is_active);
+      
+      await supabase.from('companies').update({ 
+        license_status: hasActiveLicense ? 'active' : remainingLicenses.length > 0 ? 'expired' : 'pending' 
+      }).eq('id', license.company_id);
+
+      toast.success('Licença excluída com sucesso');
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting license:', error);
+      toast.error('Erro ao excluir licença');
+    }
+  };
+
   const openRenewDialog = (license: License) => {
     setSelectedLicense(license);
     setRenewFormData({ renewal_type: license.license_type || 'annual', notes: '' });
@@ -464,7 +490,7 @@ export default function SuperAdminLicenses() {
                       </TableCell>
                       <TableCell>{getLicenseStatusBadge(license)}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                         <div className="flex items-center justify-end gap-1">
                           <Button variant="outline" size="sm" onClick={() => openRenewDialog(license)} className={isExpired ? 'border-orange-500 text-orange-500 hover:bg-orange-500/10' : ''}>
                             <RefreshCw className="h-4 w-4 mr-1" />
                             Renovar
@@ -472,6 +498,27 @@ export default function SuperAdminLicenses() {
                           <Button variant="ghost" size="sm" onClick={() => toggleLicenseStatus(license)}>
                             {license.is_active ? <XCircle className="h-4 w-4 text-destructive" /> : <CheckCircle className="h-4 w-4 text-green-500" />}
                           </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir Licença</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir esta licença ({license.license_key})? Esta ação não pode ser desfeita e todo o histórico de renovações será perdido.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteLicense(license)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
