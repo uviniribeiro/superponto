@@ -95,10 +95,22 @@ const generateLicenseKey = (): string => {
   return parts.join('-');
 };
 
+interface License {
+  id: string;
+  company_id: string;
+  license_key: string;
+  valid_from: string;
+  valid_until: string;
+  max_employees: number | null;
+  is_active: boolean;
+  license_type: string;
+}
+
 export default function SuperAdminCityHalls() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -120,11 +132,28 @@ export default function SuperAdminCityHalls() {
   
   const [isSectorDialogOpen, setIsSectorDialogOpen] = useState(false);
   const [selectedCityHall, setSelectedCityHall] = useState<Company | null>(null);
-  const [sectorFormData, setSectorFormData] = useState({ name: '', sector: 'education' });
+  const [sectorFormData, setSectorFormData] = useState({ 
+    name: '', 
+    sector: 'education',
+    contractDuration: 12,
+    contractEndDate: '',
+    maxEmployees: 100,
+    createSeparateLicense: true
+  });
   const [expandedCityHalls, setExpandedCityHalls] = useState<string[]>([]);
+  
+  // Sector license dialog
+  const [isSectorLicenseDialogOpen, setIsSectorLicenseDialogOpen] = useState(false);
+  const [selectedSectorForLicense, setSelectedSectorForLicense] = useState<Company | null>(null);
+  const [sectorLicenseFormData, setSectorLicenseFormData] = useState({
+    contractDuration: 12,
+    contractEndDate: '',
+    maxEmployees: 100
+  });
 
   useEffect(() => {
     fetchCompanies();
+    fetchLicenses();
   }, []);
 
   const fetchCompanies = async () => {
@@ -142,6 +171,24 @@ export default function SuperAdminCityHalls() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchLicenses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('licenses')
+        .select('id, company_id, license_key, valid_from, valid_until, max_employees, is_active, license_type')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setLicenses(data || []);
+    } catch (error) {
+      console.error('Error fetching licenses:', error);
+    }
+  };
+
+  const getLicenseForCompany = (companyId: string) => {
+    return licenses.find(l => l.company_id === companyId && l.is_active);
   };
 
   const cityHalls = companies.filter(c => c.organization_type === 'city_hall' && !c.parent_organization_id);
@@ -438,6 +485,9 @@ export default function SuperAdminCityHalls() {
       const timestamp = Date.now().toString(36).toUpperCase();
       const sectorCode = `${selectedCityHall.company_code}-${sectorFormData.sector.toUpperCase().slice(0, 3)}-${timestamp}`;
       
+      // Determine license status based on whether we're creating a separate license
+      const licenseStatus = sectorFormData.createSeparateLicense ? 'active' : selectedCityHall.license_status;
+      
       const insertData = {
         name: sectorFormData.name.trim(),
         cnpj: selectedCityHall.cnpj,
@@ -445,7 +495,7 @@ export default function SuperAdminCityHalls() {
         organization_type: 'city_hall' as const,
         sector: sectorFormData.sector as "education" | "health" | "culture" | "transport" | "administration" | "finance" | "environment" | "social_assistance" | "urban_planning" | "other",
         parent_organization_id: selectedCityHall.id,
-        license_status: selectedCityHall.license_status,
+        license_status: licenseStatus,
         address: selectedCityHall.address,
         city: selectedCityHall.city,
         state: selectedCityHall.state,
@@ -474,6 +524,42 @@ export default function SuperAdminCityHalls() {
         phone: selectedCityHall.phone || null,
       });
 
+      // Create separate license for this sector if requested
+      if (sectorFormData.createSeparateLicense) {
+        const licenseKey = generateLicenseKey();
+        const validFrom = new Date();
+        let validUntil: Date;
+        
+        if (sectorFormData.contractEndDate) {
+          validUntil = new Date(sectorFormData.contractEndDate);
+        } else {
+          validUntil = addMonths(validFrom, sectorFormData.contractDuration);
+        }
+        
+        const maxEmployees = sectorFormData.maxEmployees === -1 ? null : sectorFormData.maxEmployees;
+        
+        let licenseType = 'annual';
+        if (sectorFormData.contractDuration === 1) licenseType = 'monthly';
+        else if (sectorFormData.contractDuration >= 1200) licenseType = 'lifetime';
+
+        const { error: licenseError } = await supabase.from('licenses').insert({
+          company_id: newSector.id,
+          license_key: licenseKey,
+          valid_from: validFrom.toISOString().split('T')[0],
+          valid_until: validUntil.toISOString().split('T')[0],
+          max_employees: maxEmployees,
+          is_active: true,
+          created_by: user.id,
+          license_type: licenseType,
+          notes: `Licença do setor ${sectorFormData.name.trim()} - ${contractDurationOptions.find(c => c.value === sectorFormData.contractDuration)?.label || sectorFormData.contractDuration + ' meses'}`
+        });
+
+        if (licenseError) {
+          console.error('Error creating sector license:', licenseError);
+          toast.warning('Setor criado, mas houve erro ao criar licença separada');
+        }
+      }
+
       // Create support and admin users for the new sector
       try {
         const { data: usersData, error: usersError } = await supabase.functions.invoke('create-company-users', {
@@ -487,12 +573,15 @@ export default function SuperAdminCityHalls() {
           console.error('Error creating sector users:', usersError);
           toast.warning('Setor criado, mas houve erro ao criar usuários. Tente novamente em Gerenciar Usuários.');
         } else if (usersData?.success) {
-          const creds = usersData.credentials;
-          if (creds?.support?.password || creds?.admin?.password) {
-            toast.success(`Setor criado! Suporte: suporte/Super@26 | Admin: admin/Admin@26`, { duration: 15000 });
-          } else {
-            toast.success('Setor criado! Usuários: suporte/Super@26 e admin/Admin@26');
-          }
+          const validUntilFormatted = sectorFormData.createSeparateLicense 
+            ? format(sectorFormData.contractEndDate ? new Date(sectorFormData.contractEndDate) : addMonths(new Date(), sectorFormData.contractDuration), 'dd/MM/yyyy', { locale: ptBR })
+            : '';
+          
+          const licenseInfo = sectorFormData.createSeparateLicense 
+            ? ` Licença válida até ${validUntilFormatted}.` 
+            : '';
+          
+          toast.success(`Setor criado com banco isolado!${licenseInfo} Suporte: suporte/Super@26 | Admin: admin/Admin@26`, { duration: 15000 });
         } else {
           toast.success('Setor criado! Usuários: suporte/Super@26 e admin/Admin@26');
         }
@@ -502,9 +591,17 @@ export default function SuperAdminCityHalls() {
       }
 
       setIsSectorDialogOpen(false);
-      setSectorFormData({ name: '', sector: 'education' });
+      setSectorFormData({ 
+        name: '', 
+        sector: 'education',
+        contractDuration: 12,
+        contractEndDate: '',
+        maxEmployees: 100,
+        createSeparateLicense: true
+      });
       setSelectedCityHall(null);
       fetchCompanies();
+      fetchLicenses();
     } catch (error) {
       console.error('Error creating sector:', error);
       toast.error('Erro ao criar setor');
@@ -820,7 +917,14 @@ export default function SuperAdminCityHalls() {
                             size="sm"
                             onClick={() => {
                               setSelectedCityHall(cityHall);
-                              setSectorFormData({ name: '', sector: 'education' });
+                              setSectorFormData({ 
+                                name: '', 
+                                sector: 'education',
+                                contractDuration: 12,
+                                contractEndDate: '',
+                                maxEmployees: 100,
+                                createSeparateLicense: true
+                              });
                               setIsSectorDialogOpen(true);
                             }}
                           >
@@ -884,43 +988,89 @@ export default function SuperAdminCityHalls() {
                                 <TableRow>
                                   <TableHead>Setor</TableHead>
                                   <TableHead>Tipo</TableHead>
-                                  <TableHead>Código</TableHead>
+                                  <TableHead>Licença</TableHead>
+                                  <TableHead>Validade</TableHead>
+                                  <TableHead>Funcionários</TableHead>
                                   <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {sectors.map((sector) => (
-                                  <TableRow key={sector.id}>
-                                    <TableCell className="font-medium">{sector.name}</TableCell>
-                                    <TableCell>{getSectorLabel(sector.sector || '')}</TableCell>
-                                    <TableCell className="font-mono text-sm">{sector.company_code}</TableCell>
-                                    <TableCell className="text-right">
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button variant="ghost" size="sm">
-                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                {sectors.map((sector) => {
+                                  const sectorLicense = getLicenseForCompany(sector.id);
+                                  return (
+                                    <TableRow key={sector.id}>
+                                      <TableCell className="font-medium">{sector.name}</TableCell>
+                                      <TableCell>{getSectorLabel(sector.sector || '')}</TableCell>
+                                      <TableCell>
+                                        {sectorLicense ? (
+                                          <Badge variant="default" className="text-xs">
+                                            {sectorLicense.license_key.slice(0, 8)}...
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="secondary" className="text-xs">
+                                            Sem licença
+                                          </Badge>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        {sectorLicense ? (
+                                          <span className="text-sm">
+                                            {format(new Date(sectorLicense.valid_until), 'dd/MM/yyyy', { locale: ptBR })}
+                                          </span>
+                                        ) : '-'}
+                                      </TableCell>
+                                      <TableCell>
+                                        {sectorLicense?.max_employees ? (
+                                          <span className="text-sm">{sectorLicense.max_employees}</span>
+                                        ) : sectorLicense ? (
+                                          <span className="text-sm text-muted-foreground">Ilimitado</span>
+                                        ) : '-'}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <div className="flex justify-end gap-1">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                              setSelectedSectorForLicense(sector);
+                                              setSectorLicenseFormData({
+                                                contractDuration: 12,
+                                                contractEndDate: '',
+                                                maxEmployees: 100
+                                              });
+                                              setIsSectorLicenseDialogOpen(true);
+                                            }}
+                                          >
+                                            <Key className="h-4 w-4" />
                                           </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Excluir Setor</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Tem certeza que deseja excluir o setor "{sector.name}"?
-                                              <br /><br />
-                                              <strong className="text-destructive">Todos os dados do setor serão excluídos permanentemente.</strong>
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteSector(sector.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                              Excluir
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button variant="ghost" size="sm">
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Excluir Setor</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Tem certeza que deseja excluir o setor "{sector.name}"?
+                                                  <br /><br />
+                                                  <strong className="text-destructive">Todos os dados do setor serão excluídos permanentemente, incluindo funcionários, registros de ponto e licenças.</strong>
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteSector(sector.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                  Excluir
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
                               </TableBody>
                             </Table>
                           </div>
@@ -1053,16 +1203,16 @@ export default function SuperAdminCityHalls() {
 
       {/* Create Sector Dialog */}
       <Dialog open={isSectorDialogOpen} onOpenChange={setIsSectorDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Novo Setor</DialogTitle>
             <DialogDescription>
-              Adicione um setor para {selectedCityHall?.name}
+              Adicione um setor para {selectedCityHall?.name}. Cada setor terá banco de dados isolado.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="space-y-2">
-              <Label htmlFor="sector-name">Nome do Setor</Label>
+              <Label htmlFor="sector-name">Nome do Setor *</Label>
               <Input
                 id="sector-name"
                 value={sectorFormData.name}
@@ -1091,10 +1241,222 @@ export default function SuperAdminCityHalls() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center space-x-2 mb-4">
+                <input
+                  type="checkbox"
+                  id="createSeparateLicense"
+                  checked={sectorFormData.createSeparateLicense}
+                  onChange={(e) => setSectorFormData({ ...sectorFormData, createSeparateLicense: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="createSeparateLicense" className="flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  Criar licença separada para este setor
+                </Label>
+              </div>
+              
+              {sectorFormData.createSeparateLicense && (
+                <div className="grid grid-cols-2 gap-4 mt-4 p-4 bg-muted rounded-lg">
+                  <div className="space-y-2">
+                    <Label htmlFor="sectorContractDuration" className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Tempo de Contrato
+                    </Label>
+                    <Select 
+                      value={sectorFormData.contractDuration.toString()} 
+                      onValueChange={(value) => setSectorFormData({ ...sectorFormData, contractDuration: parseInt(value) })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o período" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contractDurationOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value.toString()}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sectorContractEndDate" className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Data Fim de Contrato
+                    </Label>
+                    <Input
+                      id="sectorContractEndDate"
+                      type="date"
+                      value={sectorFormData.contractEndDate}
+                      onChange={(e) => setSectorFormData({ ...sectorFormData, contractEndDate: e.target.value })}
+                      min={format(new Date(), 'yyyy-MM-dd')}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sectorMaxEmployees" className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      Limite de Funcionários
+                    </Label>
+                    <Select 
+                      value={sectorFormData.maxEmployees.toString()} 
+                      onValueChange={(value) => setSectorFormData({ ...sectorFormData, maxEmployees: parseInt(value) })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o limite" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employeeLimits.map((option) => (
+                          <SelectItem key={option.value} value={option.value.toString()}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              
+              <p className="text-xs text-muted-foreground mt-2">
+                {sectorFormData.createSeparateLicense 
+                  ? 'O setor terá uma licença independente da prefeitura.' 
+                  : 'O setor compartilhará a licença da prefeitura.'
+                }
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsSectorDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleCreateSector} className="gradient-primary">Criar Setor</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sector License Dialog */}
+      <Dialog open={isSectorLicenseDialogOpen} onOpenChange={setIsSectorLicenseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gerenciar Licença do Setor</DialogTitle>
+            <DialogDescription>
+              Adicionar ou renovar licença para {selectedSectorForLicense?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  Tempo de Contrato
+                </Label>
+                <Select 
+                  value={sectorLicenseFormData.contractDuration.toString()} 
+                  onValueChange={(value) => setSectorLicenseFormData({ ...sectorLicenseFormData, contractDuration: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contractDurationOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  Data Fim de Contrato
+                </Label>
+                <Input
+                  type="date"
+                  value={sectorLicenseFormData.contractEndDate}
+                  onChange={(e) => setSectorLicenseFormData({ ...sectorLicenseFormData, contractEndDate: e.target.value })}
+                  min={format(new Date(), 'yyyy-MM-dd')}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Se preenchido, ignora o tempo de contrato
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  Limite de Funcionários
+                </Label>
+                <Select 
+                  value={sectorLicenseFormData.maxEmployees.toString()} 
+                  onValueChange={(value) => setSectorLicenseFormData({ ...sectorLicenseFormData, maxEmployees: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o limite" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employeeLimits.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSectorLicenseDialogOpen(false)}>Cancelar</Button>
+            <Button 
+              onClick={async () => {
+                if (!selectedSectorForLicense || !user) return;
+                
+                try {
+                  const licenseKey = generateLicenseKey();
+                  const validFrom = new Date();
+                  let validUntil: Date;
+                  
+                  if (sectorLicenseFormData.contractEndDate) {
+                    validUntil = new Date(sectorLicenseFormData.contractEndDate);
+                  } else {
+                    validUntil = addMonths(validFrom, sectorLicenseFormData.contractDuration);
+                  }
+                  
+                  const maxEmployees = sectorLicenseFormData.maxEmployees === -1 ? null : sectorLicenseFormData.maxEmployees;
+                  
+                  let licenseType = 'annual';
+                  if (sectorLicenseFormData.contractDuration === 1) licenseType = 'monthly';
+                  else if (sectorLicenseFormData.contractDuration >= 1200) licenseType = 'lifetime';
+
+                  const { error } = await supabase.from('licenses').insert({
+                    company_id: selectedSectorForLicense.id,
+                    license_key: licenseKey,
+                    valid_from: validFrom.toISOString().split('T')[0],
+                    valid_until: validUntil.toISOString().split('T')[0],
+                    max_employees: maxEmployees,
+                    is_active: true,
+                    created_by: user.id,
+                    license_type: licenseType,
+                    notes: `Licença do setor ${selectedSectorForLicense.name}`
+                  });
+
+                  if (error) throw error;
+
+                  // Update license status
+                  await supabase.from('companies').update({ license_status: 'active' }).eq('id', selectedSectorForLicense.id);
+
+                  toast.success(`Licença criada! Chave: ${licenseKey}. Válida até ${format(validUntil, 'dd/MM/yyyy', { locale: ptBR })}`);
+                  setIsSectorLicenseDialogOpen(false);
+                  setSelectedSectorForLicense(null);
+                  fetchLicenses();
+                  fetchCompanies();
+                } catch (error) {
+                  console.error('Error creating sector license:', error);
+                  toast.error('Erro ao criar licença');
+                }
+              }} 
+              className="gradient-primary"
+            >
+              <Key className="h-4 w-4 mr-2" />
+              Criar Licença
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
