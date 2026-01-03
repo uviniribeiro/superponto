@@ -12,11 +12,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { Landmark, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, ChevronDown, Trash2, GraduationCap, Heart, Palette, Bus, Settings2, Building2, Users, Calendar, Loader2, Phone, Pencil } from 'lucide-react';
+import { Landmark, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, ChevronDown, Trash2, GraduationCap, Heart, Palette, Bus, Settings2, Building2, Users, Calendar, Loader2, Phone, Pencil, ArrowRightLeft } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
+import { EmployeeTransferDialog } from '@/components/superadmin/EmployeeTransferDialog';
 
 interface Company {
   id: string;
@@ -150,6 +151,10 @@ export default function SuperAdminCityHalls() {
     contractEndDate: '',
     maxEmployees: 100
   });
+
+  // Employee transfer dialog
+  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
+  const [selectedCityHallForTransfer, setSelectedCityHallForTransfer] = useState<Company | null>(null);
 
   useEffect(() => {
     fetchCompanies();
@@ -934,6 +939,17 @@ export default function SuperAdminCityHalls() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => {
+                              setSelectedCityHallForTransfer(cityHall);
+                              setIsTransferDialogOpen(true);
+                            }}
+                          >
+                            <ArrowRightLeft className="h-4 w-4 mr-1" />
+                            Transferir
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => navigate(`/super-admin/licenses?company=${cityHall.id}`)}
                           >
                             <Key className="h-4 w-4 mr-1" />
@@ -1460,6 +1476,18 @@ export default function SuperAdminCityHalls() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Employee Transfer Dialog */}
+      {selectedCityHallForTransfer && (
+        <EmployeeTransferDialog
+          open={isTransferDialogOpen}
+          onOpenChange={setIsTransferDialogOpen}
+          cityHallId={selectedCityHallForTransfer.id}
+          cityHallName={selectedCityHallForTransfer.name}
+          sectors={getSectors(selectedCityHallForTransfer.id).map(s => ({ id: s.id, name: s.name }))}
+          onTransferComplete={fetchCompanies}
+        />
+      )}
     </div>
   );
 }

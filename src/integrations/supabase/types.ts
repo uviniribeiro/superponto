@@ -734,6 +734,42 @@ export type Database = {
           },
         ]
       }
+      employee_transfers: {
+        Row: {
+          created_at: string
+          from_company_id: string
+          id: string
+          notes: string | null
+          profile_id: string
+          reason: string | null
+          to_company_id: string
+          transfer_date: string
+          transferred_by: string
+        }
+        Insert: {
+          created_at?: string
+          from_company_id: string
+          id?: string
+          notes?: string | null
+          profile_id: string
+          reason?: string | null
+          to_company_id: string
+          transfer_date?: string
+          transferred_by: string
+        }
+        Update: {
+          created_at?: string
+          from_company_id?: string
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          reason?: string | null
+          to_company_id?: string
+          transfer_date?: string
+          transferred_by?: string
+        }
+        Relationships: []
+      }
       equipment_communication_logs: {
         Row: {
           company_id: string | null
