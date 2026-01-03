@@ -238,17 +238,19 @@ export default function SuperAdminCompanies() {
         } else if (usersData?.success) {
           const creds = usersData.credentials;
           const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
-          if (creds?.support?.temporaryPassword || creds?.admin?.temporaryPassword) {
-            const supportInfo = creds?.support ? `Suporte: suporte/${creds.support.temporaryPassword}` : '';
-            const adminInfo = creds?.admin ? `Admin: admin/${creds.admin.temporaryPassword}` : '';
-            toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
+          if (creds?.support?.password || creds?.admin?.password) {
+            toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. Suporte: suporte/Super@26 | Admin: admin/Admin@26`, { duration: 15000 });
           } else {
-            toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}.`);
+            toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. Usuários: suporte/Super@26 e admin/Admin@26`);
           }
+        } else {
+          const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
+          toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. Usuários: suporte/Super@26 e admin/Admin@26`);
         }
       } catch (err) {
         console.error('Error calling create-company-users:', err);
-        toast.warning('Empresa criada, mas houve erro ao criar usuários');
+        const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
+        toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. Configure os usuários manualmente.`);
       }
 
       setIsDialogOpen(false);

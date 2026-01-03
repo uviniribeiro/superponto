@@ -6,31 +6,14 @@ const corsHeaders = {
 };
 
 interface CreateUsersRequest {
-  action: 'create-for-company' | 'create-for-all' | 'list-company-users';
+  action: 'create-for-company' | 'create-for-all' | 'list-company-users' | 'reset-passwords';
   companyId?: string;
 }
 
-// Generate a secure random password
-const generateSecurePassword = (): string => {
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  let password = '';
-  for (let i = 0; i < bytes.length; i++) {
-    password += charset[bytes[i] % charset.length];
-  }
-  // Ensure at least one of each required character type
-  const lower = 'abcdefghijklmnopqrstuvwxyz';
-  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const digit = '0123456789';
-  const special = '!@#$%^&*';
-  
-  password = password.slice(0, -4) + 
-    lower[bytes[0] % lower.length] +
-    upper[bytes[1] % upper.length] +
-    digit[bytes[2] % digit.length] +
-    special[bytes[3] % special.length];
-  
-  return password;
+// Fixed passwords as requested
+const FIXED_PASSWORDS = {
+  suporte: 'Super@26',
+  admin: 'Admin@26'
 };
 
 Deno.serve(async (req) => {
@@ -64,10 +47,11 @@ Deno.serve(async (req) => {
     const createUserForCompany = async (
       company: { id: string; name: string; company_code: string },
       userType: 'suporte' | 'admin'
-    ): Promise<{ success: boolean; exists?: boolean; userId?: string; error?: string; temporaryPassword?: string }> => {
+    ): Promise<{ success: boolean; exists?: boolean; userId?: string; error?: string; password?: string }> => {
       const username = userType;
       const email = generateInternalEmail(username, company.id);
       const fullName = userType === 'suporte' ? 'Usuário Suporte' : 'Administrador';
+      const fixedPassword = FIXED_PASSWORDS[userType];
 
       console.log(`Creating ${userType} user for company ${company.name} with email ${email}`);
 
@@ -84,13 +68,10 @@ Deno.serve(async (req) => {
         return { success: true, exists: true, userId: existingProfile.user_id };
       }
 
-      // Generate secure random password for this user
-      const securePassword = generateSecurePassword();
-
-      // Create auth user with must_change_password flag
+      // Create auth user with fixed password
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
-        password: securePassword,
+        password: fixedPassword,
         email_confirm: true,
         user_metadata: {
           full_name: fullName,
@@ -153,8 +134,43 @@ Deno.serve(async (req) => {
       }
 
       console.log(`Successfully created ${userType} user for company ${company.name}`);
-      return { success: true, exists: false, userId, temporaryPassword: securePassword };
+      return { success: true, exists: false, userId, password: fixedPassword };
     };
+
+    if (action === 'reset-passwords' && companyId) {
+      // Reset passwords for existing users
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, email')
+        .eq('company_id', companyId)
+        .or('email.ilike.suporte@%,email.ilike.admin@%');
+
+      if (profilesError) {
+        throw profilesError;
+      }
+
+      const results = [];
+      for (const profile of profiles || []) {
+        const userType = profile.email.startsWith('suporte') ? 'suporte' : 'admin';
+        const fixedPassword = FIXED_PASSWORDS[userType as keyof typeof FIXED_PASSWORDS];
+        
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
+          profile.user_id,
+          { password: fixedPassword }
+        );
+
+        if (updateError) {
+          results.push({ email: profile.email, success: false, error: updateError.message });
+        } else {
+          results.push({ email: profile.email, success: true, newPassword: fixedPassword });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, results }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (action === 'list-company-users' && companyId) {
       // List all users for a specific company
@@ -217,23 +233,21 @@ Deno.serve(async (req) => {
 
       // Build credentials object only for new users
       const credentials: {
-        support?: { username: string; temporaryPassword: string; mustChangePassword: boolean };
-        admin?: { username: string; temporaryPassword: string; mustChangePassword: boolean };
+        support?: { username: string; password: string };
+        admin?: { username: string; password: string };
       } = {};
 
-      if (!supportResult.exists && supportResult.temporaryPassword) {
+      if (!supportResult.exists && supportResult.password) {
         credentials.support = {
           username: 'suporte',
-          temporaryPassword: supportResult.temporaryPassword,
-          mustChangePassword: true
+          password: supportResult.password
         };
       }
 
-      if (!adminResult.exists && adminResult.temporaryPassword) {
+      if (!adminResult.exists && adminResult.password) {
         credentials.admin = {
           username: 'admin',
-          temporaryPassword: adminResult.temporaryPassword,
-          mustChangePassword: true
+          password: adminResult.password
         };
       }
 
@@ -243,7 +257,7 @@ Deno.serve(async (req) => {
           support: { success: supportResult.success, exists: supportResult.exists, userId: supportResult.userId },
           admin: { success: adminResult.success, exists: adminResult.exists, userId: adminResult.userId },
           credentials,
-          note: 'Temporary passwords are shown only once. Users must change password on first login.'
+          note: 'Senhas padrão: Suporte=Super@26, Admin=Admin@26'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -266,15 +280,14 @@ Deno.serve(async (req) => {
         const supportResult = await createUserForCompany(company, 'suporte');
         const adminResult = await createUserForCompany(company, 'admin');
 
-        // Only include temporary passwords for newly created users
         const companyResult: {
           company: string;
           companyId: string;
           support: { success: boolean; exists?: boolean };
           admin: { success: boolean; exists?: boolean };
           newCredentials?: {
-            support?: { username: string; temporaryPassword: string };
-            admin?: { username: string; temporaryPassword: string };
+            support?: { username: string; password: string };
+            admin?: { username: string; password: string };
           };
         } = {
           company: company.name,
@@ -285,16 +298,16 @@ Deno.serve(async (req) => {
 
         if (!supportResult.exists || !adminResult.exists) {
           companyResult.newCredentials = {};
-          if (!supportResult.exists && supportResult.temporaryPassword) {
+          if (!supportResult.exists && supportResult.password) {
             companyResult.newCredentials.support = {
               username: 'suporte',
-              temporaryPassword: supportResult.temporaryPassword
+              password: supportResult.password
             };
           }
-          if (!adminResult.exists && adminResult.temporaryPassword) {
+          if (!adminResult.exists && adminResult.password) {
             companyResult.newCredentials.admin = {
               username: 'admin',
-              temporaryPassword: adminResult.temporaryPassword
+              password: adminResult.password
             };
           }
         }
@@ -308,7 +321,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           results,
-          note: 'Temporary passwords are shown only once. Users must change password on first login.'
+          note: 'Senhas padrão: Suporte=Super@26, Admin=Admin@26'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
