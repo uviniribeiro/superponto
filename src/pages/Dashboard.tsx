@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Users, CalendarCheck, AlertCircle, ArrowRight, TrendingUp, BarChart3, Timer, UserX, Building2, Copy, Check } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, differenceInMinutes, parseISO, startOfWeek, endOfWeek, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -553,6 +554,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
+      
+      <HelpButton pageKey="dashboard" />
     </div>
   );
 }

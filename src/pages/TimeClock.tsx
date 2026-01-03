@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Camera, X, ShieldCheck, ShieldAlert, FileText } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
@@ -686,6 +687,8 @@ export default function TimeClock() {
         )}
       </DialogContent>
     </Dialog>
+    
+    <HelpButton pageKey="timeclock" />
     </>
   );
 }

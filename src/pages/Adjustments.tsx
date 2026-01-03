@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { ClipboardCheck, Check, X, Clock, MessageSquare } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -372,6 +373,8 @@ export default function Adjustments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <HelpButton pageKey="adjustments" />
     </div>
   );
 }

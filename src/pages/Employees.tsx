@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { Users, Search, Edit, UserCheck, UserX, UserPlus, Key, Upload, Camera, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { format } from 'date-fns';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
@@ -717,6 +718,8 @@ export default function Employees() {
         onOpenChange={setIsCsvDialogOpen}
         onImportComplete={fetchEmployees}
       />
+      
+      <HelpButton pageKey="employees" />
     </div>
   );
 }
