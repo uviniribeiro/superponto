@@ -423,7 +423,7 @@ export default function SuperAdminCityHalls() {
   };
 
   const handleCreateSector = async () => {
-    if (!selectedCityHall) return;
+    if (!selectedCityHall || !user) return;
 
     // Validate sector name
     if (!sectorFormData.name.trim()) {
@@ -443,7 +443,11 @@ export default function SuperAdminCityHalls() {
         organization_type: 'city_hall' as const,
         sector: sectorFormData.sector as "education" | "health" | "culture" | "transport" | "administration" | "finance" | "environment" | "social_assistance" | "urban_planning" | "other",
         parent_organization_id: selectedCityHall.id,
-        license_status: selectedCityHall.license_status
+        license_status: selectedCityHall.license_status,
+        address: selectedCityHall.address,
+        city: selectedCityHall.city,
+        state: selectedCityHall.state,
+        phone: selectedCityHall.phone,
       };
 
       const { data: newSector, error } = await supabase
@@ -457,6 +461,17 @@ export default function SuperAdminCityHalls() {
         throw error;
       }
 
+      // Create company_settings for the sector
+      await supabase.from('company_settings').insert({
+        company_id: newSector.id,
+        company_name: sectorFormData.name.trim(),
+        cnpj: selectedCityHall.cnpj,
+        address: selectedCityHall.address || null,
+        city: selectedCityHall.city || null,
+        state: selectedCityHall.state || null,
+        phone: selectedCityHall.phone || null,
+      });
+
       // Create support and admin users for the new sector
       try {
         const { data: usersData, error: usersError } = await supabase.functions.invoke('create-company-users', {
@@ -468,7 +483,7 @@ export default function SuperAdminCityHalls() {
 
         if (usersError) {
           console.error('Error creating sector users:', usersError);
-          toast.warning('Setor criado, mas houve erro ao criar usuários');
+          toast.warning('Setor criado, mas houve erro ao criar usuários. Tente novamente em Gerenciar Usuários.');
         } else if (usersData?.success) {
           const creds = usersData.credentials;
           if (creds?.support?.temporaryPassword || creds?.admin?.temporaryPassword) {
@@ -478,10 +493,12 @@ export default function SuperAdminCityHalls() {
           } else {
             toast.success('Setor criado! Usuários criados (já existiam ou foram criados anteriormente).');
           }
+        } else {
+          toast.success('Setor criado com sucesso!');
         }
       } catch (err) {
         console.error('Error calling create-company-users:', err);
-        toast.success('Setor criado com sucesso!');
+        toast.success('Setor criado! Configure os usuários manualmente se necessário.');
       }
 
       setIsSectorDialogOpen(false);
@@ -498,6 +515,8 @@ export default function SuperAdminCityHalls() {
     // Delete ALL related records in order of dependencies
     await supabase.from('time_records').delete().eq('company_id', companyId);
     await supabase.from('adjustment_requests').delete().eq('company_id', companyId);
+    await supabase.from('timesheet_locks').delete().eq('company_id', companyId);
+    await supabase.from('audit_logs').delete().eq('company_id', companyId);
     await supabase.from('employee_schedules').delete().eq('company_id', companyId);
     await supabase.from('employee_scale_assignments').delete().eq('company_id', companyId);
     await supabase.from('employee_class_hour_assignments').delete().eq('company_id', companyId);
@@ -515,6 +534,17 @@ export default function SuperAdminCityHalls() {
     await supabase.from('class_hour_configurations').delete().eq('company_id', companyId);
     await supabase.from('holidays').delete().eq('company_id', companyId);
     await supabase.from('role_change_history').delete().eq('company_id', companyId);
+    
+    // Get profiles and their user_ids before deleting
+    const { data: profiles } = await supabase.from('profiles').select('user_id').eq('company_id', companyId);
+    const userIds = (profiles || []).map(p => p.user_id);
+    
+    // Delete user roles for these users
+    if (userIds.length > 0) {
+      await supabase.from('user_roles').delete().in('user_id', userIds);
+    }
+    
+    // Delete profiles
     await supabase.from('profiles').delete().eq('company_id', companyId);
     
     // Delete license renewals via license_id

@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { format, parse, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import AFDExportPortaria671 from '@/components/import-export/AFDExportPortaria671';
+import CSVEmployeeImport from '@/components/import-export/CSVEmployeeImport';
 
 interface CompanySettings {
   id: string;
@@ -1418,14 +1420,18 @@ export default function ImportExport() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="import-afd" className="flex items-center gap-2">
             <FileUp className="h-4 w-4" />
             Importar AFD
           </TabsTrigger>
           <TabsTrigger value="import" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
-            Importar Dados
+            Importar CSV
+          </TabsTrigger>
+          <TabsTrigger value="export-afd" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Exportar AFD
           </TabsTrigger>
           <TabsTrigger value="export" className="flex items-center gap-2">
             <FileDown className="h-4 w-4" />
@@ -1762,63 +1768,12 @@ export default function ImportExport() {
 
         {/* ========== IMPORT DATA TAB ========== */}
         <TabsContent value="import" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                Importar Dados de Funcionários
-              </CardTitle>
-              <CardDescription>
-                Importe dados de funcionários em formato CSV para atualização em lote
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Tipo de Importação</Label>
-                  <Select defaultValue="employees">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="employees">Funcionários (CSV)</SelectItem>
-                      <SelectItem value="schedules">Horários de Trabalho (CSV)</SelectItem>
-                      <SelectItem value="departments">Departamentos (CSV)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Selecionar Arquivo CSV</Label>
-                  <Input
-                    type="file"
-                    accept=".csv"
-                    className="flex-1"
-                  />
-                </div>
-              </div>
+          <CSVEmployeeImport />
+        </TabsContent>
 
-              <div className="p-4 border rounded-lg bg-muted/50">
-                <h4 className="font-semibold">Formato do arquivo CSV para Funcionários:</h4>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Colunas obrigatórias: nome, email, cpf
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Colunas opcionais: pis, matricula, departamento, cargo, telefone, data_admissao
-                </p>
-                <div className="mt-3 p-2 bg-background rounded text-xs font-mono">
-                  nome;email;cpf;pis;matricula;departamento;cargo<br/>
-                  João Silva;joao@empresa.com;12345678900;12345678901;001;TI;Analista
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button disabled className="gradient-primary">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Importar Dados
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {/* ========== EXPORT AFD TAB ========== */}
+        <TabsContent value="export-afd" className="space-y-6">
+          <AFDExportPortaria671 />
         </TabsContent>
 
         {/* ========== EXPORT TAB ========== */}

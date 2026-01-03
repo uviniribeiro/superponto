@@ -345,67 +345,40 @@ export default function SuperAdminCompanies() {
   const handleDeleteCompany = async (company: Company) => {
     try {
       // Delete ALL related records in order of dependencies
-      // 1. Delete time records
       await supabase.from('time_records').delete().eq('company_id', company.id);
-      
-      // 2. Delete adjustment requests
       await supabase.from('adjustment_requests').delete().eq('company_id', company.id);
-      
-      // 3. Delete employee schedules
+      await supabase.from('timesheet_locks').delete().eq('company_id', company.id);
+      await supabase.from('audit_logs').delete().eq('company_id', company.id);
       await supabase.from('employee_schedules').delete().eq('company_id', company.id);
-      
-      // 4. Delete employee scale assignments
       await supabase.from('employee_scale_assignments').delete().eq('company_id', company.id);
-      
-      // 5. Delete employee class hour assignments
       await supabase.from('employee_class_hour_assignments').delete().eq('company_id', company.id);
-      
-      // 6. Delete employee off days
       await supabase.from('employee_off_days').delete().eq('company_id', company.id);
-      
-      // 7. Delete class records
       await supabase.from('class_records').delete().eq('company_id', company.id);
-      
-      // 8. Delete teacher schedule slots
       await supabase.from('teacher_schedule_slots').delete().eq('company_id', company.id);
-      
-      // 9. Delete overtime alerts
       await supabase.from('overtime_alerts').delete().eq('company_id', company.id);
-      
-      // 10. Delete equipment pending records
       await supabase.from('equipment_pending_records').delete().eq('company_id', company.id);
-      
-      // 11. Delete equipment communication logs
       await supabase.from('equipment_communication_logs').delete().eq('company_id', company.id);
-      
-      // 12. Delete time clock equipment
       await supabase.from('time_clock_equipment').delete().eq('company_id', company.id);
-      
-      // 13. Delete positions
       await supabase.from('positions').delete().eq('company_id', company.id);
-      
-      // 14. Delete departments
       await supabase.from('departments').delete().eq('company_id', company.id);
-      
-      // 15. Delete work schedules
       await supabase.from('work_schedules').delete().eq('company_id', company.id);
-      
-      // 16. Delete scale configurations
       await supabase.from('scale_configurations').delete().eq('company_id', company.id);
-      
-      // 17. Delete class hour configurations
       await supabase.from('class_hour_configurations').delete().eq('company_id', company.id);
-      
-      // 18. Delete holidays
       await supabase.from('holidays').delete().eq('company_id', company.id);
-      
-      // 19. Delete role change history
       await supabase.from('role_change_history').delete().eq('company_id', company.id);
       
-      // 20. Delete profiles (this will cascade to user_roles via trigger if needed)
+      // Get profiles and their user_ids before deleting
+      const { data: profiles } = await supabase.from('profiles').select('user_id').eq('company_id', company.id);
+      const userIds = (profiles || []).map(p => p.user_id);
+      
+      // Delete user roles for these users
+      if (userIds.length > 0) {
+        await supabase.from('user_roles').delete().in('user_id', userIds);
+      }
+      
       await supabase.from('profiles').delete().eq('company_id', company.id);
       
-      // 21. Delete license renewals (via license_id)
+      // Delete license renewals (via license_id)
       const { data: licenses } = await supabase.from('licenses').select('id').eq('company_id', company.id);
       if (licenses) {
         for (const license of licenses) {
@@ -413,16 +386,11 @@ export default function SuperAdminCompanies() {
         }
       }
       
-      // 22. Delete licenses
       await supabase.from('licenses').delete().eq('company_id', company.id);
-      
-      // 23. Delete company settings
       await supabase.from('company_settings').delete().eq('company_id', company.id);
-      
-      // 24. Delete pending company users
       await supabase.from('pending_company_users').delete().eq('company_id', company.id);
       
-      // 25. Finally delete the company
+      // Finally delete the company
       const { error } = await supabase
         .from('companies')
         .delete()
