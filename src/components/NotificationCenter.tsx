@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Bell, Check, CheckCheck, Trash2, Wifi, WifiOff, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,23 +16,35 @@ export function NotificationCenter() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
 
-  const getNotificationIcon = (type: Notification['type']) => {
+  const getNotificationIcon = useCallback((type: Notification['type']) => {
     switch (type) {
       case 'equipment_offline':
-        return <WifiOff className="h-4 w-4 text-red-500" />;
+        return <WifiOff className="h-4 w-4 text-destructive" />;
       case 'equipment_reconnected':
-        return <Wifi className="h-4 w-4 text-green-500" />;
+        return <Wifi className="h-4 w-4 text-success" />;
       default:
         return <Bell className="h-4 w-4 text-muted-foreground" />;
     }
-  };
+  }, []);
 
-  const getNotificationBg = (notification: Notification) => {
+  const getNotificationBg = useCallback((notification: Notification) => {
     if (!notification.read) {
       return 'bg-accent/50';
     }
     return '';
-  };
+  }, []);
+
+  const displayCount = useMemo(() => {
+    return unreadCount > 9 ? '9+' : unreadCount;
+  }, [unreadCount]);
+
+  const handleMarkAsRead = useCallback((id: string) => {
+    markAsRead(id);
+  }, [markAsRead]);
+
+  const handleClearNotification = useCallback((id: string) => {
+    clearNotification(id);
+  }, [clearNotification]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -41,14 +53,14 @@ export function NotificationCenter() {
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
             <Badge 
-              className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-red-500"
+              className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-destructive"
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
+              {displayCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent align="end" className="w-80 p-0" sideOffset={8}>
         <div className="flex items-center justify-between p-3 border-b">
           <h4 className="font-medium text-sm">Notificações</h4>
           <div className="flex gap-1">
@@ -103,7 +115,7 @@ export function NotificationCenter() {
                               variant="ghost"
                               size="icon"
                               className="h-5 w-5"
-                              onClick={() => markAsRead(notification.id)}
+                              onClick={() => handleMarkAsRead(notification.id)}
                               title="Marcar como lida"
                             >
                               <Check className="h-3 w-3" />
@@ -113,7 +125,7 @@ export function NotificationCenter() {
                             variant="ghost"
                             size="icon"
                             className="h-5 w-5"
-                            onClick={() => clearNotification(notification.id)}
+                            onClick={() => handleClearNotification(notification.id)}
                             title="Remover"
                           >
                             <X className="h-3 w-3" />
