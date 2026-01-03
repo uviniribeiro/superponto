@@ -868,6 +868,13 @@ export type Database = {
             referencedRelation: "time_clock_equipment"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "equipment_communication_logs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       equipment_pending_records: {
@@ -926,6 +933,13 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "time_clock_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_pending_records_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment_secure"
             referencedColumns: ["id"]
           },
           {
@@ -2009,8 +2023,127 @@ export type Database = {
           },
         ]
       }
+      time_clock_equipment_secure: {
+        Row: {
+          api_endpoint: string | null
+          communication_type: string | null
+          company_id: string | null
+          created_at: string | null
+          firmware_version: string | null
+          id: string | null
+          ip_address: string | null
+          is_active: boolean | null
+          is_online: boolean | null
+          last_communication: string | null
+          last_sync: string | null
+          location: string | null
+          manufacturer: string | null
+          model: string | null
+          name: string | null
+          notes: string | null
+          password: string | null
+          port: number | null
+          portaria_compliance: string | null
+          protocol: string | null
+          rep_number: string | null
+          serial_number: string | null
+          sync_interval_seconds: number | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          api_endpoint?: string | null
+          communication_type?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          firmware_version?: string | null
+          id?: string | null
+          ip_address?: string | null
+          is_active?: boolean | null
+          is_online?: boolean | null
+          last_communication?: string | null
+          last_sync?: string | null
+          location?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          name?: string | null
+          notes?: string | null
+          password?: never
+          port?: number | null
+          portaria_compliance?: string | null
+          protocol?: string | null
+          rep_number?: string | null
+          serial_number?: string | null
+          sync_interval_seconds?: number | null
+          updated_at?: string | null
+          username?: never
+        }
+        Update: {
+          api_endpoint?: string | null
+          communication_type?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          firmware_version?: string | null
+          id?: string | null
+          ip_address?: string | null
+          is_active?: boolean | null
+          is_online?: boolean | null
+          last_communication?: string | null
+          last_sync?: string | null
+          location?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          name?: string | null
+          notes?: string | null
+          password?: never
+          port?: number | null
+          portaria_compliance?: string | null
+          protocol?: string | null
+          rep_number?: string | null
+          serial_number?: string | null
+          sync_interval_seconds?: number | null
+          updated_at?: string | null
+          username?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_clock_equipment_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      decrypt_equipment_password: {
+        Args: { encrypted_password: string }
+        Returns: string
+      }
+      encrypt_equipment_password: {
+        Args: { plain_password: string }
+        Returns: string
+      }
+      get_equipment_for_sync: {
+        Args: { equipment_id: string }
+        Returns: {
+          api_endpoint: string
+          company_id: string
+          id: string
+          ip_address: string
+          is_active: boolean
+          last_sync: string
+          manufacturer: string
+          model: string
+          name: string
+          password: string
+          port: number
+          protocol: string
+          sync_interval_seconds: number
+          username: string
+        }[]
+      }
       get_profile_id: { Args: { _user_id: string }; Returns: string }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       get_visible_profile_fields: {

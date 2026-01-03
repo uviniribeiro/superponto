@@ -865,16 +865,15 @@ serve(async (req) => {
     console.log(`Equipment sync action: ${action}, equipmentId: ${equipmentId}, companyId: ${companyId}`);
 
     if (action === 'sync_single') {
-      // Sync a single equipment
-      const { data: equipment, error: fetchError } = await supabase
-        .from('time_clock_equipment')
-        .select('*')
-        .eq('id', equipmentId)
-        .single();
+      // Sync a single equipment using the secure function that decrypts passwords
+      const { data: equipmentData, error: fetchError } = await supabase
+        .rpc('get_equipment_for_sync', { equipment_id: equipmentId });
 
-      if (fetchError || !equipment) {
+      if (fetchError || !equipmentData || equipmentData.length === 0) {
         throw new Error(`Equipment not found: ${fetchError?.message}`);
       }
+      
+      const equipment = equipmentData[0];
 
       const handler = manufacturerHandlers[equipment.manufacturer.toLowerCase()] || manufacturerHandlers.generic;
       const result = await handler(equipment);
@@ -937,16 +936,17 @@ serve(async (req) => {
 
     if (action === 'sync_all') {
       // Sync all active equipment for a company
+      // First get all equipment IDs
       let query = supabase
         .from('time_clock_equipment')
-        .select('*')
+        .select('id')
         .eq('is_active', true);
 
       if (companyId) {
         query = query.eq('company_id', companyId);
       }
 
-      const { data: equipments, error: fetchError } = await query;
+      const { data: equipmentIds, error: fetchError } = await query;
 
       if (fetchError) {
         throw new Error(`Failed to fetch equipment: ${fetchError.message}`);
@@ -955,7 +955,13 @@ serve(async (req) => {
       const results = [];
       let totalRecordsSynced = 0;
       
-      for (const equipment of equipments || []) {
+      for (const eq of equipmentIds || []) {
+        // Use the secure function to get equipment with decrypted password
+        const { data: equipmentData } = await supabase.rpc('get_equipment_for_sync', { equipment_id: eq.id });
+        const equipment = equipmentData?.[0];
+        
+        if (!equipment) continue;
+        
         const handler = manufacturerHandlers[equipment.manufacturer.toLowerCase()] || manufacturerHandlers.generic;
         const result = await handler(equipment);
 
@@ -1020,16 +1026,15 @@ serve(async (req) => {
     }
 
     if (action === 'test_connection') {
-      // Test connection to a single equipment
-      const { data: equipment, error: fetchError } = await supabase
-        .from('time_clock_equipment')
-        .select('*')
-        .eq('id', equipmentId)
-        .single();
+      // Test connection to a single equipment using secure function
+      const { data: equipmentData, error: fetchError } = await supabase
+        .rpc('get_equipment_for_sync', { equipment_id: equipmentId });
 
-      if (fetchError || !equipment) {
+      if (fetchError || !equipmentData || equipmentData.length === 0) {
         throw new Error(`Equipment not found: ${fetchError?.message}`);
       }
+      
+      const equipment = equipmentData[0];
 
       const handler = manufacturerHandlers[equipment.manufacturer.toLowerCase()] || manufacturerHandlers.generic;
       const result = await handler(equipment);
