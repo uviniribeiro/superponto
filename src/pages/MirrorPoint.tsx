@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,13 +10,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { FileText, Printer, Calendar, User, Building2, Clock, AlertCircle, Edit2 } from 'lucide-react';
+import { FileText, Printer, Calendar, User, Building2, Clock, AlertCircle, Edit2, Search } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, differenceInMinutes, addDays, isWeekend, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCPF, formatPIS } from '@/hooks/useDocumentMask';
 import { DayEditDialog } from '@/components/mirrorpoint/DayEditDialog';
+import { HelpButton } from '@/components/HelpButton';
 
 interface TimeRecord {
   id: string;
@@ -97,11 +98,22 @@ export default function MirrorPoint() {
   const [loading, setLoading] = useState(false);
   const [month, setMonth] = useState(format(new Date(), 'yyyy-MM'));
   const printRef = useRef<HTMLDivElement>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<DailySummary | null>(null);
 
+  // Filtered employees based on search
+  const filteredEmployees = useMemo(() => {
+    if (!searchTerm.trim()) return employees;
+    const term = searchTerm.toLowerCase();
+    return employees.filter(e => 
+      e.full_name.toLowerCase().includes(term) ||
+      (e.registration_number && e.registration_number.toLowerCase().includes(term)) ||
+      (e.cpf && e.cpf.includes(term))
+    );
+  }, [employees, searchTerm]);
   const handleEditDay = (day: DailySummary) => {
     if (!isAdmin) {
       toast.error('Apenas administradores podem editar registros');
@@ -429,17 +441,29 @@ export default function MirrorPoint() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
-              <Label>Funcionário</Label>
+              <Label>Buscar Funcionário</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Nome ou matrícula..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Funcionário ({filteredEmployees.length})</Label>
               <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um funcionário" />
                 </SelectTrigger>
                 <SelectContent>
-                  {employees.map((emp) => (
+                  {filteredEmployees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
-                      {emp.full_name}
+                      {emp.full_name} {emp.registration_number ? `(${emp.registration_number})` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -676,6 +700,9 @@ export default function MirrorPoint() {
         companyId={company?.id || ''}
         onSave={handleDaySaved}
       />
+
+      {/* Help Button */}
+      <HelpButton pageKey="mirrorpoint" />
     </div>
   );
 }

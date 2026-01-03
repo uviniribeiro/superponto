@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { FileText, Download, Calendar, Filter } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -389,6 +390,8 @@ export default function Reports() {
           </CardContent>
         </Card>
       )}
+      
+      <HelpButton pageKey="reports" />
     </div>
   );
 }

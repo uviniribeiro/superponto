@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Users as UsersIcon, Shield, Search, UserCog, History, Link, Eye, Settings, FileText, Clock, Calendar, Building2, BarChart3, Check } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -748,6 +749,8 @@ export default function Users() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      <HelpButton pageKey="users" />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Plus, Trash2, CalendarDays } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { cn } from '@/lib/utils';
 
 interface Holiday {
@@ -297,6 +298,8 @@ const Holidays = () => {
           )}
         </CardContent>
       </Card>
+      
+      <HelpButton pageKey="holidays" />
     </div>
   );
 };

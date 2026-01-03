@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { Plus, Wifi, WifiOff, RefreshCw, Trash2, Edit, Activity, Clock, Server, HelpCircle, Copy, Check, Info, FileWarning, CheckCircle2, XCircle, User, Link, Users, Upload, Download, UserMinus } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -1574,6 +1575,8 @@ export default function Equipment() {
           </div>
         </TabsContent>
       </Tabs>
+      
+      <HelpButton pageKey="equipment" />
     </div>
   );
 }

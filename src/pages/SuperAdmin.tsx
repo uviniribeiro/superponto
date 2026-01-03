@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Building2, Key, Shield, Plus, Search, Calendar, Users, CheckCircle, XCircle, RefreshCw, Landmark, GraduationCap, Heart, Palette, Bus, Settings2, Trash2, Loader2, Wrench } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
@@ -978,6 +979,8 @@ export default function SuperAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <HelpButton pageKey="superadmin" />
     </div>
   );
 }

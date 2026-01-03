@@ -23,6 +23,7 @@ import {
   Plus, Pencil, Trash2, CalendarIcon, Users, Settings2, 
   CalendarDays, Clock, AlertCircle, Info, Moon, Sun
 } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 
 interface WorkSchedule {
   id: string;
@@ -1392,6 +1393,8 @@ export default function WorkSchedules() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <HelpButton pageKey="schedules" />
     </div>
   );
 }

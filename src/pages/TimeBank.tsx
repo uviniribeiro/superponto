@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, getDay, startOfWeek, endOfWeek, eachWeekOfInterval, isSameWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Download, Clock, TrendingUp, TrendingDown, Minus, CalendarCheck, Plus, Edit } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 import { TimeBankAdjustmentDialog } from '@/components/timebank/TimeBankAdjustmentDialog';
 
@@ -506,6 +507,8 @@ const TimeBank = () => {
           onSave={calculateTimeBank}
         />
       )}
+      
+      <HelpButton pageKey="timebank" />
     </div>
   );
 };

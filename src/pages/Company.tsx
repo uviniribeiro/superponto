@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Building2, Save, Upload, X, Key, Calendar, Users, AlertCircle, MapPin, Phone, FileText } from 'lucide-react';
+import { HelpButton } from '@/components/HelpButton';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -633,6 +634,8 @@ export default function Company() {
           {saving ? 'Salvando...' : 'Salvar Configurações'}
         </Button>
       </div>
+      
+      <HelpButton pageKey="company" />
     </div>
   );
 }
