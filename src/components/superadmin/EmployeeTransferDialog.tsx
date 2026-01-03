@@ -6,12 +6,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowRight, History, Users } from "lucide-react";
+import { ArrowRight, History, Users, UserCheck, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 
 interface Employee {
   id: string;
@@ -61,13 +64,15 @@ export function EmployeeTransferDialog({
 }: EmployeeTransferDialogProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedFromSector, setSelectedFromSector] = useState<string>("");
   const [selectedToSector, setSelectedToSector] = useState<string>("");
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
+  const [transferProgress, setTransferProgress] = useState(0);
+  const [transferResults, setTransferResults] = useState<{ success: number; failed: number }>({ success: 0, failed: 0 });
 
   // Get all sector IDs including the city hall itself
   const allSectorIds = [cityHallId, ...sectors.map(s => s.id)];
@@ -76,6 +81,9 @@ export function EmployeeTransferDialog({
     if (open) {
       fetchEmployees();
       fetchTransferHistory();
+      setSelectedEmployees([]);
+      setTransferProgress(0);
+      setTransferResults({ success: 0, failed: 0 });
     }
   }, [open, selectedFromSector]);
 
@@ -93,6 +101,7 @@ export function EmployeeTransferDialog({
 
       if (error) throw error;
       setEmployees(data || []);
+      setSelectedEmployees([]);
     } catch (error: any) {
       console.error("Error fetching employees:", error);
       toast.error("Erro ao carregar funcionários");
@@ -103,7 +112,6 @@ export function EmployeeTransferDialog({
 
   const fetchTransferHistory = async () => {
     try {
-      // Fetch transfers for all sectors of this city hall
       const { data, error } = await supabase
         .from("employee_transfers")
         .select("*")
@@ -113,7 +121,6 @@ export function EmployeeTransferDialog({
 
       if (error) throw error;
 
-      // Fetch additional data for display
       if (data && data.length > 0) {
         const profileIds = [...new Set(data.map(t => t.profile_id))];
         const companyIds = [...new Set([...data.map(t => t.from_company_id), ...data.map(t => t.to_company_id)])];
@@ -142,34 +149,32 @@ export function EmployeeTransferDialog({
     }
   };
 
-  const handleTransfer = async () => {
-    if (!selectedEmployee || !selectedToSector) {
-      toast.error("Selecione o funcionário e o setor de destino");
-      return;
+  const handleSelectEmployee = (employeeId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedEmployees(prev => [...prev, employeeId]);
+    } else {
+      setSelectedEmployees(prev => prev.filter(id => id !== employeeId));
     }
+  };
 
-    const employee = employees.find(e => e.id === selectedEmployee);
-    if (!employee) return;
-
-    if (employee.company_id === selectedToSector) {
-      toast.error("O funcionário já está neste setor");
-      return;
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedEmployees(employees.map(e => e.id));
+    } else {
+      setSelectedEmployees([]);
     }
+  };
 
-    setIsTransferring(true);
+  const transferSingleEmployee = async (employee: Employee, userId: string): Promise<boolean> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      // Start a transaction-like operation
       // 1. Create transfer record
       const { error: transferError } = await supabase
         .from("employee_transfers")
         .insert({
-          profile_id: selectedEmployee,
+          profile_id: employee.id,
           from_company_id: employee.company_id,
           to_company_id: selectedToSector,
-          transferred_by: user.id,
+          transferred_by: userId,
           reason: reason || null,
           notes: notes || null
         });
@@ -180,39 +185,86 @@ export function EmployeeTransferDialog({
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ company_id: selectedToSector })
-        .eq("id", selectedEmployee);
+        .eq("id", employee.id);
 
       if (updateError) throw updateError;
 
-      // 3. Update employee schedules to new company
+      // 3. Update employee schedules
       await supabase
         .from("employee_schedules")
         .update({ company_id: selectedToSector })
-        .eq("profile_id", selectedEmployee);
+        .eq("profile_id", employee.id);
 
       // 4. Update employee scale assignments
       await supabase
         .from("employee_scale_assignments")
         .update({ company_id: selectedToSector })
-        .eq("profile_id", selectedEmployee);
+        .eq("profile_id", employee.id);
 
       // 5. Update employee off days
       await supabase
         .from("employee_off_days")
         .update({ company_id: selectedToSector })
-        .eq("profile_id", selectedEmployee);
+        .eq("profile_id", employee.id);
 
-      // Note: time_records are NOT transferred - they stay with the original company
-      // This maintains the historical record
+      return true;
+    } catch (error) {
+      console.error(`Error transferring employee ${employee.full_name}:`, error);
+      return false;
+    }
+  };
+
+  const handleBulkTransfer = async () => {
+    if (selectedEmployees.length === 0 || !selectedToSector) {
+      toast.error("Selecione ao menos um funcionário e o setor de destino");
+      return;
+    }
+
+    const employeesToTransfer = employees.filter(e => selectedEmployees.includes(e.id));
+    
+    // Check if any employee is already in the destination sector
+    const invalidEmployees = employeesToTransfer.filter(e => e.company_id === selectedToSector);
+    if (invalidEmployees.length > 0) {
+      toast.error(`${invalidEmployees.length} funcionário(s) já estão no setor de destino`);
+      return;
+    }
+
+    setIsTransferring(true);
+    setTransferProgress(0);
+    setTransferResults({ success: 0, failed: 0 });
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      let successCount = 0;
+      let failedCount = 0;
+
+      for (let i = 0; i < employeesToTransfer.length; i++) {
+        const employee = employeesToTransfer[i];
+        const success = await transferSingleEmployee(employee, user.id);
+        
+        if (success) {
+          successCount++;
+        } else {
+          failedCount++;
+        }
+        
+        setTransferProgress(((i + 1) / employeesToTransfer.length) * 100);
+        setTransferResults({ success: successCount, failed: failedCount });
+      }
 
       const toSectorName = sectors.find(s => s.id === selectedToSector)?.name || 
                           (selectedToSector === cityHallId ? cityHallName : "Setor desconhecido");
 
-      toast.success(`Funcionário ${employee.full_name} transferido para ${toSectorName}`);
+      if (failedCount === 0) {
+        toast.success(`${successCount} funcionário(s) transferido(s) para ${toSectorName}`);
+      } else {
+        toast.warning(`Transferência concluída: ${successCount} sucesso, ${failedCount} falha(s)`);
+      }
       
       // Reset form
-      setSelectedEmployee("");
-      setSelectedToSector("");
+      setSelectedEmployees([]);
       setReason("");
       setNotes("");
       
@@ -221,16 +273,11 @@ export function EmployeeTransferDialog({
       fetchTransferHistory();
       onTransferComplete();
     } catch (error: any) {
-      console.error("Error transferring employee:", error);
-      toast.error("Erro ao transferir funcionário: " + error.message);
+      console.error("Error in bulk transfer:", error);
+      toast.error("Erro na transferência em massa: " + error.message);
     } finally {
       setIsTransferring(false);
     }
-  };
-
-  const getSectorName = (id: string) => {
-    if (id === cityHallId) return cityHallName;
-    return sectors.find(s => s.id === id)?.name || "Setor desconhecido";
   };
 
   const allOptions = [
@@ -238,9 +285,12 @@ export function EmployeeTransferDialog({
     ...sectors.map(s => ({ id: s.id, name: s.name }))
   ];
 
+  const isAllSelected = employees.length > 0 && selectedEmployees.length === employees.length;
+  const isSomeSelected = selectedEmployees.length > 0 && selectedEmployees.length < employees.length;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -248,11 +298,11 @@ export function EmployeeTransferDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="transfer" className="w-full">
+        <Tabs defaultValue="bulk" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="transfer" className="flex items-center gap-2">
-              <ArrowRight className="h-4 w-4" />
-              Nova Transferência
+            <TabsTrigger value="bulk" className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4" />
+              Transferência em Massa
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="h-4 w-4" />
@@ -260,13 +310,13 @@ export function EmployeeTransferDialog({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="transfer" className="space-y-4 mt-4">
+          <TabsContent value="bulk" className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Setor de Origem</Label>
                 <Select value={selectedFromSector} onValueChange={(value) => {
                   setSelectedFromSector(value);
-                  setSelectedEmployee("");
+                  setSelectedEmployees([]);
                 }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o setor de origem" />
@@ -301,66 +351,130 @@ export function EmployeeTransferDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>Funcionário</Label>
+              <div className="flex items-center justify-between">
+                <Label>Funcionários ({selectedEmployees.length} selecionado(s))</Label>
+                {employees.length > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleSelectAll(!isAllSelected)}
+                  >
+                    {isAllSelected ? "Desmarcar Todos" : "Selecionar Todos"}
+                  </Button>
+                )}
+              </div>
+              
               {isLoading ? (
-                <div className="text-sm text-muted-foreground">Carregando funcionários...</div>
+                <div className="text-sm text-muted-foreground py-4">Carregando funcionários...</div>
               ) : employees.length === 0 ? (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground py-4">
                   {selectedFromSector ? "Nenhum funcionário encontrado neste setor" : "Selecione um setor de origem"}
                 </div>
               ) : (
-                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o funcionário" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.full_name} {employee.cpf ? `(${employee.cpf})` : ""} 
-                        {employee.position ? ` - ${employee.position}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ScrollArea className="h-[250px] border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]">
+                          <Checkbox 
+                            checked={isAllSelected}
+                            ref={(ref) => {
+                              if (ref) {
+                                (ref as any).indeterminate = isSomeSelected;
+                              }
+                            }}
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </TableHead>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>CPF</TableHead>
+                        <TableHead>Cargo</TableHead>
+                        <TableHead>Departamento</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {employees.map((employee) => (
+                        <TableRow 
+                          key={employee.id}
+                          className={selectedEmployees.includes(employee.id) ? "bg-primary/5" : ""}
+                        >
+                          <TableCell>
+                            <Checkbox 
+                              checked={selectedEmployees.includes(employee.id)}
+                              onCheckedChange={(checked) => handleSelectEmployee(employee.id, !!checked)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">{employee.full_name}</TableCell>
+                          <TableCell>{employee.cpf || "—"}</TableCell>
+                          <TableCell>{employee.position || "—"}</TableCell>
+                          <TableCell>{employee.department || "—"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Motivo da Transferência</Label>
-              <Textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Ex: Remanejamento, promoção, necessidade do setor..."
-                rows={2}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Motivo da Transferência</Label>
+                <Textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Ex: Remanejamento, reorganização setorial..."
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Observações</Label>
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Observações adicionais..."
+                  rows={2}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Observações</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Observações adicionais sobre a transferência..."
-                rows={2}
-              />
-            </div>
+            {isTransferring && (
+              <div className="space-y-2 p-4 bg-muted rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Progresso da transferência</span>
+                  <span>{Math.round(transferProgress)}%</span>
+                </div>
+                <Progress value={transferProgress} className="h-2" />
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="text-green-600">✓ {transferResults.success} sucesso</span>
+                  {transferResults.failed > 0 && (
+                    <span className="text-destructive">✗ {transferResults.failed} falha(s)</span>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                <strong>Importante:</strong> Os registros de ponto do funcionário permanecerão vinculados ao setor anterior 
-                para manter o histórico. Novas marcações serão registradas no novo setor.
-              </p>
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  <strong>Importante:</strong> Os registros de ponto dos funcionários permanecerão vinculados ao setor anterior 
+                  para manter o histórico. Novas marcações serão registradas no novo setor.
+                </p>
+              </div>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isTransferring}>
                 Cancelar
               </Button>
               <Button 
-                onClick={handleTransfer} 
-                disabled={!selectedEmployee || !selectedToSector || isTransferring}
+                onClick={handleBulkTransfer} 
+                disabled={selectedEmployees.length === 0 || !selectedToSector || isTransferring}
               >
-                {isTransferring ? "Transferindo..." : "Confirmar Transferência"}
+                {isTransferring 
+                  ? `Transferindo ${transferResults.success + transferResults.failed}/${selectedEmployees.length}...` 
+                  : `Transferir ${selectedEmployees.length} Funcionário(s)`}
               </Button>
             </DialogFooter>
           </TabsContent>
@@ -371,46 +485,48 @@ export function EmployeeTransferDialog({
                 Nenhuma transferência registrada
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Funcionário</TableHead>
-                    <TableHead>De</TableHead>
-                    <TableHead></TableHead>
-                    <TableHead>Para</TableHead>
-                    <TableHead>Motivo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transfers.map((transfer) => (
-                    <TableRow key={transfer.id}>
-                      <TableCell>
-                        {format(new Date(transfer.transfer_date), "dd/MM/yyyy", { locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {transfer.profile?.full_name || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {transfer.from_company?.name || "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {transfer.to_company?.name || "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate">
-                        {transfer.reason || "—"}
-                      </TableCell>
+              <ScrollArea className="h-[400px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Funcionário</TableHead>
+                      <TableHead>De</TableHead>
+                      <TableHead></TableHead>
+                      <TableHead>Para</TableHead>
+                      <TableHead>Motivo</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {transfers.map((transfer) => (
+                      <TableRow key={transfer.id}>
+                        <TableCell>
+                          {format(new Date(transfer.transfer_date), "dd/MM/yyyy", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {transfer.profile?.full_name || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {transfer.from_company?.name || "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {transfer.to_company?.name || "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {transfer.reason || "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             )}
           </TabsContent>
         </Tabs>
