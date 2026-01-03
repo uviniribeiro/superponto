@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Key, Shield, Plus, Search, Calendar, Users, CheckCircle, XCircle, RefreshCw, Landmark, GraduationCap, Heart, Palette, Bus, Settings2, Trash2 } from 'lucide-react';
+import { Building2, Key, Shield, Plus, Search, Calendar, Users, CheckCircle, XCircle, RefreshCw, Landmark, GraduationCap, Heart, Palette, Bus, Settings2, Trash2, Loader2, Wrench } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
@@ -78,6 +78,7 @@ export default function SuperAdmin() {
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [setupLoading, setSetupLoading] = useState(false);
   
   const [isCompanyDialogOpen, setIsCompanyDialogOpen] = useState(false);
   const [companyFormData, setCompanyFormData] = useState({
@@ -385,6 +386,101 @@ export default function SuperAdmin() {
     return sectorInfo?.label || sector;
   };
 
+  // Run full setup: add default sectors + recreate users
+  const handleFullSetup = async () => {
+    if (!confirm('Isso irá:\n1. Adicionar setores de Administração, Educação e Saúde em TODAS as prefeituras\n2. Recriar/resetar usuários admin e suporte em TODAS as empresas e setores\n\nSenhas padrão:\n- suporte: Super@26\n- admin: Admin@26\n\nDeseja continuar?')) {
+      return;
+    }
+
+    setSetupLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('setup-default-data', {
+        body: { action: 'full-setup' }
+      });
+
+      if (error) throw error;
+
+      console.log('Full setup result:', data);
+      
+      const sectorCount = data.sectorResults?.reduce((acc: number, ch: any) => 
+        acc + (ch.sectors?.filter((s: any) => s.action === 'created').length || 0), 0) || 0;
+      
+      const userCount = data.userResults?.length || 0;
+
+      toast.success(
+        `Setup concluído!\n${sectorCount} novos setores criados\n${userCount} organizações processadas\n\nSenhas padrão:\nSuportes: Super@26\nAdmins: Admin@26`,
+        { duration: 10000 }
+      );
+
+      fetchCompanies();
+    } catch (error) {
+      console.error('Error in full setup:', error);
+      toast.error('Erro ao executar setup completo');
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  // Add default sectors to all city halls
+  const handleAddDefaultSectors = async () => {
+    if (!confirm('Adicionar setores de Administração, Educação e Saúde em TODAS as prefeituras cadastradas?')) {
+      return;
+    }
+
+    setSetupLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('setup-default-data', {
+        body: { action: 'add-default-sectors' }
+      });
+
+      if (error) throw error;
+
+      console.log('Add sectors result:', data);
+      
+      const newSectors = data.results?.reduce((acc: number, ch: any) => 
+        acc + (ch.sectors?.filter((s: any) => s.action === 'created').length || 0), 0) || 0;
+
+      toast.success(`${newSectors} novos setores criados!`);
+      fetchCompanies();
+    } catch (error) {
+      console.error('Error adding default sectors:', error);
+      toast.error('Erro ao adicionar setores');
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
+  // Recreate all users
+  const handleRecreateAllUsers = async () => {
+    if (!confirm('Recriar/resetar usuários admin e suporte em TODAS as empresas e setores?\n\nSenhas serão resetadas para:\n- suporte: Super@26\n- admin: Admin@26')) {
+      return;
+    }
+
+    setSetupLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('setup-default-data', {
+        body: { action: 'recreate-all-users' }
+      });
+
+      if (error) throw error;
+
+      console.log('Recreate users result:', data);
+      
+      const created = data.results?.filter((r: any) => r.suporte?.action === 'created' || r.admin?.action === 'created').length || 0;
+      const reset = data.results?.filter((r: any) => r.suporte?.action === 'reset' || r.admin?.action === 'reset').length || 0;
+
+      toast.success(
+        `Usuários processados!\n${created} novos criados\n${reset} senhas resetadas\n\nSenhas padrão:\nSuportes: Super@26\nAdmins: Admin@26`,
+        { duration: 8000 }
+      );
+    } catch (error) {
+      console.error('Error recreating users:', error);
+      toast.error('Erro ao recriar usuários');
+    } finally {
+      setSetupLoading(false);
+    }
+  };
+
   if (!isSuperAdmin) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -408,6 +504,32 @@ export default function SuperAdmin() {
             Super Administrador
           </h1>
           <p className="text-muted-foreground">Gerencie empresas, prefeituras e licenças</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={handleAddDefaultSectors}
+            disabled={setupLoading}
+          >
+            {setupLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+            Adicionar Setores Padrão
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleRecreateAllUsers}
+            disabled={setupLoading}
+          >
+            {setupLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+            Recriar Usuários
+          </Button>
+          <Button
+            onClick={handleFullSetup}
+            disabled={setupLoading}
+            className="gradient-primary"
+          >
+            {setupLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wrench className="h-4 w-4 mr-2" />}
+            Setup Completo
+          </Button>
         </div>
       </div>
 
