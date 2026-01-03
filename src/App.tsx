@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import SuperAdminProtectedRoute from "@/components/SuperAdminProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
+import { GuidedTourButton } from "@/components/GuidedTour";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import Home from "@/pages/Home";
@@ -51,14 +52,22 @@ import EquipmentSync from "@/pages/equipment/EquipmentSync";
 import EquipmentHelp from "@/pages/equipment/EquipmentHelp";
 import MTECompliancePanel from "@/pages/equipment/MTECompliancePanel";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <TooltipProvider>
+      <TooltipProvider delayDuration={300}>
         <Toaster />
-        <Sonner />
+        <Sonner position="top-right" richColors closeButton />
         <BrowserRouter>
           <AuthProvider>
             <Routes>
@@ -123,6 +132,7 @@ const App = () => (
               
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <GuidedTourButton />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
