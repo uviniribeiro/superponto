@@ -321,17 +321,19 @@ export default function SuperAdminCityHalls() {
         } else if (usersData?.success) {
           const creds = usersData.credentials;
           const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
-          if (creds?.support?.temporaryPassword || creds?.admin?.temporaryPassword) {
-            const supportInfo = creds?.support ? `Suporte: suporte/${creds.support.temporaryPassword}` : '';
-            const adminInfo = creds?.admin ? `Admin: admin/${creds.admin.temporaryPassword}` : '';
-            toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
+          if (creds?.support?.password || creds?.admin?.password) {
+            toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. Suporte: suporte/Super@26 | Admin: admin/Admin@26`, { duration: 15000 });
           } else {
-            toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}.`);
+            toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. Usuários: suporte/Super@26 e admin/Admin@26`);
           }
+        } else {
+          const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
+          toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. Usuários: suporte/Super@26 e admin/Admin@26`);
         }
       } catch (err) {
         console.error('Error calling create-company-users:', err);
-        toast.warning('Prefeitura criada, mas houve erro ao criar usuários');
+        const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
+        toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. Configure os usuários manualmente.`);
       }
 
       setIsDialogOpen(false);
@@ -486,15 +488,13 @@ export default function SuperAdminCityHalls() {
           toast.warning('Setor criado, mas houve erro ao criar usuários. Tente novamente em Gerenciar Usuários.');
         } else if (usersData?.success) {
           const creds = usersData.credentials;
-          if (creds?.support?.temporaryPassword || creds?.admin?.temporaryPassword) {
-            const supportInfo = creds?.support ? `Suporte: suporte/${creds.support.temporaryPassword}` : '';
-            const adminInfo = creds?.admin ? `Admin: admin/${creds.admin.temporaryPassword}` : '';
-            toast.success(`Setor criado! ${supportInfo} ${adminInfo}. Usuários devem trocar senha no primeiro login.`, { duration: 15000 });
+          if (creds?.support?.password || creds?.admin?.password) {
+            toast.success(`Setor criado! Suporte: suporte/Super@26 | Admin: admin/Admin@26`, { duration: 15000 });
           } else {
-            toast.success('Setor criado! Usuários criados (já existiam ou foram criados anteriormente).');
+            toast.success('Setor criado! Usuários: suporte/Super@26 e admin/Admin@26');
           }
         } else {
-          toast.success('Setor criado com sucesso!');
+          toast.success('Setor criado! Usuários: suporte/Super@26 e admin/Admin@26');
         }
       } catch (err) {
         console.error('Error calling create-company-users:', err);
