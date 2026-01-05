@@ -2,56 +2,85 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { FileText, Download, Calendar, Filter } from 'lucide-react';
+import { FileText, Clock, TrendingUp, AlertCircle, Users, Wallet, Download, BarChart3 } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+
+import { ReportFilters } from '@/components/reports/ReportFilters';
+import { MirrorPointReport } from '@/components/reports/MirrorPointReport';
+import { OvertimeReport } from '@/components/reports/OvertimeReport';
+import { AbsencesReport } from '@/components/reports/AbsencesReport';
+import { AttendanceReport } from '@/components/reports/AttendanceReport';
+import { TimeBankReport } from '@/components/reports/TimeBankReport';
+import { WorkedHoursReport } from '@/components/reports/WorkedHoursReport';
+import { MTEExports } from '@/components/reports/MTEExports';
 
 interface TimeRecord {
   id: string;
   profile_id: string;
   record_type: string;
   recorded_at: string;
-  latitude: number | null;
-  longitude: number | null;
   nsr: number;
-  profiles?: { full_name: string; pis: string | null; registration_number: string | null };
+  profiles?: {
+    full_name: string;
+    pis?: string | null;
+    cpf?: string | null;
+    registration_number?: string | null;
+    department?: string | null;
+    position?: string | null;
+  };
+}
+
+interface Employee {
+  id: string;
+  full_name: string;
+  department?: string | null;
+  registration_number?: string | null;
+  cpf?: string | null;
+  pis?: string | null;
+  position?: string | null;
 }
 
 interface CompanySettings {
   company_name: string;
-  cnpj: string | null;
-  cei: string | null;
-  rep_number: string | null;
+  cnpj?: string | null;
+  cei?: string | null;
+  rep_number?: string | null;
+  address?: string | null;
 }
 
 export default function Reports() {
-  const [records, setRecords] = useState<TimeRecord[]>([]);
-  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const { company } = useAuth();
+  const [activeTab, setActiveTab] = useState('espelho');
   const [loading, setLoading] = useState(false);
-  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
-  const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [holidays, setHolidays] = useState<Date[]>([]);
+  const [records, setRecords] = useState<TimeRecord[]>([]);
+  const [filters, setFilters] = useState({
+    startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+    endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+    selectedEmployee: 'all',
+    selectedDepartment: 'all',
+  });
+  const [selectedEmployeeData, setSelectedEmployeeData] = useState<Employee | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
     fetchEmployees();
     fetchCompanySettings();
+    fetchHolidays();
   }, []);
 
   const fetchEmployees = async () => {
     const { data } = await supabase
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, department, registration_number, cpf, pis, position')
       .eq('is_active', true)
       .order('full_name');
-    setEmployees(data || []);
+    setEmployees((data || []) as Employee[]);
   };
 
   const fetchCompanySettings = async () => {
@@ -63,26 +92,58 @@ export default function Reports() {
     setCompanySettings(data);
   };
 
-  const fetchRecords = async () => {
+  const fetchHolidays = async () => {
+    const currentYear = new Date().getFullYear();
+    const { data } = await supabase
+      .from('holidays')
+      .select('date')
+      .gte('date', `${currentYear}-01-01`)
+      .lte('date', `${currentYear}-12-31`);
+    
+    setHolidays((data || []).map(h => parseISO(h.date)));
+  };
+
+  const handleFilter = async (newFilters: typeof filters) => {
+    setFilters(newFilters);
     setLoading(true);
+    setDataLoaded(false);
+
     try {
       let query = supabase
         .from('time_records')
         .select(`
           *,
-          profiles!time_records_profile_id_fkey (full_name, pis, registration_number)
+          profiles!time_records_profile_id_fkey (
+            full_name, 
+            pis, 
+            cpf, 
+            registration_number, 
+            department, 
+            position
+          )
         `)
-        .gte('recorded_at', `${startDate}T00:00:00`)
-        .lte('recorded_at', `${endDate}T23:59:59`)
+        .gte('recorded_at', `${newFilters.startDate}T00:00:00`)
+        .lte('recorded_at', `${newFilters.endDate}T23:59:59`)
         .order('recorded_at', { ascending: true });
 
-      if (selectedEmployee !== 'all') {
-        query = query.eq('profile_id', selectedEmployee);
+      if (newFilters.selectedEmployee !== 'all') {
+        query = query.eq('profile_id', newFilters.selectedEmployee);
+        const emp = employees.find(e => e.id === newFilters.selectedEmployee);
+        setSelectedEmployeeData(emp || null);
+      } else {
+        setSelectedEmployeeData(null);
       }
 
       const { data, error } = await query;
       if (error) throw error;
       setRecords(data || []);
+      setDataLoaded(true);
+
+      if (data && data.length > 0) {
+        toast.success(`${data.length} registros carregados`);
+      } else {
+        toast.info('Nenhum registro encontrado no período');
+      }
     } catch (error) {
       console.error('Error fetching records:', error);
       toast.error('Erro ao carregar registros');
@@ -91,152 +152,73 @@ export default function Reports() {
     }
   };
 
-  // Gera AFD conforme Portaria 671 - Formato correto MTE
-  const generateAFD = () => {
-    if (records.length === 0) {
-      toast.error('Nenhum registro para exportar');
-      return;
-    }
+  const reportCategories = [
+    { id: 'espelho', label: 'Espelho de Ponto', icon: FileText, color: 'text-blue-500' },
+    { id: 'horas', label: 'Horas Trabalhadas', icon: Clock, color: 'text-green-500' },
+    { id: 'extras', label: 'Horas Extras', icon: TrendingUp, color: 'text-orange-500' },
+    { id: 'faltas', label: 'Faltas/Atrasos', icon: AlertCircle, color: 'text-red-500' },
+    { id: 'frequencia', label: 'Frequência', icon: Users, color: 'text-purple-500' },
+    { id: 'banco', label: 'Banco de Horas', icon: Wallet, color: 'text-indigo-500' },
+    { id: 'mte', label: 'Arquivos MTE', icon: Download, color: 'text-teal-500' },
+  ];
 
-    const lines: string[] = [];
-    const cleanCnpj = (companySettings?.cnpj || '').replace(/[^\d]/g, '').padStart(14, '0');
-    const cleanCei = (companySettings?.cei || '').replace(/[^\d]/g, '').padStart(12, '0');
-    
-    // Linha 1 - Cabeçalho (Tipo 1) - Identificação do empregador
-    const header = [
-      '1',                                                    // Tipo de registro
-      '1',                                                    // Tipo de identificador (1=CNPJ, 2=CPF)
-      cleanCnpj,                                              // CNPJ (14 dígitos)
-      cleanCei,                                               // CEI (12 dígitos)
-      (companySettings?.company_name || 'EMPRESA').padEnd(150, ' ').slice(0, 150), // Razão social
-      (companySettings?.rep_number || '').padStart(17, '0'),  // Nº fabricação REP
-      format(new Date(startDate), 'ddMMyyyy'),                // Data início período
-      format(new Date(endDate), 'ddMMyyyy'),                  // Data fim período
-      format(new Date(), 'ddMMyyyyHHmmss'),                   // Data/hora geração
-    ].join('');
-    lines.push(header);
+  // Calculate time bank data from records
+  const calculateTimeBankData = () => {
+    const employeeBalances = new Map<string, { credit: number; debit: number; profile: any }>();
 
-    // Linha 2 - Tipo 2 - Identificação do trabalhador (agrupado por funcionário)
-    const employeeGroups = new Map<string, typeof records>();
-    records.forEach(record => {
-      const key = record.profile_id;
-      if (!employeeGroups.has(key)) {
-        employeeGroups.set(key, []);
+    employees.forEach(emp => {
+      const empRecords = records.filter(r => r.profile_id === emp.id);
+      let credit = 0;
+      let debit = 0;
+
+      // Group by date and calculate
+      const dateGroups = new Map<string, TimeRecord[]>();
+      empRecords.forEach(r => {
+        const dateKey = format(parseISO(r.recorded_at), 'yyyy-MM-dd');
+        if (!dateGroups.has(dateKey)) {
+          dateGroups.set(dateKey, []);
+        }
+        dateGroups.get(dateKey)!.push(r);
+      });
+
+      dateGroups.forEach((dayRecords) => {
+        const entry = dayRecords.find(r => r.record_type === 'entry');
+        const exit = dayRecords.find(r => r.record_type === 'exit');
+
+        if (entry && exit) {
+          const entryTime = parseISO(entry.recorded_at);
+          const exitTime = parseISO(exit.recorded_at);
+          const workedMinutes = Math.floor((exitTime.getTime() - entryTime.getTime()) / 60000) - 60;
+          const expectedMinutes = 480; // 8 hours
+          const diff = workedMinutes - expectedMinutes;
+
+          if (diff > 0) {
+            credit += diff;
+          } else {
+            debit += Math.abs(diff);
+          }
+        }
+      });
+
+      if (credit > 0 || debit > 0) {
+        employeeBalances.set(emp.id, {
+          credit,
+          debit,
+          profile: emp,
+        });
       }
-      employeeGroups.get(key)!.push(record);
     });
 
-    // Linha 3 em diante - Registros de marcação (Tipo 3)
-    records.forEach((record) => {
-      // Prioridade de identificação: Matrícula > PIS > CPF
-      const identifier = record.profiles?.registration_number || 
-                        record.profiles?.pis || 
-                        '00000000000';
-      
-      const recordLine = [
-        '3',                                                  // Tipo de registro (marcação)
-        String(record.nsr).padStart(9, '0'),                  // NSR (9 dígitos)
-        '1',                                                  // Tipo de identificador (1=PIS)
-        identifier.replace(/[^\d]/g, '').padStart(11, '0'),   // PIS/Matrícula (11 dígitos)
-        format(new Date(record.recorded_at), 'ddMMyyyy'),     // Data marcação
-        format(new Date(record.recorded_at), 'HHmm'),         // Hora marcação (4 dígitos)
-      ].join('');
-      lines.push(recordLine);
-    });
-
-    // Linha trailer (Tipo 9)
-    const trailer = [
-      '9',
-      String(lines.length + 1).padStart(9, '0'),
-    ].join('');
-    lines.push(trailer);
-
-    downloadFile(lines.join('\r\n'), `AFD_${format(new Date(), 'yyyyMMdd_HHmmss')}.txt`);
-    toast.success('AFD gerado conforme Portaria 671!');
-  };
-
-  // Gera AFDT conforme Portaria 671 - Arquivo Fonte de Dados Tratados
-  const generateAFDT = () => {
-    if (records.length === 0) {
-      toast.error('Nenhum registro para exportar');
-      return;
-    }
-
-    const lines: string[] = [];
-    const cleanCnpj = (companySettings?.cnpj || '').replace(/[^\d]/g, '').padStart(14, '0');
-    const cleanCei = (companySettings?.cei || '').replace(/[^\d]/g, '').padStart(12, '0');
-    
-    // Cabeçalho AFDT (Tipo 1)
-    const header = [
-      '1',                                                    // Tipo de registro
-      '1',                                                    // Tipo de identificador (1=CNPJ)
-      cleanCnpj,                                              // CNPJ
-      cleanCei,                                               // CEI
-      (companySettings?.company_name || 'EMPRESA').padEnd(150, ' ').slice(0, 150),
-      format(new Date(startDate), 'ddMMyyyy'),
-      format(new Date(endDate), 'ddMMyyyy'),
-      format(new Date(), 'ddMMyyyyHHmmss'),
-    ].join('');
-    lines.push(header);
-
-    // Registros AFDT (Tipo 4) - Marcações tratadas
-    records.forEach((record, index) => {
-      // Código do tipo de marcação conforme Portaria 671
-      const recordTypeCode = {
-        'entry': '1',        // Entrada
-        'break_start': '2',  // Início de intervalo
-        'break_end': '3',    // Fim de intervalo
-        'exit': '4'          // Saída
-      }[record.record_type] || '1';
-
-      // Prioridade: Matrícula > PIS > CPF
-      const identifier = record.profiles?.registration_number || 
-                        record.profiles?.pis || 
-                        '00000000000';
-
-      const recordLine = [
-        '4',                                                  // Tipo de registro (marcação tratada)
-        String(index + 1).padStart(9, '0'),                   // Sequencial
-        format(new Date(record.recorded_at), 'ddMMyyyy'),     // Data
-        format(new Date(record.recorded_at), 'HHmm'),         // Hora
-        identifier.replace(/[^\d]/g, '').padStart(11, '0'),   // PIS/Matrícula
-        (record.profiles?.full_name || 'N/A').toUpperCase().padEnd(52, ' ').slice(0, 52), // Nome
-        recordTypeCode,                                       // Tipo de marcação
-      ].join('');
-      lines.push(recordLine);
-    });
-
-    // Trailer (Tipo 9)
-    const trailer = [
-      '9',
-      String(lines.length + 1).padStart(9, '0'),
-    ].join('');
-    lines.push(trailer);
-
-    downloadFile(lines.join('\r\n'), `AFDT_${format(new Date(), 'yyyyMMdd_HHmmss')}.txt`);
-    toast.success('AFDT gerado conforme Portaria 671!');
-  };
-
-  const downloadFile = (content: string, filename: string) => {
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const getRecordTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      entry: 'Entrada',
-      break_start: 'Início Intervalo',
-      break_end: 'Fim Intervalo',
-      exit: 'Saída'
-    };
-    return labels[type] || type;
+    return Array.from(employeeBalances.entries()).map(([id, data]) => ({
+      profile_id: id,
+      profiles: {
+        full_name: data.profile.full_name,
+        department: data.profile.department,
+      },
+      credit_minutes: data.credit,
+      debit_minutes: data.debit,
+      balance_minutes: data.credit - data.debit,
+    }));
   };
 
   return (
@@ -244,153 +226,156 @@ export default function Reports() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
-            <FileText className="h-8 w-8 text-primary" />
+            <BarChart3 className="h-8 w-8 text-primary" />
             Relatórios
           </h1>
-          <p className="text-muted-foreground">Gere relatórios AFD e AFDT conforme Portaria 671</p>
+          <p className="text-muted-foreground">
+            Relatórios completos conforme Secullum, ControliD, Atomo e Velti Ponto
+          </p>
         </div>
       </div>
 
-      {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtros
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <Label>Data Inicial</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Data Final</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Funcionário</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {employees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={fetchRecords} className="w-full gradient-primary">
-                <Calendar className="mr-2 h-4 w-4" />
-                Buscar
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filters */}
+      <ReportFilters 
+        employees={employees} 
+        onFilter={handleFilter} 
+        loading={loading}
+      />
 
-      {/* Ações de Export */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={generateAFD}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Download className="h-5 w-5 text-primary" />
-              Arquivo AFD
-            </CardTitle>
-            <CardDescription>
-              Arquivo Fonte de Dados - Portaria 671
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Arquivo com todos os registros de ponto no formato exigido pelo MTE.
-            </p>
-            <Button className="mt-4 w-full" variant="outline" disabled={records.length === 0}>
-              <Download className="mr-2 h-4 w-4" />
-              Gerar AFD
-            </Button>
-          </CardContent>
-        </Card>
+      {/* Report Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="flex flex-wrap h-auto gap-1 p-1">
+          {reportCategories.map((cat) => (
+            <TabsTrigger 
+              key={cat.id} 
+              value={cat.id}
+              className="flex items-center gap-1.5 text-xs md:text-sm"
+            >
+              <cat.icon className={`h-4 w-4 ${cat.color}`} />
+              <span className="hidden sm:inline">{cat.label}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={generateAFDT}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Download className="h-5 w-5 text-primary" />
-              Arquivo AFDT
-            </CardTitle>
-            <CardDescription>
-              Arquivo Fonte de Dados Tratados - Portaria 671
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Arquivo com registros tratados incluindo identificação do funcionário.
-            </p>
-            <Button className="mt-4 w-full" variant="outline" disabled={records.length === 0}>
-              <Download className="mr-2 h-4 w-4" />
-              Gerar AFDT
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Prévia dos Registros */}
-      {records.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Prévia dos Registros</CardTitle>
-            <CardDescription>{records.length} registros encontrados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto max-h-96">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>NSR</TableHead>
-                    <TableHead>Funcionário</TableHead>
-                    <TableHead>PIS</TableHead>
-                    <TableHead>Data/Hora</TableHead>
-                    <TableHead>Tipo</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {records.slice(0, 100).map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-mono">{record.nsr}</TableCell>
-                      <TableCell>{record.profiles?.full_name}</TableCell>
-                      <TableCell className="font-mono">{record.profiles?.pis || '-'}</TableCell>
-                      <TableCell className="font-mono">
-                        {format(new Date(record.recorded_at), 'dd/MM/yyyy HH:mm:ss')}
-                      </TableCell>
-                      <TableCell>{getRecordTypeLabel(record.record_type)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              {records.length > 100 && (
-                <p className="text-center text-sm text-muted-foreground mt-4">
-                  Mostrando 100 de {records.length} registros
-                </p>
+        {!dataLoaded ? (
+          <Card className="mt-6">
+            <CardContent className="py-12">
+              <div className="text-center text-muted-foreground">
+                <FileText className="h-16 w-16 mx-auto mb-4 opacity-20" />
+                <h3 className="text-lg font-medium mb-2">Selecione os filtros</h3>
+                <p>Escolha o período e clique em "Buscar Dados" para gerar os relatórios</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <TabsContent value="espelho" className="mt-6 space-y-4">
+              {filters.selectedEmployee !== 'all' && selectedEmployeeData ? (
+                <MirrorPointReport
+                  employee={selectedEmployeeData}
+                  records={records}
+                  holidays={holidays}
+                  companySettings={companySettings}
+                  startDate={filters.startDate}
+                  endDate={filters.endDate}
+                />
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Espelho de Ponto</CardTitle>
+                    <CardDescription>
+                      Selecione um funcionário específico para gerar o espelho de ponto
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-center text-muted-foreground py-8">
+                      O espelho de ponto é um relatório individual. 
+                      Selecione um funcionário no filtro acima.
+                    </p>
+                  </CardContent>
+                </Card>
               )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
+            </TabsContent>
+
+            <TabsContent value="horas" className="mt-6">
+              <WorkedHoursReport
+                records={records}
+                companySettings={companySettings}
+                startDate={filters.startDate}
+                endDate={filters.endDate}
+              />
+            </TabsContent>
+
+            <TabsContent value="extras" className="mt-6">
+              <OvertimeReport
+                records={records}
+                companySettings={companySettings}
+                startDate={filters.startDate}
+                endDate={filters.endDate}
+              />
+            </TabsContent>
+
+            <TabsContent value="faltas" className="mt-6">
+              <AbsencesReport
+                records={records}
+                employees={employees}
+                holidays={holidays}
+                companySettings={companySettings}
+                startDate={filters.startDate}
+                endDate={filters.endDate}
+              />
+            </TabsContent>
+
+            <TabsContent value="frequencia" className="mt-6">
+              <AttendanceReport
+                records={records}
+                employees={employees}
+                holidays={holidays}
+                companySettings={companySettings}
+                startDate={filters.startDate}
+                endDate={filters.endDate}
+              />
+            </TabsContent>
+
+            <TabsContent value="banco" className="mt-6">
+              <TimeBankReport
+                entries={calculateTimeBankData()}
+                companySettings={companySettings}
+                startDate={filters.startDate}
+                endDate={filters.endDate}
+              />
+            </TabsContent>
+
+            <TabsContent value="mte" className="mt-6 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="h-5 w-5 text-primary" />
+                    Exportação para o MTE
+                  </CardTitle>
+                  <CardDescription>
+                    Arquivos conforme Portaria 671/2021 do Ministério do Trabalho
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Gere os arquivos exigidos pelo MTE para fiscalização e conformidade legal.
+                    Todos os arquivos seguem o padrão estabelecido pela Portaria 671/2021.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <MTEExports
+                records={records}
+                companySettings={companySettings}
+                startDate={filters.startDate}
+                endDate={filters.endDate}
+              />
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
+
       <HelpButton pageKey="reports" />
     </div>
   );
