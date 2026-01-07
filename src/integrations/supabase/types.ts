@@ -29,6 +29,7 @@ export type Database = {
           reviewed_by: string | null
           status: string
           time_record_id: string | null
+          transaction_hash: string | null
           updated_at: string
         }
         Insert: {
@@ -45,6 +46,7 @@ export type Database = {
           reviewed_by?: string | null
           status?: string
           time_record_id?: string | null
+          transaction_hash?: string | null
           updated_at?: string
         }
         Update: {
@@ -61,6 +63,7 @@ export type Database = {
           reviewed_by?: string | null
           status?: string
           time_record_id?: string | null
+          transaction_hash?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -150,6 +153,7 @@ export type Database = {
           old_data: Json | null
           record_id: string | null
           table_name: string
+          transaction_hash: string | null
           user_agent: string | null
           user_id: string
           user_name: string
@@ -166,6 +170,7 @@ export type Database = {
           old_data?: Json | null
           record_id?: string | null
           table_name: string
+          transaction_hash?: string | null
           user_agent?: string | null
           user_id: string
           user_name: string
@@ -182,6 +187,7 @@ export type Database = {
           old_data?: Json | null
           record_id?: string | null
           table_name?: string
+          transaction_hash?: string | null
           user_agent?: string | null
           user_id?: string
           user_name?: string
@@ -284,6 +290,7 @@ export type Database = {
           number_of_classes: number
           profile_id: string
           total_minutes: number
+          transaction_hash: string | null
           updated_at: string
         }
         Insert: {
@@ -296,6 +303,7 @@ export type Database = {
           number_of_classes?: number
           profile_id: string
           total_minutes: number
+          transaction_hash?: string | null
           updated_at?: string
         }
         Update: {
@@ -308,6 +316,7 @@ export type Database = {
           number_of_classes?: number
           profile_id?: string
           total_minutes?: number
+          transaction_hash?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -556,6 +565,7 @@ export type Database = {
           start_date: string
           status: string
           total_days: number
+          transaction_hash: string | null
           updated_at: string
         }
         Insert: {
@@ -573,6 +583,7 @@ export type Database = {
           start_date: string
           status?: string
           total_days: number
+          transaction_hash?: string | null
           updated_at?: string
         }
         Update: {
@@ -590,6 +601,7 @@ export type Database = {
           start_date?: string
           status?: string
           total_days?: number
+          transaction_hash?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1335,6 +1347,7 @@ export type Database = {
           period_start: string
           status: string
           total_hours: number | null
+          transaction_hash: string | null
         }
         Insert: {
           company_id?: string | null
@@ -1349,6 +1362,7 @@ export type Database = {
           period_start: string
           status?: string
           total_hours?: number | null
+          transaction_hash?: string | null
         }
         Update: {
           company_id?: string | null
@@ -1363,6 +1377,7 @@ export type Database = {
           period_start?: string
           status?: string
           total_hours?: number | null
+          transaction_hash?: string | null
         }
         Relationships: [
           {
@@ -1872,6 +1887,7 @@ export type Database = {
           profile_id: string
           record_type: string
           recorded_at: string
+          transaction_hash: string | null
         }
         Insert: {
           address?: string | null
@@ -1887,6 +1903,7 @@ export type Database = {
           profile_id: string
           record_type: string
           recorded_at?: string
+          transaction_hash?: string | null
         }
         Update: {
           address?: string | null
@@ -1902,6 +1919,7 @@ export type Database = {
           profile_id?: string
           record_type?: string
           recorded_at?: string
+          transaction_hash?: string | null
         }
         Relationships: [
           {
@@ -1941,6 +1959,7 @@ export type Database = {
           month: number
           notes: string | null
           profile_id: string
+          transaction_hash: string | null
           unlocked_at: string | null
           unlocked_by: string | null
           updated_at: string
@@ -1959,6 +1978,7 @@ export type Database = {
           month: number
           notes?: string | null
           profile_id: string
+          transaction_hash?: string | null
           unlocked_at?: string | null
           unlocked_by?: string | null
           updated_at?: string
@@ -1977,6 +1997,7 @@ export type Database = {
           month?: number
           notes?: string | null
           profile_id?: string
+          transaction_hash?: string | null
           unlocked_at?: string | null
           unlocked_by?: string | null
           updated_at?: string

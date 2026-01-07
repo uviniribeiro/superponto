@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Download, Printer, Shield } from 'lucide-react';
+import { Download, Printer, Shield, Hash } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -16,6 +16,7 @@ interface TimeRecordReceiptProps {
     latitude?: number | null;
     longitude?: number | null;
     address?: string | null;
+    transaction_hash?: string | null;
   };
   employee: {
     full_name: string;
@@ -126,11 +127,19 @@ export default function TimeRecordReceipt({ record, employee, company, onClose }
     doc.text(recordTypeLabels[record.record_type] || record.record_type, 40, y, { align: 'center' });
     y += 6;
 
-    // NSR
+    // NSR e Hash
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text(`NSR: ${String(record.nsr).padStart(9, '0')}`, 40, y, { align: 'center' });
-    y += 6;
+    y += 4;
+    
+    // Transaction Hash
+    if (record.transaction_hash) {
+      doc.setFontSize(6);
+      doc.text(`Hash: ${record.transaction_hash}`, 40, y, { align: 'center' });
+      y += 4;
+    }
+    y += 2;
 
     // Linha separadora
     doc.line(margin, y, 80 - margin, y);
@@ -206,6 +215,7 @@ export default function TimeRecordReceipt({ record, employee, company, onClose }
               <div class="time">${format(new Date(record.recorded_at), 'HH:mm:ss', { locale: ptBR })}</div>
               <div class="record-type">${recordTypeLabels[record.record_type] || record.record_type}</div>
               <div class="nsr">NSR: ${String(record.nsr).padStart(9, '0')}</div>
+              ${record.transaction_hash ? `<div style="font-size: 9px; text-align: center; margin-top: 5px; background: #f0f0f0; padding: 5px; border-radius: 4px;"><strong>Hash:</strong><br/>${record.transaction_hash}</div>` : ''}
               <div class="separator"></div>
               ${record.address ? `<div><strong>Localização:</strong><br/>${record.address}</div>` : ''}
               <div class="footer">
@@ -266,6 +276,15 @@ export default function TimeRecordReceipt({ record, employee, company, onClose }
           <p className="text-sm text-muted-foreground mt-2">
             NSR: {String(record.nsr).padStart(9, '0')}
           </p>
+          {record.transaction_hash && (
+            <div className="mt-2 p-2 bg-muted rounded-md">
+              <p className="text-xs font-semibold text-muted-foreground flex items-center justify-center gap-1">
+                <Hash className="h-3 w-3" />
+                HASH DE VERIFICAÇÃO
+              </p>
+              <p className="text-xs font-mono break-all mt-1">{record.transaction_hash}</p>
+            </div>
+          )}
         </div>
 
         <Separator />
