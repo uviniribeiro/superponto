@@ -153,12 +153,7 @@ export default function RegisterEmployee() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate photo is required
-    if (!photoBlob) {
-      toast.error('A foto do funcionário é obrigatória');
-      return;
-    }
-
+    // Photo is optional now
     setIsLoading(true);
 
     try {
@@ -306,12 +301,12 @@ export default function RegisterEmployee() {
         </div>
       </div>
 
-      {/* Photo Capture Section */}
+      {/* Photo Capture Section - Optional */}
       <PhotoCapture
         onCapture={handlePhotoCapture}
         capturedImage={capturedImage}
         onClear={handlePhotoClear}
-        required
+        required={false}
       />
 
       <Card>
