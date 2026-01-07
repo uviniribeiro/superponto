@@ -44,6 +44,12 @@ import LeaveManagement from "@/pages/LeaveManagement";
 import PayrollExports from "@/pages/PayrollExports";
 import IdentificationMethods from "@/pages/IdentificationMethods";
 
+// Legal pages
+import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
+import TermsOfService from "@/pages/legal/TermsOfService";
+import DataProcessingTerms from "@/pages/legal/DataProcessingTerms";
+import CookiePolicy from "@/pages/legal/CookiePolicy";
+
 // Equipment pages
 import EquipmentList from "@/pages/equipment/EquipmentList";
 import EquipmentAdd from "@/pages/equipment/EquipmentAdd";
@@ -77,6 +83,12 @@ const App = () => (
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
+              
+              {/* Public Legal Pages */}
+              <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+              <Route path="/legal/terms" element={<TermsOfService />} />
+              <Route path="/legal/data-processing" element={<DataProcessingTerms />} />
+              <Route path="/legal/cookies" element={<CookiePolicy />} />
               
               {/* Super Admin Routes - Completely Separate */}
               <Route path="/super-admin" element={
