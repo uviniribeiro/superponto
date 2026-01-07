@@ -4,11 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Check, FileText, Fingerprint } from 'lucide-react';
+import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Check, FileText, Fingerprint, Hash } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import TimeRecordReceipt from '@/components/time-records/TimeRecordReceipt';
+import { generateTimeRecordHash } from '@/lib/transactionHash';
 
 type RecordType = 'entry' | 'break_start' | 'break_end' | 'exit';
 
@@ -24,7 +25,7 @@ export default function TimeClock() {
   const [location, setLocation] = useState<Location>({ latitude: null, longitude: null, address: null });
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [todayRecords, setTodayRecords] = useState<{ id?: string; nsr?: number; record_type: string; recorded_at: string; latitude?: number | null; longitude?: number | null; address?: string | null }[]>([]);
+  const [todayRecords, setTodayRecords] = useState<{ id?: string; nsr?: number; record_type: string; recorded_at: string; latitude?: number | null; longitude?: number | null; address?: string | null; transaction_hash?: string | null }[]>([]);
   
   // Swipe button states
   const [isDragging, setIsDragging] = useState(false);
@@ -105,7 +106,7 @@ export default function TimeClock() {
 
     const { data } = await supabase
       .from('time_records')
-      .select('id, nsr, record_type, recorded_at, latitude, longitude, address')
+      .select('id, nsr, record_type, recorded_at, latitude, longitude, address, transaction_hash')
       .eq('profile_id', profile.id)
       .gte('recorded_at', startOfDay)
       .lte('recorded_at', endOfDay)
@@ -130,17 +131,27 @@ export default function TimeClock() {
     setIsRecording(true);
 
     try {
-      const recordedAt = new Date().toISOString();
+      const recordedAt = new Date();
+      
+      // Generate transaction hash
+      const transactionHash = await generateTimeRecordHash(
+        profile.id,
+        nextRecordType,
+        recordedAt,
+        location.latitude || undefined,
+        location.longitude || undefined
+      );
 
       const { data: newRecord, error } = await supabase.from('time_records').insert({
         profile_id: profile.id,
         record_type: nextRecordType,
-        recorded_at: recordedAt,
+        recorded_at: recordedAt.toISOString(),
         latitude: location.latitude,
         longitude: location.longitude,
         address: location.address,
         device_info: navigator.userAgent,
-      }).select('id, nsr, recorded_at, record_type, latitude, longitude, address').single();
+        transaction_hash: transactionHash,
+      }).select('id, nsr, recorded_at, record_type, latitude, longitude, address, transaction_hash').single();
 
       if (error) throw error;
 
@@ -155,7 +166,8 @@ export default function TimeClock() {
           record_type: newRecord.record_type,
           latitude: newRecord.latitude,
           longitude: newRecord.longitude,
-          address: newRecord.address
+          address: newRecord.address,
+          transaction_hash: newRecord.transaction_hash
         });
         setShowReceipt(true);
       }
@@ -433,9 +445,15 @@ export default function TimeClock() {
                     </div>
                     <div>
                       <p className="font-medium text-sm">{recordTypeLabels[record.record_type]}</p>
-                      {record.nsr && (
-                        <p className="text-xs text-muted-foreground">NSR: {record.nsr}</p>
-                      )}
+                      <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
+                        {record.nsr && <span>NSR: {record.nsr}</span>}
+                        {record.transaction_hash && (
+                          <span className="flex items-center gap-0.5" title={record.transaction_hash}>
+                            <Hash className="h-3 w-3" />
+                            {record.transaction_hash.split('-').pop()}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <span className="text-lg font-mono font-semibold">
