@@ -108,6 +108,35 @@ export type Database = {
           },
         ]
       }
+      announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          dismissed_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          dismissed_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          dismissed_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "system_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -511,6 +540,82 @@ export type Database = {
           },
         ]
       }
+      employee_absences: {
+        Row: {
+          absence_type: string
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string | null
+          created_at: string
+          end_date: string
+          id: string
+          medical_certificate_url: string | null
+          notes: string | null
+          profile_id: string
+          reason: string | null
+          start_date: string
+          status: string
+          total_days: number
+          updated_at: string
+        }
+        Insert: {
+          absence_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          end_date: string
+          id?: string
+          medical_certificate_url?: string | null
+          notes?: string | null
+          profile_id: string
+          reason?: string | null
+          start_date: string
+          status?: string
+          total_days: number
+          updated_at?: string
+        }
+        Update: {
+          absence_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          end_date?: string
+          id?: string
+          medical_certificate_url?: string | null
+          notes?: string | null
+          profile_id?: string
+          reason?: string | null
+          start_date?: string
+          status?: string
+          total_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_absences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_absences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_class_hour_assignments: {
         Row: {
           class_hour_configuration_id: string
@@ -600,6 +705,64 @@ export type Database = {
             columns: ["work_schedule_id"]
             isOneToOne: false
             referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_identification_methods: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          facial_data: string | null
+          id: string
+          identifier: string | null
+          is_active: boolean
+          method_type: string
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          facial_data?: string | null
+          id?: string
+          identifier?: string | null
+          is_active?: boolean
+          method_type: string
+          profile_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          facial_data?: string | null
+          id?: string
+          identifier?: string | null
+          is_active?: boolean
+          method_type?: string
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_identification_methods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_identification_methods_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_identification_methods_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -1158,6 +1321,59 @@ export type Database = {
           },
         ]
       }
+      payroll_exports: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string
+          employee_count: number | null
+          export_type: string
+          file_url: string | null
+          id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          status: string
+          total_hours: number | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by: string
+          employee_count?: number | null
+          export_type: string
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          total_hours?: number | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string
+          employee_count?: number | null
+          export_type?: string
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          total_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_exports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_company_users: {
         Row: {
           company_id: string
@@ -1409,6 +1625,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "scale_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_announcements: {
+        Row: {
+          announcement_type: string
+          company_id: string | null
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          message: string
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          announcement_type?: string
+          company_id?: string | null
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          message: string
+          starts_at?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          announcement_type?: string
+          company_id?: string | null
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_announcements_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"

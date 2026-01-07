@@ -40,6 +40,9 @@ import ImportExport from "@/pages/ImportExport";
 import CategoryPage from "@/pages/CategoryPage";
 import AccountSettings from "@/pages/AccountSettings";
 import NotFound from "@/pages/NotFound";
+import LeaveManagement from "@/pages/LeaveManagement";
+import PayrollExports from "@/pages/PayrollExports";
+import IdentificationMethods from "@/pages/IdentificationMethods";
 
 // Equipment pages
 import EquipmentList from "@/pages/equipment/EquipmentList";
@@ -116,6 +119,9 @@ const App = () => (
                 <Route path="import-export" element={<ProtectedRoute requiredRoles={['admin']}><ImportExport /></ProtectedRoute>} />
                 <Route path="teacher-module" element={<ProtectedRoute requiredRoles={['admin']}><TeacherModule /></ProtectedRoute>} />
                 <Route path="account-settings" element={<AccountSettings />} />
+                <Route path="leave-management" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><LeaveManagement /></ProtectedRoute>} />
+                <Route path="payroll-exports" element={<ProtectedRoute requiredRoles={['admin']}><PayrollExports /></ProtectedRoute>} />
+                <Route path="identification-methods" element={<ProtectedRoute requiredRoles={['admin']}><IdentificationMethods /></ProtectedRoute>} />
                 
                 {/* Equipment Routes */}
                 <Route path="equipment" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentStatus /></ProtectedRoute>} />
