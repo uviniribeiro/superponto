@@ -166,7 +166,7 @@ export function PhotoCapture({ onCapture, capturedImage, onClear, required = fal
             <AlertDescription className="text-xs">
               <div className="flex items-center gap-2">
                 <Smartphone className="h-3 w-3" />
-                <span>Esta foto será usada <strong>exclusivamente</strong> para validação facial no registro de ponto pelo aplicativo móvel.</span>
+                <span>A foto é <strong>opcional</strong> e pode ser usada para identificação visual do funcionário.</span>
               </div>
             </AlertDescription>
           </Alert>
