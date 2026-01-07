@@ -15,7 +15,7 @@ export default {
   	extend: {
   		fontFamily: {
   			sans: [
-  				'Inter',
+  				'Lato',
   				'ui-sans-serif',
   				'system-ui',
   				'-apple-system',
@@ -28,7 +28,7 @@ export default {
   				'sans-serif'
   			],
   			mono: [
-  				'Space Mono',
+  				'Fira Code',
   				'ui-monospace',
   				'SFMono-Regular',
   				'Menlo',
@@ -39,7 +39,7 @@ export default {
   				'monospace'
   			],
   			serif: [
-  				'Lora',
+  				'EB Garamond',
   				'ui-serif',
   				'Georgia',
   				'Cambria',
@@ -231,7 +231,7 @@ export default {
   					transform: 'translateY(-4px)'
   				}
   			},
-  			'shimmer': {
+  			shimmer: {
   				'0%': {
   					backgroundPosition: '-200% 0'
   				},
@@ -254,7 +254,7 @@ export default {
   			'spin-slow': 'spin-slow 3s linear infinite',
   			'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
   			'bounce-soft': 'bounce-soft 1s ease-in-out infinite',
-  			'shimmer': 'shimmer 2s linear infinite'
+  			shimmer: 'shimmer 2s linear infinite'
   		},
   		boxShadow: {
   			'2xs': 'var(--shadow-2xs)',
