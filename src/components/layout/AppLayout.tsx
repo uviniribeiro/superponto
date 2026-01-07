@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { SupportChat } from '@/components/support/SupportChat';
+import { AnnouncementPopup } from '@/components/announcements/AnnouncementPopup';
 import { useBrasiliaTime } from '@/hooks/useBrasiliaTime';
 import { useDailyMessage } from '@/hooks/useDailyMessage';
 import { useFavorites } from '@/hooks/useFavorites';
