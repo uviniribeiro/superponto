@@ -140,6 +140,64 @@ export type Database = {
           },
         ]
       }
+      approval_policies: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          hierarchy_levels: number | null
+          id: string
+          is_active: boolean | null
+          level_type: string | null
+          name: string
+          specific_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          hierarchy_levels?: number | null
+          id?: string
+          is_active?: boolean | null
+          level_type?: string | null
+          name: string
+          specific_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          hierarchy_levels?: number | null
+          id?: string
+          is_active?: boolean | null
+          level_type?: string | null
+          name?: string
+          specific_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_policies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_policies_specific_user_id_fkey"
+            columns: ["specific_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_policies_specific_user_id_fkey"
+            columns: ["specific_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -198,6 +256,123 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_allowance_employees: {
+        Row: {
+          batch_allowance_id: string
+          created_at: string
+          id: string
+          profile_id: string
+        }
+        Insert: {
+          batch_allowance_id: string
+          created_at?: string
+          id?: string
+          profile_id: string
+        }
+        Update: {
+          batch_allowance_id?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_allowance_employees_batch_allowance_id_fkey"
+            columns: ["batch_allowance_id"]
+            isOneToOne: false
+            referencedRelation: "batch_allowances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_allowance_employees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_allowance_employees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_allowances: {
+        Row: {
+          allow_absences: boolean | null
+          allow_delays: boolean | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          end_date: string
+          id: string
+          is_active: boolean | null
+          justification_id: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          allow_absences?: boolean | null
+          allow_delays?: boolean | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          justification_id?: string | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          allow_absences?: boolean | null
+          allow_delays?: boolean | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          justification_id?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_allowances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_allowances_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_allowances_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_allowances_justification_id_fkey"
+            columns: ["justification_id"]
+            isOneToOne: false
+            referencedRelation: "justifications"
             referencedColumns: ["id"]
           },
         ]
@@ -501,6 +676,88 @@ export type Database = {
           },
         ]
       }
+      competency_periods: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string
+          end_date: string
+          id: string
+          is_active: boolean | null
+          reference_month_year: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description: string
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          reference_month_year?: string | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          reference_month_year?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competency_periods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_centers: {
+        Row: {
+          code: string | null
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_centers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           company_id: string | null
@@ -717,6 +974,121 @@ export type Database = {
             columns: ["work_schedule_id"]
             isOneToOne: false
             referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_fixed_scales: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          end_date: string | null
+          fixed_scale_id: string
+          id: string
+          is_active: boolean | null
+          profile_id: string
+          start_date: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          fixed_scale_id: string
+          id?: string
+          is_active?: boolean | null
+          profile_id: string
+          start_date: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          fixed_scale_id?: string
+          id?: string
+          is_active?: boolean | null
+          profile_id?: string
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_fixed_scales_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_fixed_scales_fixed_scale_id_fkey"
+            columns: ["fixed_scale_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_scales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_fixed_scales_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_fixed_scales_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_georeferenced_locations: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          location_id: string
+          profile_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          location_id: string
+          profile_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          location_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_georeferenced_locations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_georeferenced_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "georeferenced_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_georeferenced_locations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_georeferenced_locations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -994,6 +1366,47 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_types: {
+        Row: {
+          code: string | null
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          updated_at: string
+          validate_pis: boolean | null
+        }
+        Insert: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          validate_pis?: boolean | null
+        }
+        Update: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          validate_pis?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_types_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_communication_logs: {
         Row: {
           company_id: string | null
@@ -1140,6 +1553,186 @@ export type Database = {
           },
         ]
       }
+      fixed_scale_cycles: {
+        Row: {
+          created_at: string
+          cycle_order: number | null
+          fixed_scale_id: string
+          id: string
+          off_days: number
+          work_days: number
+          work_schedule_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          cycle_order?: number | null
+          fixed_scale_id: string
+          id?: string
+          off_days: number
+          work_days: number
+          work_schedule_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          cycle_order?: number | null
+          fixed_scale_id?: string
+          id?: string
+          off_days?: number
+          work_days?: number
+          work_schedule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_scale_cycles_fixed_scale_id_fkey"
+            columns: ["fixed_scale_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_scales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_scale_cycles_work_schedule_id_fkey"
+            columns: ["work_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_scales: {
+        Row: {
+          calculate_dsr: boolean | null
+          code: string | null
+          company_id: string | null
+          consider_holiday: boolean | null
+          created_at: string
+          description: string
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          calculate_dsr?: boolean | null
+          code?: string | null
+          company_id?: string | null
+          consider_holiday?: boolean | null
+          created_at?: string
+          description: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          calculate_dsr?: boolean | null
+          code?: string | null
+          company_id?: string | null
+          consider_holiday?: boolean | null
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_scales_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      georeferenced_locations: {
+        Row: {
+          address: string | null
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          latitude: number | null
+          longitude: number | null
+          radius_meters: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          radius_meters?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          radius_meters?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "georeferenced_locations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groupings: {
+        Row: {
+          code: string | null
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       holidays: {
         Row: {
           company_id: string | null
@@ -1171,6 +1764,236 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "holidays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      in_itinere_hours: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          time_going: string | null
+          time_returning: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          time_going?: string | null
+          time_returning?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          time_going?: string | null
+          time_returning?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "in_itinere_hours_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interval_mobility: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          updated_at: string
+          work_schedule_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          work_schedule_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          work_schedule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interval_mobility_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interval_mobility_work_schedule_id_fkey"
+            columns: ["work_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interval_mobility_days: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          entry_end: string | null
+          entry_start: string | null
+          exit_end: string | null
+          exit_start: string | null
+          id: string
+          interval_mobility_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          entry_end?: string | null
+          entry_start?: string | null
+          exit_end?: string | null
+          exit_start?: string | null
+          id?: string
+          interval_mobility_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          entry_end?: string | null
+          entry_start?: string | null
+          exit_end?: string | null
+          exit_start?: string | null
+          id?: string
+          interval_mobility_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interval_mobility_days_interval_mobility_id_fkey"
+            columns: ["interval_mobility_id"]
+            isOneToOne: false
+            referencedRelation: "interval_mobility"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_functions: {
+        Row: {
+          code: string | null
+          company_id: string | null
+          created_at: string
+          description: string
+          exempt_from_time_clock: boolean | null
+          id: string
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description: string
+          exempt_from_time_clock?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          exempt_from_time_clock?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_functions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      justifications: {
+        Row: {
+          absence_days: number | null
+          code: string | null
+          company_id: string | null
+          created_at: string
+          deduct_hours: boolean | null
+          description: string
+          generate_extra: boolean | null
+          id: string
+          is_active: boolean | null
+          justify_type: string | null
+          payroll_code: string | null
+          updated_at: string
+          usage_limit: number | null
+          usage_limit_period_months: number | null
+          visible_to_employees: boolean | null
+        }
+        Insert: {
+          absence_days?: number | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          deduct_hours?: boolean | null
+          description: string
+          generate_extra?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          justify_type?: string | null
+          payroll_code?: string | null
+          updated_at?: string
+          usage_limit?: number | null
+          usage_limit_period_months?: number | null
+          visible_to_employees?: boolean | null
+        }
+        Update: {
+          absence_days?: number | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          deduct_hours?: boolean | null
+          description?: string
+          generate_extra?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          justify_type?: string | null
+          payroll_code?: string | null
+          updated_at?: string
+          usage_limit?: number | null
+          usage_limit_period_months?: number | null
+          visible_to_employees?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "justifications_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -1329,6 +2152,50 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      overtime_percentages: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string | null
+          external_code: string | null
+          id: string
+          is_active: boolean | null
+          is_night: boolean | null
+          percentage_value: number
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          external_code?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_night?: boolean | null
+          percentage_value: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          external_code?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_night?: boolean | null
+          percentage_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_percentages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1640,6 +2507,147 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "scale_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_scales: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          is_work_day: boolean | null
+          notes: string | null
+          profile_id: string
+          scale_date: string
+          updated_at: string
+          work_schedule_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_work_day?: boolean | null
+          notes?: string | null
+          profile_id: string
+          scale_date: string
+          updated_at?: string
+          work_schedule_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_work_day?: boolean | null
+          notes?: string | null
+          profile_id?: string
+          scale_date?: string
+          updated_at?: string
+          work_schedule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_scales_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_scales_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_scales_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_scales_work_schedule_id_fkey"
+            columns: ["work_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sections: {
+        Row: {
+          code: string | null
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      specialties: {
+        Row: {
+          code: string | null
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "specialties_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -2055,6 +3063,89 @@ export type Database = {
           },
         ]
       }
+      unions: {
+        Row: {
+          abbreviation: string
+          city: string | null
+          cnpj: string
+          code: string
+          company_id: string | null
+          complement: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          entity_type: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          neighborhood: string | null
+          number: string | null
+          phone: string | null
+          state: string | null
+          street: string | null
+          union_type: string | null
+          updated_at: string
+          website: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          abbreviation: string
+          city?: string | null
+          cnpj: string
+          code: string
+          company_id?: string | null
+          complement?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          entity_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          neighborhood?: string | null
+          number?: string | null
+          phone?: string | null
+          state?: string | null
+          street?: string | null
+          union_type?: string | null
+          updated_at?: string
+          website?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          abbreviation?: string
+          city?: string | null
+          cnpj?: string
+          code?: string
+          company_id?: string | null
+          complement?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          entity_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          neighborhood?: string | null
+          number?: string | null
+          phone?: string | null
+          state?: string | null
+          street?: string | null
+          union_type?: string | null
+          updated_at?: string
+          website?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_preferences: {
         Row: {
           created_at: string
@@ -2102,6 +3193,63 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      work_locations: {
+        Row: {
+          anti_passback_enabled: boolean | null
+          code: string | null
+          company_id: string | null
+          created_at: string
+          current_employees: number | null
+          description: string
+          id: string
+          is_active: boolean | null
+          max_employees: number | null
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          anti_passback_enabled?: boolean | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          current_employees?: number | null
+          description: string
+          id?: string
+          is_active?: boolean | null
+          max_employees?: number | null
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          anti_passback_enabled?: boolean | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          current_employees?: number | null
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          max_employees?: number | null
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_locations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "work_locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_schedules: {
         Row: {
