@@ -50,7 +50,7 @@ import Scales from "@/pages/Scales";
 import OvertimePercentages from "@/pages/OvertimePercentages";
 import CompetencyPeriods from "@/pages/CompetencyPeriods";
 import GeoreferencedLocations from "@/pages/GeoreferencedLocations";
-
+import SystemManual from "@/pages/SystemManual";
 // Legal pages
 import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
 import TermsOfService from "@/pages/legal/TermsOfService";
@@ -148,7 +148,7 @@ const App = () => (
                 <Route path="overtime-percentages" element={<ProtectedRoute requiredRoles={['admin']}><OvertimePercentages /></ProtectedRoute>} />
                 <Route path="competency-periods" element={<ProtectedRoute requiredRoles={['admin']}><CompetencyPeriods /></ProtectedRoute>} />
                 <Route path="georeferenced-locations" element={<ProtectedRoute requiredRoles={['admin']}><GeoreferencedLocations /></ProtectedRoute>} />
-                
+                <Route path="system-manual" element={<SystemManual />} />
                 {/* Equipment Routes */}
                 <Route path="equipment" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentStatus /></ProtectedRoute>} />
                 <Route path="equipment/list" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentList /></ProtectedRoute>} />

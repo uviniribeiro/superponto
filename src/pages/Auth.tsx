@@ -184,263 +184,192 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 gradient-primary p-12 flex-col justify-between">
-        <div>
-          <div className="flex items-center gap-3 text-primary-foreground">
-            <Fingerprint className="w-10 h-10" />
-            <span className="text-2xl font-bold">PontoMax</span>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
+      <div className="w-full max-w-md animate-fade-in">
+        {/* Logo and branding - minimal */}
+        <div className="flex items-center gap-3 mb-8 justify-center">
+          <div className="p-3 rounded-xl gradient-primary">
+            <Fingerprint className="w-8 h-8 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">PontoMax</h1>
+            <p className="text-xs text-muted-foreground">Sistema de Ponto Eletrônico</p>
           </div>
         </div>
-        
-        <div className="space-y-8">
-          <h1 className="text-4xl font-bold text-primary-foreground leading-tight">
-            Sistema de Controle de Ponto Eletrônico
-          </h1>
-          <p className="text-primary-foreground/80 text-lg">
-            Para Empresas e Prefeituras • Conforme Portarias 1510 e 671
-          </p>
-          
-          <div className="grid grid-cols-2 gap-6 pt-8">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-primary-foreground/20 rounded-lg">
-                <Building2 className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-primary-foreground">Empresas</h3>
-                <p className="text-sm text-primary-foreground/70">Acesso via CNPJ</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-primary-foreground/20 rounded-lg">
-                <Landmark className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-primary-foreground">Prefeituras</h3>
-                <p className="text-sm text-primary-foreground/70">Setores organizados</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-primary-foreground/20 rounded-lg">
-                <Clock className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-primary-foreground">Tempo Real</h3>
-                <p className="text-sm text-primary-foreground/70">Geolocalização GPS</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-primary-foreground/20 rounded-lg">
-                <Shield className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-primary-foreground">Conformidade</h3>
-                <p className="text-sm text-primary-foreground/70">Relatórios AFD/AFDT</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <p className="text-primary-foreground/60 text-sm">
-          © 2024 PontoMax. Todos os direitos reservados.
-        </p>
-      </div>
 
-      {/* Right Panel - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-md animate-fade-in">
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <Fingerprint className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold">PontoMax</span>
-          </div>
-
-          <Card className="border-0 shadow-xl">
-            <form onSubmit={handleLogin}>
-              <CardHeader className="pb-4">
-                <CardTitle>Bem-vindo de volta</CardTitle>
-                <CardDescription>
-                  Selecione o tipo de acesso e informe suas credenciais
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                {/* Login Type Selector */}
-                <div className="space-y-2">
-                  <Label>Tipo de Acesso</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      type="button"
-                      variant={loginType === 'company' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-3 gap-1"
-                      onClick={() => {
-                        setLoginType('company');
-                        setLoginData({ ...loginData, companyCode: '' });
-                      }}
-                    >
-                      <Building2 className="h-5 w-5" />
-                      <span className="text-xs">Empresa</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={loginType === 'city_hall' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-3 gap-1"
-                      onClick={() => {
-                        setLoginType('city_hall');
-                        setLoginData({ ...loginData, companyCode: '' });
-                        setSelectedCityHall('');
-                      }}
-                    >
-                      <Landmark className="h-5 w-5" />
-                      <span className="text-xs">Prefeitura</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={loginType === 'super_admin' ? 'default' : 'outline'}
-                      className="flex flex-col h-auto py-3 gap-1"
-                      onClick={() => setLoginType('super_admin')}
-                    >
-                      <Shield className="h-5 w-5" />
-                      <span className="text-xs">Super Admin</span>
-                    </Button>
-                  </div>
+        <Card className="border-0 shadow-xl">
+          <form onSubmit={handleLogin}>
+            <CardHeader className="pb-4">
+              <CardTitle>Bem-vindo de volta</CardTitle>
+              <CardDescription>
+                Selecione o tipo de acesso e informe suas credenciais
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              {/* Login Type Selector */}
+              <div className="space-y-2">
+                <Label>Tipo de Acesso</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    type="button"
+                    variant={loginType === 'company' ? 'default' : 'outline'}
+                    className="flex flex-col h-auto py-3 gap-1"
+                    onClick={() => {
+                      setLoginType('company');
+                      setLoginData({ ...loginData, companyCode: '' });
+                    }}
+                  >
+                    <Building2 className="h-5 w-5" />
+                    <span className="text-xs">Empresa</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={loginType === 'city_hall' ? 'default' : 'outline'}
+                    className="flex flex-col h-auto py-3 gap-1"
+                    onClick={() => {
+                      setLoginType('city_hall');
+                      setLoginData({ ...loginData, companyCode: '' });
+                      setSelectedCityHall('');
+                    }}
+                  >
+                    <Landmark className="h-5 w-5" />
+                    <span className="text-xs">Prefeitura</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={loginType === 'super_admin' ? 'default' : 'outline'}
+                    className="flex flex-col h-auto py-3 gap-1"
+                    onClick={() => setLoginType('super_admin')}
+                  >
+                    <Shield className="h-5 w-5" />
+                    <span className="text-xs">Super Admin</span>
+                  </Button>
                 </div>
+              </div>
 
-                {loginType === 'company' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="login-company">CNPJ da Empresa</Label>
-                    <Input
-                      id="login-company"
-                      type="text"
-                      placeholder="00.000.000/0000-00"
-                      value={loginData.companyCode}
-                      onChange={(e) => setLoginData({ ...loginData, companyCode: e.target.value })}
-                      required
-                    />
-                  </div>
-                )}
-
-                {loginType === 'city_hall' && (
-                  <>
-                    <div className="space-y-2">
-                      <Label>Prefeitura</Label>
-                      <Select
-                        value={selectedCityHall}
-                        onValueChange={(value) => {
-                          setSelectedCityHall(value);
-                          setLoginData({ ...loginData, companyCode: '' });
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a prefeitura" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cityHalls.map((ch) => (
-                            <SelectItem key={ch.id} value={ch.id}>
-                              {ch.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {selectedCityHall && (
-                      <div className="space-y-2">
-                        <Label>Setor</Label>
-                        <Select
-                          value={loginData.companyCode}
-                          onValueChange={(value) => setLoginData({ ...loginData, companyCode: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o setor" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {sectors.map((s) => {
-                              const sectorInfo = sectorLabels[s.sector] || sectorLabels.other;
-                              const Icon = sectorInfo.icon;
-                              return (
-                                <SelectItem key={s.id} value={s.code}>
-                                  <div className="flex items-center gap-2">
-                                    <Icon className="h-4 w-4" />
-                                    {s.name}
-                                  </div>
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    {cityHalls.length === 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        Nenhuma prefeitura cadastrada. Entre em contato com o administrador.
-                      </p>
-                    )}
-                  </>
-                )}
-
-                {loginType !== 'super_admin' && (
-                  <div className="p-3 bg-muted rounded-lg text-xs text-muted-foreground">
-                    Use o CNPJ da sua organização como código de acesso
-                  </div>
-                )}
-
-                {loginType === 'super_admin' && (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-700 dark:text-amber-300">
-                    Área restrita para administradores do sistema
-                  </div>
-                )}
-
+              {loginType === 'company' && (
                 <div className="space-y-2">
-                  <Label htmlFor="login-username">
-                    {loginType === 'super_admin' ? 'Email' : 'Login'}
-                  </Label>
+                  <Label htmlFor="login-company">CNPJ da Empresa</Label>
                   <Input
-                    id="login-username"
+                    id="login-company"
                     type="text"
-                    placeholder={loginType === 'super_admin' ? 'admin@sistema.com' : 'seu.login'}
-                    value={loginData.username}
-                    onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                    placeholder="00.000.000/0000-00"
+                    value={loginData.companyCode}
+                    onChange={(e) => setLoginData({ ...loginData, companyCode: e.target.value })}
                     required
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Senha</Label>
-                  <div className="relative">
-                    <Input
-                      id="login-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••"
-                      value={loginData.password}
-                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                      required
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              )}
+
+              {loginType === 'city_hall' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Prefeitura</Label>
+                    <Select
+                      value={selectedCityHall}
+                      onValueChange={(value) => {
+                        setSelectedCityHall(value);
+                        setLoginData({ ...loginData, companyCode: '' });
+                      }}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a prefeitura" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cityHalls.map((ch) => (
+                          <SelectItem key={ch.id} value={ch.id}>
+                            {ch.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-              </CardContent>
+
+                  {selectedCityHall && (
+                    <div className="space-y-2">
+                      <Label>Setor</Label>
+                      <Select
+                        value={loginData.companyCode}
+                        onValueChange={(value) => setLoginData({ ...loginData, companyCode: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o setor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sectors.map((s) => {
+                            const sectorInfo = sectorLabels[s.sector] || sectorLabels.other;
+                            const Icon = sectorInfo.icon;
+                            return (
+                              <SelectItem key={s.id} value={s.code}>
+                                <div className="flex items-center gap-2">
+                                  <Icon className="h-4 w-4" />
+                                  {s.name}
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {cityHalls.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma prefeitura cadastrada. Entre em contato com o administrador.
+                    </p>
+                  )}
+                </>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="login-username">
+                  {loginType === 'super_admin' ? 'Email' : 'Login'}
+                </Label>
+                <Input
+                  id="login-username"
+                  type="text"
+                  placeholder={loginType === 'super_admin' ? 'admin@sistema.com' : 'seu.login'}
+                  value={loginData.username}
+                  onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                  required
+                />
+              </div>
               
-              <CardFooter>
-                <Button 
-                  type="submit" 
-                  className="w-full gradient-primary"
-                  disabled={isLoading || (loginType === 'city_hall' && !loginData.companyCode)}
-                >
-                  {isLoading ? 'Entrando...' : 'Entrar'}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Senha</Label>
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••"
+                    value={loginData.password}
+                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+            
+            <CardFooter>
+              <Button 
+                type="submit" 
+                className="w-full gradient-primary"
+                disabled={isLoading || (loginType === 'city_hall' && !loginData.companyCode)}
+              >
+                {isLoading ? 'Entrando...' : 'Entrar'}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { SupportChat } from '@/components/support/SupportChat';
 import { AnnouncementPopup } from '@/components/announcements/AnnouncementPopup';
+import { WhatsNewPopup } from '@/components/WhatsNewPopup';
 import { useBrasiliaTime } from '@/hooks/useBrasiliaTime';
 import { useDailyMessage } from '@/hooks/useDailyMessage';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -76,6 +77,12 @@ import {
   Activity,
   Shield,
   MapPin,
+  BookOpen,
+  Percent,
+  ListChecks,
+  Scale,
+  IdCard,
+  Layers,
 } from 'lucide-react';
 
 interface CompanySettings {
@@ -98,7 +105,7 @@ interface MenuItem {
   roles: string[];
 }
 
-// Categories with their items
+// Categories with their items - reorganized with individual subcategories
 const menuCategories: MenuCategory[] = [
   {
     id: 'principal',
@@ -122,23 +129,47 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
-    id: 'cadastros',
-    title: 'Cadastros',
-    icon: FolderOpen,
+    id: 'funcionarios',
+    title: 'Funcionários',
+    icon: Users,
     roles: ['admin', 'manager'],
     items: [
-      { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
-      { title: 'Cargos e Deptos', icon: Briefcase, href: '/positions-departments', roles: ['admin'] },
-      { title: 'Jornadas e Escalas', icon: CalendarClock, href: '/schedules', roles: ['admin'] },
-      { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
-      { title: 'Cadastros Básicos', icon: FolderOpen, href: '/basic-registrations', roles: ['admin'] },
+      { title: 'Lista de Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
+      { title: 'Identificação', icon: IdCard, href: '/identification-methods', roles: ['admin'] },
+    ]
+  },
+  {
+    id: 'estrutura',
+    title: 'Estrutura Organizacional',
+    icon: Building2,
+    roles: ['admin'],
+    items: [
+      { title: 'Cargos e Departamentos', icon: Briefcase, href: '/positions-departments', roles: ['admin'] },
       { title: 'Sindicatos', icon: Building2, href: '/unions', roles: ['admin'] },
+    ]
+  },
+  {
+    id: 'jornadas',
+    title: 'Jornadas e Horários',
+    icon: CalendarClock,
+    roles: ['admin'],
+    items: [
+      { title: 'Jornadas de Trabalho', icon: CalendarClock, href: '/schedules', roles: ['admin'] },
+      { title: 'Escalas de Ponto', icon: Scale, href: '/scales', roles: ['admin'] },
+      { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
+      { title: 'Competências', icon: ListChecks, href: '/competency-periods', roles: ['admin'] },
+    ]
+  },
+  {
+    id: 'cadastros-basicos',
+    title: 'Cadastros Básicos',
+    icon: FolderOpen,
+    roles: ['admin'],
+    items: [
+      { title: 'Cadastros Gerais', icon: Layers, href: '/basic-registrations', roles: ['admin'] },
       { title: 'Justificativas', icon: FileText, href: '/justifications', roles: ['admin'] },
-      { title: 'Escalas de Ponto', icon: CalendarClock, href: '/scales', roles: ['admin'] },
-      { title: 'Percentuais Extra', icon: TrendingUp, href: '/overtime-percentages', roles: ['admin'] },
-      { title: 'Competências', icon: CalendarDays, href: '/competency-periods', roles: ['admin'] },
+      { title: 'Percentuais Extra', icon: Percent, href: '/overtime-percentages', roles: ['admin'] },
       { title: 'Locais GPS', icon: MapPin, href: '/georeferenced-locations', roles: ['admin'] },
-      { title: 'Identificação', icon: UserCog, href: '/identification-methods', roles: ['admin'] },
     ]
   },
   {
@@ -200,6 +231,7 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'Dados da Empresa', icon: Building2, href: '/company', roles: ['admin'] },
       { title: 'Usuários', icon: UserCog, href: '/users', roles: ['admin'] },
+      { title: 'Manual do Sistema', icon: BookOpen, href: '/system-manual', roles: ['admin', 'manager', 'employee'] },
     ]
   },
 ];
