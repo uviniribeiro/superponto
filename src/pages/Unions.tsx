@@ -552,10 +552,7 @@ export default function Unions() {
         </DialogContent>
       </Dialog>
 
-      <HelpButton 
-        title="Sindicatos"
-        description="Cadastre e gerencie os sindicatos vinculados aos funcionários da empresa."
-      />
+      <HelpButton pageKey="unions" />
     </div>
   );
 }

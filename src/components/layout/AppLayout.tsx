@@ -75,6 +75,7 @@ import {
   HelpCircle,
   Activity,
   Shield,
+  MapPin,
 } from 'lucide-react';
 
 interface CompanySettings {
@@ -130,6 +131,14 @@ const menuCategories: MenuCategory[] = [
       { title: 'Cargos e Deptos', icon: Briefcase, href: '/positions-departments', roles: ['admin'] },
       { title: 'Jornadas e Escalas', icon: CalendarClock, href: '/schedules', roles: ['admin'] },
       { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
+      { title: 'Cadastros Básicos', icon: FolderOpen, href: '/basic-registrations', roles: ['admin'] },
+      { title: 'Sindicatos', icon: Building2, href: '/unions', roles: ['admin'] },
+      { title: 'Justificativas', icon: FileText, href: '/justifications', roles: ['admin'] },
+      { title: 'Escalas de Ponto', icon: CalendarClock, href: '/scales', roles: ['admin'] },
+      { title: 'Percentuais Extra', icon: TrendingUp, href: '/overtime-percentages', roles: ['admin'] },
+      { title: 'Competências', icon: CalendarDays, href: '/competency-periods', roles: ['admin'] },
+      { title: 'Locais GPS', icon: MapPin, href: '/georeferenced-locations', roles: ['admin'] },
+      { title: 'Identificação', icon: UserCog, href: '/identification-methods', roles: ['admin'] },
     ]
   },
   {
@@ -151,6 +160,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Folha de Ponto', icon: ClipboardList, href: '/timesheet', roles: ['admin', 'manager'] },
       { title: 'Faltas', icon: UserX, href: '/absences', roles: ['admin', 'manager'] },
       { title: 'Ajustes', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
+      { title: 'Afastamentos', icon: UserX, href: '/leave-management', roles: ['admin', 'manager'] },
     ]
   },
   {
@@ -162,6 +172,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Relatórios', icon: FileText, href: '/reports', roles: ['admin', 'manager'] },
       { title: 'Dashboard HE', icon: TrendingUp, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
       { title: 'Import/Export', icon: ArrowUpDown, href: '/import-export', roles: ['admin'] },
+      { title: 'Exportar Folha', icon: FileText, href: '/payroll-exports', roles: ['admin'] },
     ]
   },
   {
@@ -179,6 +190,16 @@ const menuCategories: MenuCategory[] = [
       { title: 'Logs de Comunicação', icon: FileText, href: '/equipment/logs', roles: ['admin'] },
       { title: 'Sincronizar', icon: RefreshCw, href: '/equipment/sync', roles: ['admin'] },
       { title: 'Ajuda', icon: HelpCircle, href: '/equipment/help', roles: ['admin'] },
+    ]
+  },
+  {
+    id: 'configuracoes',
+    title: 'Configurações',
+    icon: Cog,
+    roles: ['admin'],
+    items: [
+      { title: 'Dados da Empresa', icon: Building2, href: '/company', roles: ['admin'] },
+      { title: 'Usuários', icon: UserCog, href: '/users', roles: ['admin'] },
     ]
   },
 ];

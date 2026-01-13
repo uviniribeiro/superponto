@@ -403,10 +403,7 @@ export default function Scales() {
         </DialogContent>
       </Dialog>
 
-      <HelpButton 
-        title="Escalas de Trabalho"
-        description="Configure escalas fixas (ex: 12x36, 5x2) e agendadas para funcionários."
-      />
+      <HelpButton pageKey="scales" />
     </div>
   );
 }

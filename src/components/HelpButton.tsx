@@ -390,6 +390,146 @@ const helpContent: Record<string, PageHelpContent> = {
       "Usuários suporte e admin são criados automaticamente",
       "Monitore o uso nas estatísticas do dashboard"
     ]
+  },
+  basicregistrations: {
+    title: "Cadastros Básicos",
+    description: "Gerencie os cadastros auxiliares do sistema",
+    sections: [
+      {
+        title: "Cadastrar Registros",
+        steps: [
+          { title: "Selecione o tipo", description: "Escolha entre agrupamentos, especialidades, centros de custo, etc." },
+          { title: "Clique em 'Novo'", description: "Botão no canto superior direito da aba." },
+          { title: "Preencha os dados", description: "Código (opcional) e descrição (obrigatório, mínimo 3 caracteres)." },
+          { title: "Salve o registro", description: "Confirme clicando em 'Salvar'." }
+        ]
+      }
+    ],
+    tips: [
+      "O código é opcional mas facilita a identificação",
+      "A descrição deve ter entre 3 e 50 caracteres",
+      "Não é possível excluir registros vinculados a outros cadastros"
+    ]
+  },
+  unions: {
+    title: "Sindicatos",
+    description: "Cadastre e gerencie os sindicatos vinculados aos funcionários",
+    sections: [
+      {
+        title: "Cadastrar Sindicato",
+        steps: [
+          { title: "Clique em 'Novo Sindicato'", description: "Botão no canto superior direito." },
+          { title: "Preencha os dados", description: "Nome, CNPJ, endereço e contato." },
+          { title: "Configure as taxas", description: "Defina percentuais de contribuição sindical." },
+          { title: "Salve o cadastro", description: "Confirme clicando em 'Salvar'." }
+        ]
+      }
+    ],
+    tips: [
+      "O CNPJ deve ser válido e único no sistema",
+      "Sindicatos podem ser vinculados a múltiplos funcionários",
+      "Configure as taxas conforme acordo coletivo"
+    ]
+  },
+  justifications: {
+    title: "Justificativas",
+    description: "Cadastre justificativas para abonos e afastamentos",
+    sections: [
+      {
+        title: "Cadastrar Justificativa",
+        steps: [
+          { title: "Clique em 'Nova Justificativa'", description: "Botão no canto superior direito." },
+          { title: "Preencha descrição", description: "Nome da justificativa." },
+          { title: "Configure regras", description: "Descontar horas, gerar extra, visibilidade." },
+          { title: "Defina código de folha", description: "Código para integração com folha de pagamento." }
+        ]
+      }
+    ],
+    tips: [
+      "Justificativas podem descontar ou não horas do funcionário",
+      "Configure visibilidade para funcionários solicitarem",
+      "Use códigos de folha para integração com sistemas externos"
+    ]
+  },
+  scales: {
+    title: "Escalas de Trabalho",
+    description: "Configure escalas fixas e agendadas",
+    sections: [
+      {
+        title: "Escala Fixa",
+        steps: [
+          { title: "Clique em 'Nova Escala'", description: "Botão no canto superior direito." },
+          { title: "Defina o padrão", description: "Ex: 12x36, 5x2, 6x1." },
+          { title: "Configure ciclos", description: "Dias de trabalho e folga." },
+          { title: "Vincule horários", description: "Associe jornadas aos ciclos." }
+        ]
+      }
+    ],
+    tips: [
+      "Escalas fixas seguem ciclos regulares de trabalho/folga",
+      "Configure tratamento de feriados conforme necessário",
+      "Funcionários podem ter escala fixa ou agendada"
+    ]
+  },
+  overtimepercentages: {
+    title: "Percentuais de Hora Extra",
+    description: "Configure os percentuais de acréscimo",
+    sections: [
+      {
+        title: "Cadastrar Percentual",
+        steps: [
+          { title: "Clique em 'Novo Percentual'", description: "Botão no canto superior direito." },
+          { title: "Defina o valor", description: "Percentual de acréscimo (ex: 50%, 100%)." },
+          { title: "Configure tipo", description: "Diurno ou noturno." },
+          { title: "Informe código externo", description: "Para integração com folha." }
+        ]
+      }
+    ],
+    tips: [
+      "Percentuais comuns: 50% (dia útil) e 100% (feriado/domingo)",
+      "Hora noturna pode ter acréscimo adicional",
+      "Configure conforme legislação ou acordo coletivo"
+    ]
+  },
+  competencyperiods: {
+    title: "Competências",
+    description: "Períodos para filtros de relatórios",
+    sections: [
+      {
+        title: "Cadastrar Competência",
+        steps: [
+          { title: "Clique em 'Nova Competência'", description: "Botão no canto superior direito." },
+          { title: "Defina a descrição", description: "Ex: Janeiro/2025." },
+          { title: "Configure o período", description: "Data inicial e final." },
+          { title: "Defina mês/ano referência", description: "Para exportação de ocorrências." }
+        ]
+      }
+    ],
+    tips: [
+      "Competências facilitam filtros em relatórios",
+      "O período pode ultrapassar um mês se necessário",
+      "Marque como ativa para aparecer nos filtros"
+    ]
+  },
+  georeferencedlocations: {
+    title: "Locais Georreferenciados",
+    description: "Configure locais com GPS para validação de ponto mobile",
+    sections: [
+      {
+        title: "Cadastrar Local",
+        steps: [
+          { title: "Clique em 'Novo Local'", description: "Botão no canto superior direito." },
+          { title: "Informe descrição e endereço", description: "Nome e localização do ponto." },
+          { title: "Configure coordenadas", description: "Latitude, longitude e raio em metros." },
+          { title: "Vincule funcionários", description: "Defina quem pode marcar ponto neste local." }
+        ]
+      }
+    ],
+    tips: [
+      "O raio define a área de validação do GPS",
+      "Funcionários fora do raio não conseguem registrar ponto",
+      "Use múltiplos locais para equipes externas"
+    ]
   }
 };
 

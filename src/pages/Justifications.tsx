@@ -419,10 +419,7 @@ export default function Justifications() {
         </DialogContent>
       </Dialog>
 
-      <HelpButton 
-        title="Justificativas"
-        description="Cadastre justificativas para uso em abonos e afastamentos. Configure se descontam horas, geram extra e se são visíveis para funcionários."
-      />
+      <HelpButton pageKey="justifications" />
     </div>
   );
 }
