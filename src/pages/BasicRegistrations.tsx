@@ -137,7 +137,8 @@ export default function BasicRegistrations() {
         if (error) throw error;
         toast.success('Registro atualizado!');
       } else {
-        const { error } = await supabase.from(activeTab).insert(baseData);
+        // @ts-ignore - Dynamic table insert
+        const { error } = await supabase.from(activeTab).insert([baseData]);
         if (error) throw error;
         toast.success('Registro criado!');
       }
@@ -432,10 +433,7 @@ export default function BasicRegistrations() {
         </DialogContent>
       </Dialog>
 
-      <HelpButton 
-        title="Cadastros Básicos"
-        description="Gerencie os cadastros auxiliares do sistema como agrupamentos, especialidades, centros de custo, seções, tipos de funcionário, funções e locais de trabalho."
-      />
+      <HelpButton pageKey="basicregistrations" />
     </div>
   );
 }

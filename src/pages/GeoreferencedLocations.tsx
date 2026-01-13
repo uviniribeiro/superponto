@@ -471,10 +471,7 @@ export default function GeoreferencedLocations() {
         </DialogContent>
       </Dialog>
 
-      <HelpButton 
-        title="Locais Georreferenciados"
-        description="Configure locais com coordenadas GPS para validar marcações de ponto mobile. Funcionários vinculados terão suas marcações validadas automaticamente quando dentro do raio."
-      />
+      <HelpButton pageKey="georeferencedlocations" />
     </div>
   );
 }

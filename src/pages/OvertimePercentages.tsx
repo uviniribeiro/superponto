@@ -358,10 +358,7 @@ export default function OvertimePercentages() {
         </DialogContent>
       </Dialog>
 
-      <HelpButton 
-        title="Percentuais de Hora Extra"
-        description="Configure os percentuais de acréscimo para horas extras conforme a legislação ou acordos coletivos."
-      />
+      <HelpButton pageKey="overtimepercentages" />
     </div>
   );
 }

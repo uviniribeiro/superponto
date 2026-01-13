@@ -354,10 +354,7 @@ export default function CompetencyPeriods() {
         </DialogContent>
       </Dialog>
 
-      <HelpButton 
-        title="Competências"
-        description="Competências são períodos utilizados como filtro no espelho ponto, meu espelho ponto e relatórios."
-      />
+      <HelpButton pageKey="competencyperiods" />
     </div>
   );
 }

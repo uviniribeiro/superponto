@@ -43,6 +43,13 @@ import NotFound from "@/pages/NotFound";
 import LeaveManagement from "@/pages/LeaveManagement";
 import PayrollExports from "@/pages/PayrollExports";
 import IdentificationMethods from "@/pages/IdentificationMethods";
+import BasicRegistrations from "@/pages/BasicRegistrations";
+import Unions from "@/pages/Unions";
+import Justifications from "@/pages/Justifications";
+import Scales from "@/pages/Scales";
+import OvertimePercentages from "@/pages/OvertimePercentages";
+import CompetencyPeriods from "@/pages/CompetencyPeriods";
+import GeoreferencedLocations from "@/pages/GeoreferencedLocations";
 
 // Legal pages
 import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
@@ -134,6 +141,13 @@ const App = () => (
                 <Route path="leave-management" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><LeaveManagement /></ProtectedRoute>} />
                 <Route path="payroll-exports" element={<ProtectedRoute requiredRoles={['admin']}><PayrollExports /></ProtectedRoute>} />
                 <Route path="identification-methods" element={<ProtectedRoute requiredRoles={['admin']}><IdentificationMethods /></ProtectedRoute>} />
+                <Route path="basic-registrations" element={<ProtectedRoute requiredRoles={['admin']}><BasicRegistrations /></ProtectedRoute>} />
+                <Route path="unions" element={<ProtectedRoute requiredRoles={['admin']}><Unions /></ProtectedRoute>} />
+                <Route path="justifications" element={<ProtectedRoute requiredRoles={['admin']}><Justifications /></ProtectedRoute>} />
+                <Route path="scales" element={<ProtectedRoute requiredRoles={['admin']}><Scales /></ProtectedRoute>} />
+                <Route path="overtime-percentages" element={<ProtectedRoute requiredRoles={['admin']}><OvertimePercentages /></ProtectedRoute>} />
+                <Route path="competency-periods" element={<ProtectedRoute requiredRoles={['admin']}><CompetencyPeriods /></ProtectedRoute>} />
+                <Route path="georeferenced-locations" element={<ProtectedRoute requiredRoles={['admin']}><GeoreferencedLocations /></ProtectedRoute>} />
                 
                 {/* Equipment Routes */}
                 <Route path="equipment" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentStatus /></ProtectedRoute>} />
