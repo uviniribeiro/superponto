@@ -200,7 +200,13 @@ const menuCategories: MenuCategory[] = [
     icon: FileBarChart,
     roles: ['admin', 'manager'],
     items: [
-      { title: 'Relatórios', icon: FileText, href: '/reports', roles: ['admin', 'manager'] },
+      { title: 'Espelho de Ponto', icon: ClipboardList, href: '/reports/mirror-point', roles: ['admin', 'manager'] },
+      { title: 'Horas Trabalhadas', icon: Clock, href: '/reports/worked-hours', roles: ['admin', 'manager'] },
+      { title: 'Horas Extras', icon: TrendingUp, href: '/reports/overtime', roles: ['admin', 'manager'] },
+      { title: 'Faltas/Atrasos', icon: UserX, href: '/reports/absences', roles: ['admin', 'manager'] },
+      { title: 'Frequência', icon: Users, href: '/reports/attendance', roles: ['admin', 'manager'] },
+      { title: 'Banco de Horas', icon: Timer, href: '/reports/time-bank', roles: ['admin', 'manager'] },
+      { title: 'Arquivos MTE', icon: FileText, href: '/reports/mte', roles: ['admin', 'manager'] },
       { title: 'Dashboard HE', icon: TrendingUp, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
       { title: 'Import/Export', icon: ArrowUpDown, href: '/import-export', roles: ['admin'] },
       { title: 'Exportar Folha', icon: FileText, href: '/payroll-exports', roles: ['admin'] },
@@ -656,6 +662,8 @@ export default function AppLayout() {
           </div>
         </main>
         <SupportChat />
+        <AnnouncementPopup />
+        <WhatsNewPopup />
       </div>
     </SidebarProvider>
   );

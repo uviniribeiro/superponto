@@ -51,6 +51,14 @@ import OvertimePercentages from "@/pages/OvertimePercentages";
 import CompetencyPeriods from "@/pages/CompetencyPeriods";
 import GeoreferencedLocations from "@/pages/GeoreferencedLocations";
 import SystemManual from "@/pages/SystemManual";
+// Report pages
+import MirrorPointPage from "@/pages/reports/MirrorPointPage";
+import WorkedHoursPage from "@/pages/reports/WorkedHoursPage";
+import OvertimePage from "@/pages/reports/OvertimePage";
+import AbsencesPage from "@/pages/reports/AbsencesPage";
+import AttendancePage from "@/pages/reports/AttendancePage";
+import TimeBankPage from "@/pages/reports/TimeBankPage";
+import MTEExportsPage from "@/pages/reports/MTEExportsPage";
 // Legal pages
 import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
 import TermsOfService from "@/pages/legal/TermsOfService";
@@ -149,6 +157,14 @@ const App = () => (
                 <Route path="competency-periods" element={<ProtectedRoute requiredRoles={['admin']}><CompetencyPeriods /></ProtectedRoute>} />
                 <Route path="georeferenced-locations" element={<ProtectedRoute requiredRoles={['admin']}><GeoreferencedLocations /></ProtectedRoute>} />
                 <Route path="system-manual" element={<SystemManual />} />
+                {/* Individual Report Routes */}
+                <Route path="reports/mirror-point" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><MirrorPointPage /></ProtectedRoute>} />
+                <Route path="reports/worked-hours" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><WorkedHoursPage /></ProtectedRoute>} />
+                <Route path="reports/overtime" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OvertimePage /></ProtectedRoute>} />
+                <Route path="reports/absences" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><AbsencesPage /></ProtectedRoute>} />
+                <Route path="reports/attendance" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><AttendancePage /></ProtectedRoute>} />
+                <Route path="reports/time-bank" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><TimeBankPage /></ProtectedRoute>} />
+                <Route path="reports/mte" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><MTEExportsPage /></ProtectedRoute>} />
                 {/* Equipment Routes */}
                 <Route path="equipment" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentStatus /></ProtectedRoute>} />
                 <Route path="equipment/list" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentList /></ProtectedRoute>} />
