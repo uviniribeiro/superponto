@@ -538,7 +538,7 @@ export default function Employees() {
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
-                    CPF
+                    CPF *
                     {formData.cpf && (
                       validateCPF(formData.cpf).valid ? 
                         <CheckCircle2 className="h-4 w-4 text-green-500" /> :
@@ -550,6 +550,7 @@ export default function Employees() {
                     onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                     placeholder="000.000.000-00"
                     className={formData.cpf && !validateCPF(formData.cpf).valid ? 'border-red-500' : ''}
+                    required
                   />
                   {formData.cpf && !validateCPF(formData.cpf).valid && (
                     <p className="text-xs text-red-500">{validateCPF(formData.cpf).message}</p>
@@ -557,7 +558,7 @@ export default function Employees() {
                 </div>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
-                    PIS
+                    PIS *
                     {formData.pis && (
                       validatePIS(formData.pis).valid ? 
                         <CheckCircle2 className="h-4 w-4 text-green-500" /> :
@@ -569,16 +570,18 @@ export default function Employees() {
                     onChange={(e) => setFormData({ ...formData, pis: e.target.value })}
                     placeholder="000.00000.00-0"
                     className={formData.pis && !validatePIS(formData.pis).valid ? 'border-red-500' : ''}
+                    required
                   />
                   {formData.pis && !validatePIS(formData.pis).valid && (
                     <p className="text-xs text-red-500">{validatePIS(formData.pis).message}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Matrícula</Label>
+                  <Label>Matrícula *</Label>
                   <Input
                     value={formData.registration_number}
                     onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -620,11 +623,12 @@ export default function Employees() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Data de Admissão</Label>
+                  <Label>Data de Admissão *</Label>
                   <Input
                     type="date"
                     value={formData.hire_date}
                     onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })}
+                    required
                   />
                 </div>
                 <div className="space-y-2">

@@ -15,17 +15,17 @@ import { PhotoCapture } from '@/components/employees/PhotoCapture';
 import { MaskedInput } from '@/components/ui/masked-input';
 
 const employeeSchema = z.object({
-  fullName: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
+  fullName: z.string().trim().min(2, 'Nome completo é obrigatório (mínimo 2 caracteres)').max(100),
   login: z.string().trim().min(3, 'Login deve ter pelo menos 3 caracteres').max(50).regex(/^[a-zA-Z0-9._-]+$/, 'Login pode conter apenas letras, números, pontos, underscores e hífens'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(100),
-  cpf: z.string().optional(),
-  pis: z.string().optional(),
-  registration_number: z.string().optional(),
+  cpf: z.string().min(11, 'CPF é obrigatório'),
+  pis: z.string().min(11, 'PIS é obrigatório'),
+  registration_number: z.string().min(1, 'Matrícula é obrigatória'),
+  hire_date: z.string().min(1, 'Data de admissão é obrigatória'),
   department: z.string().optional(),
   position: z.string().optional(),
   department_id: z.string().optional(),
   position_id: z.string().optional(),
-  hire_date: z.string().optional(),
   phone: z.string().optional(),
   schedule_id: z.string().optional(),
 });
@@ -387,35 +387,38 @@ export default function RegisterEmployee() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="cpf">CPF</Label>
+                <Label htmlFor="cpf">CPF *</Label>
                 <MaskedInput
                   id="cpf"
                   mask="cpf"
                   value={formData.cpf}
                   onChange={(value) => setFormData({ ...formData, cpf: value })}
                   showValidation
+                  required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="pis">PIS/PASEP</Label>
+                <Label htmlFor="pis">PIS/PASEP *</Label>
                 <MaskedInput
                   id="pis"
                   mask="pis"
                   value={formData.pis}
                   onChange={(value) => setFormData({ ...formData, pis: value })}
                   showValidation
+                  required
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="registration_number">Matrícula</Label>
+                <Label htmlFor="registration_number">Matrícula *</Label>
                 <Input
                   id="registration_number"
                   type="text"
                   placeholder="Número da matrícula"
                   value={formData.registration_number}
                   onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
+                  required
                 />
               </div>
               
@@ -470,12 +473,13 @@ export default function RegisterEmployee() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="hire_date">Data de Admissão</Label>
+                <Label htmlFor="hire_date">Data de Admissão *</Label>
                 <Input
                   id="hire_date"
                   type="date"
                   value={formData.hire_date}
                   onChange={(e) => setFormData({ ...formData, hire_date: e.target.value })}
+                  required
                 />
               </div>
               
