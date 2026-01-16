@@ -7,7 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import SuperAdminProtectedRoute from "@/components/SuperAdminProtectedRoute";
-import AppLayout from "@/components/layout/AppLayout";
+import NewAppLayout from "@/components/layout/NewAppLayout";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 import { GuidedTourButton } from "@/components/GuidedTour";
 import Auth from "@/pages/Auth";
@@ -51,6 +51,11 @@ import OvertimePercentages from "@/pages/OvertimePercentages";
 import CompetencyPeriods from "@/pages/CompetencyPeriods";
 import GeoreferencedLocations from "@/pages/GeoreferencedLocations";
 import SystemManual from "@/pages/SystemManual";
+// New redesigned pages
+import NewReports from "@/pages/NewReports";
+import NewDepartments from "@/pages/NewDepartments";
+import NewScales from "@/pages/NewScales";
+import NewCompanySettings from "@/pages/NewCompanySettings";
 // Report pages
 import MirrorPointPage from "@/pages/reports/MirrorPointPage";
 import WorkedHoursPage from "@/pages/reports/WorkedHoursPage";
@@ -121,7 +126,7 @@ const App = () => (
               {/* Regular App Routes */}
               <Route path="/" element={
                 <ProtectedRoute>
-                  <AppLayout />
+                  <NewAppLayout />
                 </ProtectedRoute>
               }>
                 <Route path="home" element={<Home />} />
@@ -132,11 +137,14 @@ const App = () => (
                 <Route path="employees" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Employees /></ProtectedRoute>} />
                 <Route path="employees/register" element={<ProtectedRoute requiredRoles={['admin']}><RegisterEmployee /></ProtectedRoute>} />
                 <Route path="positions-departments" element={<ProtectedRoute requiredRoles={['admin']}><PositionsDepartments /></ProtectedRoute>} />
+                <Route path="departments" element={<ProtectedRoute requiredRoles={['admin']}><NewDepartments /></ProtectedRoute>} />
                 <Route path="schedules" element={<ProtectedRoute requiredRoles={['admin']}><WorkSchedules /></ProtectedRoute>} />
+                <Route path="work-schedules" element={<ProtectedRoute requiredRoles={['admin']}><NewScales /></ProtectedRoute>} />
                 <Route path="adjustments" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Adjustments /></ProtectedRoute>} />
-                <Route path="reports" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Reports /></ProtectedRoute>} />
+                <Route path="reports" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><NewReports /></ProtectedRoute>} />
                 <Route path="mirror-point" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><MirrorPoint /></ProtectedRoute>} />
                 <Route path="company" element={<ProtectedRoute requiredRoles={['admin']}><Company /></ProtectedRoute>} />
+                <Route path="company-settings" element={<ProtectedRoute requiredRoles={['admin']}><NewCompanySettings /></ProtectedRoute>} />
                 <Route path="holidays" element={<ProtectedRoute requiredRoles={['admin']}><Holidays /></ProtectedRoute>} />
                 <Route path="time-bank" element={<TimeBank />} />
                 <Route path="absences" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Absences /></ProtectedRoute>} />

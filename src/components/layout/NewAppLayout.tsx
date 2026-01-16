@@ -94,8 +94,8 @@ const menuCategories: MenuCategory[] = [
     roles: ['admin', 'manager'],
     items: [
       { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
-      { title: 'Departamentos', icon: Building2, href: '/positions-departments', roles: ['admin'] },
-      { title: 'Escalas', icon: Scale, href: '/schedules', roles: ['admin'] },
+      { title: 'Departamentos', icon: Building2, href: '/departments', roles: ['admin'] },
+      { title: 'Escalas', icon: Scale, href: '/work-schedules', roles: ['admin'] },
       { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
     ]
   },
@@ -119,6 +119,7 @@ const menuCategories: MenuCategory[] = [
     roles: ['admin'],
     items: [
       { title: 'Lista de REP', icon: Server, href: '/equipment/list', roles: ['admin'] },
+      { title: 'Status', icon: BarChart3, href: '/equipment/status', roles: ['admin'] },
     ]
   },
   {
@@ -128,6 +129,7 @@ const menuCategories: MenuCategory[] = [
     roles: ['admin'],
     items: [
       { title: 'Configurações', icon: Smartphone, href: '/identification-methods', roles: ['admin'] },
+      { title: 'Locais GPS', icon: Home, href: '/georeferenced-locations', roles: ['admin'] },
     ]
   },
   {
@@ -136,9 +138,12 @@ const menuCategories: MenuCategory[] = [
     icon: FileBarChart,
     roles: ['admin', 'manager'],
     items: [
-      { title: 'Relatórios', icon: FileBarChart, href: '/reports', roles: ['admin', 'manager'] },
-      { title: 'Análises Gerenciais', icon: BarChart3, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
-      { title: 'Exportação', icon: Download, href: '/import-export', roles: ['admin'] },
+      { title: 'Central de Relatórios', icon: FileBarChart, href: '/reports', roles: ['admin', 'manager'] },
+      { title: 'Espelho de Ponto', icon: FileText, href: '/reports/mirror-point', roles: ['admin', 'manager'] },
+      { title: 'Horas Trabalhadas', icon: Clock, href: '/reports/worked-hours', roles: ['admin', 'manager'] },
+      { title: 'Horas Extras', icon: TrendingUp, href: '/reports/overtime', roles: ['admin', 'manager'] },
+      { title: 'Faltas/Atrasos', icon: UserX, href: '/reports/absences', roles: ['admin', 'manager'] },
+      { title: 'Exportação MTE', icon: Download, href: '/reports/mte', roles: ['admin'] },
     ]
   },
   {
@@ -147,7 +152,7 @@ const menuCategories: MenuCategory[] = [
     icon: TrendingUp,
     roles: ['admin', 'manager'],
     items: [
-      { title: 'Horas Extras', icon: TrendingUp, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
+      { title: 'Análises Gerenciais', icon: BarChart3, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
     ]
   },
   {
@@ -156,8 +161,10 @@ const menuCategories: MenuCategory[] = [
     icon: Cog,
     roles: ['admin'],
     items: [
-      { title: 'Configurações', icon: Cog, href: '/company', roles: ['admin'] },
+      { title: 'Empresa', icon: Building2, href: '/company-settings', roles: ['admin'] },
       { title: 'Regras de HE', icon: TrendingUp, href: '/overtime-percentages', roles: ['admin'] },
+      { title: 'Justificativas', icon: ClipboardCheck, href: '/justifications', roles: ['admin'] },
+      { title: 'Usuários', icon: Users, href: '/users', roles: ['admin'] },
     ]
   },
 ];
