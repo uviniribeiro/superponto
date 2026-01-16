@@ -133,6 +133,15 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
+    id: 'professor',
+    title: 'Professor',
+    icon: GraduationCap,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Módulo Professor', icon: GraduationCap, href: '/teacher-module', roles: ['admin', 'manager'] },
+    ]
+  },
+  {
     id: 'relatorios',
     title: 'Relatórios',
     icon: FileBarChart,
