@@ -1,6 +1,6 @@
 // Application version configuration
-export const APP_VERSION = '1.20.1';
-export const APP_BUILD_DATE = '2026-01-13';
+export const APP_VERSION = '1.20.2';
+export const APP_BUILD_DATE = '2026-01-16';
 export const APP_NAME = 'PontoMax';
 
 // Changelog entries
@@ -13,6 +13,22 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.20.2',
+    date: '2026-01-16',
+    title: 'Nova Interface e Melhorias',
+    type: 'minor',
+    changes: [
+      'Nova interface visual modernizada',
+      'Novo layout de sidebar com categorias colapsáveis',
+      'Páginas de relatórios individuais',
+      'Novo design para cadastro de escalas e departamentos',
+      'Formulário de funcionários com abas',
+      'Nova página de configurações da empresa',
+      'Campos obrigatórios simplificados no cadastro',
+      'Correção de duplicidades no código',
+    ],
+  },
   {
     version: '1.20.1',
     date: '2026-01-13',
