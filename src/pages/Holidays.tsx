@@ -133,15 +133,31 @@ const Holidays = () => {
     ];
 
     try {
+      // Check existing holidays to avoid duplicates
+      const { data: existingHolidays } = await supabase
+        .from('holidays')
+        .select('date');
+      
+      const existingDates = new Set((existingHolidays || []).map(h => h.date));
+      const newHolidays = nationalHolidays.filter(h => !existingDates.has(h.date));
+
+      if (newHolidays.length === 0) {
+        toast({
+          title: "Feriados já cadastrados",
+          description: "Todos os feriados nacionais já estão cadastrados"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('holidays')
-        .upsert(nationalHolidays, { onConflict: 'date' });
+        .insert(newHolidays);
 
       if (error) throw error;
 
       toast({
         title: "Feriados nacionais adicionados",
-        description: "Os feriados nacionais foram cadastrados com sucesso"
+        description: `${newHolidays.length} feriados foram cadastrados com sucesso`
       });
 
       fetchHolidays();
