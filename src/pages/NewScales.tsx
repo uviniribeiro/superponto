@@ -19,9 +19,10 @@ interface WorkSchedule {
   code?: string | null;
   description?: string | null;
   weekly_hours?: number | null;
+  work_hours_per_day?: number | null;
   tolerance_minutes?: number | null;
-  schedule_type?: string | null;
-  is_active: boolean;
+  scale_type?: string | null;
+  is_active: boolean | null;
 }
 
 interface DaySchedule {
@@ -97,10 +98,10 @@ export default function NewScales() {
       setFormData({
         name: schedule.name,
         code: schedule.code || '',
-        schedule_type: schedule.schedule_type || 'normal',
+        schedule_type: schedule.scale_type || 'normal',
         status: schedule.is_active ? 'active' : 'inactive',
         weekly_hours: String(schedule.weekly_hours || 44),
-        daily_hours: String(schedule.daily_hours || 8),
+        daily_hours: String(schedule.work_hours_per_day || 8),
         tolerance_minutes: String(schedule.tolerance_minutes || 10),
         weekday_percentage: '50',
         saturday_percentage: '50',
@@ -261,7 +262,7 @@ export default function NewScales() {
 
               <div className="flex gap-2 mt-3">
                 <Badge variant="outline" className="text-xs">
-                  {getScheduleTypeLabel(schedule.schedule_type)}
+                  {getScheduleTypeLabel(schedule.scale_type)}
                 </Badge>
                 {schedule.description && (
                   <span className="text-xs text-muted-foreground truncate">
@@ -273,11 +274,11 @@ export default function NewScales() {
               <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  <span>{schedule.weekly_hours}h/semana</span>
+                  <span>{schedule.weekly_hours || 44}h/semana</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  <span>{schedule.daily_hours}h/dia</span>
+                  <span>{schedule.work_hours_per_day || 8}h/dia</span>
                 </div>
               </div>
 
