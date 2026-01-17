@@ -3487,13 +3487,13 @@ export type Database = {
           username: string | null
         }
         Insert: {
-          api_endpoint?: string | null
+          api_endpoint?: never
           communication_type?: string | null
           company_id?: string | null
           created_at?: string | null
           firmware_version?: string | null
           id?: string | null
-          ip_address?: string | null
+          ip_address?: never
           is_active?: boolean | null
           is_online?: boolean | null
           last_communication?: string | null
@@ -3514,13 +3514,13 @@ export type Database = {
           username?: never
         }
         Update: {
-          api_endpoint?: string | null
+          api_endpoint?: never
           communication_type?: string | null
           company_id?: string | null
           created_at?: string | null
           firmware_version?: string | null
           id?: string | null
-          ip_address?: string | null
+          ip_address?: never
           is_active?: boolean | null
           is_online?: boolean | null
           last_communication?: string | null
@@ -3559,6 +3559,29 @@ export type Database = {
       encrypt_equipment_password: {
         Args: { plain_password: string }
         Returns: string
+      }
+      get_equipment_basic_info: {
+        Args: { _company_id: string }
+        Returns: {
+          company_id: string
+          created_at: string
+          firmware_version: string
+          id: string
+          is_active: boolean
+          is_online: boolean
+          last_communication: string
+          last_sync: string
+          location: string
+          manufacturer: string
+          model: string
+          name: string
+          notes: string
+          portaria_compliance: string
+          rep_number: string
+          serial_number: string
+          sync_interval_seconds: number
+          updated_at: string
+        }[]
       }
       get_equipment_for_sync: {
         Args: { equipment_id: string }
