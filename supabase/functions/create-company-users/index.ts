@@ -88,6 +88,8 @@ Deno.serve(async (req) => {
       const userId = authData.user.id;
 
       // Create profile with must_change_password = true
+      // IMPORTANT: These are ACCESS USERS ONLY, not employees
+      // They should NOT have employee-related fields like registration_number, hire_date, etc.
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -96,7 +98,9 @@ Deno.serve(async (req) => {
           full_name: fullName,
           company_id: company.id,
           is_active: true,
-          must_change_password: true
+          must_change_password: true,
+          // Mark as system user - NOT an employee
+          is_system_user: true
         });
 
       if (profileError) {
