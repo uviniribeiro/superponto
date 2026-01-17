@@ -2363,6 +2363,7 @@ export type Database = {
           hire_date: string | null
           id: string
           is_active: boolean
+          is_system_user: boolean | null
           must_change_password: boolean | null
           phone: string | null
           photo_url: string | null
@@ -2382,6 +2383,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           is_active?: boolean
+          is_system_user?: boolean | null
           must_change_password?: boolean | null
           phone?: string | null
           photo_url?: string | null
@@ -2401,6 +2403,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           is_active?: boolean
+          is_system_user?: boolean | null
           must_change_password?: boolean | null
           phone?: string | null
           photo_url?: string | null

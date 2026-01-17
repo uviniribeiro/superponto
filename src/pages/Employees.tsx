@@ -92,6 +92,11 @@ export default function Employees() {
   const [isCsvDialogOpen, setIsCsvDialogOpen] = useState(false);
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  // Reactivation dialog state
+  const [isReactivationDialogOpen, setIsReactivationDialogOpen] = useState(false);
+  const [employeeToReactivate, setEmployeeToReactivate] = useState<Employee | null>(null);
+  const [useNewRegistration, setUseNewRegistration] = useState(false);
+  const [newRegistrationNumber, setNewRegistrationNumber] = useState('');
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -104,7 +109,8 @@ export default function Employees() {
     position_id: '',
     hire_date: '',
     phone: '',
-    schedule_id: ''
+    schedule_id: '',
+    is_active: true
   });
 
   useEffect(() => {
@@ -115,9 +121,11 @@ export default function Employees() {
 
   const fetchEmployees = async () => {
     try {
+      // Filter out system users (suporte, admin) - they are access users only, not employees
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
+        .or('is_system_user.is.null,is_system_user.eq.false')
         .order('full_name');
 
       if (error) throw error;
@@ -233,6 +241,7 @@ export default function Employees() {
             hire_date: formData.hire_date || null,
             phone: formData.phone || null,
             photo_url: photoUrl,
+            is_active: formData.is_active,
           })
           .eq('id', editingEmployee.id);
 
@@ -266,18 +275,58 @@ export default function Employees() {
   };
 
   const toggleEmployeeStatus = async (employee: Employee) => {
+    // If reactivating an inactive employee, show the reactivation dialog
+    if (!employee.is_active) {
+      setEmployeeToReactivate(employee);
+      setUseNewRegistration(false);
+      setNewRegistrationNumber('');
+      setIsReactivationDialogOpen(true);
+      return;
+    }
+    
+    // If deactivating, proceed directly
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ is_active: !employee.is_active })
+        .update({ is_active: false })
         .eq('id', employee.id);
 
       if (error) throw error;
-      toast.success(employee.is_active ? 'Funcionário desativado' : 'Funcionário ativado');
+      toast.success('Funcionário desativado');
       fetchEmployees();
     } catch (error) {
       console.error('Error toggling status:', error);
       toast.error('Erro ao alterar status');
+    }
+  };
+
+  const handleReactivateEmployee = async () => {
+    if (!employeeToReactivate) return;
+    
+    try {
+      const updateData: { is_active: boolean; registration_number?: string } = { is_active: true };
+      
+      // If user chose to use a new registration number
+      if (useNewRegistration && newRegistrationNumber.trim()) {
+        updateData.registration_number = newRegistrationNumber.trim();
+      }
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', employeeToReactivate.id);
+
+      if (error) throw error;
+      
+      toast.success('Funcionário reativado com sucesso!');
+      setIsReactivationDialogOpen(false);
+      setEmployeeToReactivate(null);
+      setUseNewRegistration(false);
+      setNewRegistrationNumber('');
+      fetchEmployees();
+    } catch (error) {
+      console.error('Error reactivating employee:', error);
+      toast.error('Erro ao reativar funcionário');
     }
   };
 
@@ -294,7 +343,8 @@ export default function Employees() {
       position_id: '',
       hire_date: '',
       phone: '',
-      schedule_id: ''
+      schedule_id: '',
+      is_active: true
     });
     setEditingEmployee(null);
     handlePhotoClear();
@@ -326,7 +376,8 @@ export default function Employees() {
       position_id: matchingPos?.id || '',
       hire_date: employee.hire_date || '',
       phone: employee.phone || '',
-      schedule_id: ''
+      schedule_id: '',
+      is_active: employee.is_active
     });
     setIsDialogOpen(true);
   };
@@ -655,6 +706,33 @@ export default function Employees() {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {/* Status field */}
+                <div className="space-y-2 col-span-2">
+                  <Label>Status do Funcionário</Label>
+                  <Select 
+                    value={formData.is_active ? 'active' : 'inactive'} 
+                    onValueChange={(v) => setFormData({ ...formData, is_active: v === 'active' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="h-4 w-4 text-green-500" />
+                          Ativo
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="inactive">
+                        <div className="flex items-center gap-2">
+                          <UserX className="h-4 w-4 text-red-500" />
+                          Inativo (Demitido)
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </ScrollArea>
@@ -711,6 +789,80 @@ export default function Employees() {
               className="gradient-primary"
             >
               {changingPassword ? 'Alterando...' : 'Alterar Senha'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reactivation Dialog */}
+      <Dialog open={isReactivationDialogOpen} onOpenChange={setIsReactivationDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reativar Funcionário</DialogTitle>
+            <DialogDescription>
+              Deseja reativar o funcionário <strong>{employeeToReactivate?.full_name}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Matrícula atual: <strong>{employeeToReactivate?.registration_number || 'Não definida'}</strong>
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Deseja utilizar a mesma matrícula?</p>
+              <div className="flex gap-3">
+                <Button
+                  variant={!useNewRegistration ? 'default' : 'outline'}
+                  onClick={() => setUseNewRegistration(false)}
+                  className="flex-1"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Sim, manter matrícula
+                </Button>
+                <Button
+                  variant={useNewRegistration ? 'default' : 'outline'}
+                  onClick={() => setUseNewRegistration(true)}
+                  className="flex-1"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Não, nova matrícula
+                </Button>
+              </div>
+            </div>
+
+            {useNewRegistration && (
+              <div className="space-y-2">
+                <Label>Nova Matrícula *</Label>
+                <Input
+                  value={newRegistrationNumber}
+                  onChange={(e) => setNewRegistrationNumber(e.target.value)}
+                  placeholder="Digite a nova matrícula"
+                  autoFocus
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setIsReactivationDialogOpen(false);
+              setEmployeeToReactivate(null);
+              setUseNewRegistration(false);
+              setNewRegistrationNumber('');
+            }}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleReactivateEmployee}
+              disabled={useNewRegistration && !newRegistrationNumber.trim()}
+              className="gradient-primary"
+            >
+              <UserCheck className="h-4 w-4 mr-2" />
+              Reativar Funcionário
             </Button>
           </DialogFooter>
         </DialogContent>
