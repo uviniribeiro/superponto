@@ -3390,6 +3390,62 @@ export type Database = {
       }
     }
     Views: {
+      payroll_exports_secure: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          created_by: string | null
+          employee_count: number | null
+          export_type: string | null
+          file_status: string | null
+          id: string | null
+          notes: string | null
+          period_end: string | null
+          period_start: string | null
+          status: string | null
+          total_hours: number | null
+          transaction_hash: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_count?: number | null
+          export_type?: string | null
+          file_status?: never
+          id?: string | null
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string | null
+          total_hours?: number | null
+          transaction_hash?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          employee_count?: number | null
+          export_type?: string | null
+          file_status?: never
+          id?: string | null
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          status?: string | null
+          total_hours?: number | null
+          transaction_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_exports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles_secure: {
         Row: {
           company_id: string | null
