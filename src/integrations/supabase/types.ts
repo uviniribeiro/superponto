@@ -3471,7 +3471,7 @@ export type Database = {
           cpf?: never
           created_at?: string | null
           department?: string | null
-          email?: string | null
+          email?: never
           full_name?: string | null
           hire_date?: string | null
           id?: string | null
@@ -3490,7 +3490,7 @@ export type Database = {
           cpf?: never
           created_at?: string | null
           department?: string | null
-          email?: string | null
+          email?: never
           full_name?: string | null
           hire_date?: string | null
           id?: string | null
@@ -3656,6 +3656,21 @@ export type Database = {
           protocol: string
           sync_interval_seconds: number
           username: string
+        }[]
+      }
+      get_manager_visible_profiles: {
+        Args: { _company_id: string }
+        Returns: {
+          company_id: string
+          department: string
+          full_name: string
+          hire_date: string
+          id: string
+          is_active: boolean
+          photo_url: string
+          position: string
+          registration_number: string
+          user_id: string
         }[]
       }
       get_profile_id: { Args: { _user_id: string }; Returns: string }
