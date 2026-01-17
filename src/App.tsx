@@ -29,6 +29,7 @@ import Absences from "@/pages/Absences";
 import Users from "@/pages/Users";
 import OvertimeDashboard from "@/pages/OvertimeDashboard";
 import PositionsDepartments from "@/pages/PositionsDepartments";
+import NewPositionsDepartments from "@/pages/NewPositionsDepartments";
 import SuperAdminAuth from "@/pages/SuperAdminAuth";
 import SuperAdminDashboard from "@/pages/superadmin/Dashboard";
 import SuperAdminCompanies from "@/pages/superadmin/Companies";
@@ -140,7 +141,7 @@ const App = () => (
                 <Route path="category/:categoryId" element={<CategoryPage />} />
                 <Route path="employees" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Employees /></ProtectedRoute>} />
                 <Route path="employees/register" element={<ProtectedRoute requiredRoles={['admin']}><RegisterEmployee /></ProtectedRoute>} />
-                <Route path="positions-departments" element={<ProtectedRoute requiredRoles={['admin']}><PositionsDepartments /></ProtectedRoute>} />
+                <Route path="positions-departments" element={<ProtectedRoute requiredRoles={['admin']}><NewPositionsDepartments /></ProtectedRoute>} />
                 <Route path="departments" element={<ProtectedRoute requiredRoles={['admin']}><NewDepartments /></ProtectedRoute>} />
                 <Route path="schedules" element={<ProtectedRoute requiredRoles={['admin']}><WorkSchedules /></ProtectedRoute>} />
                 <Route path="work-schedules" element={<ProtectedRoute requiredRoles={['admin']}><NewScales /></ProtectedRoute>} />

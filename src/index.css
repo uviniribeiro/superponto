@@ -344,3 +344,118 @@ div[style*="Edit with Lovable"],
     display: none !important;
   }
 }
+
+/* Responsive styles for 1920x1080 (landscape) */
+@media screen and (min-width: 1870px) and (max-width: 1970px) and (min-height: 1030px) and (max-height: 1130px) {
+  .screen-1920x1080 {
+    --spacing-base: 1rem;
+  }
+  
+  html {
+    font-size: 16px;
+  }
+  
+  .container {
+    max-width: 1800px;
+  }
+}
+
+/* Responsive styles for 1080x1920 (portrait/vertical) */
+@media screen and (min-width: 1030px) and (max-width: 1130px) and (min-height: 1870px) and (max-height: 1970px) {
+  .screen-1080x1920 {
+    --spacing-base: 0.75rem;
+  }
+  
+  html {
+    font-size: 15px;
+  }
+  
+  /* Optimize for vertical display */
+  .sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Stack layouts vertically */
+  .flex-row {
+    flex-direction: column !important;
+  }
+  
+  /* Full width cards */
+  .card {
+    width: 100% !important;
+  }
+}
+
+/* Portrait orientation optimization */
+@media screen and (orientation: portrait) and (min-height: 1200px) {
+  .portrait-stack {
+    flex-direction: column;
+  }
+  
+  .portrait-full-width {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Larger touch targets for vertical displays */
+  .btn, button {
+    min-height: 44px;
+  }
+  
+  /* Adjust table for vertical scrolling */
+  .table-responsive {
+    overflow-x: auto;
+  }
+}
+
+/* Landscape optimization */
+@media screen and (orientation: landscape) and (min-width: 1400px) {
+  .landscape-row {
+    flex-direction: row;
+  }
+  
+  .landscape-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  
+  .landscape-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* Icon size optimization for different screens */
+.icon-responsive {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+@media screen and (min-width: 1600px) {
+  .icon-responsive {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .icon-responsive {
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+/* Form optimization for touch screens */
+@media (hover: none) and (pointer: coarse) {
+  input, select, textarea {
+    font-size: 16px !important; /* Prevent zoom on iOS */
+  }
+  
+  button, .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
