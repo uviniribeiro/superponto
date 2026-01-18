@@ -532,6 +532,7 @@ export type Database = {
           cnpj: string | null
           company_code: string
           created_at: string
+          doctor_module_enabled: boolean | null
           id: string
           is_active: boolean
           license_status: string | null
@@ -539,6 +540,7 @@ export type Database = {
           name: string
           organization_type: Database["public"]["Enums"]["organization_type"]
           parent_organization_id: string | null
+          payroll_module_enabled: boolean | null
           phone: string | null
           sector: Database["public"]["Enums"]["city_hall_sector"] | null
           state: string | null
@@ -552,6 +554,7 @@ export type Database = {
           cnpj?: string | null
           company_code: string
           created_at?: string
+          doctor_module_enabled?: boolean | null
           id?: string
           is_active?: boolean
           license_status?: string | null
@@ -559,6 +562,7 @@ export type Database = {
           name: string
           organization_type?: Database["public"]["Enums"]["organization_type"]
           parent_organization_id?: string | null
+          payroll_module_enabled?: boolean | null
           phone?: string | null
           sector?: Database["public"]["Enums"]["city_hall_sector"] | null
           state?: string | null
@@ -572,6 +576,7 @@ export type Database = {
           cnpj?: string | null
           company_code?: string
           created_at?: string
+          doctor_module_enabled?: boolean | null
           id?: string
           is_active?: boolean
           license_status?: string | null
@@ -579,6 +584,7 @@ export type Database = {
           name?: string
           organization_type?: Database["public"]["Enums"]["organization_type"]
           parent_organization_id?: string | null
+          payroll_module_enabled?: boolean | null
           phone?: string | null
           sector?: Database["public"]["Enums"]["city_hall_sector"] | null
           state?: string | null
@@ -802,6 +808,179 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_assignments: {
+        Row: {
+          company_id: string | null
+          contract_monthly_hours: number | null
+          contract_type: string | null
+          contract_weekly_hours: number | null
+          created_at: string
+          crm: string | null
+          crm_state: string | null
+          end_date: string | null
+          health_unit: string | null
+          id: string
+          is_active: boolean | null
+          profile_id: string
+          shift_configuration_id: string
+          specialty: string | null
+          start_date: string
+          updated_at: string
+          work_schedule_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          contract_monthly_hours?: number | null
+          contract_type?: string | null
+          contract_weekly_hours?: number | null
+          created_at?: string
+          crm?: string | null
+          crm_state?: string | null
+          end_date?: string | null
+          health_unit?: string | null
+          id?: string
+          is_active?: boolean | null
+          profile_id: string
+          shift_configuration_id: string
+          specialty?: string | null
+          start_date?: string
+          updated_at?: string
+          work_schedule_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          contract_monthly_hours?: number | null
+          contract_type?: string | null
+          contract_weekly_hours?: number | null
+          created_at?: string
+          crm?: string | null
+          crm_state?: string | null
+          end_date?: string | null
+          health_unit?: string | null
+          id?: string
+          is_active?: boolean | null
+          profile_id?: string
+          shift_configuration_id?: string
+          specialty?: string | null
+          start_date?: string
+          updated_at?: string
+          work_schedule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_assignments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_assignments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_assignments_shift_configuration_id_fkey"
+            columns: ["shift_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "medical_shift_configurations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_assignments_work_schedule_id_fkey"
+            columns: ["work_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_schedule_slots: {
+        Row: {
+          assignment_id: string
+          company_id: string | null
+          created_at: string
+          day_of_week: number
+          end_time: string
+          health_unit: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          profile_id: string
+          sector: string | null
+          shift_number: number
+          start_time: string
+        }
+        Insert: {
+          assignment_id: string
+          company_id?: string | null
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          health_unit?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          profile_id: string
+          sector?: string | null
+          shift_number?: number
+          start_time: string
+        }
+        Update: {
+          assignment_id?: string
+          company_id?: string | null
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          health_unit?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          profile_id?: string
+          sector?: string | null
+          shift_number?: number
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_schedule_slots_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_schedule_slots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_schedule_slots_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_schedule_slots_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -1812,6 +1991,53 @@ export type Database = {
           },
         ]
       }
+      inss_brackets: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          deduction_value: number | null
+          id: string
+          is_active: boolean | null
+          max_salary: number | null
+          min_salary: number
+          rate: number
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          deduction_value?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_salary?: number | null
+          min_salary: number
+          rate: number
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          deduction_value?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_salary?: number | null
+          min_salary?: number
+          rate?: number
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inss_brackets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interval_mobility: {
         Row: {
           company_id: string | null
@@ -1894,6 +2120,53 @@ export type Database = {
             columns: ["interval_mobility_id"]
             isOneToOne: false
             referencedRelation: "interval_mobility"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      irrf_brackets: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          deduction_value: number | null
+          id: string
+          is_active: boolean | null
+          max_salary: number | null
+          min_salary: number
+          rate: number
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          deduction_value?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_salary?: number | null
+          min_salary: number
+          rate: number
+          valid_from: string
+          valid_until?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          deduction_value?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_salary?: number | null
+          min_salary?: number
+          rate?: number
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "irrf_brackets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -2095,6 +2368,166 @@ export type Database = {
           },
         ]
       }
+      medical_shift_configurations: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string | null
+          duration_hours: number
+          holiday_rate_multiplier: number | null
+          hourly_rate: number | null
+          id: string
+          is_active: boolean | null
+          max_consecutive_hours: number | null
+          min_rest_hours: number | null
+          name: string
+          night_shift_end: string | null
+          night_shift_rate_multiplier: number | null
+          night_shift_start: string | null
+          on_call_rate_multiplier: number | null
+          updated_at: string
+          weekend_rate_multiplier: number | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration_hours?: number
+          holiday_rate_multiplier?: number | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_consecutive_hours?: number | null
+          min_rest_hours?: number | null
+          name: string
+          night_shift_end?: string | null
+          night_shift_rate_multiplier?: number | null
+          night_shift_start?: string | null
+          on_call_rate_multiplier?: number | null
+          updated_at?: string
+          weekend_rate_multiplier?: number | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration_hours?: number
+          holiday_rate_multiplier?: number | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean | null
+          max_consecutive_hours?: number | null
+          min_rest_hours?: number | null
+          name?: string
+          night_shift_end?: string | null
+          night_shift_rate_multiplier?: number | null
+          night_shift_start?: string | null
+          on_call_rate_multiplier?: number | null
+          updated_at?: string
+          weekend_rate_multiplier?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_shift_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_shift_records: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          end_time: string
+          health_unit: string | null
+          id: string
+          is_holiday: boolean | null
+          is_night_shift: boolean | null
+          is_on_call: boolean | null
+          is_weekend: boolean | null
+          notes: string | null
+          profile_id: string
+          shift_configuration_id: string
+          shift_date: string
+          shift_type: string | null
+          start_time: string
+          total_hours: number
+          transaction_hash: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          end_time: string
+          health_unit?: string | null
+          id?: string
+          is_holiday?: boolean | null
+          is_night_shift?: boolean | null
+          is_on_call?: boolean | null
+          is_weekend?: boolean | null
+          notes?: string | null
+          profile_id: string
+          shift_configuration_id: string
+          shift_date: string
+          shift_type?: string | null
+          start_time: string
+          total_hours: number
+          transaction_hash?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          end_time?: string
+          health_unit?: string | null
+          id?: string
+          is_holiday?: boolean | null
+          is_night_shift?: boolean | null
+          is_on_call?: boolean | null
+          is_weekend?: boolean | null
+          notes?: string | null
+          profile_id?: string
+          shift_configuration_id?: string
+          shift_date?: string
+          shift_type?: string | null
+          start_time?: string
+          total_hours?: number
+          transaction_hash?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_shift_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_shift_records_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_shift_records_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_shift_records_shift_configuration_id_fkey"
+            columns: ["shift_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "medical_shift_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       overtime_alerts: {
         Row: {
           alert_type: string
@@ -2252,6 +2685,387 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_items: {
+        Row: {
+          affects_fgts: boolean | null
+          affects_inss: boolean | null
+          affects_irrf: boolean | null
+          calculation_type: string | null
+          code: string
+          company_id: string | null
+          created_at: string
+          default_value: number | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_mandatory: boolean | null
+          item_type: string
+          name: string
+          percentage: number | null
+          updated_at: string
+        }
+        Insert: {
+          affects_fgts?: boolean | null
+          affects_inss?: boolean | null
+          affects_irrf?: boolean | null
+          calculation_type?: string | null
+          code: string
+          company_id?: string | null
+          created_at?: string
+          default_value?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_mandatory?: boolean | null
+          item_type: string
+          name: string
+          percentage?: number | null
+          updated_at?: string
+        }
+        Update: {
+          affects_fgts?: boolean | null
+          affects_inss?: boolean | null
+          affects_irrf?: boolean | null
+          calculation_type?: string | null
+          code?: string
+          company_id?: string | null
+          created_at?: string
+          default_value?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_mandatory?: boolean | null
+          item_type?: string
+          name?: string
+          percentage?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payrolls: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          employee_count: number | null
+          id: string
+          notes: string | null
+          payment_date: string | null
+          period_end: string
+          period_start: string
+          reference_month: number
+          reference_year: number
+          status: string | null
+          total_deductions: number | null
+          total_earnings: number | null
+          total_net: number | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_count?: number | null
+          id?: string
+          notes?: string | null
+          payment_date?: string | null
+          period_end: string
+          period_start: string
+          reference_month: number
+          reference_year: number
+          status?: string | null
+          total_deductions?: number | null
+          total_earnings?: number | null
+          total_net?: number | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_count?: number | null
+          id?: string
+          notes?: string | null
+          payment_date?: string | null
+          period_end?: string
+          period_start?: string
+          reference_month?: number
+          reference_year?: number
+          status?: string | null
+          total_deductions?: number | null
+          total_earnings?: number | null
+          total_net?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payrolls_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payrolls_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payrolls_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payrolls_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payrolls_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payslip_delivery_log: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          delivery_method: string
+          error_message: string | null
+          id: string
+          payslip_id: string
+          recipient: string | null
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          delivery_method: string
+          error_message?: string | null
+          id?: string
+          payslip_id: string
+          recipient?: string | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          delivery_method?: string
+          error_message?: string | null
+          id?: string
+          payslip_id?: string
+          recipient?: string | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslip_delivery_log_payslip_id_fkey"
+            columns: ["payslip_id"]
+            isOneToOne: false
+            referencedRelation: "payslips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payslip_items: {
+        Row: {
+          code: string
+          created_at: string
+          description: string
+          id: string
+          item_type: string
+          payroll_item_id: string | null
+          payslip_id: string
+          quantity: number | null
+          reference: string | null
+          total_value: number
+          unit_value: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description: string
+          id?: string
+          item_type: string
+          payroll_item_id?: string | null
+          payslip_id: string
+          quantity?: number | null
+          reference?: string | null
+          total_value: number
+          unit_value?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          item_type?: string
+          payroll_item_id?: string | null
+          payslip_id?: string
+          quantity?: number | null
+          reference?: string | null
+          total_value?: number
+          unit_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslip_items_payroll_item_id_fkey"
+            columns: ["payroll_item_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslip_items_payslip_id_fkey"
+            columns: ["payslip_id"]
+            isOneToOne: false
+            referencedRelation: "payslips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payslips: {
+        Row: {
+          absence_days: number | null
+          base_salary: number
+          company_id: string | null
+          created_at: string
+          fgts_base: number | null
+          fgts_value: number | null
+          id: string
+          inss_base: number | null
+          inss_value: number | null
+          irrf_base: number | null
+          irrf_value: number | null
+          net_salary: number | null
+          overtime_hours: number | null
+          payroll_id: string
+          pdf_url: string | null
+          profile_id: string
+          sent_at: string | null
+          sent_via: string | null
+          status: string | null
+          total_deductions: number | null
+          total_earnings: number | null
+          transaction_hash: string | null
+          updated_at: string
+          viewed_at: string | null
+          worked_days: number | null
+          worked_hours: number | null
+        }
+        Insert: {
+          absence_days?: number | null
+          base_salary: number
+          company_id?: string | null
+          created_at?: string
+          fgts_base?: number | null
+          fgts_value?: number | null
+          id?: string
+          inss_base?: number | null
+          inss_value?: number | null
+          irrf_base?: number | null
+          irrf_value?: number | null
+          net_salary?: number | null
+          overtime_hours?: number | null
+          payroll_id: string
+          pdf_url?: string | null
+          profile_id: string
+          sent_at?: string | null
+          sent_via?: string | null
+          status?: string | null
+          total_deductions?: number | null
+          total_earnings?: number | null
+          transaction_hash?: string | null
+          updated_at?: string
+          viewed_at?: string | null
+          worked_days?: number | null
+          worked_hours?: number | null
+        }
+        Update: {
+          absence_days?: number | null
+          base_salary?: number
+          company_id?: string | null
+          created_at?: string
+          fgts_base?: number | null
+          fgts_value?: number | null
+          id?: string
+          inss_base?: number | null
+          inss_value?: number | null
+          irrf_base?: number | null
+          irrf_value?: number | null
+          net_salary?: number | null
+          overtime_hours?: number | null
+          payroll_id?: string
+          pdf_url?: string | null
+          profile_id?: string
+          sent_at?: string | null
+          sent_via?: string | null
+          status?: string | null
+          total_deductions?: number | null
+          total_earnings?: number | null
+          transaction_hash?: string | null
+          updated_at?: string
+          viewed_at?: string | null
+          worked_days?: number | null
+          worked_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslips_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_payroll_id_fkey"
+            columns: ["payroll_id"]
+            isOneToOne: false
+            referencedRelation: "payrolls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
