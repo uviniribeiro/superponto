@@ -108,7 +108,11 @@ interface Profile {
   department: string | null;
 }
 
-export default function NewTeacherModule() {
+interface NewTeacherModuleProps {
+  defaultTab?: string;
+}
+
+export default function NewTeacherModule({ defaultTab = 'overview' }: NewTeacherModuleProps) {
   const { profile } = useAuth();
   
   useSEO({
@@ -122,7 +126,7 @@ export default function NewTeacherModule() {
   const [employees, setEmployees] = useState<Profile[]>([]);
   const [schedules, setSchedules] = useState<WorkSchedule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [filterMonth, setFilterMonth] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
 

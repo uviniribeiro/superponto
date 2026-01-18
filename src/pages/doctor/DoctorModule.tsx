@@ -103,7 +103,11 @@ interface Profile {
   department: string | null;
 }
 
-export default function DoctorModule() {
+interface DoctorModuleProps {
+  defaultTab?: string;
+}
+
+export default function DoctorModule({ defaultTab = 'overview' }: DoctorModuleProps) {
   const { profile } = useAuth();
   
   useSEO({
@@ -117,7 +121,7 @@ export default function DoctorModule() {
   const [employees, setEmployees] = useState<Profile[]>([]);
   const [schedules, setSchedules] = useState<WorkSchedule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [filterMonth, setFilterMonth] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState('');
 

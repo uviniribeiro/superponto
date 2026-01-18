@@ -12,6 +12,8 @@ interface Company {
   sector: string | null;
   organization_type: 'company' | 'city_hall';
   teacher_module_enabled: boolean;
+  doctor_module_enabled: boolean;
+  payroll_module_enabled: boolean;
 }
 
 interface Profile {
@@ -48,6 +50,8 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   mustChangePassword: boolean;
   hasTeacherModule: boolean;
+  hasDoctorModule: boolean;
+  hasPayrollModule: boolean;
   createEmployee: (employeeData: CreateEmployeeData) => Promise<{ error: Error | null; user?: any }>;
 }
 
@@ -127,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if ((profileData as any).company_id) {
           const { data: companyData } = await supabase
             .from('companies')
-            .select('id, name, company_code, cnpj, sector, organization_type, teacher_module_enabled')
+            .select('id, name, company_code, cnpj, sector, organization_type, teacher_module_enabled, doctor_module_enabled, payroll_module_enabled')
             .eq('id', (profileData as any).company_id)
             .maybeSingle();
 
@@ -384,6 +388,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 1. Company is a city_hall with education sector
   // 2. OR Company has teacher_module_enabled = true
   const hasTeacherModule = company?.sector === 'education' || company?.teacher_module_enabled === true;
+  
+  // Doctor module is available if:
+  // 1. Company is a city_hall with health sector
+  // 2. OR Company has doctor_module_enabled = true
+  const hasDoctorModule = company?.sector === 'health' || company?.doctor_module_enabled === true;
+  
+  // Payroll module is available if company has payroll_module_enabled = true
+  const hasPayrollModule = company?.payroll_module_enabled === true;
 
   return (
     <AuthContext.Provider value={{
@@ -402,6 +414,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isSuperAdmin,
       mustChangePassword,
       hasTeacherModule,
+      hasDoctorModule,
+      hasPayrollModule,
       createEmployee
     }}>
       {children}

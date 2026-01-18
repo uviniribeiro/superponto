@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap, Calendar, Users, Trash2, Loader2, Phone, Pencil } from 'lucide-react';
+import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap, Calendar, Users, Trash2, Loader2, Phone, Pencil, Stethoscope, Wallet } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
@@ -28,6 +28,8 @@ interface Company {
   created_at: string;
   organization_type: 'company' | 'city_hall';
   teacher_module_enabled: boolean;
+  doctor_module_enabled: boolean;
+  payroll_module_enabled: boolean;
   address: string | null;
   city: string | null;
   state: string | null;
@@ -88,6 +90,8 @@ export default function SuperAdminCompanies() {
     state: '',
     phone: '',
     teacherModuleEnabled: false,
+    doctorModuleEnabled: false,
+    payrollModuleEnabled: false,
     licenseType: 'annual',
     maxEmployees: 100
   });
@@ -177,6 +181,8 @@ export default function SuperAdminCompanies() {
           organization_type: 'company',
           license_status: 'active',
           teacher_module_enabled: formData.teacherModuleEnabled,
+          doctor_module_enabled: formData.doctorModuleEnabled,
+          payroll_module_enabled: formData.payrollModuleEnabled,
           phone: formData.phone || null,
           address: formData.address || null,
           city: formData.city || null,
@@ -254,7 +260,7 @@ export default function SuperAdminCompanies() {
       }
 
       setIsDialogOpen(false);
-      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
+      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, doctorModuleEnabled: false, payrollModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
       fetchCompanies();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -277,6 +283,8 @@ export default function SuperAdminCompanies() {
       state: company.state || '',
       phone: company.phone || '',
       teacherModuleEnabled: company.teacher_module_enabled || false,
+      doctorModuleEnabled: company.doctor_module_enabled || false,
+      payrollModuleEnabled: company.payroll_module_enabled || false,
       licenseType: 'annual',
       maxEmployees: 100
     });
@@ -297,7 +305,9 @@ export default function SuperAdminCompanies() {
           city: formData.city || null,
           state: formData.state || null,
           phone: formData.phone || null,
-          teacher_module_enabled: formData.teacherModuleEnabled
+          teacher_module_enabled: formData.teacherModuleEnabled,
+          doctor_module_enabled: formData.doctorModuleEnabled,
+          payroll_module_enabled: formData.payrollModuleEnabled
         })
         .eq('id', editingCompany.id);
 
@@ -320,7 +330,7 @@ export default function SuperAdminCompanies() {
       toast.success('Empresa atualizada com sucesso');
       setIsEditDialogOpen(false);
       setEditingCompany(null);
-      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
+      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, doctorModuleEnabled: false, payrollModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
       fetchCompanies();
     } catch (error) {
       console.error('Error updating company:', error);
@@ -512,11 +522,33 @@ export default function SuperAdminCompanies() {
           />
           <Label htmlFor="teacher-module" className="text-sm cursor-pointer flex items-center gap-2">
             <GraduationCap className="h-4 w-4" />
-            Habilitar Módulo Professor
+            Módulo Professor
+          </Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="doctor-module"
+            checked={formData.doctorModuleEnabled}
+            onCheckedChange={(checked) => setFormData({ ...formData, doctorModuleEnabled: checked as boolean })}
+          />
+          <Label htmlFor="doctor-module" className="text-sm cursor-pointer flex items-center gap-2">
+            <Stethoscope className="h-4 w-4" />
+            Módulo Médico
+          </Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="payroll-module"
+            checked={formData.payrollModuleEnabled}
+            onCheckedChange={(checked) => setFormData({ ...formData, payrollModuleEnabled: checked as boolean })}
+          />
+          <Label htmlFor="payroll-module" className="text-sm cursor-pointer flex items-center gap-2">
+            <Wallet className="h-4 w-4" />
+            Módulo Folha de Pagamento
           </Label>
         </div>
         <p className="text-xs text-muted-foreground">
-          O módulo professor permite gerenciar hora-aula e escalas de docentes
+          Selecione os módulos adicionais que deseja habilitar para esta empresa
         </p>
       </div>
     </>
@@ -592,12 +624,26 @@ export default function SuperAdminCompanies() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {company.teacher_module_enabled && (
-                        <Badge variant="outline" className="gap-1">
-                          <GraduationCap className="h-3 w-3" />
-                          Professor
-                        </Badge>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {company.teacher_module_enabled && (
+                          <Badge variant="outline" className="gap-1">
+                            <GraduationCap className="h-3 w-3" />
+                            Professor
+                          </Badge>
+                        )}
+                        {company.doctor_module_enabled && (
+                          <Badge variant="outline" className="gap-1">
+                            <Stethoscope className="h-3 w-3" />
+                            Médico
+                          </Badge>
+                        )}
+                        {company.payroll_module_enabled && (
+                          <Badge variant="outline" className="gap-1">
+                            <Wallet className="h-3 w-3" />
+                            Folha
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>{format(new Date(company.created_at), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                     <TableCell className="text-right">
@@ -758,7 +804,7 @@ export default function SuperAdminCompanies() {
             <Button variant="outline" onClick={() => {
               setIsEditDialogOpen(false);
               setEditingCompany(null);
-              setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
+              setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, doctorModuleEnabled: false, payrollModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
             }}>Cancelar</Button>
             <Button onClick={handleUpdateCompany} className="gradient-primary">Salvar Alterações</Button>
           </DialogFooter>

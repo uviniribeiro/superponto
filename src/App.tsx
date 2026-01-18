@@ -38,8 +38,10 @@ import SuperAdminLicenses from "@/pages/superadmin/Licenses";
 import SuperAdminUsers from "@/pages/superadmin/SuperAdminUsers";
 import TeacherModule from "@/pages/TeacherModule";
 import NewTeacherModule from "@/pages/teacher/NewTeacherModule";
-import TeacherAssignments from "@/pages/teacher/TeacherAssignments";
-import TeacherConfigurations from "@/pages/teacher/TeacherConfigurations";
+// Doctor Module
+import DoctorModule from "@/pages/doctor/DoctorModule";
+// Payroll Module
+import PayrollModule from "@/pages/payroll/PayrollModule";
 import Timesheet from "@/pages/Timesheet";
 import ImportExport from "@/pages/ImportExport";
 import CategoryPage from "@/pages/CategoryPage";
@@ -159,8 +161,19 @@ const App = () => (
                 <Route path="import-export" element={<ProtectedRoute requiredRoles={['admin']}><ImportExport /></ProtectedRoute>} />
                 <Route path="teacher-module" element={<ProtectedRoute requiredRoles={['admin']}><NewTeacherModule /></ProtectedRoute>} />
                 <Route path="teacher/overview" element={<ProtectedRoute requiredRoles={['admin']}><NewTeacherModule /></ProtectedRoute>} />
-                <Route path="teacher/assignments" element={<ProtectedRoute requiredRoles={['admin']}><TeacherModule /></ProtectedRoute>} />
-                <Route path="teacher/configurations" element={<ProtectedRoute requiredRoles={['admin']}><TeacherModule /></ProtectedRoute>} />
+                <Route path="teacher/assignments" element={<ProtectedRoute requiredRoles={['admin']}><NewTeacherModule defaultTab="teachers" /></ProtectedRoute>} />
+                <Route path="teacher/configurations" element={<ProtectedRoute requiredRoles={['admin']}><NewTeacherModule defaultTab="config" /></ProtectedRoute>} />
+                {/* Doctor Module Routes */}
+                <Route path="doctor-module" element={<ProtectedRoute requiredRoles={['admin']}><DoctorModule /></ProtectedRoute>} />
+                <Route path="doctor/overview" element={<ProtectedRoute requiredRoles={['admin']}><DoctorModule /></ProtectedRoute>} />
+                <Route path="doctor/assignments" element={<ProtectedRoute requiredRoles={['admin']}><DoctorModule defaultTab="doctors" /></ProtectedRoute>} />
+                <Route path="doctor/configurations" element={<ProtectedRoute requiredRoles={['admin']}><DoctorModule defaultTab="config" /></ProtectedRoute>} />
+                {/* Payroll Module Routes */}
+                <Route path="payroll-module" element={<ProtectedRoute requiredRoles={['admin']}><PayrollModule /></ProtectedRoute>} />
+                <Route path="payroll/overview" element={<ProtectedRoute requiredRoles={['admin']}><PayrollModule /></ProtectedRoute>} />
+                <Route path="payroll/list" element={<ProtectedRoute requiredRoles={['admin']}><PayrollModule defaultTab="payrolls" /></ProtectedRoute>} />
+                <Route path="payroll/items" element={<ProtectedRoute requiredRoles={['admin']}><PayrollModule defaultTab="items" /></ProtectedRoute>} />
+                <Route path="payroll/payslips" element={<ProtectedRoute requiredRoles={['admin']}><PayrollModule defaultTab="payslips" /></ProtectedRoute>} />
                 <Route path="account-settings" element={<AccountSettings />} />
                 <Route path="leave-management" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><LeaveManagement /></ProtectedRoute>} />
                 <Route path="payroll-exports" element={<ProtectedRoute requiredRoles={['admin']}><PayrollExports /></ProtectedRoute>} />
