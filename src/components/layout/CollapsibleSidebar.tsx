@@ -203,8 +203,9 @@ const menuCategories: MenuCategory[] = [
     icon: GraduationCap,
     roles: ['admin', 'manager'],
     items: [
-      { title: 'Visão Geral', icon: LayoutDashboard, href: '/teacher-module', roles: ['admin', 'manager'] },
-      { title: 'Professores', icon: GraduationCap, href: '/teacher/assignments', roles: ['admin', 'manager'] },
+      { title: 'Dashboard', icon: LayoutDashboard, href: '/teacher/dashboard', roles: ['admin', 'manager'] },
+      { title: 'Professores', icon: Users, href: '/teacher/professors', roles: ['admin', 'manager'] },
+      { title: 'Quadro de Horários', icon: Calendar, href: '/teacher/schedule', roles: ['admin', 'manager'] },
       { title: 'Configurações', icon: Cog, href: '/teacher/configurations', roles: ['admin'] },
     ]
   },
@@ -214,8 +215,9 @@ const menuCategories: MenuCategory[] = [
     icon: Activity,
     roles: ['admin', 'manager'],
     items: [
-      { title: 'Visão Geral', icon: LayoutDashboard, href: '/doctor-module', roles: ['admin', 'manager'] },
-      { title: 'Médicos', icon: Activity, href: '/doctor/assignments', roles: ['admin', 'manager'] },
+      { title: 'Dashboard', icon: LayoutDashboard, href: '/doctor/dashboard', roles: ['admin', 'manager'] },
+      { title: 'Médicos', icon: Users, href: '/doctor/doctors', roles: ['admin', 'manager'] },
+      { title: 'Quadro de Plantões', icon: Calendar, href: '/doctor/schedule', roles: ['admin', 'manager'] },
       { title: 'Configurações', icon: Cog, href: '/doctor/configurations', roles: ['admin'] },
     ]
   },
@@ -225,8 +227,9 @@ const menuCategories: MenuCategory[] = [
     icon: Wallet,
     roles: ['admin'],
     items: [
-      { title: 'Visão Geral', icon: LayoutDashboard, href: '/payroll-module', roles: ['admin'] },
+      { title: 'Dashboard', icon: LayoutDashboard, href: '/payroll/dashboard', roles: ['admin'] },
       { title: 'Folhas', icon: FileText, href: '/payroll/list', roles: ['admin'] },
+      { title: 'Nova Folha', icon: ListChecks, href: '/payroll/create', roles: ['admin'] },
       { title: 'Holerites', icon: FileText, href: '/payroll/payslips', roles: ['admin'] },
       { title: 'Rubricas', icon: Cog, href: '/payroll/items', roles: ['admin'] },
     ]
