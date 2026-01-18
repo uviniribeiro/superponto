@@ -337,6 +337,9 @@ export default function SuperAdminCityHalls() {
             city: formData.city || null,
             state: formData.state || null,
             phone: formData.phone || null,
+            // Auto-enable modules based on sector
+            teacher_module_enabled: sector.value === 'education',
+            doctor_module_enabled: sector.value === 'health',
           })
           .select()
           .single();

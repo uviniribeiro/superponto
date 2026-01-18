@@ -56,7 +56,11 @@ interface PayrollStats {
   pendingCount: number;
 }
 
-export default function PayrollModule() {
+interface PayrollModuleProps {
+  defaultTab?: string;
+}
+
+export default function PayrollModule({ defaultTab = 'overview' }: PayrollModuleProps) {
   const { profile } = useAuth();
   
   useSEO({
@@ -66,7 +70,7 @@ export default function PayrollModule() {
 
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 

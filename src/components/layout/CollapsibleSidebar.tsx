@@ -209,6 +209,29 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
+    id: 'medico',
+    title: 'Módulo Médico',
+    icon: Activity,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Visão Geral', icon: LayoutDashboard, href: '/doctor-module', roles: ['admin', 'manager'] },
+      { title: 'Médicos', icon: Activity, href: '/doctor/assignments', roles: ['admin', 'manager'] },
+      { title: 'Configurações', icon: Cog, href: '/doctor/configurations', roles: ['admin'] },
+    ]
+  },
+  {
+    id: 'folha',
+    title: 'Folha de Pagamento',
+    icon: Wallet,
+    roles: ['admin'],
+    items: [
+      { title: 'Visão Geral', icon: LayoutDashboard, href: '/payroll-module', roles: ['admin'] },
+      { title: 'Folhas', icon: FileText, href: '/payroll/list', roles: ['admin'] },
+      { title: 'Holerites', icon: FileText, href: '/payroll/payslips', roles: ['admin'] },
+      { title: 'Rubricas', icon: Cog, href: '/payroll/items', roles: ['admin'] },
+    ]
+  },
+  {
     id: 'relatorios',
     title: 'Relatórios',
     icon: FileBarChart,
@@ -249,7 +272,7 @@ const menuCategories: MenuCategory[] = [
 ];
 
 export default function CollapsibleSidebar() {
-  const { profile, signOut, isAdmin, isManager, hasTeacherModule } = useAuth();
+  const { profile, signOut, isAdmin, isManager, hasTeacherModule, hasDoctorModule, hasPayrollModule } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
@@ -315,6 +338,12 @@ export default function CollapsibleSidebar() {
     if (category.id === 'professor' && !hasTeacherModule) {
       return false;
     }
+    if (category.id === 'medico' && !hasDoctorModule) {
+      return false;
+    }
+    if (category.id === 'folha' && !hasPayrollModule) {
+      return false;
+    }
     if (isAdmin) return true;
     if (isManager && category.roles.includes('manager')) return true;
     return category.roles.includes('employee');
@@ -322,6 +351,12 @@ export default function CollapsibleSidebar() {
 
   const filterItem = (item: MenuItem) => {
     if (item.href.includes('teacher') && !hasTeacherModule) {
+      return false;
+    }
+    if (item.href.includes('doctor') && !hasDoctorModule) {
+      return false;
+    }
+    if (item.href.includes('payroll') && !hasPayrollModule) {
       return false;
     }
     if (isAdmin) return true;
