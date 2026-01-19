@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap, Calendar, Users, Trash2, Loader2, Phone, Pencil, Stethoscope, Wallet } from 'lucide-react';
+import { Building2, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, GraduationCap, Calendar, Users, Trash2, Loader2, Phone, Pencil, Stethoscope, Wallet, Database } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
@@ -81,6 +81,7 @@ export default function SuperAdminCompanies() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [lookingUpCnpj, setLookingUpCnpj] = useState(false);
+  const [updatingTenant, setUpdatingTenant] = useState<string | null>(null);
   const [formData, setFormData] = useState({ 
     name: '', 
     tradeName: '',
@@ -417,6 +418,36 @@ export default function SuperAdminCompanies() {
     }
   };
 
+  const handleUpdateTenant = async (company: Company) => {
+    setUpdatingTenant(company.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-tenant', {
+        body: {
+          companyId: company.id,
+          resources: {
+            teacherModule: company.teacher_module_enabled,
+            doctorModule: company.doctor_module_enabled,
+            payrollModule: company.payroll_module_enabled
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      const updatesCount = data?.results?.updates?.length || 0;
+      if (updatesCount > 0) {
+        toast.success(`Tenant atualizado! ${updatesCount} recurso(s) sincronizado(s).`);
+      } else {
+        toast.info('Tenant já está atualizado. Nenhuma alteração necessária.');
+      }
+    } catch (error) {
+      console.error('Error updating tenant:', error);
+      toast.error('Erro ao atualizar tenant');
+    } finally {
+      setUpdatingTenant(null);
+    }
+  };
+
   const filteredCompanies = companies.filter(company =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.cnpj?.includes(searchTerm)
@@ -655,6 +686,20 @@ export default function SuperAdminCompanies() {
                         >
                           <Pencil className="h-4 w-4 mr-1" />
                           Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUpdateTenant(company)}
+                          disabled={updatingTenant === company.id}
+                          title="Atualizar tenant com os recursos habilitados"
+                        >
+                          {updatingTenant === company.id ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Database className="h-4 w-4 mr-1" />
+                          )}
+                          Tenant
                         </Button>
                         <Button
                           variant="outline"

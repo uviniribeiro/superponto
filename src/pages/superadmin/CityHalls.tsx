@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { Landmark, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, ChevronDown, Trash2, GraduationCap, Heart, Palette, Bus, Settings2, Building2, Users, Calendar, Loader2, Phone, Pencil, ArrowRightLeft } from 'lucide-react';
+import { Landmark, Plus, Search, Key, CheckCircle, XCircle, RefreshCw, ChevronDown, Trash2, GraduationCap, Heart, Palette, Bus, Settings2, Building2, Users, Calendar, Loader2, Phone, Pencil, ArrowRightLeft, Database, Stethoscope, Wallet } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
@@ -155,6 +155,9 @@ export default function SuperAdminCityHalls() {
   // Employee transfer dialog
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
   const [selectedCityHallForTransfer, setSelectedCityHallForTransfer] = useState<Company | null>(null);
+
+  // Tenant update state
+  const [updatingTenant, setUpdatingTenant] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCompanies();
@@ -843,6 +846,70 @@ export default function SuperAdminCityHalls() {
     </>
   );
 
+  const handleUpdateTenant = async (company: Company) => {
+    setUpdatingTenant(company.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-tenant', {
+        body: {
+          companyId: company.id,
+          resources: {
+            teacherModule: company.sector === 'education',
+            doctorModule: company.sector === 'health',
+            payrollModule: false
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      const updatesCount = data?.results?.updates?.length || 0;
+      if (updatesCount > 0) {
+        toast.success(`Tenant atualizado! ${updatesCount} recurso(s) sincronizado(s).`);
+      } else {
+        toast.info('Tenant já está atualizado. Nenhuma alteração necessária.');
+      }
+    } catch (error) {
+      console.error('Error updating tenant:', error);
+      toast.error('Erro ao atualizar tenant');
+    } finally {
+      setUpdatingTenant(null);
+    }
+  };
+
+  const handleUpdateAllTenants = async (cityHall: Company) => {
+    const sectors = getSectors(cityHall.id);
+    const allCompanies = [cityHall, ...sectors];
+    
+    setUpdatingTenant(cityHall.id);
+    try {
+      let totalUpdates = 0;
+      for (const company of allCompanies) {
+        const { data } = await supabase.functions.invoke('update-tenant', {
+          body: {
+            companyId: company.id,
+            resources: {
+              teacherModule: company.sector === 'education',
+              doctorModule: company.sector === 'health',
+              payrollModule: false
+            }
+          }
+        });
+        totalUpdates += data?.results?.updates?.length || 0;
+      }
+
+      if (totalUpdates > 0) {
+        toast.success(`Prefeitura e setores atualizados! ${totalUpdates} recurso(s) sincronizado(s).`);
+      } else {
+        toast.info('Todos os tenants já estão atualizados.');
+      }
+    } catch (error) {
+      console.error('Error updating tenants:', error);
+      toast.error('Erro ao atualizar tenants');
+    } finally {
+      setUpdatingTenant(null);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -938,6 +1005,20 @@ export default function SuperAdminCityHalls() {
                           >
                             <Plus className="h-4 w-4 mr-1" />
                             Setor
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleUpdateAllTenants(cityHall)}
+                            disabled={updatingTenant === cityHall.id}
+                            title="Atualizar todos os tenants desta prefeitura"
+                          >
+                            {updatingTenant === cityHall.id ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Database className="h-4 w-4 mr-1" />
+                            )}
+                            Tenant
                           </Button>
                           <Button
                             variant="outline"
@@ -1047,6 +1128,19 @@ export default function SuperAdminCityHalls() {
                                       </TableCell>
                                       <TableCell className="text-right">
                                         <div className="flex justify-end gap-1">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleUpdateTenant(sector)}
+                                            disabled={updatingTenant === sector.id}
+                                            title="Atualizar tenant deste setor"
+                                          >
+                                            {updatingTenant === sector.id ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <Database className="h-4 w-4" />
+                                            )}
+                                          </Button>
                                           <Button
                                             variant="outline"
                                             size="sm"
