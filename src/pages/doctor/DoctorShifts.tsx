@@ -33,6 +33,8 @@ interface ShiftRecord {
   profile_id: string;
   shift_configuration_id: string;
   shift_date: string;
+  start_time: string;
+  end_time: string;
   total_hours: number;
   shift_type: string | null;
   is_night_shift: boolean;
@@ -80,6 +82,8 @@ export default function DoctorShifts() {
     profile_id: '',
     shift_configuration_id: '',
     shift_date: new Date(),
+    start_time: '07:00',
+    end_time: '19:00',
     total_hours: 12,
     shift_type: 'regular',
     is_night_shift: false,
@@ -138,6 +142,8 @@ export default function DoctorShifts() {
         profile_id: formData.profile_id,
         shift_configuration_id: formData.shift_configuration_id,
         shift_date: format(formData.shift_date, 'yyyy-MM-dd'),
+        start_time: formData.start_time,
+        end_time: formData.end_time,
         total_hours: formData.total_hours,
         shift_type: formData.shift_type,
         is_night_shift: formData.is_night_shift,
@@ -177,6 +183,8 @@ export default function DoctorShifts() {
       profile_id: record.profile_id,
       shift_configuration_id: record.shift_configuration_id,
       shift_date: new Date(record.shift_date),
+      start_time: record.start_time || '07:00',
+      end_time: record.end_time || '19:00',
       total_hours: record.total_hours,
       shift_type: record.shift_type || 'regular',
       is_night_shift: record.is_night_shift,
@@ -206,6 +214,8 @@ export default function DoctorShifts() {
       profile_id: '',
       shift_configuration_id: '',
       shift_date: new Date(),
+      start_time: '07:00',
+      end_time: '19:00',
       total_hours: 12,
       shift_type: 'regular',
       is_night_shift: false,
