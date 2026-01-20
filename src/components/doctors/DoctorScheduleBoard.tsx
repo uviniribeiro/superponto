@@ -55,6 +55,7 @@ interface ScheduleSlot {
   end_time: string;
   health_unit: string | null;
   sector: string | null;
+  room: string | null;
   notes: string | null;
   is_active: boolean;
 }
@@ -80,6 +81,7 @@ export default function DoctorScheduleBoard({ assignments, employees, onRefresh 
     end_time: '19:00',
     health_unit: '',
     sector: '',
+    room: '',
     notes: '',
   });
 
@@ -106,7 +108,7 @@ export default function DoctorScheduleBoard({ assignments, employees, onRefresh 
         .order('shift_number');
 
       if (error) throw error;
-      setScheduleSlots(data || []);
+      setScheduleSlots((data || []).map(d => ({ ...d, room: d.room ?? null })) as ScheduleSlot[]);
     } catch (error) {
       console.error('Error fetching schedule slots:', error);
     } finally {
@@ -131,6 +133,7 @@ export default function DoctorScheduleBoard({ assignments, employees, onRefresh 
         end_time: slotForm.end_time,
         health_unit: slotForm.health_unit || null,
         sector: slotForm.sector || null,
+        room: slotForm.room || null,
         notes: slotForm.notes || null,
       };
 
@@ -185,6 +188,7 @@ export default function DoctorScheduleBoard({ assignments, employees, onRefresh 
       end_time: '19:00',
       health_unit: '',
       sector: '',
+      room: '',
       notes: '',
     });
     setEditingSlot(null);
@@ -199,6 +203,7 @@ export default function DoctorScheduleBoard({ assignments, employees, onRefresh 
       end_time: slot.end_time,
       health_unit: slot.health_unit || '',
       sector: slot.sector || '',
+      room: slot.room || '',
       notes: slot.notes || '',
     });
     setSlotDialogOpen(true);
@@ -417,6 +422,9 @@ export default function DoctorScheduleBoard({ assignments, employees, onRefresh 
                                   {slot.sector && (
                                     <Badge variant="outline" className="text-xs">{slot.sector}</Badge>
                                   )}
+                                  {slot.room && (
+                                    <Badge variant="secondary" className="text-xs">{slot.room}</Badge>
+                                  )}
                                 </div>
                               ) : (
                                 <span className="text-muted-foreground text-xs">-</span>
@@ -447,6 +455,8 @@ export default function DoctorScheduleBoard({ assignments, employees, onRefresh 
                       <p className="text-sm text-muted-foreground">
                         {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
                         {slot.health_unit && ` • ${slot.health_unit}`}
+                        {slot.sector && ` • ${slot.sector}`}
+                        {slot.room && ` • ${slot.room}`}
                       </p>
                     </div>
                     <div className="flex gap-1">
@@ -563,13 +573,23 @@ export default function DoctorScheduleBoard({ assignments, employees, onRefresh 
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Setor (opcional)</Label>
-              <Input
-                value={slotForm.sector}
-                onChange={(e) => setSlotForm({ ...slotForm, sector: e.target.value })}
-                placeholder="Ex: Emergência, UTI, etc."
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Setor</Label>
+                <Input
+                  value={slotForm.sector}
+                  onChange={(e) => setSlotForm({ ...slotForm, sector: e.target.value })}
+                  placeholder="Ex: Emergência, UTI, etc."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Sala/Consultório</Label>
+                <Input
+                  value={slotForm.room}
+                  onChange={(e) => setSlotForm({ ...slotForm, room: e.target.value })}
+                  placeholder="Ex: Sala 5, Consultório 12"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
