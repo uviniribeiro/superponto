@@ -100,6 +100,7 @@ interface ScheduleSlot {
   subject: string | null;
   class_name: string | null;
   room: string | null;
+  school: string | null;
   notes: string | null;
   is_active: boolean;
 }
@@ -126,6 +127,7 @@ export default function TeacherScheduleBoard({ assignments, employees, onRefresh
     subject: '',
     class_name: '',
     room: '',
+    school: '',
     notes: '',
   });
 
@@ -178,6 +180,7 @@ export default function TeacherScheduleBoard({ assignments, employees, onRefresh
         subject: slotForm.subject || null,
         class_name: slotForm.class_name || null,
         room: slotForm.room || null,
+        school: slotForm.school || null,
         notes: slotForm.notes || null,
       };
 
@@ -233,6 +236,7 @@ export default function TeacherScheduleBoard({ assignments, employees, onRefresh
       subject: '',
       class_name: '',
       room: '',
+      school: '',
       notes: '',
     });
     setEditingSlot(null);
@@ -248,6 +252,7 @@ export default function TeacherScheduleBoard({ assignments, employees, onRefresh
       subject: slot.subject || '',
       class_name: slot.class_name || '',
       room: slot.room || '',
+      school: slot.school || '',
       notes: slot.notes || '',
     });
     setSlotDialogOpen(true);
@@ -466,6 +471,9 @@ export default function TeacherScheduleBoard({ assignments, employees, onRefresh
                                   <div className="text-xs text-muted-foreground">
                                     {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
                                   </div>
+                                  {slot.school && (
+                                    <div className="text-xs text-primary/80">{slot.school}</div>
+                                  )}
                                   {slot.room && (
                                     <Badge variant="outline" className="text-xs">{slot.room}</Badge>
                                   )}
@@ -497,6 +505,7 @@ export default function TeacherScheduleBoard({ assignments, employees, onRefresh
                     <TableHead>Período</TableHead>
                     <TableHead>Horário</TableHead>
                     <TableHead>Disciplina</TableHead>
+                    <TableHead>Escola</TableHead>
                     <TableHead>Turma</TableHead>
                     <TableHead>Sala</TableHead>
                     <TableHead className="w-[80px]">Ações</TableHead>
@@ -509,6 +518,7 @@ export default function TeacherScheduleBoard({ assignments, employees, onRefresh
                       <TableCell>{slot.slot_number}ª Aula</TableCell>
                       <TableCell>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</TableCell>
                       <TableCell>{slot.subject || '-'}</TableCell>
+                      <TableCell>{slot.school || '-'}</TableCell>
                       <TableCell>{slot.class_name || '-'}</TableCell>
                       <TableCell>{slot.room || '-'}</TableCell>
                       <TableCell>
@@ -525,7 +535,7 @@ export default function TeacherScheduleBoard({ assignments, employees, onRefresh
                   ))}
                   {scheduleSlots.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         Nenhum horário cadastrado para este professor
                       </TableCell>
                     </TableRow>
@@ -635,6 +645,15 @@ export default function TeacherScheduleBoard({ assignments, employees, onRefresh
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Escola/Unidade</Label>
+              <Input
+                value={slotForm.school}
+                onChange={(e) => setSlotForm({ ...slotForm, school: e.target.value })}
+                placeholder="Ex: Escola Municipal João da Silva"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

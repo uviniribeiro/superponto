@@ -920,9 +920,11 @@ export type Database = {
           is_active: boolean | null
           notes: string | null
           profile_id: string
+          room: string | null
           sector: string | null
           shift_number: number
           start_time: string
+          updated_at: string | null
         }
         Insert: {
           assignment_id: string
@@ -935,9 +937,11 @@ export type Database = {
           is_active?: boolean | null
           notes?: string | null
           profile_id: string
+          room?: string | null
           sector?: string | null
           shift_number?: number
           start_time: string
+          updated_at?: string | null
         }
         Update: {
           assignment_id?: string
@@ -950,9 +954,11 @@ export type Database = {
           is_active?: boolean | null
           notes?: string | null
           profile_id?: string
+          room?: string | null
           sector?: string | null
           shift_number?: number
           start_time?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -3535,6 +3541,7 @@ export type Database = {
           notes: string | null
           profile_id: string
           room: string | null
+          school: string | null
           slot_number: number
           start_time: string
           subject: string | null
@@ -3552,6 +3559,7 @@ export type Database = {
           notes?: string | null
           profile_id: string
           room?: string | null
+          school?: string | null
           slot_number: number
           start_time: string
           subject?: string | null
@@ -3569,6 +3577,7 @@ export type Database = {
           notes?: string | null
           profile_id?: string
           room?: string | null
+          school?: string | null
           slot_number?: number
           start_time?: string
           subject?: string | null
