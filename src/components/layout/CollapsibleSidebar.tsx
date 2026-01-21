@@ -205,7 +205,9 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'Dashboard', icon: LayoutDashboard, href: '/teacher/dashboard', roles: ['admin', 'manager'] },
       { title: 'Professores', icon: Users, href: '/teacher/professors', roles: ['admin', 'manager'] },
+      { title: 'Escolas', icon: School, href: '/teacher/schools', roles: ['admin', 'manager'] },
       { title: 'Aulas', icon: BookOpen, href: '/teacher/classes', roles: ['admin', 'manager'] },
+      { title: 'Plano de Aula', icon: FileText, href: '/teacher/lesson-plans', roles: ['admin', 'manager'] },
       { title: 'Quadro de Horários', icon: Calendar, href: '/teacher/schedule', roles: ['admin', 'manager'] },
       { title: 'Espelho de Ponto', icon: ClipboardList, href: '/teacher/mirror', roles: ['admin', 'manager'] },
       { title: 'Consolidado', icon: FileBarChart, href: '/teacher/summary', roles: ['admin', 'manager'] },
@@ -220,6 +222,7 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'Dashboard', icon: LayoutDashboard, href: '/doctor/dashboard', roles: ['admin', 'manager'] },
       { title: 'Médicos', icon: Users, href: '/doctor/doctors', roles: ['admin', 'manager'] },
+      { title: 'Unidades de Saúde', icon: Hospital, href: '/doctor/health-units', roles: ['admin', 'manager'] },
       { title: 'Plantões', icon: Activity, href: '/doctor/shifts', roles: ['admin', 'manager'] },
       { title: 'Quadro de Plantões', icon: Calendar, href: '/doctor/schedule', roles: ['admin', 'manager'] },
       { title: 'Espelho de Ponto', icon: ClipboardList, href: '/doctor/mirror', roles: ['admin', 'manager'] },
