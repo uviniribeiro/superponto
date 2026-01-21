@@ -377,6 +377,60 @@ export type Database = {
           },
         ]
       }
+      class_groups: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          grade: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          school_id: string | null
+          shift: string | null
+          updated_at: string | null
+          year: number | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          grade?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          school_id?: string | null
+          shift?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          grade?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          school_id?: string | null
+          shift?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_groups_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_groups_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_hour_configurations: {
         Row: {
           activity_hours_percent: number | null
@@ -1918,6 +1972,65 @@ export type Database = {
           },
         ]
       }
+      health_units: {
+        Row: {
+          address: string | null
+          city: string | null
+          cnes_code: string | null
+          code: string | null
+          company_id: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          state: string | null
+          unit_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          cnes_code?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          state?: string | null
+          unit_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          cnes_code?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          state?: string | null
+          unit_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_units_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       holidays: {
         Row: {
           company_id: string | null
@@ -2276,6 +2389,108 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_plans: {
+        Row: {
+          class_date: string
+          class_group_id: string | null
+          company_id: string | null
+          content: string | null
+          created_at: string | null
+          evaluation: string | null
+          id: string
+          methodology: string | null
+          number_of_classes: number | null
+          objectives: string | null
+          observations: string | null
+          profile_id: string
+          resources: string | null
+          school_id: string | null
+          status: string | null
+          subject: string | null
+          topic: string
+          total_minutes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          class_date: string
+          class_group_id?: string | null
+          company_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          evaluation?: string | null
+          id?: string
+          methodology?: string | null
+          number_of_classes?: number | null
+          objectives?: string | null
+          observations?: string | null
+          profile_id: string
+          resources?: string | null
+          school_id?: string | null
+          status?: string | null
+          subject?: string | null
+          topic: string
+          total_minutes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          class_date?: string
+          class_group_id?: string | null
+          company_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          evaluation?: string | null
+          id?: string
+          methodology?: string | null
+          number_of_classes?: number | null
+          objectives?: string | null
+          observations?: string | null
+          profile_id?: string
+          resources?: string | null
+          school_id?: string | null
+          status?: string | null
+          subject?: string | null
+          topic?: string
+          total_minutes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_plans_class_group_id_fkey"
+            columns: ["class_group_id"]
+            isOneToOne: false
+            referencedRelation: "class_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_plans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_plans_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_plans_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_plans_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
         ]
@@ -3398,6 +3613,65 @@ export type Database = {
             columns: ["work_schedule_id"]
             isOneToOne: false
             referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schools: {
+        Row: {
+          address: string | null
+          city: string | null
+          code: string | null
+          company_id: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          inep_code: string | null
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          school_type: string | null
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          inep_code?: string | null
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          school_type?: string | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          code?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          inep_code?: string | null
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          school_type?: string | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schools_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]

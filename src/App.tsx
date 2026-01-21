@@ -41,8 +41,10 @@ import NewTeacherModule from "@/pages/teacher/NewTeacherModule";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import TeacherSchedule from "@/pages/teacher/TeacherSchedule";
 import TeacherClasses from "@/pages/teacher/TeacherClasses";
+import TeacherLessonPlans from "@/pages/teacher/TeacherLessonPlans";
 import TeacherMirror from "@/pages/teacher/TeacherMirror";
 import TeacherSummary from "@/pages/teacher/TeacherSummary";
+import TeacherSchools from "@/pages/teacher/TeacherSchools";
 // Doctor Module
 import DoctorModule from "@/pages/doctor/DoctorModule";
 import DoctorDashboard from "@/pages/doctor/DoctorDashboard";
@@ -50,6 +52,7 @@ import DoctorSchedule from "@/pages/doctor/DoctorSchedule";
 import DoctorShifts from "@/pages/doctor/DoctorShifts";
 import DoctorMirror from "@/pages/doctor/DoctorMirror";
 import DoctorSummary from "@/pages/doctor/DoctorSummary";
+import DoctorHealthUnits from "@/pages/doctor/DoctorHealthUnits";
 // Payroll Module
 import PayrollModule from "@/pages/payroll/PayrollModule";
 import PayrollDashboard from "@/pages/payroll/PayrollDashboard";
@@ -176,6 +179,8 @@ const App = () => (
                 <Route path="teacher/dashboard" element={<ProtectedRoute requiredRoles={['admin']}><TeacherDashboard /></ProtectedRoute>} />
                 <Route path="teacher/professors" element={<ProtectedRoute requiredRoles={['admin']}><NewTeacherModule defaultTab="teachers" /></ProtectedRoute>} />
                 <Route path="teacher/classes" element={<ProtectedRoute requiredRoles={['admin']}><TeacherClasses /></ProtectedRoute>} />
+                <Route path="teacher/lesson-plans" element={<ProtectedRoute requiredRoles={['admin']}><TeacherLessonPlans /></ProtectedRoute>} />
+                <Route path="teacher/schools" element={<ProtectedRoute requiredRoles={['admin']}><TeacherSchools /></ProtectedRoute>} />
                 <Route path="teacher/schedule" element={<ProtectedRoute requiredRoles={['admin']}><TeacherSchedule /></ProtectedRoute>} />
                 <Route path="teacher/mirror" element={<ProtectedRoute requiredRoles={['admin']}><TeacherMirror /></ProtectedRoute>} />
                 <Route path="teacher/summary" element={<ProtectedRoute requiredRoles={['admin']}><TeacherSummary /></ProtectedRoute>} />
@@ -184,6 +189,7 @@ const App = () => (
                 <Route path="doctor-module" element={<ProtectedRoute requiredRoles={['admin']}><DoctorDashboard /></ProtectedRoute>} />
                 <Route path="doctor/dashboard" element={<ProtectedRoute requiredRoles={['admin']}><DoctorDashboard /></ProtectedRoute>} />
                 <Route path="doctor/doctors" element={<ProtectedRoute requiredRoles={['admin']}><DoctorModule defaultTab="doctors" /></ProtectedRoute>} />
+                <Route path="doctor/health-units" element={<ProtectedRoute requiredRoles={['admin']}><DoctorHealthUnits /></ProtectedRoute>} />
                 <Route path="doctor/shifts" element={<ProtectedRoute requiredRoles={['admin']}><DoctorShifts /></ProtectedRoute>} />
                 <Route path="doctor/schedule" element={<ProtectedRoute requiredRoles={['admin']}><DoctorSchedule /></ProtectedRoute>} />
                 <Route path="doctor/mirror" element={<ProtectedRoute requiredRoles={['admin']}><DoctorMirror /></ProtectedRoute>} />
