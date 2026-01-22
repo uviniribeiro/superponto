@@ -1,73 +1,88 @@
-# Welcome to your Lovable project
+# SuperPonto - Sistema de Ponto Eletrônico
 
-## Project info
+## Visão Geral
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Sistema completo de gestão de ponto eletrônico desenvolvido com React, TypeScript e Supabase/PostgreSQL.
 
-## How can I edit this code?
+## Tecnologias
 
-There are several ways of editing your application.
+- **Frontend**: React 18, TypeScript, Vite, TailwindCSS, shadcn/ui
+- **Backend**: Supabase (Edge Functions) ou Express.js (alternativo)
+- **Banco de Dados**: PostgreSQL
+- **Autenticação**: Supabase Auth ou JWT local
 
-**Use Lovable**
+## Documentação
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- [Deploy Local](docs/LOCAL_DEPLOYMENT.md) - Guia completo para deploy em servidor próprio
 
-Changes made via Lovable will be committed automatically to this repo.
+## Scripts Disponíveis
 
-**Use your preferred IDE**
+```bash
+# Desenvolvimento
+npm run dev              # Inicia servidor de desenvolvimento
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+# Produção
+npm run build            # Compila para produção
+npm run preview          # Visualiza build de produção
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Scripts personalizados
+./scripts/build-production.sh   # Build completo com verificações
+./scripts/run-migrations.sh     # Executar migrações do banco
+./scripts/export-project.sh     # Exportar projeto para ZIP
 ```
 
-**Edit a file directly in GitHub**
+## Estrutura do Projeto
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+├── docs/                    # Documentação
+├── public/                  # Assets públicos
+├── scripts/                 # Scripts de automação
+├── server/                  # Backend alternativo (Express)
+├── src/
+│   ├── components/         # Componentes React
+│   ├── contexts/           # Contextos (Auth, etc)
+│   ├── hooks/              # Custom hooks
+│   ├── integrations/       # Integrações (Supabase)
+│   ├── lib/                # Utilitários
+│   └── pages/              # Páginas da aplicação
+└── supabase/
+    ├── functions/          # Edge Functions
+    └── migrations/         # Migrações SQL
+```
 
-**Use GitHub Codespaces**
+## Configuração Rápida
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Clone o repositório
+2. Copie `.env.local.example` para `.env.local` e configure
+3. Execute `npm install --legacy-peer-deps`
+4. Execute `npm run dev`
 
-## What technologies are used for this project?
+## Módulos
 
-This project is built with:
+- **Ponto Eletrônico**: Registro de ponto com foto e geolocalização
+- **Gestão de Funcionários**: Cadastro, importação CSV, organograma
+- **Escalas e Horários**: Horários fixos e rotativos
+- **Banco de Horas**: Controle de horas extras e compensações
+- **Espelho de Ponto**: Visualização e exportação
+- **Módulo Professor**: Gestão de aulas e hora-aula (opcional)
+- **Módulo Médico**: Plantões e escalas médicas (opcional)
+- **Folha de Pagamento**: Cálculos e exportações (opcional)
+- **Equipamentos REP**: Integração com relógios de ponto
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Deploy
 
-## How can I deploy this project?
+### Lovable/Vercel
+Acesse [Lovable](https://lovable.dev) e clique em Share → Publish.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### Servidor Local
+Consulte a [documentação de deploy local](docs/LOCAL_DEPLOYMENT.md).
 
-## Can I connect a custom domain to my Lovable project?
+## Credenciais Padrão
 
-Yes, you can!
+- **Super Admin**: superadmin@superponto.local / Super@Admin2024
+- **Suporte**: suporte@{company_code}.pontomax.local / Super@26
+- **Admin**: admin@{company_code}.pontomax.local / Admin@26
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Licença
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Proprietário - Todos os direitos reservados.
