@@ -1,6 +1,6 @@
 // Application version configuration
-export const APP_VERSION = '1.20.2';
-export const APP_BUILD_DATE = '2026-01-16';
+export const APP_VERSION = '1.20.3';
+export const APP_BUILD_DATE = '2026-01-22';
 export const APP_NAME = 'PontoMax';
 
 // Changelog entries
@@ -13,6 +13,21 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '1.20.3',
+    date: '2026-01-22',
+    title: 'Módulos Educação e Saúde',
+    type: 'minor',
+    changes: [
+      'Quadro de horários para professores com escola e sala',
+      'Quadro de horários para médicos com setor e sala',
+      'Novo módulo de Planos de Aula para educadores',
+      'Cadastro automático de escolas municipais por prefeitura',
+      'Cadastro automático de UBS, UPA e Hospitais por município',
+      'Gestão de turmas vinculadas às escolas',
+      'Sincronização de dados municipais via Edge Function',
+    ],
+  },
   {
     version: '1.20.2',
     date: '2026-01-16',
