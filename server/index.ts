@@ -1,14 +1,6 @@
 /**
- * Servidor Backend Alternativo (Node.js/Express)
- * 
- * Use este servidor se não quiser usar Deno/Edge Functions.
- * 
- * Para executar:
- *   npx tsx server/index.ts
- * 
- * Ou compile e execute:
- *   npx tsc server/index.ts --outDir server/dist
- *   node server/dist/index.js
+ * Servidor Backend com Autenticação JWT Completa
+ * Suporte a Refresh Tokens e Logout Seguro
  */
 
 import express from 'express';
@@ -17,6 +9,7 @@ import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 // Carregar variáveis de ambiente
 dotenv.config({ path: '.env.local' });
@@ -26,12 +19,18 @@ const PORT = process.env.API_PORT || 3001;
 
 // Configuração do pool PostgreSQL
 const pool = new Pool({
-  connectionString: process.env.SUPABASE_DB_URL || 'postgresql://superponto_user:SuperPonto@2024@localhost:5432/superponto',
+  connectionString: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || 'postgresql://superponto:SuperPonto@2024@localhost:5432/superponto',
 });
 
-// JWT Secret
+// JWT Configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'seu_jwt_secret_muito_seguro_aqui';
-const JWT_EXPIRES_IN = '7d';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'seu_refresh_secret_muito_seguro_aqui';
+const JWT_EXPIRES_IN = '15m'; // Access token expira em 15 minutos
+const JWT_REFRESH_EXPIRES_IN = '7d'; // Refresh token expira em 7 dias
+
+// In-memory store para tokens invalidados (em produção, use Redis)
+const invalidatedTokens = new Set<string>();
+const refreshTokenStore = new Map<string, { userId: string; expiresAt: Date; family: string }>();
 
 // Middleware
 app.use(cors({
@@ -40,10 +39,99 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Middleware de autenticação
+// Types
 interface AuthRequest extends express.Request {
-  user?: { id: string; email: string; role: string };
+  user?: { id: string; email: string; roles: string[] };
 }
+
+interface TokenPayload {
+  id: string;
+  email: string;
+  roles: string[];
+  type: 'access' | 'refresh';
+  jti?: string; // JWT ID for refresh token tracking
+  family?: string; // Token family for rotation
+}
+
+// ============================================
+// Utility Functions
+// ============================================
+
+function generateTokenId(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function generateTokenFamily(): string {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+function generateAccessToken(payload: Omit<TokenPayload, 'type'>): string {
+  return jwt.sign(
+    { ...payload, type: 'access' },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+}
+
+function generateRefreshToken(payload: Omit<TokenPayload, 'type'>): string {
+  const jti = generateTokenId();
+  const family = payload.family || generateTokenFamily();
+  
+  const token = jwt.sign(
+    { ...payload, type: 'refresh', jti, family },
+    JWT_REFRESH_SECRET,
+    { expiresIn: JWT_REFRESH_EXPIRES_IN }
+  );
+
+  // Armazenar refresh token
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+  refreshTokenStore.set(jti, { userId: payload.id, expiresAt, family });
+
+  return token;
+}
+
+function verifyAccessToken(token: string): TokenPayload | null {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    if (decoded.type !== 'access') return null;
+    if (invalidatedTokens.has(token)) return null;
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+function verifyRefreshToken(token: string): TokenPayload | null {
+  try {
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET) as TokenPayload;
+    if (decoded.type !== 'refresh') return null;
+    if (!decoded.jti) return null;
+    
+    const storedToken = refreshTokenStore.get(decoded.jti);
+    if (!storedToken) return null;
+    if (storedToken.expiresAt < new Date()) {
+      refreshTokenStore.delete(decoded.jti);
+      return null;
+    }
+    
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+function invalidateRefreshTokenFamily(family: string): void {
+  for (const [jti, data] of refreshTokenStore.entries()) {
+    if (data.family === family) {
+      refreshTokenStore.delete(jti);
+    }
+  }
+}
+
+// ============================================
+// Auth Middleware
+// ============================================
 
 const authMiddleware = async (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
   const authHeader = req.headers.authorization;
@@ -53,22 +141,25 @@ const authMiddleware = async (req: AuthRequest, res: express.Response, next: exp
   }
 
   const token = authHeader.split(' ')[1];
+  const payload = verifyAccessToken(token);
 
+  if (!payload) {
+    return res.status(401).json({ error: 'Token inválido ou expirado', code: 'TOKEN_EXPIRED' });
+  }
+
+  req.user = { id: payload.id, email: payload.email, roles: payload.roles };
+  
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string; role: string };
-    req.user = decoded;
-    
-    // Definir usuário atual no PostgreSQL
-    await pool.query("SELECT auth.set_current_user($1)", [decoded.id]);
-    
+    await pool.query("SELECT set_config('app.current_user_id', $1, true)", [payload.id]);
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Token inválido' });
+    console.error('Error setting user context:', error);
+    next();
   }
 };
 
 // ============================================
-// Rotas de Autenticação
+// Auth Routes
 // ============================================
 
 // Login
@@ -95,17 +186,24 @@ app.post('/auth/login', async (req, res) => {
 
     const user = userResult.rows[0];
 
-    // Verificar senha usando a função do banco
-    const passwordResult = await pool.query(
-      `SELECT auth.verify_password($1, $2) as valid`,
-      [password, user.encrypted_password]
-    );
-
-    if (!passwordResult.rows[0].valid) {
-      return res.status(401).json({ error: 'Credenciais inválidas' });
+    // Verificar senha
+    const isValidPassword = await bcrypt.compare(password, user.encrypted_password);
+    if (!isValidPassword) {
+      // Tentar verificar usando função do banco (compatibilidade)
+      try {
+        const passwordResult = await pool.query(
+          `SELECT auth.verify_password($1, $2) as valid`,
+          [password, user.encrypted_password]
+        );
+        if (!passwordResult.rows[0]?.valid) {
+          return res.status(401).json({ error: 'Credenciais inválidas' });
+        }
+      } catch {
+        return res.status(401).json({ error: 'Credenciais inválidas' });
+      }
     }
 
-    // Se company_code fornecido, verificar
+    // Verificar company_code se fornecido
     if (company_code && user.company_id) {
       const companyResult = await pool.query(
         `SELECT id FROM companies WHERE company_code = $1 AND id = $2`,
@@ -122,15 +220,12 @@ app.post('/auth/login', async (req, res) => {
       `SELECT role FROM user_roles WHERE user_id = $1`,
       [user.id]
     );
-
     const roles = rolesResult.rows.map(r => r.role);
 
-    // Gerar token
-    const token = jwt.sign(
-      { id: user.id, email: user.email, roles },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    // Gerar tokens
+    const tokenPayload = { id: user.id, email: user.email, roles };
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
 
     // Atualizar último login
     await pool.query(
@@ -138,10 +233,21 @@ app.post('/auth/login', async (req, res) => {
       [user.id]
     );
 
+    // Registrar sessão
+    await pool.query(
+      `INSERT INTO user_sessions (user_id, refresh_token_hash, user_agent, ip_address, expires_at)
+       VALUES ($1, $2, $3, $4, NOW() + INTERVAL '7 days')
+       ON CONFLICT DO NOTHING`,
+      [user.id, crypto.createHash('sha256').update(refreshToken).digest('hex'), 
+       req.headers['user-agent'], req.ip]
+    ).catch(() => {}); // Ignorar se tabela não existir
+
     res.json({
-      access_token: token,
+      access_token: accessToken,
+      refresh_token: refreshToken,
       token_type: 'bearer',
-      expires_in: 604800, // 7 dias em segundos
+      expires_in: 900, // 15 minutos em segundos
+      refresh_expires_in: 604800, // 7 dias em segundos
       user: {
         id: user.id,
         email: user.email,
@@ -157,10 +263,125 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
+// Refresh Token
+app.post('/auth/refresh', async (req, res) => {
+  try {
+    const { refresh_token } = req.body;
+
+    if (!refresh_token) {
+      return res.status(400).json({ error: 'Refresh token é obrigatório' });
+    }
+
+    const payload = verifyRefreshToken(refresh_token);
+    if (!payload || !payload.jti || !payload.family) {
+      return res.status(401).json({ error: 'Refresh token inválido ou expirado' });
+    }
+
+    // Invalidar o refresh token usado (rotation)
+    refreshTokenStore.delete(payload.jti);
+
+    // Verificar se usuário ainda existe e está ativo
+    const userResult = await pool.query(
+      `SELECT u.id, u.email, p.is_active
+       FROM auth.users u
+       LEFT JOIN profiles p ON p.user_id = u.id
+       WHERE u.id = $1`,
+      [payload.id]
+    );
+
+    if (userResult.rows.length === 0 || !userResult.rows[0].is_active) {
+      invalidateRefreshTokenFamily(payload.family);
+      return res.status(401).json({ error: 'Usuário não encontrado ou inativo' });
+    }
+
+    // Buscar roles atualizados
+    const rolesResult = await pool.query(
+      `SELECT role FROM user_roles WHERE user_id = $1`,
+      [payload.id]
+    );
+    const roles = rolesResult.rows.map(r => r.role);
+
+    // Gerar novos tokens (mantendo a família)
+    const newPayload = { id: payload.id, email: payload.email, roles, family: payload.family };
+    const newAccessToken = generateAccessToken(newPayload);
+    const newRefreshToken = generateRefreshToken(newPayload);
+
+    res.json({
+      access_token: newAccessToken,
+      refresh_token: newRefreshToken,
+      token_type: 'bearer',
+      expires_in: 900,
+      refresh_expires_in: 604800,
+    });
+  } catch (error) {
+    console.error('Refresh error:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 // Logout
-app.post('/auth/logout', authMiddleware, async (req, res) => {
-  // Em uma implementação real, você invalidaria o token
-  res.json({ message: 'Logout realizado com sucesso' });
+app.post('/auth/logout', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const accessToken = authHeader?.split(' ')[1];
+    const { refresh_token, logout_all } = req.body;
+
+    // Invalidar access token atual
+    if (accessToken) {
+      invalidatedTokens.add(accessToken);
+      // Limpar após expiração (15 minutos)
+      setTimeout(() => invalidatedTokens.delete(accessToken), 15 * 60 * 1000);
+    }
+
+    // Invalidar refresh token específico ou todos
+    if (refresh_token) {
+      const payload = verifyRefreshToken(refresh_token);
+      if (payload?.jti) {
+        if (logout_all && payload.family) {
+          // Invalidar toda a família de tokens (logout de todos dispositivos)
+          invalidateRefreshTokenFamily(payload.family);
+          
+          // Limpar sessões do banco
+          await pool.query(
+            `DELETE FROM user_sessions WHERE user_id = $1`,
+            [req.user!.id]
+          ).catch(() => {});
+        } else {
+          refreshTokenStore.delete(payload.jti);
+        }
+      }
+    }
+
+    res.json({ message: 'Logout realizado com sucesso' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Logout de todos os dispositivos
+app.post('/auth/logout-all', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+
+    // Invalidar todos os refresh tokens do usuário
+    for (const [jti, data] of refreshTokenStore.entries()) {
+      if (data.userId === userId) {
+        refreshTokenStore.delete(jti);
+      }
+    }
+
+    // Limpar sessões do banco
+    await pool.query(
+      `DELETE FROM user_sessions WHERE user_id = $1`,
+      [userId]
+    ).catch(() => {});
+
+    res.json({ message: 'Logout de todos os dispositivos realizado com sucesso' });
+  } catch (error) {
+    console.error('Logout all error:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
 // Verificar sessão
@@ -184,12 +405,31 @@ app.get('/auth/session', authMiddleware, async (req: AuthRequest, res) => {
       user: {
         id: user.id,
         email: user.email,
+        roles: user.roles,
       },
       profile: profileResult.rows[0],
     });
   } catch (error) {
     console.error('Session error:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Listar sessões ativas
+app.get('/auth/sessions', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, user_agent, ip_address, created_at, last_used_at, expires_at
+       FROM user_sessions
+       WHERE user_id = $1 AND expires_at > NOW()
+       ORDER BY last_used_at DESC`,
+      [req.user!.id]
+    );
+
+    res.json({ sessions: result.rows });
+  } catch (error) {
+    // Se tabela não existir, retornar lista vazia
+    res.json({ sessions: [] });
   }
 });
 
@@ -203,6 +443,10 @@ app.post('/auth/change-password', authMiddleware, async (req: AuthRequest, res) 
       return res.status(400).json({ error: 'Senhas são obrigatórias' });
     }
 
+    if (new_password.length < 8) {
+      return res.status(400).json({ error: 'Nova senha deve ter no mínimo 8 caracteres' });
+    }
+
     // Verificar senha atual
     const userResult = await pool.query(
       `SELECT encrypted_password FROM auth.users WHERE id = $1`,
@@ -213,25 +457,18 @@ app.post('/auth/change-password', authMiddleware, async (req: AuthRequest, res) 
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
-    const passwordResult = await pool.query(
-      `SELECT auth.verify_password($1, $2) as valid`,
-      [current_password, userResult.rows[0].encrypted_password]
-    );
-
-    if (!passwordResult.rows[0].valid) {
+    const isValidPassword = await bcrypt.compare(current_password, userResult.rows[0].encrypted_password);
+    if (!isValidPassword) {
       return res.status(401).json({ error: 'Senha atual incorreta' });
     }
 
     // Hash da nova senha
-    const hashedPasswordResult = await pool.query(
-      `SELECT auth.hash_password($1) as hashed`,
-      [new_password]
-    );
+    const hashedPassword = await bcrypt.hash(new_password, 10);
 
     // Atualizar senha
     await pool.query(
       `UPDATE auth.users SET encrypted_password = $1, updated_at = NOW() WHERE id = $2`,
-      [hashedPasswordResult.rows[0].hashed, userId]
+      [hashedPassword, userId]
     );
 
     // Remover flag must_change_password
@@ -239,6 +476,13 @@ app.post('/auth/change-password', authMiddleware, async (req: AuthRequest, res) 
       `UPDATE profiles SET must_change_password = FALSE WHERE user_id = $1`,
       [userId]
     );
+
+    // Invalidar todos os refresh tokens (forçar relogin em outros dispositivos)
+    for (const [jti, data] of refreshTokenStore.entries()) {
+      if (data.userId === userId) {
+        refreshTokenStore.delete(jti);
+      }
+    }
 
     res.json({ message: 'Senha alterada com sucesso' });
   } catch (error) {
@@ -248,7 +492,7 @@ app.post('/auth/change-password', authMiddleware, async (req: AuthRequest, res) 
 });
 
 // ============================================
-// Rotas das Edge Functions (adaptadas)
+// Edge Functions Adaptadas
 // ============================================
 
 // Validate Company Login
@@ -299,10 +543,8 @@ app.post('/functions/v1/cnpj-lookup', async (req, res) => {
       return res.status(400).json({ error: 'CNPJ é obrigatório' });
     }
 
-    // Limpar CNPJ
     const cleanCnpj = cnpj.replace(/\D/g, '');
 
-    // Consultar API externa (ReceitaWS)
     const response = await fetch(`https://receitaws.com.br/v1/cnpj/${cleanCnpj}`, {
       headers: { 'Accept': 'application/json' },
     });
@@ -331,99 +573,6 @@ app.post('/functions/v1/cnpj-lookup', async (req, res) => {
   }
 });
 
-// Sync Municipal Data
-app.post('/functions/v1/sync-municipal-data', authMiddleware, async (req: AuthRequest, res) => {
-  try {
-    const { company_id, type } = req.body;
-
-    if (!company_id || !type) {
-      return res.status(400).json({ error: 'company_id e type são obrigatórios' });
-    }
-
-    // Buscar empresa
-    const companyResult = await pool.query(
-      `SELECT id, name, city, state, parent_organization_id FROM companies WHERE id = $1`,
-      [company_id]
-    );
-
-    if (companyResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Empresa não encontrada' });
-    }
-
-    const company = companyResult.rows[0];
-    let cityName = company.city || 'Município';
-    let stateName = company.state || 'SP';
-
-    // Se for setor, buscar prefeitura pai
-    if (company.parent_organization_id) {
-      const parentResult = await pool.query(
-        `SELECT city, state FROM companies WHERE id = $1`,
-        [company.parent_organization_id]
-      );
-      if (parentResult.rows.length > 0) {
-        cityName = parentResult.rows[0].city || cityName;
-        stateName = parentResult.rows[0].state || stateName;
-      }
-    }
-
-    let count = 0;
-
-    if (type === 'schools') {
-      // Gerar escolas de exemplo
-      const sampleSchools = [
-        { name: `EMEI ${cityName} I`, school_type: 'EMEI - Escola Municipal de Educação Infantil' },
-        { name: `EMEI ${cityName} II`, school_type: 'EMEI - Escola Municipal de Educação Infantil' },
-        { name: `EMEF ${cityName} Central`, school_type: 'EMEF - Escola Municipal de Ensino Fundamental' },
-        { name: `CMEI Pequenos Passos`, school_type: 'CMEI - Centro Municipal de Educação Infantil' },
-      ];
-
-      for (const school of sampleSchools) {
-        const exists = await pool.query(
-          `SELECT id FROM schools WHERE company_id = $1 AND name = $2`,
-          [company_id, school.name]
-        );
-
-        if (exists.rows.length === 0) {
-          await pool.query(
-            `INSERT INTO schools (company_id, name, school_type, city, state, is_active)
-             VALUES ($1, $2, $3, $4, $5, true)`,
-            [company_id, school.name, school.school_type, cityName, stateName]
-          );
-          count++;
-        }
-      }
-    } else if (type === 'health_units') {
-      // Gerar unidades de saúde de exemplo
-      const sampleUnits = [
-        { name: `UBS Central ${cityName}`, unit_type: 'UBS - Unidade Básica de Saúde' },
-        { name: `UPA 24h ${cityName}`, unit_type: 'UPA - Unidade de Pronto Atendimento' },
-        { name: `Hospital Municipal de ${cityName}`, unit_type: 'Hospital Municipal' },
-      ];
-
-      for (const unit of sampleUnits) {
-        const exists = await pool.query(
-          `SELECT id FROM health_units WHERE company_id = $1 AND name = $2`,
-          [company_id, unit.name]
-        );
-
-        if (exists.rows.length === 0) {
-          await pool.query(
-            `INSERT INTO health_units (company_id, name, unit_type, city, state, is_active)
-             VALUES ($1, $2, $3, $4, $5, true)`,
-            [company_id, unit.name, unit.unit_type, cityName, stateName]
-          );
-          count++;
-        }
-      }
-    }
-
-    res.json({ success: true, count, message: `${count} registros sincronizados` });
-  } catch (error) {
-    console.error('Sync municipal data error:', error);
-    res.status(500).json({ error: 'Erro ao sincronizar dados' });
-  }
-});
-
 // ============================================
 // Health Check
 // ============================================
@@ -431,9 +580,18 @@ app.post('/functions/v1/sync-municipal-data', authMiddleware, async (req: AuthRe
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
-    res.json({ status: 'ok', database: 'connected' });
+    res.json({ 
+      status: 'ok', 
+      database: 'connected',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
   } catch (error) {
-    res.status(500).json({ status: 'error', database: 'disconnected' });
+    res.status(500).json({ 
+      status: 'error', 
+      database: 'disconnected',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
@@ -443,10 +601,16 @@ app.get('/health', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`
-╔═══════════════════════════════════════════════╗
-║  SuperPonto - Backend API                     ║
-║  Servidor rodando em http://localhost:${PORT}   ║
-╚═══════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════════════╗
+║  SuperPonto - Backend API                                 ║
+║  Servidor rodando em http://localhost:${PORT}               ║
+║                                                           ║
+║  Recursos:                                                ║
+║  • JWT com Access/Refresh Tokens                          ║
+║  • Token Rotation para segurança                          ║
+║  • Logout seguro (single e all devices)                   ║
+║  • Sessões rastreáveis                                    ║
+╚═══════════════════════════════════════════════════════════╝
   `);
 });
 
