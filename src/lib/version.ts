@@ -1,7 +1,7 @@
 // Application version configuration
-export const APP_VERSION = '1.20.3';
-export const APP_BUILD_DATE = '2026-01-22';
-export const APP_NAME = 'PontoMax';
+export const APP_VERSION = '2.0.0';
+export const APP_BUILD_DATE = '2026-01-24';
+export const APP_NAME = 'SuperPonto';
 
 // Changelog entries
 export interface ChangelogEntry {
@@ -13,6 +13,25 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '2.0.0',
+    date: '2026-01-24',
+    title: 'SuperPonto - Nova Identidade Visual',
+    type: 'major',
+    changes: [
+      'Rebranding completo para SuperPonto',
+      'Nova paleta de cores: cinza com acentos verdes',
+      'Interface minimalista e moderna',
+      'Autenticação 2FA com TOTP e códigos de backup',
+      'Login biométrico com WebAuthn/FIDO2',
+      'Dashboard de segurança com logs de acesso',
+      'Notificações de login suspeito por email',
+      'Testes de integração com Docker',
+      'Pipeline CI/CD com GitHub Actions',
+      'PDFs em formato A4 com logo personalizável',
+      'Detecção automática de proporção de tela',
+    ],
+  },
   {
     version: '1.20.3',
     date: '2026-01-22',
@@ -42,21 +61,6 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Nova página de configurações da empresa',
       'Campos obrigatórios simplificados no cadastro',
       'Correção de duplicidades no código',
-    ],
-  },
-  {
-    version: '1.20.1',
-    date: '2026-01-13',
-    title: 'Otimizações e Novos Recursos',
-    type: 'minor',
-    changes: [
-      'Novo popup "O que há de novo" após cada atualização',
-      'Manual do sistema integrado nas configurações',
-      'Reorganização completa das categorias do menu',
-      'Tela de login simplificada e otimizada',
-      'Novos cadastros: Sindicatos, Justificativas, Escalas, Percentuais',
-      'Novo módulo de Competências e Locais GPS',
-      'Melhorias gerais de interface e usabilidade',
     ],
   },
   {
