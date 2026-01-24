@@ -8,9 +8,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Download, Eye, Printer } from 'lucide-react';
 import { format, parseISO, eachDayOfInterval, isSameDay, isWeekend } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { 
+  createA4PDF, 
+  getContentStartY, 
+  addCompanyInfo, 
+  addTable, 
+  addFooter, 
+  getCompanyBranding 
+} from '@/lib/pdfUtils';
 
 interface TimeRecord {
   id: string;
@@ -147,16 +152,18 @@ export function AbsencesReport({ records, employees, holidays, companySettings, 
 
   const totals = getTotals();
 
-  const generatePDF = () => {
-    const doc = new jsPDF();
+  const generatePDF = async () => {
+    const doc = await createA4PDF({
+      title: 'Relatório de Faltas e Atrasos',
+      period: {
+        start: format(parseISO(startDate), 'dd/MM/yyyy'),
+        end: format(parseISO(endDate), 'dd/MM/yyyy'),
+      },
+    });
 
-    doc.setFontSize(16);
-    doc.text('RELATÓRIO DE FALTAS E ATRASOS', 105, 15, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Período: ${format(parseISO(startDate), 'dd/MM/yyyy')} a ${format(parseISO(endDate), 'dd/MM/yyyy')}`, 105, 22, { align: 'center' });
-
-    doc.text(`Empresa: ${companySettings?.company_name || ''}`, 14, 35);
-    doc.text(`CNPJ: ${companySettings?.cnpj || ''}`, 14, 41);
+    const branding = await getCompanyBranding();
+    let y = getContentStartY(doc);
+    y = addCompanyInfo(doc, y, branding);
 
     const tableData = absenceData.map(emp => [
       emp.name,
@@ -167,11 +174,12 @@ export function AbsencesReport({ records, employees, holidays, companySettings, 
       String(emp.absenceDays + emp.lateDays + emp.incompleteRecords),
     ]);
 
-    autoTable(doc, {
-      startY: 50,
-      head: [['Funcionário', 'Departamento', 'Faltas', 'Atrasos', 'Incompletos', 'Total']],
-      body: tableData,
-      foot: [[
+    addTable(
+      doc,
+      y,
+      [['Funcionário', 'Departamento', 'Faltas', 'Atrasos', 'Incompletos', 'Total']],
+      tableData,
+      [[
         'TOTAL',
         '',
         String(totals.absences),
@@ -179,14 +187,10 @@ export function AbsencesReport({ records, employees, holidays, companySettings, 
         String(totals.incompletes),
         String(totals.absences + totals.lates + totals.incompletes),
       ]],
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [239, 68, 68] },
-      footStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: 'bold' },
-    });
+      { headColor: [239, 68, 68] }
+    );
 
-    doc.setFontSize(8);
-    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, 105, 285, { align: 'center' });
-
+    addFooter(doc);
     doc.save(`Relatorio_Faltas_Atrasos_${format(new Date(), 'yyyyMMdd')}.pdf`);
   };
 

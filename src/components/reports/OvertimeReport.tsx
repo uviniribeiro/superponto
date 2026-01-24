@@ -8,8 +8,15 @@ import { Separator } from '@/components/ui/separator';
 import { Clock, Download, Eye, Printer, TrendingUp } from 'lucide-react';
 import { format, parseISO, differenceInMinutes, eachDayOfInterval, isSameDay, isWeekend } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { 
+  createA4PDF, 
+  getContentStartY, 
+  addCompanyInfo, 
+  addTable, 
+  addFooter, 
+  formatMinutesToHHMM,
+  getCompanyBranding 
+} from '@/lib/pdfUtils';
 
 interface TimeRecord {
   id: string;
@@ -139,9 +146,7 @@ export function OvertimeReport({ records, companySettings, startDate, endDate }:
   const overtimeData = calculateOvertime();
 
   const formatMinutes = (minutes: number): string => {
-    const hours = Math.floor(Math.abs(minutes) / 60);
-    const mins = Math.abs(minutes) % 60;
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    return formatMinutesToHHMM(minutes);
   };
 
   const getTotals = () => {
@@ -154,16 +159,18 @@ export function OvertimeReport({ records, companySettings, startDate, endDate }:
 
   const totals = getTotals();
 
-  const generatePDF = () => {
-    const doc = new jsPDF();
+  const generatePDF = async () => {
+    const doc = await createA4PDF({
+      title: 'Relatório de Horas Extras',
+      period: {
+        start: format(parseISO(startDate), 'dd/MM/yyyy'),
+        end: format(parseISO(endDate), 'dd/MM/yyyy'),
+      },
+    });
 
-    doc.setFontSize(16);
-    doc.text('RELATÓRIO DE HORAS EXTRAS', 105, 15, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Período: ${format(parseISO(startDate), 'dd/MM/yyyy')} a ${format(parseISO(endDate), 'dd/MM/yyyy')}`, 105, 22, { align: 'center' });
-
-    doc.text(`Empresa: ${companySettings?.company_name || ''}`, 14, 35);
-    doc.text(`CNPJ: ${companySettings?.cnpj || ''}`, 14, 41);
+    const branding = await getCompanyBranding();
+    let y = getContentStartY(doc);
+    y = addCompanyInfo(doc, y, branding);
 
     const tableData = overtimeData.map(emp => [
       emp.name,
@@ -173,25 +180,22 @@ export function OvertimeReport({ records, companySettings, startDate, endDate }:
       formatMinutes(emp.totalOvertimeMinutes),
     ]);
 
-    autoTable(doc, {
-      startY: 50,
-      head: [['Funcionário', 'Departamento', 'HE 50%', 'HE 100%', 'Total']],
-      body: tableData,
-      foot: [[
+    addTable(
+      doc,
+      y,
+      [['Funcionário', 'Departamento', 'HE 50%', 'HE 100%', 'Total']],
+      tableData,
+      [[
         'TOTAL',
         '',
         formatMinutes(totals.overtime50),
         formatMinutes(totals.overtime100),
         formatMinutes(totals.total),
       ]],
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [59, 130, 246] },
-      footStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: 'bold' },
-    });
+      { headColor: [16, 185, 129] }
+    );
 
-    doc.setFontSize(8);
-    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, 105, 285, { align: 'center' });
-
+    addFooter(doc);
     doc.save(`Relatorio_Horas_Extras_${format(new Date(), 'yyyyMMdd')}.pdf`);
   };
 

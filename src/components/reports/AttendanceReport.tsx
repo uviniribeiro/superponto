@@ -7,9 +7,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Users, Download, Eye, Printer, Clock } from 'lucide-react';
 import { format, parseISO, differenceInMinutes, eachDayOfInterval, isSameDay, isWeekend } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { 
+  createA4PDF, 
+  getContentStartY, 
+  addCompanyInfo, 
+  addTable, 
+  addFooter, 
+  formatMinutesToHHMM,
+  getCompanyBranding 
+} from '@/lib/pdfUtils';
 
 interface TimeRecord {
   id: string;
@@ -108,9 +114,7 @@ export function AttendanceReport({ records, employees, holidays, companySettings
   const attendanceData = calculateAttendance();
 
   const formatMinutes = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    return formatMinutesToHHMM(minutes);
   };
 
   const getAverages = () => {
@@ -127,16 +131,18 @@ export function AttendanceReport({ records, employees, holidays, companySettings
 
   const averages = getAverages();
 
-  const generatePDF = () => {
-    const doc = new jsPDF();
+  const generatePDF = async () => {
+    const doc = await createA4PDF({
+      title: 'Relatório de Frequência',
+      period: {
+        start: format(parseISO(startDate), 'dd/MM/yyyy'),
+        end: format(parseISO(endDate), 'dd/MM/yyyy'),
+      },
+    });
 
-    doc.setFontSize(16);
-    doc.text('RELATÓRIO DE FREQUÊNCIA', 105, 15, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Período: ${format(parseISO(startDate), 'dd/MM/yyyy')} a ${format(parseISO(endDate), 'dd/MM/yyyy')}`, 105, 22, { align: 'center' });
-
-    doc.text(`Empresa: ${companySettings?.company_name || ''}`, 14, 35);
-    doc.text(`CNPJ: ${companySettings?.cnpj || ''}`, 14, 41);
+    const branding = await getCompanyBranding();
+    let y = getContentStartY(doc);
+    y = addCompanyInfo(doc, y, branding);
 
     const tableData = attendanceData.map(emp => [
       emp.name,
@@ -148,21 +154,20 @@ export function AttendanceReport({ records, employees, holidays, companySettings
       `${emp.attendanceRate.toFixed(1)}%`,
     ]);
 
-    autoTable(doc, {
-      startY: 50,
-      head: [['Funcionário', 'Departamento', 'Dias Úteis', 'Presentes', 'Ausentes', 'Horas', '% Freq.']],
-      body: tableData,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [34, 197, 94] },
-    });
+    const finalY = addTable(
+      doc,
+      y,
+      [['Funcionário', 'Departamento', 'Dias Úteis', 'Presentes', 'Ausentes', 'Horas', '% Freq.']],
+      tableData,
+      undefined,
+      { headColor: [34, 197, 94] }
+    );
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-    doc.text(`Média de Frequência: ${averages.avgRate.toFixed(1)}%`, 14, finalY);
-    doc.text(`Média de Horas: ${formatMinutes(Math.round(averages.avgWorked))}`, 100, finalY);
+    doc.setFontSize(9);
+    doc.text(`Média de Frequência: ${averages.avgRate.toFixed(1)}%`, 14, finalY + 8);
+    doc.text(`Média de Horas: ${formatMinutes(Math.round(averages.avgWorked))}`, 100, finalY + 8);
 
-    doc.setFontSize(8);
-    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, 105, 285, { align: 'center' });
-
+    addFooter(doc);
     doc.save(`Relatorio_Frequencia_${format(new Date(), 'yyyyMMdd')}.pdf`);
   };
 
