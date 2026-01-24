@@ -3726,6 +3726,45 @@ export type Database = {
           },
         ]
       }
+      security_logs: {
+        Row: {
+          created_at: string | null
+          device_fingerprint: string | null
+          event_type: string
+          id: string
+          ip_address: string | null
+          location: string | null
+          metadata: Json | null
+          severity: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_fingerprint?: string | null
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          metadata?: Json | null
+          severity?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_fingerprint?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          metadata?: Json | null
+          severity?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       specialties: {
         Row: {
           code: string | null
@@ -4336,6 +4375,75 @@ export type Database = {
         }
         Relationships: []
       }
+      webauthn_challenges: {
+        Row: {
+          challenge: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          challenge: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          challenge?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      webauthn_credentials: {
+        Row: {
+          aaguid: string | null
+          counter: number | null
+          created_at: string | null
+          credential_id: string
+          device_type: string | null
+          id: string
+          last_used_at: string | null
+          name: string | null
+          public_key: string
+          transports: string[] | null
+          user_id: string
+        }
+        Insert: {
+          aaguid?: string | null
+          counter?: number | null
+          created_at?: string | null
+          credential_id: string
+          device_type?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string | null
+          public_key: string
+          transports?: string[] | null
+          user_id: string
+        }
+        Update: {
+          aaguid?: string | null
+          counter?: number | null
+          created_at?: string | null
+          credential_id?: string
+          device_type?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string | null
+          public_key?: string
+          transports?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       work_locations: {
         Row: {
           anti_passback_enabled: boolean | null
@@ -4759,6 +4867,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_suspicious_activity: {
+        Args: {
+          _ip_address: string
+          _user_id: string
+          _window_minutes?: number
+        }
+        Returns: Json
+      }
       decrypt_equipment_password: {
         Args: { encrypted_password: string }
         Returns: string
@@ -4850,6 +4966,18 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      log_security_event: {
+        Args: {
+          _event_type: string
+          _ip_address?: string
+          _location?: string
+          _metadata?: Json
+          _severity?: string
+          _user_agent?: string
+          _user_id: string
+        }
+        Returns: string
       }
     }
     Enums: {
