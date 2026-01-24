@@ -3395,12 +3395,20 @@ export type Database = {
           created_at: string
           department: string | null
           email: string
+          email_notifications_enabled: boolean | null
+          failed_login_attempts: number | null
           full_name: string
           hire_date: string | null
           id: string
           is_active: boolean
           is_system_user: boolean | null
+          last_failed_login: string | null
+          locked_until: string | null
           must_change_password: boolean | null
+          notify_backup_codes: boolean | null
+          notify_new_device: boolean | null
+          notify_password_change: boolean | null
+          notify_suspicious_login: boolean | null
           phone: string | null
           photo_url: string | null
           pis: string | null
@@ -3419,12 +3427,20 @@ export type Database = {
           created_at?: string
           department?: string | null
           email: string
+          email_notifications_enabled?: boolean | null
+          failed_login_attempts?: number | null
           full_name: string
           hire_date?: string | null
           id?: string
           is_active?: boolean
           is_system_user?: boolean | null
+          last_failed_login?: string | null
+          locked_until?: string | null
           must_change_password?: boolean | null
+          notify_backup_codes?: boolean | null
+          notify_new_device?: boolean | null
+          notify_password_change?: boolean | null
+          notify_suspicious_login?: boolean | null
           phone?: string | null
           photo_url?: string | null
           pis?: string | null
@@ -3443,12 +3459,20 @@ export type Database = {
           created_at?: string
           department?: string | null
           email?: string
+          email_notifications_enabled?: boolean | null
+          failed_login_attempts?: number | null
           full_name?: string
           hire_date?: string | null
           id?: string
           is_active?: boolean
           is_system_user?: boolean | null
+          last_failed_login?: string | null
+          locked_until?: string | null
           must_change_password?: boolean | null
+          notify_backup_codes?: boolean | null
+          notify_new_device?: boolean | null
+          notify_password_change?: boolean | null
+          notify_suspicious_login?: boolean | null
           phone?: string | null
           photo_url?: string | null
           pis?: string | null
@@ -4867,6 +4891,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_account_lockout: { Args: { _user_id: string }; Returns: Json }
       check_suspicious_activity: {
         Args: {
           _ip_address: string
@@ -4979,6 +5004,8 @@ export type Database = {
         }
         Returns: string
       }
+      record_failed_login: { Args: { _user_id: string }; Returns: Json }
+      reset_failed_login: { Args: { _user_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "manager" | "employee" | "super_admin"

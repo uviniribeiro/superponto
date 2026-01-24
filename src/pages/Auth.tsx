@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Clock, Fingerprint, Shield, Users, Building2, Landmark, GraduationCap, Heart, Palette, Bus, Settings2, Eye, EyeOff } from 'lucide-react';
+import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import superpontoLogo from '@/assets/superponto-logo.png';
 
 type LoginType = 'company' | 'city_hall' | 'super_admin';
 
@@ -50,7 +51,6 @@ export default function Auth() {
 
   useEffect(() => {
     if (!loading && user) {
-      // Check if user must change password
       if (mustChangePassword && !isSuperAdmin) {
         toast.info('Você precisa alterar sua senha antes de continuar');
         navigate('/settings');
@@ -118,9 +118,8 @@ export default function Auth() {
 
     try {
       if (loginType === 'super_admin') {
-        // Super admin login - still uses email internally
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: loginData.username, // For super admin, username is actually the email
+          email: loginData.username,
           password: loginData.password
         });
 
@@ -149,7 +148,6 @@ export default function Auth() {
           navigate('/super-admin');
         }
       } else {
-        // Company or City Hall login
         const validData = loginSchema.parse(loginData);
         const { error } = await signIn(validData.username, validData.password, validData.companyCode);
         
@@ -161,7 +159,6 @@ export default function Auth() {
           }
         } else {
           toast.success('Login realizado com sucesso!');
-          // The redirect will be handled by the useEffect based on mustChangePassword
         }
       }
     } catch (error) {
@@ -176,81 +173,79 @@ export default function Auth() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse-soft">
-          <Clock className="w-12 h-12 text-primary" />
-        </div>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
-      <div className="w-full max-w-md animate-fade-in">
-        {/* Logo and branding - minimal */}
-        <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="p-3 rounded-xl gradient-primary">
-            <Fingerprint className="w-8 h-8 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">PontoMax</h1>
-            <p className="text-xs text-muted-foreground">Sistema de Ponto Eletrônico</p>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm">
+        {/* Logo SuperPonto */}
+        <div className="flex flex-col items-center mb-8">
+          <img 
+            src={superpontoLogo} 
+            alt="SuperPonto" 
+            className="h-20 w-20 mb-3"
+          />
+          <h1 className="text-2xl font-bold text-foreground">SuperPonto</h1>
+          <p className="text-sm text-muted-foreground">Sistema de Ponto Eletrônico</p>
         </div>
 
-        <Card className="border-0 shadow-xl">
+        <Card className="border shadow-lg">
           <form onSubmit={handleLogin}>
-            <CardHeader className="pb-4">
-              <CardTitle>Bem-vindo de volta</CardTitle>
-              <CardDescription>
-                Selecione o tipo de acesso e informe suas credenciais
+            <CardHeader className="pb-4 text-center">
+              <CardTitle className="text-lg">Bem-vindo</CardTitle>
+              <CardDescription className="text-sm">
+                Entre com suas credenciais
               </CardDescription>
             </CardHeader>
             
             <CardContent className="space-y-4">
               {/* Login Type Selector */}
-              <div className="space-y-2">
-                <Label>Tipo de Acesso</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    type="button"
-                    variant={loginType === 'company' ? 'default' : 'outline'}
-                    className="flex flex-col h-auto py-3 gap-1"
-                    onClick={() => {
-                      setLoginType('company');
-                      setLoginData({ ...loginData, companyCode: '' });
-                    }}
-                  >
-                    <Building2 className="h-5 w-5" />
-                    <span className="text-xs">Empresa</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={loginType === 'city_hall' ? 'default' : 'outline'}
-                    className="flex flex-col h-auto py-3 gap-1"
-                    onClick={() => {
-                      setLoginType('city_hall');
-                      setLoginData({ ...loginData, companyCode: '' });
-                      setSelectedCityHall('');
-                    }}
-                  >
-                    <Landmark className="h-5 w-5" />
-                    <span className="text-xs">Prefeitura</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={loginType === 'super_admin' ? 'default' : 'outline'}
-                    className="flex flex-col h-auto py-3 gap-1"
-                    onClick={() => setLoginType('super_admin')}
-                  >
-                    <Shield className="h-5 w-5" />
-                    <span className="text-xs">Super Admin</span>
-                  </Button>
-                </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  type="button"
+                  variant={loginType === 'company' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex flex-col h-auto py-2.5 gap-1"
+                  onClick={() => {
+                    setLoginType('company');
+                    setLoginData({ ...loginData, companyCode: '' });
+                  }}
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span className="text-xs">Empresa</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={loginType === 'city_hall' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex flex-col h-auto py-2.5 gap-1"
+                  onClick={() => {
+                    setLoginType('city_hall');
+                    setLoginData({ ...loginData, companyCode: '' });
+                    setSelectedCityHall('');
+                  }}
+                >
+                  <Landmark className="h-4 w-4" />
+                  <span className="text-xs">Prefeitura</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={loginType === 'super_admin' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex flex-col h-auto py-2.5 gap-1"
+                  onClick={() => setLoginType('super_admin')}
+                >
+                  <Shield className="h-4 w-4" />
+                  <span className="text-xs">Admin</span>
+                </Button>
               </div>
 
               {loginType === 'company' && (
-                <div className="space-y-2">
-                  <Label htmlFor="login-company">CNPJ da Empresa</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="login-company" className="text-sm">CNPJ da Empresa</Label>
                   <Input
                     id="login-company"
                     type="text"
@@ -258,14 +253,15 @@ export default function Auth() {
                     value={loginData.companyCode}
                     onChange={(e) => setLoginData({ ...loginData, companyCode: e.target.value })}
                     required
+                    className="h-10"
                   />
                 </div>
               )}
 
               {loginType === 'city_hall' && (
                 <>
-                  <div className="space-y-2">
-                    <Label>Prefeitura</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Prefeitura</Label>
                     <Select
                       value={selectedCityHall}
                       onValueChange={(value) => {
@@ -273,7 +269,7 @@ export default function Auth() {
                         setLoginData({ ...loginData, companyCode: '' });
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10">
                         <SelectValue placeholder="Selecione a prefeitura" />
                       </SelectTrigger>
                       <SelectContent>
@@ -287,13 +283,13 @@ export default function Auth() {
                   </div>
 
                   {selectedCityHall && (
-                    <div className="space-y-2">
-                      <Label>Setor</Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Setor</Label>
                       <Select
                         value={loginData.companyCode}
                         onValueChange={(value) => setLoginData({ ...loginData, companyCode: value })}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="h-10">
                           <SelectValue placeholder="Selecione o setor" />
                         </SelectTrigger>
                         <SelectContent>
@@ -313,17 +309,11 @@ export default function Auth() {
                       </Select>
                     </div>
                   )}
-
-                  {cityHalls.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      Nenhuma prefeitura cadastrada. Entre em contato com o administrador.
-                    </p>
-                  )}
                 </>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="login-username">
+              <div className="space-y-1.5">
+                <Label htmlFor="login-username" className="text-sm">
                   {loginType === 'super_admin' ? 'Email' : 'Login'}
                 </Label>
                 <Input
@@ -333,11 +323,12 @@ export default function Auth() {
                   value={loginData.username}
                   onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
                   required
+                  className="h-10"
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="login-password">Senha</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="login-password" className="text-sm">Senha</Label>
                 <div className="relative">
                   <Input
                     id="login-password"
@@ -346,7 +337,7 @@ export default function Auth() {
                     value={loginData.password}
                     onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                     required
-                    className="pr-10"
+                    className="h-10 pr-10"
                   />
                   <button
                     type="button"
@@ -362,14 +353,25 @@ export default function Auth() {
             <CardFooter>
               <Button 
                 type="submit" 
-                className="w-full gradient-primary"
+                className="w-full h-10"
                 disabled={isLoading || (loginType === 'city_hall' && !loginData.companyCode)}
               >
-                {isLoading ? 'Entrando...' : 'Entrar'}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Entrando...
+                  </>
+                ) : (
+                  'Entrar'
+                )}
               </Button>
             </CardFooter>
           </form>
         </Card>
+
+        <p className="text-center text-xs text-muted-foreground mt-4">
+          SuperPonto v2.0.0 © 2026
+        </p>
       </div>
     </div>
   );

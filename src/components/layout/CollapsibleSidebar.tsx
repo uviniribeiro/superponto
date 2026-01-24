@@ -9,7 +9,8 @@ import { NotificationCenter } from '@/components/NotificationCenter';
 import { SupportChat } from '@/components/support/SupportChat';
 import { AnnouncementPopup } from '@/components/announcements/AnnouncementPopup';
 import { WhatsNewPopup } from '@/components/WhatsNewPopup';
-import { getVersionString } from '@/lib/version';
+import { getVersionString, APP_NAME } from '@/lib/version';
+import superpontoLogo from '@/assets/superponto-logo.png';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -394,13 +395,15 @@ export default function CollapsibleSidebar() {
         {/* Logo/Brand */}
         <div className="p-3 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img 
+              src={companySettings?.logo_url || superpontoLogo} 
+              alt={companySettings?.company_name || APP_NAME} 
+              className="h-10 w-10 rounded-lg object-contain shrink-0"
+            />
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
                 <h1 className="font-semibold text-sm text-sidebar-foreground truncate">
-                  {companySettings?.company_name || 'SuperPonto'}
+                  {companySettings?.company_name || APP_NAME}
                 </h1>
                 <p className="text-xs text-sidebar-foreground/60">Gestão de Ponto</p>
               </div>
