@@ -3389,6 +3389,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          backup_codes: string[] | null
           company_id: string | null
           cpf: string | null
           created_at: string
@@ -3405,10 +3406,14 @@ export type Database = {
           pis: string | null
           position: string | null
           registration_number: string | null
+          two_factor_enabled: boolean | null
+          two_factor_secret: string | null
+          two_factor_verified_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          backup_codes?: string[] | null
           company_id?: string | null
           cpf?: string | null
           created_at?: string
@@ -3425,10 +3430,14 @@ export type Database = {
           pis?: string | null
           position?: string | null
           registration_number?: string | null
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
+          two_factor_verified_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          backup_codes?: string[] | null
           company_id?: string | null
           cpf?: string | null
           created_at?: string
@@ -3445,6 +3454,9 @@ export type Database = {
           pis?: string | null
           position?: string | null
           registration_number?: string | null
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
+          two_factor_verified_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -4163,6 +4175,36 @@ export type Database = {
           },
         ]
       }
+      two_factor_attempts: {
+        Row: {
+          attempt_type: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          success: boolean | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          attempt_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          attempt_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       unions: {
         Row: {
           abbreviation: string
@@ -4708,6 +4750,15 @@ export type Database = {
       }
     }
     Functions: {
+      check_2fa_rate_limit: {
+        Args: {
+          _attempt_type: string
+          _max_attempts?: number
+          _user_id: string
+          _window_minutes?: number
+        }
+        Returns: boolean
+      }
       decrypt_equipment_password: {
         Args: { encrypted_password: string }
         Returns: string
@@ -4790,6 +4841,16 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_2fa_attempt: {
+        Args: {
+          _attempt_type: string
+          _ip_address?: string
+          _success: boolean
+          _user_agent?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "employee" | "super_admin"
