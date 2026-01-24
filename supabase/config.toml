@@ -1,5 +1,8 @@
 project_id = "sfbyujjvfxicuuafjtoy"
 
+[functions.two-factor-auth]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321

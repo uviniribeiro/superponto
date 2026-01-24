@@ -1,0 +1,41 @@
+# Docker Compose para Testes de Integração
+# Usa containers efêmeros para testes
+
+version: '3.8'
+
+services:
+  # PostgreSQL para testes
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: superponto-postgres-test
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: superponto_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d superponto_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  # Redis para testes (cache de sessão)
+  redis-test:
+    image: redis:7-alpine
+    container_name: superponto-redis-test
+    ports:
+      - "6380:6379"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+networks:
+  default:
+    name: superponto-test-network

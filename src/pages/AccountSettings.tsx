@@ -10,8 +10,9 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { User, Palette, FileSpreadsheet, Save, Building2, UserCog, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Palette, FileSpreadsheet, Save, Building2, UserCog, Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { TwoFactorSettings } from '@/components/auth/TwoFactorSettings';
 
 interface ImportLayout {
   id?: string;
@@ -294,22 +295,26 @@ export default function AccountSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
-            Perfil
+            <span className="hidden sm:inline">Perfil</span>
           </TabsTrigger>
           <TabsTrigger value="security" className="gap-2">
             <Lock className="h-4 w-4" />
-            Segurança
+            <span className="hidden sm:inline">Segurança</span>
+          </TabsTrigger>
+          <TabsTrigger value="2fa" className="gap-2">
+            <Shield className="h-4 w-4" />
+            <span className="hidden sm:inline">2FA</span>
           </TabsTrigger>
           <TabsTrigger value="personalization" className="gap-2">
             <Palette className="h-4 w-4" />
-            Personalização
+            <span className="hidden sm:inline">Personalização</span>
           </TabsTrigger>
           <TabsTrigger value="import-layouts" className="gap-2">
             <FileSpreadsheet className="h-4 w-4" />
-            Layouts
+            <span className="hidden sm:inline">Layouts</span>
           </TabsTrigger>
         </TabsList>
 
@@ -404,6 +409,10 @@ export default function AccountSettings() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="2fa" className="space-y-4 mt-6">
+          <TwoFactorSettings />
         </TabsContent>
 
         <TabsContent value="personalization" className="space-y-4 mt-6">
