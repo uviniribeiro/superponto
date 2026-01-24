@@ -102,6 +102,7 @@ import EquipmentStatus from "@/pages/equipment/EquipmentStatus";
 import EquipmentSync from "@/pages/equipment/EquipmentSync";
 import EquipmentHelp from "@/pages/equipment/EquipmentHelp";
 import MTECompliancePanel from "@/pages/equipment/MTECompliancePanel";
+import SecurityDashboard from "@/pages/SecurityDashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -213,6 +214,7 @@ const App = () => (
                 <Route path="overtime-percentages" element={<ProtectedRoute requiredRoles={['admin']}><OvertimePercentages /></ProtectedRoute>} />
                 <Route path="competency-periods" element={<ProtectedRoute requiredRoles={['admin']}><CompetencyPeriods /></ProtectedRoute>} />
                 <Route path="georeferenced-locations" element={<ProtectedRoute requiredRoles={['admin']}><GeoreferencedLocations /></ProtectedRoute>} />
+                <Route path="security" element={<SecurityDashboard />} />
                 <Route path="system-manual" element={<SystemManual />} />
                 {/* Individual Report Routes */}
                 <Route path="reports/mirror-point" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><MirrorPointPage /></ProtectedRoute>} />
