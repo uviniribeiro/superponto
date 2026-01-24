@@ -7,9 +7,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Wallet, Download, Eye, Printer } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { 
+  createA4PDF, 
+  getContentStartY, 
+  addCompanyInfo, 
+  addTable, 
+  addFooter, 
+  getCompanyBranding 
+} from '@/lib/pdfUtils';
 
 interface TimeBankEntry {
   profile_id: string;
@@ -56,16 +61,18 @@ export function TimeBankReport({ entries, companySettings, startDate, endDate }:
   const positiveCount = entries.filter(e => e.balance_minutes > 0).length;
   const negativeCount = entries.filter(e => e.balance_minutes < 0).length;
 
-  const generatePDF = () => {
-    const doc = new jsPDF();
+  const generatePDF = async () => {
+    const doc = await createA4PDF({
+      title: 'Relatório de Banco de Horas',
+      period: {
+        start: format(parseISO(startDate), 'dd/MM/yyyy'),
+        end: format(parseISO(endDate), 'dd/MM/yyyy'),
+      },
+    });
 
-    doc.setFontSize(16);
-    doc.text('RELATÓRIO DE BANCO DE HORAS', 105, 15, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Período: ${format(parseISO(startDate), 'dd/MM/yyyy')} a ${format(parseISO(endDate), 'dd/MM/yyyy')}`, 105, 22, { align: 'center' });
-
-    doc.text(`Empresa: ${companySettings?.company_name || ''}`, 14, 35);
-    doc.text(`CNPJ: ${companySettings?.cnpj || ''}`, 14, 41);
+    const branding = await getCompanyBranding();
+    let y = getContentStartY(doc);
+    y = addCompanyInfo(doc, y, branding);
 
     const tableData = entries.map(entry => [
       entry.profiles?.full_name || 'N/A',
@@ -75,25 +82,22 @@ export function TimeBankReport({ entries, companySettings, startDate, endDate }:
       formatMinutes(entry.balance_minutes),
     ]);
 
-    autoTable(doc, {
-      startY: 50,
-      head: [['Funcionário', 'Departamento', 'Crédito', 'Débito', 'Saldo']],
-      body: tableData,
-      foot: [[
+    addTable(
+      doc,
+      y,
+      [['Funcionário', 'Departamento', 'Crédito', 'Débito', 'Saldo']],
+      tableData,
+      [[
         'TOTAL',
         '',
         formatMinutes(totals.totalCredit),
         formatMinutes(-totals.totalDebit),
         formatMinutes(totals.totalBalance),
       ]],
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [124, 58, 237] },
-      footStyles: { fillColor: [229, 231, 235], textColor: [0, 0, 0], fontStyle: 'bold' },
-    });
+      { headColor: [124, 58, 237] }
+    );
 
-    doc.setFontSize(8);
-    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, 105, 285, { align: 'center' });
-
+    addFooter(doc);
     doc.save(`Relatorio_Banco_Horas_${format(new Date(), 'yyyyMMdd')}.pdf`);
   };
 

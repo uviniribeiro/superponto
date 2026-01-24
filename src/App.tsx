@@ -8,35 +8,70 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import SuperAdminProtectedRoute from "@/components/SuperAdminProtectedRoute";
 import CollapsibleSidebar from "@/components/layout/CollapsibleSidebar";
-import NewAppLayout from "@/components/layout/NewAppLayout";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 import { GuidedTourButton } from "@/components/GuidedTour";
+
+// Auth
 import Auth from "@/pages/Auth";
+import SuperAdminAuth from "@/pages/SuperAdminAuth";
+
+// Core pages
 import Dashboard from "@/pages/Dashboard";
 import Home from "@/pages/Home";
 import TimeClock from "@/pages/TimeClock";
 import MyRecords from "@/pages/MyRecords";
+import NotFound from "@/pages/NotFound";
+
+// Employee Management
 import Employees from "@/pages/Employees";
 import RegisterEmployee from "@/pages/RegisterEmployee";
-import WorkSchedules from "@/pages/WorkSchedules";
-import Adjustments from "@/pages/Adjustments";
-import Reports from "@/pages/Reports";
-import MirrorPoint from "@/pages/MirrorPoint";
+import Users from "@/pages/Users";
+
+// Configuration
 import Company from "@/pages/Company";
+import NewCompanySettings from "@/pages/NewCompanySettings";
+import AccountSettings from "@/pages/AccountSettings";
+import WorkSchedules from "@/pages/WorkSchedules";
 import Holidays from "@/pages/Holidays";
+import NewPositionsDepartments from "@/pages/NewPositionsDepartments";
+import NewDepartments from "@/pages/NewDepartments";
+import NewScales from "@/pages/NewScales";
+import Scales from "@/pages/Scales";
+
+// Time Management
+import Adjustments from "@/pages/Adjustments";
+import MirrorPoint from "@/pages/MirrorPoint";
 import TimeBank from "@/pages/TimeBank";
 import Absences from "@/pages/Absences";
-import Users from "@/pages/Users";
 import OvertimeDashboard from "@/pages/OvertimeDashboard";
-import PositionsDepartments from "@/pages/PositionsDepartments";
-import NewPositionsDepartments from "@/pages/NewPositionsDepartments";
-import SuperAdminAuth from "@/pages/SuperAdminAuth";
-import SuperAdminDashboard from "@/pages/superadmin/Dashboard";
-import SuperAdminCompanies from "@/pages/superadmin/Companies";
-import SuperAdminCityHalls from "@/pages/superadmin/CityHalls";
-import SuperAdminLicenses from "@/pages/superadmin/Licenses";
-import SuperAdminUsers from "@/pages/superadmin/SuperAdminUsers";
-import TeacherModule from "@/pages/TeacherModule";
+import Timesheet from "@/pages/Timesheet";
+import LeaveManagement from "@/pages/LeaveManagement";
+
+// Basic Registrations
+import BasicRegistrations from "@/pages/BasicRegistrations";
+import Unions from "@/pages/Unions";
+import Justifications from "@/pages/Justifications";
+import OvertimePercentages from "@/pages/OvertimePercentages";
+import CompetencyPeriods from "@/pages/CompetencyPeriods";
+import GeoreferencedLocations from "@/pages/GeoreferencedLocations";
+import IdentificationMethods from "@/pages/IdentificationMethods";
+
+// Reports
+import NewReports from "@/pages/NewReports";
+import MirrorPointPage from "@/pages/reports/MirrorPointPage";
+import WorkedHoursPage from "@/pages/reports/WorkedHoursPage";
+import OvertimePage from "@/pages/reports/OvertimePage";
+import AbsencesPage from "@/pages/reports/AbsencesPage";
+import AttendancePage from "@/pages/reports/AttendancePage";
+import TimeBankPage from "@/pages/reports/TimeBankPage";
+import MTEExportsPage from "@/pages/reports/MTEExportsPage";
+
+// Import/Export
+import ImportExport from "@/pages/ImportExport";
+import PayrollExports from "@/pages/PayrollExports";
+import CategoryPage from "@/pages/CategoryPage";
+
+// Teacher Module
 import NewTeacherModule from "@/pages/teacher/NewTeacherModule";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import TeacherSchedule from "@/pages/teacher/TeacherSchedule";
@@ -45,6 +80,7 @@ import TeacherLessonPlans from "@/pages/teacher/TeacherLessonPlans";
 import TeacherMirror from "@/pages/teacher/TeacherMirror";
 import TeacherSummary from "@/pages/teacher/TeacherSummary";
 import TeacherSchools from "@/pages/teacher/TeacherSchools";
+
 // Doctor Module
 import DoctorModule from "@/pages/doctor/DoctorModule";
 import DoctorDashboard from "@/pages/doctor/DoctorDashboard";
@@ -53,46 +89,13 @@ import DoctorShifts from "@/pages/doctor/DoctorShifts";
 import DoctorMirror from "@/pages/doctor/DoctorMirror";
 import DoctorSummary from "@/pages/doctor/DoctorSummary";
 import DoctorHealthUnits from "@/pages/doctor/DoctorHealthUnits";
+
 // Payroll Module
 import PayrollModule from "@/pages/payroll/PayrollModule";
 import PayrollDashboard from "@/pages/payroll/PayrollDashboard";
 import PayrollCreate from "@/pages/payroll/PayrollCreate";
-import Timesheet from "@/pages/Timesheet";
-import ImportExport from "@/pages/ImportExport";
-import CategoryPage from "@/pages/CategoryPage";
-import AccountSettings from "@/pages/AccountSettings";
-import NotFound from "@/pages/NotFound";
-import LeaveManagement from "@/pages/LeaveManagement";
-import PayrollExports from "@/pages/PayrollExports";
-import IdentificationMethods from "@/pages/IdentificationMethods";
-import BasicRegistrations from "@/pages/BasicRegistrations";
-import Unions from "@/pages/Unions";
-import Justifications from "@/pages/Justifications";
-import Scales from "@/pages/Scales";
-import OvertimePercentages from "@/pages/OvertimePercentages";
-import CompetencyPeriods from "@/pages/CompetencyPeriods";
-import GeoreferencedLocations from "@/pages/GeoreferencedLocations";
-import SystemManual from "@/pages/SystemManual";
-// New redesigned pages
-import NewReports from "@/pages/NewReports";
-import NewDepartments from "@/pages/NewDepartments";
-import NewScales from "@/pages/NewScales";
-import NewCompanySettings from "@/pages/NewCompanySettings";
-// Report pages
-import MirrorPointPage from "@/pages/reports/MirrorPointPage";
-import WorkedHoursPage from "@/pages/reports/WorkedHoursPage";
-import OvertimePage from "@/pages/reports/OvertimePage";
-import AbsencesPage from "@/pages/reports/AbsencesPage";
-import AttendancePage from "@/pages/reports/AttendancePage";
-import TimeBankPage from "@/pages/reports/TimeBankPage";
-import MTEExportsPage from "@/pages/reports/MTEExportsPage";
-// Legal pages
-import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
-import TermsOfService from "@/pages/legal/TermsOfService";
-import DataProcessingTerms from "@/pages/legal/DataProcessingTerms";
-import CookiePolicy from "@/pages/legal/CookiePolicy";
 
-// Equipment pages
+// Equipment
 import EquipmentList from "@/pages/equipment/EquipmentList";
 import EquipmentAdd from "@/pages/equipment/EquipmentAdd";
 import EquipmentEmployees from "@/pages/equipment/EquipmentEmployees";
@@ -102,7 +105,23 @@ import EquipmentStatus from "@/pages/equipment/EquipmentStatus";
 import EquipmentSync from "@/pages/equipment/EquipmentSync";
 import EquipmentHelp from "@/pages/equipment/EquipmentHelp";
 import MTECompliancePanel from "@/pages/equipment/MTECompliancePanel";
+
+// Security & Help
 import SecurityDashboard from "@/pages/SecurityDashboard";
+import SystemManual from "@/pages/SystemManual";
+
+// Super Admin
+import SuperAdminDashboard from "@/pages/superadmin/Dashboard";
+import SuperAdminCompanies from "@/pages/superadmin/Companies";
+import SuperAdminCityHalls from "@/pages/superadmin/CityHalls";
+import SuperAdminLicenses from "@/pages/superadmin/Licenses";
+import SuperAdminUsers from "@/pages/superadmin/SuperAdminUsers";
+
+// Legal pages
+import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
+import TermsOfService from "@/pages/legal/TermsOfService";
+import DataProcessingTerms from "@/pages/legal/DataProcessingTerms";
+import CookiePolicy from "@/pages/legal/CookiePolicy";
 
 const queryClient = new QueryClient({
   defaultOptions: {

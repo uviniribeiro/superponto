@@ -10,9 +10,10 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { User, Palette, FileSpreadsheet, Save, Building2, UserCog, Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import { User, Palette, FileSpreadsheet, Save, Building2, UserCog, Lock, Eye, EyeOff, Shield, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { TwoFactorSettings } from '@/components/auth/TwoFactorSettings';
+import { EmailNotificationSettings } from '@/components/settings/EmailNotificationSettings';
 
 interface ImportLayout {
   id?: string;
@@ -295,7 +296,7 @@ export default function AccountSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Perfil</span>
@@ -308,9 +309,13 @@ export default function AccountSettings() {
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">2FA</span>
           </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4" />
+            <span className="hidden sm:inline">Notificações</span>
+          </TabsTrigger>
           <TabsTrigger value="personalization" className="gap-2">
             <Palette className="h-4 w-4" />
-            <span className="hidden sm:inline">Personalização</span>
+            <span className="hidden sm:inline">Preferências</span>
           </TabsTrigger>
           <TabsTrigger value="import-layouts" className="gap-2">
             <FileSpreadsheet className="h-4 w-4" />
@@ -413,6 +418,10 @@ export default function AccountSettings() {
 
         <TabsContent value="2fa" className="space-y-4 mt-6">
           <TwoFactorSettings />
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-4 mt-6">
+          <EmailNotificationSettings />
         </TabsContent>
 
         <TabsContent value="personalization" className="space-y-4 mt-6">
