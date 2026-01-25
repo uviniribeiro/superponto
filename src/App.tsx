@@ -55,6 +55,10 @@ import OvertimePercentages from "@/pages/OvertimePercentages";
 import CompetencyPeriods from "@/pages/CompetencyPeriods";
 import GeoreferencedLocations from "@/pages/GeoreferencedLocations";
 import IdentificationMethods from "@/pages/IdentificationMethods";
+import Vacations from "@/pages/Vacations";
+import PresenceMonitoring from "@/pages/PresenceMonitoring";
+import WorkStations from "@/pages/WorkStations";
+import CustomNotifications from "@/pages/CustomNotifications";
 
 // Reports
 import NewReports from "@/pages/NewReports";
@@ -238,6 +242,10 @@ const App = () => (
                 <Route path="overtime-percentages" element={<ProtectedRoute requiredRoles={['admin']}><OvertimePercentages /></ProtectedRoute>} />
                 <Route path="competency-periods" element={<ProtectedRoute requiredRoles={['admin']}><CompetencyPeriods /></ProtectedRoute>} />
                 <Route path="georeferenced-locations" element={<ProtectedRoute requiredRoles={['admin']}><GeoreferencedLocations /></ProtectedRoute>} />
+                <Route path="vacations" element={<Vacations />} />
+                <Route path="presence-monitoring" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><PresenceMonitoring /></ProtectedRoute>} />
+                <Route path="work-stations" element={<ProtectedRoute requiredRoles={['admin']}><WorkStations /></ProtectedRoute>} />
+                <Route path="custom-notifications" element={<ProtectedRoute requiredRoles={['admin']}><CustomNotifications /></ProtectedRoute>} />
                 <Route path="security" element={<SecurityDashboard />} />
                 <Route path="system-manual" element={<SystemManual />} />
                 {/* Homologation & Cards Routes */}

@@ -158,12 +158,24 @@ const menuCategories: MenuCategory[] = [
   },
   {
     id: 'afastamentos',
-    title: 'Afastamentos',
+    title: 'Afastamentos e Férias',
     icon: UserX,
-    roles: ['admin', 'manager'],
+    roles: ['admin', 'manager', 'employee'],
     items: [
       { title: 'Gestão de Afastamentos', icon: UserX, href: '/leave-management', roles: ['admin', 'manager'] },
       { title: 'Faltas e Ausências', icon: Calendar, href: '/absences', roles: ['admin', 'manager'] },
+      { title: 'Férias', icon: CalendarDays, href: '/vacations', roles: ['admin', 'manager', 'employee'] },
+    ]
+  },
+  {
+    id: 'monitoramento',
+    title: 'Monitoramento',
+    icon: Activity,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Central de Presença', icon: Users, href: '/presence-monitoring', roles: ['admin', 'manager'] },
+      { title: 'Postos de Trabalho', icon: MapPin, href: '/work-stations', roles: ['admin'] },
+      { title: 'Notificações', icon: Bell, href: '/custom-notifications', roles: ['admin'] },
     ]
   },
   {

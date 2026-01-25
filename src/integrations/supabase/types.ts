@@ -818,6 +818,79 @@ export type Database = {
           },
         ]
       }
+      custom_notifications: {
+        Row: {
+          app_enabled: boolean
+          company_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          email_enabled: boolean
+          id: string
+          is_active: boolean
+          name: string
+          notification_type: string
+          recipients: Json | null
+          schedule: string | null
+          trigger_condition: Json | null
+          updated_at: string
+        }
+        Insert: {
+          app_enabled?: boolean
+          company_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          email_enabled?: boolean
+          id?: string
+          is_active?: boolean
+          name: string
+          notification_type: string
+          recipients?: Json | null
+          schedule?: string | null
+          trigger_condition?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          app_enabled?: boolean
+          company_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          email_enabled?: boolean
+          id?: string
+          is_active?: boolean
+          name?: string
+          notification_type?: string
+          recipients?: Json | null
+          schedule?: string | null
+          trigger_condition?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_notifications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_notifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_notifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           company_id: string | null
@@ -1642,6 +1715,68 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_work_stations: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          profile_id: string
+          start_date: string
+          work_station_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          profile_id: string
+          start_date?: string
+          work_station_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          profile_id?: string
+          start_date?: string
+          work_station_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_work_stations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_work_stations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_work_stations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_work_stations_work_station_id_fkey"
+            columns: ["work_station_id"]
+            isOneToOne: false
+            referencedRelation: "work_stations"
             referencedColumns: ["id"]
           },
         ]
@@ -2789,6 +2924,83 @@ export type Database = {
             columns: ["shift_configuration_id"]
             isOneToOne: false
             referencedRelation: "medical_shift_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_logs: {
+        Row: {
+          channel: string
+          company_id: string | null
+          content: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          notification_id: string | null
+          notification_type: string
+          read_at: string | null
+          recipient_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          channel: string
+          company_id?: string | null
+          content?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          notification_id?: string | null
+          notification_type: string
+          read_at?: string | null
+          recipient_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          channel?: string
+          company_id?: string | null
+          content?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          notification_id?: string | null
+          notification_type?: string
+          read_at?: string | null
+          recipient_id?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "custom_notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_logs_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -4662,6 +4874,50 @@ export type Database = {
           },
         ]
       }
+      turnover_metrics: {
+        Row: {
+          calculated_at: string
+          company_id: string | null
+          id: string
+          new_hires: number
+          period_month: number
+          period_year: number
+          terminations: number
+          total_employees: number
+          turnover_rate: number | null
+        }
+        Insert: {
+          calculated_at?: string
+          company_id?: string | null
+          id?: string
+          new_hires?: number
+          period_month: number
+          period_year: number
+          terminations?: number
+          total_employees?: number
+          turnover_rate?: number | null
+        }
+        Update: {
+          calculated_at?: string
+          company_id?: string | null
+          id?: string
+          new_hires?: number
+          period_month?: number
+          period_year?: number
+          terminations?: number
+          total_employees?: number
+          turnover_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turnover_metrics_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       two_factor_attempts: {
         Row: {
           attempt_type: string
@@ -4822,6 +5078,163 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vacation_periods: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          days_entitled: number
+          days_remaining: number | null
+          days_taken: number
+          id: string
+          period_end: string
+          period_start: string
+          profile_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          days_entitled?: number
+          days_remaining?: number | null
+          days_taken?: number
+          id?: string
+          period_end: string
+          period_start: string
+          profile_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          days_entitled?: number
+          days_remaining?: number | null
+          days_taken?: number
+          id?: string
+          period_end?: string
+          period_start?: string
+          profile_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_periods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_periods_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_periods_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_requests: {
+        Row: {
+          acquisition_period_end: string
+          acquisition_period_start: string
+          company_id: string | null
+          created_at: string
+          days_available: number
+          days_requested: number
+          id: string
+          profile_id: string
+          requested_at: string
+          requested_end_date: string
+          requested_start_date: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          acquisition_period_end: string
+          acquisition_period_start: string
+          company_id?: string | null
+          created_at?: string
+          days_available: number
+          days_requested: number
+          id?: string
+          profile_id: string
+          requested_at?: string
+          requested_end_date: string
+          requested_start_date: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          acquisition_period_end?: string
+          acquisition_period_start?: string
+          company_id?: string | null
+          created_at?: string
+          days_available?: number
+          days_requested?: number
+          id?: string
+          profile_id?: string
+          requested_at?: string
+          requested_end_date?: string
+          requested_start_date?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webauthn_challenges: {
         Row: {
@@ -5079,6 +5492,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "work_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_stations: {
+        Row: {
+          address: string | null
+          category: string | null
+          city: string | null
+          company_id: string | null
+          created_at: string
+          description: string | null
+          group_name: string | null
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          radius_meters: number
+          state: string | null
+          updated_at: string
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          city?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          group_name?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          radius_meters?: number
+          state?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          city?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          group_name?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          radius_meters?: number
+          state?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_stations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
