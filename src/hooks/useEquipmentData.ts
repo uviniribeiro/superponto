@@ -124,6 +124,19 @@ export const EQUIPMENT_CATALOG = [
       { value: 'ss_611', label: 'SS 611', port: 80, protocol: 'http', endpoint: '/api/records' },
     ],
   },
+  // BIOMTECH - Brazilian manufacturer (facial recognition pioneer)
+  {
+    manufacturer: 'biomtech',
+    label: 'Biomtech',
+    models: [
+      { value: 'faceschool', label: 'faceSchool', port: 443, protocol: 'https', endpoint: '/api/v1/attendance' },
+      { value: 'facejus', label: 'faceJus', port: 443, protocol: 'https', endpoint: '/api/v1/attendance' },
+      { value: 'facepoint', label: 'facePoint', port: 443, protocol: 'https', endpoint: '/api/v1/attendance' },
+      { value: 'facecorp', label: 'faceCorp', port: 443, protocol: 'https', endpoint: '/api/v1/attendance' },
+      { value: 'facepass', label: 'facePass', port: 443, protocol: 'https', endpoint: '/api/v1/access' },
+      { value: 'biomtech_terminal', label: 'Terminal Biomtech', port: 443, protocol: 'https', endpoint: '/api/v1/attendance' },
+    ],
+  },
   {
     manufacturer: 'generic',
     label: 'Genérico (HTTP)',

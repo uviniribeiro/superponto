@@ -115,6 +115,55 @@ const parseRecords = (manufacturer: string, data: any): Array<{ identifier: stri
           }
         }
         break;
+      
+      case 'biomtech':
+        // Parse Biomtech JSON response (faceSchool, faceJus, etc.)
+        // Biomtech uses alphanumeric serial numbers and unique person IDs
+        if (Array.isArray(data)) {
+          for (const record of data) {
+            // Biomtech may use: person_id, user_id, employee_id, enrollment_id (alphanumeric)
+            const id = record.person_id || record.user_id || record.employee_id || 
+                       record.enrollment_id || record.id || '';
+            const time = record.timestamp || record.datetime || record.time || 
+                         record.created_at || record.recorded_at;
+            if (id && time) {
+              records.push({
+                identifier: String(id), // Keep alphanumeric ID as-is
+                recordedAt: new Date(time),
+                recordType: record.event_type || record.type,
+              });
+            }
+          }
+        } else if (data?.records && Array.isArray(data.records)) {
+          for (const record of data.records) {
+            const id = record.person_id || record.user_id || record.employee_id || 
+                       record.enrollment_id || record.id || '';
+            const time = record.timestamp || record.datetime || record.time || 
+                         record.created_at || record.recorded_at;
+            if (id && time) {
+              records.push({
+                identifier: String(id),
+                recordedAt: new Date(time),
+                recordType: record.event_type || record.type,
+              });
+            }
+          }
+        } else if (data?.data && Array.isArray(data.data)) {
+          for (const record of data.data) {
+            const id = record.person_id || record.user_id || record.employee_id || 
+                       record.enrollment_id || record.id || '';
+            const time = record.timestamp || record.datetime || record.time || 
+                         record.created_at || record.recorded_at;
+            if (id && time) {
+              records.push({
+                identifier: String(id),
+                recordedAt: new Date(time),
+                recordType: record.event_type || record.type,
+              });
+            }
+          }
+        }
+        break;
         
       default:
         // Generic JSON parsing
@@ -339,6 +388,37 @@ const manufacturerHandlers: Record<string, (equipment: any) => Promise<any>> = {
     }
   },
 
+  // Biomtech (faceSchool, faceJus, facePoint, faceCorp, facePass)
+  biomtech: async (equipment) => {
+    const url = `${equipment.protocol}://${equipment.ip_address}:${equipment.port}${equipment.api_endpoint || '/api/v1/attendance'}`;
+    try {
+      // Biomtech uses REST API with API Key authentication
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      
+      // Support multiple auth methods
+      if (equipment.password) {
+        headers['X-API-Key'] = equipment.password;
+        headers['Authorization'] = `Bearer ${equipment.password}`;
+      }
+      if (equipment.username) {
+        headers['X-Device-Serial'] = equipment.username; // Serial number as device identifier
+      }
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+      
+      const data = await response.json();
+      return { online: response.ok, data, records: parseRecords('biomtech', data) };
+    } catch (error) {
+      return { online: false, error: getErrorMessage(error), records: [] };
+    }
+  },
+
   // Generic HTTP/REST
   generic: async (equipment) => {
     const url = `${equipment.protocol}://${equipment.ip_address}:${equipment.port}${equipment.api_endpoint || '/'}`;
@@ -365,17 +445,20 @@ const manufacturerHandlers: Record<string, (equipment: any) => Promise<any>> = {
 };
 
 // Find employee profile - Priority: registration_number > PIS > CPF
+// Now supports alphanumeric identifiers (e.g., Biomtech devices)
 const findEmployeeProfile = async (supabase: any, identifier: string, companyId: string | null) => {
-  // Clean up identifier (remove dots, dashes, etc.)
-  const cleanIdentifier = identifier.replace(/[^\d]/g, '');
+  // Preserve original identifier for alphanumeric matching
+  const originalIdentifier = identifier.trim();
+  // Clean up identifier for numeric-only matching (remove dots, dashes, etc.)
+  const numericIdentifier = identifier.replace(/[^\d]/g, '');
   
-  if (!cleanIdentifier) return null;
+  if (!originalIdentifier) return null;
   
-  // First priority: Try to find by registration_number (matrícula)
+  // First priority: Try to find by registration_number with ORIGINAL identifier (supports alphanumeric)
   let query = supabase
     .from('profiles')
     .select('id, full_name, pis, cpf, registration_number, company_id')
-    .eq('registration_number', cleanIdentifier);
+    .eq('registration_number', originalIdentifier);
   
   if (companyId) {
     query = query.eq('company_id', companyId);
@@ -384,20 +467,45 @@ const findEmployeeProfile = async (supabase: any, identifier: string, companyId:
   let { data, error } = await query.maybeSingle();
   
   if (error) {
-    console.error('Error finding employee by registration_number:', error.message);
+    console.error('Error finding employee by registration_number (original):', error.message);
   }
   
-  // If found by registration_number, return immediately
+  // If found by original registration_number, return immediately
   if (data) {
-    console.log(`Employee found by registration_number: ${data.full_name}`);
+    console.log(`Employee found by registration_number (original): ${data.full_name}`);
     return data;
+  }
+  
+  // Try with numeric-only version if different
+  if (numericIdentifier && numericIdentifier !== originalIdentifier) {
+    query = supabase
+      .from('profiles')
+      .select('id, full_name, pis, cpf, registration_number, company_id')
+      .eq('registration_number', numericIdentifier);
+    
+    if (companyId) {
+      query = query.eq('company_id', companyId);
+    }
+    
+    ({ data, error } = await query.maybeSingle());
+    
+    if (data) {
+      console.log(`Employee found by registration_number (numeric): ${data.full_name}`);
+      return data;
+    }
+  }
+  
+  // Only continue with PIS/CPF if we have numeric digits
+  if (!numericIdentifier) {
+    console.log(`No numeric identifier found for: ${originalIdentifier}`);
+    return null;
   }
   
   // Second priority: Try to find by PIS
   query = supabase
     .from('profiles')
     .select('id, full_name, pis, cpf, registration_number, company_id')
-    .eq('pis', cleanIdentifier);
+    .eq('pis', numericIdentifier);
   
   if (companyId) {
     query = query.eq('company_id', companyId);
@@ -419,7 +527,7 @@ const findEmployeeProfile = async (supabase: any, identifier: string, companyId:
   query = supabase
     .from('profiles')
     .select('id, full_name, pis, cpf, registration_number, company_id')
-    .eq('cpf', cleanIdentifier);
+    .eq('cpf', numericIdentifier);
   
   if (companyId) {
     query = query.eq('company_id', companyId);

@@ -75,6 +75,8 @@ FABRICANTES SUPORTADOS
 • RWTech
 • Secullum (REP 4, REP Bio)
 • Anviz (C2 Pro, FacePass)
+• Biomtech (faceSchool, faceJus, facePoint, faceCorp, facePass)
+  * Suporte a números de série alfanuméricos
 
 SOLUÇÃO DE PROBLEMAS
 --------------------
