@@ -10,7 +10,7 @@ import { SupportChat } from '@/components/support/SupportChat';
 import { AnnouncementPopup } from '@/components/announcements/AnnouncementPopup';
 import { WhatsNewPopup } from '@/components/WhatsNewPopup';
 import { getVersionString, APP_NAME } from '@/lib/version';
-import superpontoLogo from '@/assets/superponto-logo.png';
+import superpontoLogo from '@/assets/superponto-logo-new.png';
 import {
   DropdownMenu,
   DropdownMenuContent,

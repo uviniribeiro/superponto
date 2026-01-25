@@ -1,6 +1,6 @@
 // Application version configuration
-export const APP_VERSION = '2.0.0';
-export const APP_BUILD_DATE = '2026-01-24';
+export const APP_VERSION = '2.1.0';
+export const APP_BUILD_DATE = '2026-01-25';
 export const APP_NAME = 'SuperPonto';
 
 // Changelog entries
@@ -13,6 +13,22 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '2.1.0',
+    date: '2026-01-25',
+    title: 'Homologação de Ponto e Correções de Segurança',
+    type: 'minor',
+    changes: [
+      'Nova logo profissional SuperPonto',
+      'Fluxo completo de homologação de ponto mensal',
+      'Gestão de cartões de ponto com assinaturas',
+      'Registro de ocorrências com justificativas',
+      'Correção de vulnerabilidades em views seguras',
+      'Views profiles_secure, equipment_secure e payroll_secure protegidas',
+      'Padronização visual de todas as páginas novas',
+      'Limpeza de código duplicado e arquivos obsoletos',
+    ],
+  },
   {
     version: '2.0.0',
     date: '2026-01-24',

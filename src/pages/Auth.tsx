@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2 } from 'lucide-react';
 import { z } from 'zod';
-import superpontoLogo from '@/assets/superponto-logo.png';
+import superpontoLogo from '@/assets/superponto-logo-new.png';
 
 type LoginType = 'company' | 'city_hall' | 'super_admin';
 
