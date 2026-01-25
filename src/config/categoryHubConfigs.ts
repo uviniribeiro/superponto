@@ -89,6 +89,8 @@ export const cadastrosHubConfig: CategoryHubConfig = {
         { title: 'Feriados', description: 'Calendário de feriados nacionais e locais', icon: CalendarDays, href: '/holidays', color: 'text-red-600' },
         { title: 'Justificativas', description: 'Tipos de justificativas para ausências', icon: ClipboardCheck, href: '/justifications', color: 'text-purple-600' },
         { title: 'Tipos de Funcionário', description: 'Categorias de vínculo empregatício', icon: UserCog, href: '/basic-registrations', color: 'text-orange-600' },
+        { title: 'Estados Civis', description: 'Cadastro de estados civis', icon: Users, href: '/marital-statuses', color: 'text-pink-600' },
+        { title: 'Cidades', description: 'Cadastro de cidades', icon: MapPin, href: '/cities', color: 'text-cyan-600' },
       ],
     },
   ],
@@ -208,7 +210,17 @@ export const bancoHorasHubConfig: CategoryHubConfig = {
       subtitle: 'Controle do banco de horas',
       items: [
         { title: 'Banco de Horas', description: 'Saldo e movimentação de horas', icon: Timer, href: '/time-bank', color: 'text-violet-600' },
+        { title: 'Banco Compensação', description: 'Créditos e débitos de horas', icon: Scale, href: '/compensation-bank', color: 'text-blue-600' },
         { title: 'Dashboard HE', description: 'Visão gerencial de horas extras', icon: BarChart3, href: '/overtime-dashboard', color: 'text-emerald-600' },
+      ],
+    },
+    {
+      title: 'Movimentações Especiais',
+      subtitle: 'Hora in itinere, sobreaviso e abonos',
+      items: [
+        { title: 'Hora In Itinere', description: 'Tempo de deslocamento (CLT Art. 58)', icon: Clock, href: '/commute-time', color: 'text-amber-600' },
+        { title: 'Sobre Aviso', description: 'Escalas de sobreaviso', icon: Bell, href: '/on-call-schedules', color: 'text-orange-600' },
+        { title: 'Abono em Lote', description: 'Abonar faltas para múltiplos funcionários', icon: ListChecks, href: '/batch-absolutions', color: 'text-teal-600' },
       ],
     },
     {

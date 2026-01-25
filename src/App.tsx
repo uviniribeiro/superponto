@@ -59,6 +59,12 @@ import Vacations from "@/pages/Vacations";
 import PresenceMonitoring from "@/pages/PresenceMonitoring";
 import WorkStations from "@/pages/WorkStations";
 import CustomNotifications from "@/pages/CustomNotifications";
+import CommuteTime from "@/pages/CommuteTime";
+import OnCallSchedules from "@/pages/OnCallSchedules";
+import BatchAbsolutions from "@/pages/BatchAbsolutions";
+import MaritalStatuses from "@/pages/MaritalStatuses";
+import Cities from "@/pages/Cities";
+import CompensationBank from "@/pages/CompensationBank";
 
 // Reports
 import NewReports from "@/pages/NewReports";
@@ -246,6 +252,12 @@ const App = () => (
                 <Route path="presence-monitoring" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><PresenceMonitoring /></ProtectedRoute>} />
                 <Route path="work-stations" element={<ProtectedRoute requiredRoles={['admin']}><WorkStations /></ProtectedRoute>} />
                 <Route path="custom-notifications" element={<ProtectedRoute requiredRoles={['admin']}><CustomNotifications /></ProtectedRoute>} />
+                <Route path="commute-time" element={<ProtectedRoute requiredRoles={['admin']}><CommuteTime /></ProtectedRoute>} />
+                <Route path="on-call-schedules" element={<ProtectedRoute requiredRoles={['admin']}><OnCallSchedules /></ProtectedRoute>} />
+                <Route path="batch-absolutions" element={<ProtectedRoute requiredRoles={['admin']}><BatchAbsolutions /></ProtectedRoute>} />
+                <Route path="marital-statuses" element={<ProtectedRoute requiredRoles={['admin']}><MaritalStatuses /></ProtectedRoute>} />
+                <Route path="cities" element={<ProtectedRoute requiredRoles={['admin']}><Cities /></ProtectedRoute>} />
+                <Route path="compensation-bank" element={<ProtectedRoute requiredRoles={['admin']}><CompensationBank /></ProtectedRoute>} />
                 <Route path="security" element={<SecurityDashboard />} />
                 <Route path="system-manual" element={<SystemManual />} />
                 {/* Homologation & Cards Routes */}
