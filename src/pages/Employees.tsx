@@ -421,11 +421,30 @@ export default function Employees() {
     }
   };
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.department?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Unified filter: searches by name, registration number, email, department, and status
+  const filteredEmployees = employees.filter(emp => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return true;
+    
+    // Check status keywords
+    if (term === 'ativo' || term === 'ativos') return emp.is_active;
+    if (term === 'inativo' || term === 'inativos') return !emp.is_active;
+    
+    // Search across multiple fields
+    return (
+      emp.full_name.toLowerCase().includes(term) ||
+      emp.email.toLowerCase().includes(term) ||
+      emp.department?.toLowerCase().includes(term) ||
+      emp.position?.toLowerCase().includes(term) ||
+      emp.registration_number?.toLowerCase().includes(term) ||
+      emp.cpf?.includes(term) ||
+      emp.pis?.includes(term)
+    );
+  });
+
+  // Calculate statistics
+  const activeCount = employees.filter(e => e.is_active).length;
+  const inactiveCount = employees.filter(e => !e.is_active).length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -451,17 +470,57 @@ export default function Employees() {
         )}
       </div>
 
+      {/* Employee Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-primary/10">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{employees.length}</p>
+              <p className="text-xs text-muted-foreground">Total Cadastrados</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-success/10">
+              <UserCheck className="h-5 w-5 text-success" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{activeCount}</p>
+              <p className="text-xs text-muted-foreground">Ativos (Licenças)</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-muted">
+              <UserX className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{inactiveCount}</p>
+              <p className="text-xs text-muted-foreground">Inativos</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle>Lista de Funcionários</CardTitle>
-              <CardDescription>{employees.length} funcionários cadastrados</CardDescription>
+              <CardDescription>
+                {filteredEmployees.length} de {employees.length} funcionários 
+                {searchTerm && ` • Filtrando por: "${searchTerm}"`}
+              </CardDescription>
             </div>
-            <div className="relative w-full md:w-64">
+            <div className="relative w-full md:w-80">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar funcionário..."
+                placeholder="Buscar por nome, matrícula, CPF, status..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"

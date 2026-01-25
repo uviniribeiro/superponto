@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 
-type RegistrationType = 'groupings' | 'specialties' | 'cost_centers' | 'sections' | 'employee_types' | 'job_functions' | 'work_locations';
+type RegistrationType = 'groupings' | 'specialties' | 'cost_centers' | 'sections' | 'employee_types' | 'job_functions' | 'work_locations' | 'marital_statuses';
 
 interface BaseRecord {
   id: string;
@@ -52,6 +52,7 @@ const registrationTypes = [
   { key: 'employee_types', label: 'Tipos de Funcionário', icon: Users, description: 'Categorias de funcionários' },
   { key: 'job_functions', label: 'Funções', icon: Briefcase, description: 'Funções exercidas na empresa' },
   { key: 'work_locations', label: 'Locais de Trabalho', icon: MapPin, description: 'Locais físicos de trabalho' },
+  { key: 'marital_statuses', label: 'Estados Civis', icon: Users, description: 'Estados civis dos funcionários' },
 ] as const;
 
 export default function BasicRegistrations() {
