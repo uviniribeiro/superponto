@@ -99,13 +99,13 @@ export const cadastrosHubConfig: CategoryHubConfig = {
 // Escalas e Jornadas category
 export const escalasHubConfig: CategoryHubConfig = {
   title: 'Escalas e Jornadas',
-  description: 'Configure horários de trabalho e escalas de revezamento',
+  description: 'Configure horários de trabalho, escalas fixas e agendadas',
   groups: [
     {
-      title: 'Configuração de Horários',
-      subtitle: 'Defina as jornadas de trabalho',
+      title: 'Jornadas de Trabalho',
+      subtitle: 'Defina os horários e regras de trabalho',
       items: [
-        { title: 'Jornadas de Trabalho', description: 'Horários de entrada, saída e intervalos', icon: Clock, href: '/schedules', color: 'text-blue-600' },
+        { title: 'Jornadas', description: 'Configurar horários de entrada, saída e intervalos', icon: Clock, href: '/journeys', color: 'text-blue-600' },
         { title: 'Períodos de Competência', description: 'Períodos de fechamento da folha', icon: CalendarClock, href: '/competency-periods', color: 'text-amber-600' },
       ],
     },
@@ -113,8 +113,15 @@ export const escalasHubConfig: CategoryHubConfig = {
       title: 'Escalas de Trabalho',
       subtitle: 'Escalas de revezamento e plantões',
       items: [
-        { title: 'Escalas', description: 'Escalas de trabalho configuráveis', icon: Scale, href: '/work-schedules', color: 'text-emerald-600' },
-        { title: 'Escalas Fixas', description: 'Escalas 12x36, 5x1 e outras', icon: Calendar, href: '/scales', color: 'text-violet-600' },
+        { title: 'Escalas Fixas', description: 'Escalas cíclicas 12x36, 5x1, 6x1', icon: Calendar, href: '/fixed-scales', color: 'text-violet-600' },
+        { title: 'Escalas Agendadas', description: 'Atribuição individual ou em lote', icon: CalendarDays, href: '/scheduled-scales', color: 'text-emerald-600' },
+      ],
+    },
+    {
+      title: 'Legado',
+      subtitle: 'Páginas anteriores (em desativação)',
+      items: [
+        { title: 'Configuração Antiga', description: 'Interface unificada anterior', icon: Scale, href: '/schedules', color: 'text-slate-400' },
       ],
     },
   ],
