@@ -260,6 +260,123 @@ export type Database = {
           },
         ]
       }
+      batch_absolution_employees: {
+        Row: {
+          batch_absolution_id: string
+          created_at: string
+          id: string
+          profile_id: string
+        }
+        Insert: {
+          batch_absolution_id: string
+          created_at?: string
+          id?: string
+          profile_id: string
+        }
+        Update: {
+          batch_absolution_id?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_absolution_employees_batch_absolution_id_fkey"
+            columns: ["batch_absolution_id"]
+            isOneToOne: false
+            referencedRelation: "batch_absolutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_absolution_employees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_absolution_employees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_absolutions: {
+        Row: {
+          absolve_absences: boolean | null
+          absolve_delays: boolean | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          end_date: string
+          id: string
+          is_active: boolean | null
+          justification_id: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          absolve_absences?: boolean | null
+          absolve_delays?: boolean | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          justification_id?: string | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          absolve_absences?: boolean | null
+          absolve_delays?: boolean | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          justification_id?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_absolutions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_absolutions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_absolutions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_absolutions_justification_id_fkey"
+            columns: ["justification_id"]
+            isOneToOne: false
+            referencedRelation: "justifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       batch_allowance_employees: {
         Row: {
           batch_allowance_id: string
@@ -373,6 +490,44 @@ export type Database = {
             columns: ["justification_id"]
             isOneToOne: false
             referencedRelation: "justifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cities: {
+        Row: {
+          abbreviation: string | null
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+          state: string
+        }
+        Insert: {
+          abbreviation?: string | null
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+          state: string
+        }
+        Update: {
+          abbreviation?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -579,6 +734,96 @@ export type Database = {
           },
         ]
       }
+      commute_time_configs: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string
+          entry_period_end: string
+          entry_period_start: string
+          exit_period_end: string
+          exit_period_start: string
+          id: string
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description: string
+          entry_period_end: string
+          entry_period_start: string
+          exit_period_end: string
+          exit_period_start: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          entry_period_end?: string
+          entry_period_start?: string
+          exit_period_end?: string
+          exit_period_start?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commute_time_configs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commute_time_employees: {
+        Row: {
+          commute_time_id: string
+          created_at: string
+          id: string
+          profile_id: string
+        }
+        Insert: {
+          commute_time_id: string
+          created_at?: string
+          id?: string
+          profile_id: string
+        }
+        Update: {
+          commute_time_id?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commute_time_employees_commute_time_id_fkey"
+            columns: ["commute_time_id"]
+            isOneToOne: false
+            referencedRelation: "commute_time_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commute_time_employees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commute_time_employees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
@@ -732,6 +977,84 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compensation_banks: {
+        Row: {
+          balance: unknown
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          credit_hours: unknown
+          debit_hours: unknown
+          id: string
+          notes: string | null
+          profile_id: string
+          reference_date: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: unknown
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_hours?: unknown
+          debit_hours?: unknown
+          id?: string
+          notes?: string | null
+          profile_id: string
+          reference_date: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: unknown
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          credit_hours?: unknown
+          debit_hours?: unknown
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          reference_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compensation_banks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_banks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_banks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_banks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compensation_banks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -891,6 +1214,47 @@ export type Database = {
           },
         ]
       }
+      custom_texts: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          text_key: string
+          text_value: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          text_key: string
+          text_value: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          text_key?: string
+          text_value?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_texts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           company_id: string | null
@@ -935,6 +1299,91 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disregarded_records: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          disregarded_at: string
+          disregarded_by: string | null
+          id: string
+          justification_id: string | null
+          original_timestamp: string
+          profile_id: string
+          reason: string | null
+          status: string | null
+          time_record_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          disregarded_at?: string
+          disregarded_by?: string | null
+          id?: string
+          justification_id?: string | null
+          original_timestamp: string
+          profile_id: string
+          reason?: string | null
+          status?: string | null
+          time_record_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          disregarded_at?: string
+          disregarded_by?: string | null
+          id?: string
+          justification_id?: string | null
+          original_timestamp?: string
+          profile_id?: string
+          reason?: string | null
+          status?: string | null
+          time_record_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disregarded_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disregarded_records_disregarded_by_fkey"
+            columns: ["disregarded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disregarded_records_disregarded_by_fkey"
+            columns: ["disregarded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disregarded_records_justification_id_fkey"
+            columns: ["justification_id"]
+            isOneToOne: false
+            referencedRelation: "justifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disregarded_records_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disregarded_records_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -1515,6 +1964,90 @@ export type Database = {
           },
         ]
       }
+      employee_requests: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          profile_id: string
+          request_date: string
+          request_type: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          profile_id: string
+          request_date: string
+          request_type: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          profile_id?: string
+          request_date?: string
+          request_type?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_scale_assignments: {
         Row: {
           company_id: string | null
@@ -1839,6 +2372,97 @@ export type Database = {
           },
         ]
       }
+      equipment_group_members: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          group_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          group_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          group_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_group_members_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_group_members_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_groups: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          department_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_groups_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_groups_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_pending_records: {
         Row: {
           company_id: string | null
@@ -1923,6 +2547,76 @@ export type Database = {
             columns: ["time_record_id"]
             isOneToOne: false
             referencedRelation: "time_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      export_layouts: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          delimiter: string | null
+          description: string | null
+          field_mapping: Json
+          file_extension: string | null
+          id: string
+          include_header: boolean | null
+          is_active: boolean | null
+          layout_type: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delimiter?: string | null
+          description?: string | null
+          field_mapping?: Json
+          file_extension?: string | null
+          id?: string
+          include_header?: boolean | null
+          is_active?: boolean | null
+          layout_type: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delimiter?: string | null
+          description?: string | null
+          field_mapping?: Json
+          file_extension?: string | null
+          id?: string
+          include_header?: boolean | null
+          is_active?: boolean | null
+          layout_type?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "export_layouts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "export_layouts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "export_layouts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -2768,6 +3462,41 @@ export type Database = {
           },
         ]
       }
+      marital_statuses: {
+        Row: {
+          code: string | null
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean | null
+        }
+        Insert: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean | null
+        }
+        Update: {
+          code?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marital_statuses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_shift_configurations: {
         Row: {
           company_id: string | null
@@ -2928,6 +3657,64 @@ export type Database = {
           },
         ]
       }
+      mobile_tokens: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          device_info: Json | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          profile_id: string
+          token: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          device_info?: Json | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          profile_id: string
+          token: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          device_info?: Json | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          profile_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobile_tokens_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobile_tokens_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobile_tokens_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_logs: {
         Row: {
           channel: string
@@ -2999,6 +3786,166 @@ export type Database = {
           {
             foreignKeyName: "notification_logs_recipient_id_fkey"
             columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_schedules: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          last_run_at: string | null
+          name: string
+          next_run_at: string | null
+          notification_type: string
+          recipients: Json | null
+          schedule_cron: string | null
+          schedule_days: Json | null
+          schedule_time: string | null
+          template_body: string | null
+          template_subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          name: string
+          next_run_at?: string | null
+          notification_type: string
+          recipients?: Json | null
+          schedule_cron?: string | null
+          schedule_days?: Json | null
+          schedule_time?: string | null
+          template_body?: string | null
+          template_subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          notification_type?: string
+          recipients?: Json | null
+          schedule_cron?: string | null
+          schedule_days?: Json | null
+          schedule_time?: string | null
+          template_body?: string | null
+          template_subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      on_call_schedules: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          end_datetime: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          profile_id: string
+          start_datetime: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_datetime: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          profile_id: string
+          start_datetime: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_datetime?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          profile_id?: string
+          start_datetime?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "on_call_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "on_call_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "on_call_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "on_call_schedules_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "on_call_schedules_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
@@ -4509,6 +5456,61 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_configurations: {
+        Row: {
+          company_id: string | null
+          config_key: string
+          config_value: Json
+          created_at: string
+          description: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          config_key: string
+          config_value?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          config_key?: string
+          config_value?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_configurations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_configurations_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_configurations_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
