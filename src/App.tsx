@@ -37,6 +37,9 @@ import NewPositionsDepartments from "@/pages/NewPositionsDepartments";
 import NewDepartments from "@/pages/NewDepartments";
 import NewScales from "@/pages/NewScales";
 import Scales from "@/pages/Scales";
+import ScheduledScales from "@/pages/ScheduledScales";
+import FixedScales from "@/pages/FixedScales";
+import Journeys from "@/pages/Journeys";
 
 // Time Management
 import Adjustments from "@/pages/Adjustments";
@@ -202,6 +205,9 @@ const App = () => (
                 <Route path="departments" element={<ProtectedRoute requiredRoles={['admin']}><NewDepartments /></ProtectedRoute>} />
                 <Route path="schedules" element={<ProtectedRoute requiredRoles={['admin']}><WorkSchedules /></ProtectedRoute>} />
                 <Route path="work-schedules" element={<ProtectedRoute requiredRoles={['admin']}><NewScales /></ProtectedRoute>} />
+                <Route path="journeys" element={<ProtectedRoute requiredRoles={['admin']}><Journeys /></ProtectedRoute>} />
+                <Route path="fixed-scales" element={<ProtectedRoute requiredRoles={['admin']}><FixedScales /></ProtectedRoute>} />
+                <Route path="scheduled-scales" element={<ProtectedRoute requiredRoles={['admin']}><ScheduledScales /></ProtectedRoute>} />
                 <Route path="adjustments" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Adjustments /></ProtectedRoute>} />
                 <Route path="reports" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><NewReports /></ProtectedRoute>} />
                 <Route path="mirror-point" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><MirrorPoint /></ProtectedRoute>} />
