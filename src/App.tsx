@@ -110,6 +110,11 @@ import MTECompliancePanel from "@/pages/equipment/MTECompliancePanel";
 import SecurityDashboard from "@/pages/SecurityDashboard";
 import SystemManual from "@/pages/SystemManual";
 
+// Homologation & Cards
+import PointHomologation from "@/pages/PointHomologation";
+import PointOccurrences from "@/pages/PointOccurrences";
+import PointCards from "@/pages/PointCards";
+
 // Super Admin
 import SuperAdminDashboard from "@/pages/superadmin/Dashboard";
 import SuperAdminCompanies from "@/pages/superadmin/Companies";
@@ -235,6 +240,10 @@ const App = () => (
                 <Route path="georeferenced-locations" element={<ProtectedRoute requiredRoles={['admin']}><GeoreferencedLocations /></ProtectedRoute>} />
                 <Route path="security" element={<SecurityDashboard />} />
                 <Route path="system-manual" element={<SystemManual />} />
+                {/* Homologation & Cards Routes */}
+                <Route path="point-homologation" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><PointHomologation /></ProtectedRoute>} />
+                <Route path="point-occurrences" element={<PointOccurrences />} />
+                <Route path="point-cards" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><PointCards /></ProtectedRoute>} />
                 {/* Individual Report Routes */}
                 <Route path="reports/mirror-point" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><MirrorPointPage /></ProtectedRoute>} />
                 <Route path="reports/worked-hours" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><WorkedHoursPage /></ProtectedRoute>} />
