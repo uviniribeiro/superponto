@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, forwardRef } from 'react';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -20,7 +19,7 @@ interface StateCitySelectorProps {
   disabled?: boolean;
 }
 
-export function StateCitySelector({
+export const StateCitySelector = forwardRef<HTMLDivElement, StateCitySelectorProps>(function StateCitySelector({
   stateValue,
   cityValue,
   onStateChange,
@@ -29,7 +28,7 @@ export function StateCitySelector({
   cityLabel = 'Cidade',
   required = false,
   disabled = false,
-}: StateCitySelectorProps) {
+}, ref) {
   const [cityOpen, setCityOpen] = useState(false);
   const [citySearch, setCitySearch] = useState('');
 
@@ -53,7 +52,7 @@ export function StateCitySelector({
   }, [onCityChange]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div ref={ref} className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
         <Label htmlFor="state">
           {stateLabel} {required && '*'}
@@ -142,4 +141,4 @@ export function StateCitySelector({
       </div>
     </div>
   );
-}
+});

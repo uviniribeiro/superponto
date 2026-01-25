@@ -19,6 +19,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Recursos Avançados e Relatórios Gerenciais',
     type: 'minor',
     changes: [
+      'Auto-preenchimento de endereço via CEP (API ViaCEP)',
+      'Correção de campos de seleção no cadastro de funcionários',
       'Relatório de Turnover com gráficos de rotatividade',
       'Calculadora de Horas com cálculo de adicional noturno',
       'Gestão de Textos Customizados do sistema',
