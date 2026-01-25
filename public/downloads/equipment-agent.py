@@ -47,7 +47,8 @@ EQUIPMENT_PORTS = {
     'trix': [80, 3000],
     'rwtech': [80, 443],
     'secullum': [80, 3000],
-    'anviz': [80, 5010]
+    'anviz': [80, 5010],
+    'biomtech': [443, 80, 8443]  # Biomtech uses HTTPS primarily
 }
 
 # Assinaturas para identificação de fabricantes
@@ -63,7 +64,8 @@ MANUFACTURER_SIGNATURES = {
     'trix': ['Trix', 'SS 710', 'SS 810'],
     'rwtech': ['RWTech'],
     'secullum': ['Secullum', 'REP'],
-    'anviz': ['Anviz', 'C2 Pro', 'FacePass']
+    'anviz': ['Anviz', 'C2 Pro', 'FacePass'],
+    'biomtech': ['Biomtech', 'faceSchool', 'faceJus', 'facePoint', 'faceCorp', 'facePass']
 }
 
 class Colors:
@@ -161,6 +163,7 @@ def get_equipment_info(ip, port, manufacturer):
         'dimep': ['/api/info', '/status'],
         'controlid': ['/api/system/information', '/info.fcgi'],
         'zkteco': ['/api/info', '/iclock/getinfo'],
+        'biomtech': ['/api/v1/device/info', '/api/info', '/status'],
         'default': ['/api/info', '/info', '/status', '/system']
     }
     
@@ -168,13 +171,18 @@ def get_equipment_info(ip, port, manufacturer):
         paths = endpoints.get(manufacturer, endpoints['default'])
         for path in paths:
             try:
-                response = requests.get(f"http://{ip}:{port}{path}", timeout=3, verify=False)
+                # Use HTTPS for Biomtech
+                protocol = 'https' if manufacturer == 'biomtech' else 'http'
+                response = requests.get(f"{protocol}://{ip}:{port}{path}", timeout=3, verify=False)
                 if response.status_code == 200:
                     try:
                         data = response.json()
                         info['model'] = data.get('model', data.get('Model', 'Unknown'))
-                        info['serial'] = data.get('serial', data.get('SerialNumber', None))
-                        info['firmware'] = data.get('firmware', data.get('FirmwareVersion', None))
+                        # Biomtech uses alphanumeric serial numbers
+                        info['serial'] = data.get('serial', data.get('SerialNumber', 
+                                          data.get('device_serial', data.get('serial_number', None))))
+                        info['firmware'] = data.get('firmware', data.get('FirmwareVersion', 
+                                            data.get('firmware_version', None)))
                         break
                     except:
                         pass

@@ -246,6 +246,21 @@ export const EQUIPMENT_CATALOG_FULL: EquipmentManufacturer[] = [
       { value: 'ponto_app', label: 'Ponto App', port: 443, protocol: 'https', endpoint: '/api/v1/records', portaria: 'portaria_671', repType: 'REP-P', hasWebservice: true, hasFacialRecognition: true },
     ],
   },
+  // BIOMTECH - Brazilian manufacturer (facial recognition pioneer)
+  {
+    manufacturer: 'biomtech',
+    label: 'Biomtech',
+    country: 'Brasil',
+    website: 'https://www.biomtech.com.br',
+    models: [
+      { value: 'faceschool', label: 'faceSchool', port: 443, protocol: 'https', endpoint: '/api/v1/attendance', portaria: 'portaria_671', repType: 'REP-P', hasWebservice: true, hasFacialRecognition: true },
+      { value: 'facejus', label: 'faceJus', port: 443, protocol: 'https', endpoint: '/api/v1/attendance', portaria: 'portaria_671', repType: 'REP-P', hasWebservice: true, hasFacialRecognition: true },
+      { value: 'facepoint', label: 'facePoint', port: 443, protocol: 'https', endpoint: '/api/v1/attendance', portaria: 'portaria_671', repType: 'REP-P', hasWebservice: true, hasFacialRecognition: true },
+      { value: 'facecorp', label: 'faceCorp', port: 443, protocol: 'https', endpoint: '/api/v1/attendance', portaria: 'portaria_671', repType: 'REP-P', hasWebservice: true, hasFacialRecognition: true },
+      { value: 'facepass', label: 'facePass', port: 443, protocol: 'https', endpoint: '/api/v1/access', portaria: 'portaria_671', repType: 'REP-A', hasWebservice: true, hasFacialRecognition: true },
+      { value: 'biomtech_terminal', label: 'Terminal Biomtech', port: 443, protocol: 'https', endpoint: '/api/v1/attendance', portaria: 'portaria_671', repType: 'REP-P', hasWebservice: true, hasFacialRecognition: true },
+    ],
+  },
   // Generic/Other
   {
     manufacturer: 'generic',
