@@ -424,6 +424,7 @@ export const relatoriosHubConfig: CategoryHubConfig = {
         { title: 'Banco de Horas', description: 'Saldo do banco de horas', icon: Timer, href: '/reports/time-bank', color: 'text-violet-600' },
         { title: 'Absenteísmo', description: 'Índice de faltas e ausências', icon: AlertTriangle, href: '/reports/absences', color: 'text-red-600' },
         { title: 'Atrasos e Saídas Antecipadas', description: 'Irregularidades de horário', icon: Clock, href: '/reports/absences', color: 'text-orange-600' },
+        { title: 'Turnover', description: 'Análise de rotatividade de funcionários', icon: BarChart3, href: '/reports/turnover', color: 'text-indigo-600' },
       ],
     },
     {
@@ -493,6 +494,14 @@ export const configuracoesHubConfig: CategoryHubConfig = {
       subtitle: 'Gestão de usuários do sistema',
       items: [
         { title: 'Usuários', description: 'Gerenciar usuários e permissões', icon: Users, href: '/users', color: 'text-violet-600' },
+      ],
+    },
+    {
+      title: 'Ferramentas',
+      subtitle: 'Utilitários e calculadoras',
+      items: [
+        { title: 'Calculadora de Horas', description: 'Calcular horas extras e adicionais', icon: Clock, href: '/hours-calculator', color: 'text-emerald-600' },
+        { title: 'Textos Customizados', description: 'Personalizar mensagens do sistema', icon: FileText, href: '/custom-texts', color: 'text-amber-600' },
       ],
     },
     {

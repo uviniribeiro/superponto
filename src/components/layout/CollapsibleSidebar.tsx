@@ -275,6 +275,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Faltas e Atrasos', icon: UserX, href: '/reports/absences', roles: ['admin', 'manager'] },
       { title: 'Banco de Horas', icon: Timer, href: '/reports/time-bank', roles: ['admin', 'manager'] },
       { title: 'Presença', icon: ListChecks, href: '/reports/attendance', roles: ['admin', 'manager'] },
+      { title: 'Turnover', icon: BarChart3, href: '/reports/turnover', roles: ['admin', 'manager'] },
       { title: 'Exportação MTE', icon: Download, href: '/reports/mte', roles: ['admin'] },
     ]
   },
@@ -297,6 +298,8 @@ const menuCategories: MenuCategory[] = [
       { title: 'Empresa', icon: Building2, href: '/company-settings', roles: ['admin'] },
       { title: 'Dados da Empresa', icon: FileCheck, href: '/company', roles: ['admin'] },
       { title: 'Usuários', icon: Users, href: '/users', roles: ['admin'] },
+      { title: 'Calculadora de Horas', icon: Clock, href: '/hours-calculator', roles: ['admin', 'manager'] },
+      { title: 'Textos Customizados', icon: FileText, href: '/custom-texts', roles: ['admin'] },
       { title: 'Manual do Sistema', icon: BookOpen, href: '/system-manual', roles: ['admin', 'manager', 'employee'] },
     ]
   },

@@ -75,11 +75,16 @@ import AbsencesPage from "@/pages/reports/AbsencesPage";
 import AttendancePage from "@/pages/reports/AttendancePage";
 import TimeBankPage from "@/pages/reports/TimeBankPage";
 import MTEExportsPage from "@/pages/reports/MTEExportsPage";
+import TurnoverReport from "@/pages/TurnoverReport";
 
 // Import/Export
 import ImportExport from "@/pages/ImportExport";
 import PayrollExports from "@/pages/PayrollExports";
 import CategoryPage from "@/pages/CategoryPage";
+
+// Tools
+import HoursCalculator from "@/pages/HoursCalculator";
+import CustomTexts from "@/pages/CustomTexts";
 
 // Teacher Module
 import NewTeacherModule from "@/pages/teacher/NewTeacherModule";
@@ -272,6 +277,10 @@ const App = () => (
                 <Route path="reports/attendance" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><AttendancePage /></ProtectedRoute>} />
                 <Route path="reports/time-bank" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><TimeBankPage /></ProtectedRoute>} />
                 <Route path="reports/mte" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><MTEExportsPage /></ProtectedRoute>} />
+                <Route path="reports/turnover" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><TurnoverReport /></ProtectedRoute>} />
+                {/* Tools */}
+                <Route path="hours-calculator" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><HoursCalculator /></ProtectedRoute>} />
+                <Route path="custom-texts" element={<ProtectedRoute requiredRoles={['admin']}><CustomTexts /></ProtectedRoute>} />
                 {/* Equipment Routes */}
                 <Route path="equipment" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentStatus /></ProtectedRoute>} />
                 <Route path="equipment/list" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentList /></ProtectedRoute>} />

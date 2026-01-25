@@ -1,5 +1,5 @@
 // Application version configuration
-export const APP_VERSION = '2.1.0';
+export const APP_VERSION = '2.2.0';
 export const APP_BUILD_DATE = '2026-01-25';
 export const APP_NAME = 'SuperPonto';
 
@@ -13,6 +13,25 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '2.2.0',
+    date: '2026-01-25',
+    title: 'Recursos Avançados e Relatórios Gerenciais',
+    type: 'minor',
+    changes: [
+      'Relatório de Turnover com gráficos de rotatividade',
+      'Calculadora de Horas com cálculo de adicional noturno',
+      'Gestão de Textos Customizados do sistema',
+      'Hora In Itinere (CLT Art. 58) para deslocamento',
+      'Cadastro de Sobre Aviso para escalas de plantão',
+      'Abono em Lote para múltiplos funcionários',
+      'Banco de Compensação com créditos/débitos manuais',
+      'Cadastro de Estados Civis e Cidades',
+      'Central de Categorias com navegação por hub',
+      '19 novas tabelas para requisitos técnicos de licitação',
+      'Campos expandidos no cadastro de funcionários',
+    ],
+  },
   {
     version: '2.1.0',
     date: '2026-01-25',
