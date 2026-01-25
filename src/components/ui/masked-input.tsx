@@ -12,7 +12,7 @@ import {
   validatePIS 
 } from "@/hooks/useDocumentMask";
 
-export type MaskType = 'cpf' | 'cnpj' | 'pis' | 'phone' | 'cei';
+export type MaskType = 'cpf' | 'cnpj' | 'pis' | 'phone' | 'cei' | 'cep';
 
 interface MaskedInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   mask: MaskType;
@@ -21,12 +21,19 @@ interface MaskedInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
   showValidation?: boolean;
 }
 
+const formatCEP = (value: string): string => {
+  const numbers = value.replace(/\D/g, '').substring(0, 8);
+  if (numbers.length <= 5) return numbers;
+  return `${numbers.substring(0, 5)}-${numbers.substring(5)}`;
+};
+
 const maskFormatters: Record<MaskType, (value: string) => string> = {
   cpf: formatCPF,
   cnpj: formatCNPJ,
   pis: formatPIS,
   phone: formatPhone,
   cei: formatCEI,
+  cep: formatCEP,
 };
 
 const maskValidators: Partial<Record<MaskType, (value: string) => boolean>> = {
@@ -41,6 +48,7 @@ const maskPlaceholders: Record<MaskType, string> = {
   pis: '000.00000.00-0',
   phone: '(00) 00000-0000',
   cei: '00.000.00000/00',
+  cep: '00000-000',
 };
 
 const maskMaxLengths: Record<MaskType, number> = {
@@ -49,6 +57,7 @@ const maskMaxLengths: Record<MaskType, number> = {
   pis: 14,
   phone: 15,
   cei: 15,
+  cep: 9,
 };
 
 const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
