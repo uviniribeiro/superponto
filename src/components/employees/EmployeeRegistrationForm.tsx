@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { UserPlus, Eye, EyeOff, User, Briefcase, FileText, MapPin, Settings } from 'lucide-react';
+import { UserPlus, Eye, EyeOff, User, Briefcase, FileText, MapPin, Settings, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { PhotoCapture } from '@/components/employees/PhotoCapture';
 import { MaskedInput } from '@/components/ui/masked-input';
 import { StateCitySelector } from '@/components/employees/StateCitySelector';
-import { maritalStatusOptions } from '@/lib/brazilianLocations';
+import { getStateCodeByName } from '@/lib/brazilianLocations';
 
 const employeeSchema = z.object({
   fullName: z.string().trim().min(2, 'Nome completo é obrigatório (mínimo 2 caracteres)').max(100),
@@ -57,9 +57,21 @@ interface EmployeeRegistrationFormProps {
   onCancel: () => void;
 }
 
+// ViaCEP API response interface
+interface ViaCEPResponse {
+  cep: string;
+  logradouro: string;
+  complemento: string;
+  bairro: string;
+  localidade: string;
+  uf: string;
+  erro?: boolean;
+}
+
 export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegistrationFormProps) {
   const { createEmployee, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCep, setIsLoadingCep] = useState(false);
   const [activeTab, setActiveTab] = useState('credentials');
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -131,6 +143,56 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
     setMaritalStatuses(maritalRes.data || []);
     setJobFunctions(functionsRes.data || []);
   };
+
+  // CEP auto-completion using ViaCEP API
+  const fetchAddressByCep = useCallback(async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    
+    if (cleanCep.length !== 8) {
+      return;
+    }
+    
+    setIsLoadingCep(true);
+    
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data: ViaCEPResponse = await response.json();
+      
+      if (data.erro) {
+        toast.error('CEP não encontrado');
+        return;
+      }
+      
+      // Map UF to state code
+      const stateCode = getStateCodeByName(data.uf);
+      
+      setFormData(prev => ({
+        ...prev,
+        addressStreet: data.logradouro || prev.addressStreet,
+        addressNeighborhood: data.bairro || prev.addressNeighborhood,
+        addressCity: data.localidade || prev.addressCity,
+        addressState: stateCode || prev.addressState,
+        addressComplement: data.complemento || prev.addressComplement,
+      }));
+      
+      toast.success('Endereço preenchido automaticamente!');
+    } catch (error) {
+      console.error('Error fetching CEP:', error);
+      toast.error('Erro ao buscar CEP. Tente novamente.');
+    } finally {
+      setIsLoadingCep(false);
+    }
+  }, []);
+
+  const handleCepChange = useCallback((value: string) => {
+    setFormData(prev => ({ ...prev, addressZipCode: value }));
+    
+    // Auto-fetch when CEP is complete (8 digits)
+    const cleanCep = value.replace(/\D/g, '');
+    if (cleanCep.length === 8) {
+      fetchAddressByCep(value);
+    }
+  }, [fetchAddressByCep]);
 
   const handleDepartmentChange = (deptId: string) => {
     const dept = departments.find(d => d.id === deptId);
@@ -703,16 +765,29 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
 
             {/* Address Tab */}
             <TabsContent value="address" className="space-y-4">
+              <div className="p-4 bg-muted/30 rounded-lg mb-4">
+                <p className="text-sm text-muted-foreground">
+                  💡 Digite o CEP para preencher o endereço automaticamente
+                </p>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="addressZipCode">CEP</Label>
-                  <MaskedInput
-                    id="addressZipCode"
-                    mask="cep"
-                    value={formData.addressZipCode}
-                    onChange={(value) => setFormData({ ...formData, addressZipCode: value })}
-                    placeholder="00000-000"
-                  />
+                  <div className="relative">
+                    <MaskedInput
+                      id="addressZipCode"
+                      mask="cep"
+                      value={formData.addressZipCode}
+                      onChange={handleCepChange}
+                      placeholder="00000-000"
+                    />
+                    {isLoadingCep && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
@@ -723,6 +798,7 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
                     placeholder="Rua, Avenida, etc."
                     value={formData.addressStreet}
                     onChange={(e) => setFormData({ ...formData, addressStreet: e.target.value })}
+                    disabled={isLoadingCep}
                   />
                 </div>
 
@@ -745,6 +821,7 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
                     placeholder="Apto, Bloco, etc."
                     value={formData.addressComplement}
                     onChange={(e) => setFormData({ ...formData, addressComplement: e.target.value })}
+                    disabled={isLoadingCep}
                   />
                 </div>
 
@@ -756,6 +833,7 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
                     placeholder="Bairro"
                     value={formData.addressNeighborhood}
                     onChange={(e) => setFormData({ ...formData, addressNeighborhood: e.target.value })}
+                    disabled={isLoadingCep}
                   />
                 </div>
               </div>
@@ -765,6 +843,7 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
                 cityValue={formData.addressCity}
                 onStateChange={(v) => setFormData({ ...formData, addressState: v })}
                 onCityChange={(v) => setFormData({ ...formData, addressCity: v })}
+                disabled={isLoadingCep}
               />
             </TabsContent>
           </Tabs>

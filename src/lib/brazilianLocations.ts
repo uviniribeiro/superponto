@@ -489,6 +489,20 @@ export const getStateByCode = (code: string): BrazilianState | undefined => {
   return brazilianStates.find(state => state.code === code);
 };
 
+// Helper function to get state code by UF (abbreviation)
+export const getStateCodeByName = (ufOrName: string): string => {
+  const normalized = ufOrName.toUpperCase().trim();
+  // First try to match by code (UF)
+  const byCode = brazilianStates.find(state => state.code === normalized);
+  if (byCode) return byCode.code;
+  
+  // Then try to match by name
+  const byName = brazilianStates.find(state => 
+    state.name.toLowerCase() === ufOrName.toLowerCase().trim()
+  );
+  return byName?.code || '';
+};
+
 // Marital status options
 export const maritalStatusOptions = [
   { value: 'solteiro', label: 'Solteiro(a)' },
