@@ -76,6 +76,7 @@ import {
   BookOpen,
   School,
   Hospital,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Outlet } from 'react-router-dom';
@@ -150,6 +151,9 @@ const menuCategories: MenuCategory[] = [
       { title: 'Espelho de Ponto', icon: ClipboardList, href: '/mirror-point', roles: ['admin', 'manager'] },
       { title: 'Ajustes de Ponto', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
       { title: 'Folha de Ponto', icon: FileText, href: '/timesheet', roles: ['admin', 'manager'] },
+      { title: 'Homologação', icon: FileCheck, href: '/point-homologation', roles: ['admin', 'manager'] },
+      { title: 'Ocorrências', icon: AlertCircle, href: '/point-occurrences', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Cartões de Ponto', icon: FileText, href: '/point-cards', roles: ['admin', 'manager'] },
     ]
   },
   {

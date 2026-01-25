@@ -2069,6 +2069,50 @@ export type Database = {
           },
         ]
       }
+      homologation_periods: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          end_date: string
+          extended_until: string | null
+          id: string
+          reference_month: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          end_date: string
+          extended_until?: string | null
+          id?: string
+          reference_month: string
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          end_date?: string
+          extended_until?: string | null
+          id?: string
+          reference_month?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homologation_periods_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       in_itinere_hours: {
         Row: {
           company_id: string | null
@@ -3322,6 +3366,386 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      point_cards: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          file_url: string | null
+          generated_at: string
+          generated_by: string
+          id: string
+          notes: string | null
+          profile_id: string
+          reference_month: string
+          returned_at: string | null
+          sent_at: string | null
+          sent_for_signature: boolean
+          signature_url: string | null
+          signed: boolean
+          signed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          file_url?: string | null
+          generated_at?: string
+          generated_by: string
+          id?: string
+          notes?: string | null
+          profile_id: string
+          reference_month: string
+          returned_at?: string | null
+          sent_at?: string | null
+          sent_for_signature?: boolean
+          signature_url?: string | null
+          signed?: boolean
+          signed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          file_url?: string | null
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          reference_month?: string
+          returned_at?: string | null
+          sent_at?: string | null
+          sent_for_signature?: boolean
+          signature_url?: string | null
+          signed?: boolean
+          signed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_cards_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_cards_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_cards_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_cards_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_cards_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      point_homologations: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          period_id: string | null
+          profile_id: string
+          reference_month: string
+          rejection_reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_id?: string | null
+          profile_id: string
+          reference_month: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_id?: string | null
+          profile_id?: string
+          reference_month?: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_homologations_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_homologations_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_homologations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_homologations_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "homologation_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_homologations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_homologations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      point_occurrences: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string | null
+          created_at: string
+          description: string
+          document_url: string | null
+          id: string
+          is_approved: boolean | null
+          justification_id: string | null
+          occurrence_date: string
+          occurrence_type: string
+          profile_id: string
+          registered_by: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          description: string
+          document_url?: string | null
+          id?: string
+          is_approved?: boolean | null
+          justification_id?: string | null
+          occurrence_date: string
+          occurrence_type: string
+          profile_id: string
+          registered_by: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          document_url?: string | null
+          id?: string
+          is_approved?: boolean | null
+          justification_id?: string | null
+          occurrence_date?: string
+          occurrence_type?: string
+          profile_id?: string
+          registered_by?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_occurrences_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_occurrences_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_occurrences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_occurrences_justification_id_fkey"
+            columns: ["justification_id"]
+            isOneToOne: false
+            referencedRelation: "justifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_occurrences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_occurrences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_occurrences_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_occurrences_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      point_pendencies: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string
+          homologation_id: string | null
+          id: string
+          is_resolved: boolean
+          pendency_type: string
+          profile_id: string
+          reference_date: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description: string
+          homologation_id?: string | null
+          id?: string
+          is_resolved?: boolean
+          pendency_type: string
+          profile_id: string
+          reference_date: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          homologation_id?: string | null
+          id?: string
+          is_resolved?: boolean
+          pendency_type?: string
+          profile_id?: string
+          reference_date?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_pendencies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_pendencies_homologation_id_fkey"
+            columns: ["homologation_id"]
+            isOneToOne: false
+            referencedRelation: "point_homologations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_pendencies_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_pendencies_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_pendencies_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "point_pendencies_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
