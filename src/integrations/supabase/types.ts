@@ -5174,7 +5174,7 @@ export type Database = {
           hire_date?: string | null
           id?: string | null
           is_active?: boolean | null
-          must_change_password?: never
+          must_change_password?: boolean | null
           phone?: never
           photo_url?: string | null
           pis?: never
@@ -5193,7 +5193,7 @@ export type Database = {
           hire_date?: string | null
           id?: string | null
           is_active?: boolean | null
-          must_change_password?: never
+          must_change_password?: boolean | null
           phone?: never
           photo_url?: string | null
           pis?: never
@@ -5241,13 +5241,13 @@ export type Database = {
           username: string | null
         }
         Insert: {
-          api_endpoint?: never
+          api_endpoint?: string | null
           communication_type?: string | null
           company_id?: string | null
           created_at?: string | null
           firmware_version?: string | null
           id?: string | null
-          ip_address?: never
+          ip_address?: string | null
           is_active?: boolean | null
           is_online?: boolean | null
           last_communication?: string | null
@@ -5268,13 +5268,13 @@ export type Database = {
           username?: never
         }
         Update: {
-          api_endpoint?: never
+          api_endpoint?: string | null
           communication_type?: string | null
           company_id?: string | null
           created_at?: string | null
           firmware_version?: string | null
           id?: string | null
-          ip_address?: never
+          ip_address?: string | null
           is_active?: boolean | null
           is_online?: boolean | null
           last_communication?: string | null
