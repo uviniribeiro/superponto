@@ -493,12 +493,12 @@ export default function TeacherLessonPlans() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Escola</Label>
-                <Select value={formData.school_id} onValueChange={(v) => setFormData({ ...formData, school_id: v, class_group_id: '' })}>
+                <Select value={formData.school_id || "none"} onValueChange={(v) => setFormData({ ...formData, school_id: v === "none" ? "" : v, class_group_id: '' })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a escola" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="none">Nenhuma</SelectItem>
                     {schools.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name}
@@ -509,12 +509,12 @@ export default function TeacherLessonPlans() {
               </div>
               <div className="space-y-2">
                 <Label>Turma</Label>
-                <Select value={formData.class_group_id} onValueChange={(v) => setFormData({ ...formData, class_group_id: v })}>
+                <Select value={formData.class_group_id || "none"} onValueChange={(v) => setFormData({ ...formData, class_group_id: v === "none" ? "" : v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a turma" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma</SelectItem>
+                    <SelectItem value="none">Nenhuma</SelectItem>
                     {filteredClassGroups.map((g) => (
                       <SelectItem key={g.id} value={g.id}>
                         {g.name} {g.grade ? `(${g.grade})` : ''}
