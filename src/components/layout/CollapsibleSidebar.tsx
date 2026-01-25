@@ -511,6 +511,19 @@ export default function CollapsibleSidebar() {
                     )}
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-1 ml-4 space-y-0.5">
+                    {/* Central da Categoria */}
+                    <Link
+                      to={`/category/${category.id}`}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors",
+                        location.pathname === `/category/${category.id}`
+                          ? "bg-primary text-primary-foreground font-medium"
+                          : "text-primary hover:bg-sidebar-accent/50"
+                      )}
+                    >
+                      <LayoutDashboard className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Central de {category.title}</span>
+                    </Link>
                     {filteredItems.map((item) => (
                       <Link
                         key={item.href}
