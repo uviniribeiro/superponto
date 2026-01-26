@@ -2,138 +2,186 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Modern Futuristic Font - Geist Sans */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'Geist';
+  src: url('https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-sans/Geist-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-sans/Geist-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-sans/Geist-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-sans/Geist-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-mono/GeistMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 @layer base {
   :root {
-    /* SuperPonto - Paleta Cinza com Acentos Verdes */
-    --background: 0 0% 98%;
-    --foreground: 220 9% 12%;
+    /* SuperPonto 2.3 - Paleta Moderna Futurista */
+    --background: 220 14% 96%;
+    --foreground: 220 14% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 9% 12%;
+    --card-foreground: 220 14% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 9% 12%;
+    --popover-foreground: 220 14% 10%;
 
-    /* Verde Esmeralda como cor primária */
-    --primary: 142 71% 45%;
+    /* Verde Esmeralda Vibrante */
+    --primary: 152 76% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 9% 94%;
-    --secondary-foreground: 220 9% 25%;
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 220 14% 20%;
 
-    --muted: 220 9% 94%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 220 14% 92%;
+    --muted-foreground: 220 14% 46%;
 
-    --accent: 142 71% 95%;
-    --accent-foreground: 142 71% 35%;
+    --accent: 152 76% 94%;
+    --accent-foreground: 152 76% 30%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
+    --success: 152 76% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 0 0% 10%;
 
-    --info: 199 89% 48%;
+    --info: 210 100% 50%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 9% 88%;
-    --input: 220 9% 88%;
-    --ring: 142 71% 45%;
+    --border: 220 14% 86%;
+    --input: 220 14% 86%;
+    --ring: 152 76% 42%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
-    /* Sidebar - Cinza escuro */
-    --sidebar-background: 220 9% 12%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 142 71% 45%;
+    /* Sidebar - Escuro Moderno */
+    --sidebar-background: 220 20% 10%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 152 76% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 9% 18%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 220 9% 18%;
-    --sidebar-ring: 142 71% 45%;
+    --sidebar-accent: 220 20% 16%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 220 20% 16%;
+    --sidebar-ring: 152 76% 45%;
 
-    /* Charts */
-    --chart-1: 142 71% 45%;
-    --chart-2: 142 50% 60%;
-    --chart-3: 220 9% 46%;
-    --chart-4: 38 92% 50%;
+    /* Charts Futuristas */
+    --chart-1: 152 76% 42%;
+    --chart-2: 173 80% 40%;
+    --chart-3: 210 100% 50%;
+    --chart-4: 43 96% 56%;
     --chart-5: 0 84% 60%;
 
     /* Fonts */
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --font-sans: 'Geist', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
-    --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
+    /* Shadows - Mais suaves */
+    --shadow-sm: 0 1px 2px 0 hsl(220 14% 10% / 0.04);
+    --shadow: 0 2px 4px -1px hsl(220 14% 10% / 0.06), 0 1px 2px -1px hsl(220 14% 10% / 0.04);
+    --shadow-md: 0 6px 12px -2px hsl(220 14% 10% / 0.08), 0 3px 6px -2px hsl(220 14% 10% / 0.04);
+    --shadow-lg: 0 12px 24px -4px hsl(220 14% 10% / 0.1), 0 6px 12px -4px hsl(220 14% 10% / 0.04);
+    --shadow-xl: 0 24px 48px -8px hsl(220 14% 10% / 0.12), 0 12px 24px -8px hsl(220 14% 10% / 0.04);
+
+    /* Glass Effect */
+    --glass-bg: hsl(0 0% 100% / 0.7);
+    --glass-border: hsl(220 14% 86% / 0.5);
   }
 
   .dark {
-    --background: 220 9% 8%;
-    --foreground: 0 0% 98%;
+    --background: 220 20% 6%;
+    --foreground: 220 14% 96%;
 
-    --card: 220 9% 12%;
-    --card-foreground: 0 0% 98%;
+    --card: 220 20% 10%;
+    --card-foreground: 220 14% 96%;
 
-    --popover: 220 9% 12%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 220 20% 10%;
+    --popover-foreground: 220 14% 96%;
 
-    --primary: 142 71% 45%;
+    --primary: 152 76% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 9% 18%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 220 20% 16%;
+    --secondary-foreground: 220 14% 96%;
 
-    --muted: 220 9% 18%;
-    --muted-foreground: 220 9% 65%;
+    --muted: 220 20% 16%;
+    --muted-foreground: 220 14% 60%;
 
-    --accent: 220 9% 18%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 220 20% 16%;
+    --accent-foreground: 220 14% 96%;
 
-    --destructive: 0 63% 31%;
+    --destructive: 0 63% 35%;
     --destructive-foreground: 0 0% 98%;
 
-    --success: 142 71% 45%;
+    --success: 152 76% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 43 96% 56%;
+    --warning-foreground: 0 0% 10%;
 
-    --info: 199 89% 48%;
+    --info: 210 100% 55%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 9% 18%;
-    --input: 220 9% 18%;
-    --ring: 142 71% 45%;
+    --border: 220 20% 16%;
+    --input: 220 20% 16%;
+    --ring: 152 76% 45%;
 
-    --sidebar-background: 220 9% 6%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 142 71% 45%;
+    --sidebar-background: 220 20% 4%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 152 76% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 9% 14%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 220 9% 14%;
-    --sidebar-ring: 142 71% 45%;
+    --sidebar-accent: 220 20% 12%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 220 20% 12%;
+    --sidebar-ring: 152 76% 45%;
 
-    --chart-1: 142 71% 45%;
-    --chart-2: 142 50% 55%;
-    --chart-3: 220 9% 55%;
-    --chart-4: 38 92% 50%;
+    --chart-1: 152 76% 45%;
+    --chart-2: 173 80% 45%;
+    --chart-3: 210 100% 55%;
+    --chart-4: 43 96% 56%;
     --chart-5: 0 84% 60%;
 
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
-    --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.3), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.3), 0 2px 4px -2px hsl(0 0% 0% / 0.3);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -4px hsl(0 0% 0% / 0.3);
-    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.3), 0 8px 10px -6px hsl(0 0% 0% / 0.3);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+    --shadow: 0 2px 4px -1px hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 6px 12px -2px hsl(0 0% 0% / 0.4), 0 3px 6px -2px hsl(0 0% 0% / 0.3);
+    --shadow-lg: 0 12px 24px -4px hsl(0 0% 0% / 0.5), 0 6px 12px -4px hsl(0 0% 0% / 0.3);
+    --shadow-xl: 0 24px 48px -8px hsl(0 0% 0% / 0.5), 0 12px 24px -8px hsl(0 0% 0% / 0.3);
+
+    --glass-bg: hsl(220 20% 10% / 0.7);
+    --glass-border: hsl(220 20% 20% / 0.5);
   }
 }
 
@@ -157,33 +205,53 @@
 }
 
 @layer utilities {
-  /* Glass effect */
+  /* Glass effect - Futurista */
   .glass {
-    @apply bg-background/80 backdrop-blur-md border-b border-border;
+    @apply bg-background/70 backdrop-blur-xl border-b border-border/50;
+  }
+
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
   }
 
   /* Smooth transitions */
   .transition-smooth {
-    @apply transition-all duration-200 ease-out;
+    @apply transition-all duration-300 ease-out;
   }
 
-  /* Card hover effect */
+  /* Card hover effect - Moderno */
   .card-hover {
-    @apply transition-all duration-200 ease-out;
+    @apply transition-all duration-300 ease-out;
   }
   .card-hover:hover {
-    @apply shadow-md border-primary/20;
-    transform: translateY(-1px);
+    @apply shadow-lg border-primary/30;
+    transform: translateY(-2px);
   }
 
   /* Button press effect */
   .btn-press:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
   }
 
-  /* Focus ring */
+  /* Focus ring - Moderno */
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 focus:ring-offset-background;
+  }
+
+  /* Gradient utilities */
+  .gradient-primary {
+    @apply bg-gradient-to-r from-primary to-[hsl(173,80%,40%)];
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-[hsl(173,80%,40%)] bg-clip-text text-transparent;
+  }
+
+  /* Glow effect */
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
   }
 }
 
