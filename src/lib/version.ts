@@ -1,6 +1,6 @@
 // Application version configuration
-export const APP_VERSION = '2.2.0';
-export const APP_BUILD_DATE = '2026-01-25';
+export const APP_VERSION = '2.3.0';
+export const APP_BUILD_DATE = '2026-01-26';
 export const APP_NAME = 'SuperPonto';
 
 // Changelog entries
@@ -13,6 +13,22 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '2.3.0',
+    date: '2026-01-26',
+    title: 'Nova Identidade Visual Futurista',
+    type: 'minor',
+    changes: [
+      'Nova logo SuperPonto moderna e futurista',
+      'Marca d\'água global em todas as telas',
+      'Fonte Geist Sans para interface moderna',
+      'Paleta de cores atualizada com tons contemporâneos',
+      'Interface futurista com efeitos de vidro (glassmorphism)',
+      'Popup de novidades exibido apenas no primeiro login após atualização',
+      'Separação de módulos: Jornadas, Escalas Fixas e Escalas Agendadas',
+      'Sistema de escala individual e em lote para funcionários',
+    ],
+  },
   {
     version: '2.2.0',
     date: '2026-01-25',

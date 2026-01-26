@@ -10,6 +10,8 @@ import SuperAdminProtectedRoute from "@/components/SuperAdminProtectedRoute";
 import CollapsibleSidebar from "@/components/layout/CollapsibleSidebar";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 import { GuidedTourButton } from "@/components/GuidedTour";
+import { GlobalWatermark } from "@/components/GlobalWatermark";
+import { WhatsNewPopup } from "@/components/WhatsNewPopup";
 
 // Auth
 import Auth from "@/pages/Auth";
@@ -160,6 +162,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider delayDuration={300}>
+        <GlobalWatermark />
+        <WhatsNewPopup />
         <Toaster />
         <Sonner position="top-right" richColors closeButton />
         <BrowserRouter>

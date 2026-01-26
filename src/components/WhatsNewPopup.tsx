@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sparkles, CheckCircle2, Rocket, PartyPopper } from 'lucide-react';
 
-const STORAGE_KEY = 'pontomax_last_seen_version';
+const STORAGE_KEY = 'superponto_last_seen_version';
 
 export function WhatsNewPopup() {
   const { user } = useAuth();
@@ -89,7 +89,7 @@ export function WhatsNewPopup() {
         </div>
 
         <DialogFooter>
-          <Button onClick={handleClose} className="w-full gradient-primary">
+          <Button onClick={handleClose} className="w-full gradient-primary text-white font-medium">
             <Sparkles className="h-4 w-4 mr-2" />
             Entendi, vamos começar!
           </Button>
