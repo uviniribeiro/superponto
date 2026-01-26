@@ -119,6 +119,11 @@
     /* Glass Effect */
     --glass-bg: hsl(0 0% 100% / 0.7);
     --glass-border: hsl(220 14% 86% / 0.5);
+    
+    /* Holiday Theme Variables (overridden by JS) */
+    --holiday-primary: 152 76% 42%;
+    --holiday-secondary: 220 14% 92%;
+    --holiday-accent: 152 76% 94%;
   }
 
   .dark {
