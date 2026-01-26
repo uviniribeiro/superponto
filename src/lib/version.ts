@@ -1,5 +1,5 @@
 // Application version configuration
-export const APP_VERSION = '2.3.0';
+export const APP_VERSION = '2.4.0';
 export const APP_BUILD_DATE = '2026-01-26';
 export const APP_NAME = 'SuperPonto';
 
@@ -13,6 +13,23 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '2.4.0',
+    date: '2026-01-26',
+    title: 'Sistema de Temas Sazonais e PWA Melhorado',
+    type: 'minor',
+    changes: [
+      'Marca d\'água dinâmica: logo do cliente ou logo do sistema',
+      'Novo favicon e ícone PWA modernos',
+      'Sistema automático de temas para feriados brasileiros',
+      'Carnaval, Páscoa, Dia do Trabalhador, Corpus Christi',
+      'Independência, Natal e Ano Novo com temas únicos',
+      'Ativação automática 20 dias antes do feriado',
+      'Retorno ao tema padrão 3 dias úteis após',
+      'Banner festivo com contagem regressiva',
+      'Manifesto PWA atualizado para instalação mobile',
+    ],
+  },
   {
     version: '2.3.0',
     date: '2026-01-26',

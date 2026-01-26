@@ -12,7 +12,8 @@ import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 import { GuidedTourButton } from "@/components/GuidedTour";
 import { GlobalWatermark } from "@/components/GlobalWatermark";
 import { WhatsNewPopup } from "@/components/WhatsNewPopup";
-
+import { HolidayThemeProvider } from "@/components/HolidayThemeProvider";
+import { HolidayBanner } from "@/components/HolidayBanner";
 // Auth
 import Auth from "@/pages/Auth";
 import SuperAdminAuth from "@/pages/SuperAdminAuth";
@@ -162,13 +163,15 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider delayDuration={300}>
-        <GlobalWatermark />
-        <Toaster />
-        <Sonner position="top-right" richColors closeButton />
-        <BrowserRouter>
-          <AuthProvider>
-            <WhatsNewPopup />
-            <Routes>
+        <HolidayThemeProvider>
+          <GlobalWatermark />
+          <Toaster />
+          <Sonner position="top-right" richColors closeButton />
+          <BrowserRouter>
+            <AuthProvider>
+              <HolidayBanner />
+              <WhatsNewPopup />
+              <Routes>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
@@ -304,11 +307,12 @@ const App = () => (
                 <Route path="equipment/help" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentHelp /></ProtectedRoute>} />
               </Route>
               
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <GuidedTourButton />
-          </AuthProvider>
-        </BrowserRouter>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <GuidedTourButton />
+            </AuthProvider>
+          </BrowserRouter>
+        </HolidayThemeProvider>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
