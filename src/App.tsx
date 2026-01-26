@@ -163,11 +163,11 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider delayDuration={300}>
         <GlobalWatermark />
-        <WhatsNewPopup />
         <Toaster />
         <Sonner position="top-right" richColors closeButton />
         <BrowserRouter>
           <AuthProvider>
+            <WhatsNewPopup />
             <Routes>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/auth" element={<Auth />} />
