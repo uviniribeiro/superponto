@@ -164,11 +164,11 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider delayDuration={300}>
         <HolidayThemeProvider>
-          <GlobalWatermark />
           <Toaster />
           <Sonner position="top-right" richColors closeButton />
           <BrowserRouter>
             <AuthProvider>
+              <GlobalWatermark />
               <HolidayBanner />
               <WhatsNewPopup />
               <Routes>
