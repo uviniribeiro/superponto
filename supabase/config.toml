@@ -57,3 +57,6 @@ verify_jwt = false
 
 [functions.setup-default-data]
 verify_jwt = false
+
+[functions.sync-national-holidays]
+verify_jwt = false

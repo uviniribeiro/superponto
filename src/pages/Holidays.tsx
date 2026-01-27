@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Plus, Trash2, CalendarDays, Clock, CalendarRange } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, CalendarDays, Clock, CalendarRange, Pencil, RefreshCw } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 import { cn } from '@/lib/utils';
 
@@ -31,18 +31,32 @@ interface Holiday {
 
 type HolidayType = 'full' | 'partial' | 'extended';
 
+interface HolidayFormState {
+  id?: string;
+  name: string;
+  date: Date | undefined;
+  end_date: Date | undefined;
+  is_recurring: boolean;
+  holiday_type: HolidayType;
+  partial_end_time: string;
+}
+
+const initialFormState: HolidayFormState = {
+  name: '',
+  date: undefined,
+  end_date: undefined,
+  is_recurring: false,
+  holiday_type: 'full',
+  partial_end_time: '12:00'
+};
+
 const Holidays = () => {
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [newHoliday, setNewHoliday] = useState({
-    name: '',
-    date: undefined as Date | undefined,
-    end_date: undefined as Date | undefined,
-    is_recurring: false,
-    holiday_type: 'full' as HolidayType,
-    partial_end_time: '12:00'
-  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [formState, setFormState] = useState<HolidayFormState>(initialFormState);
 
   useEffect(() => {
     fetchHolidays();
@@ -66,10 +80,11 @@ const Holidays = () => {
         partial_end_time: h.partial_end_time || null,
         end_date: h.end_date || null
       })));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao carregar feriados",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -77,8 +92,28 @@ const Holidays = () => {
     }
   };
 
-  const handleCreateHoliday = async () => {
-    if (!newHoliday.name || !newHoliday.date) {
+  const handleOpenCreate = () => {
+    setFormState(initialFormState);
+    setIsEditing(false);
+    setDialogOpen(true);
+  };
+
+  const handleOpenEdit = (holiday: Holiday) => {
+    setFormState({
+      id: holiday.id,
+      name: holiday.name,
+      date: parseISO(holiday.date),
+      end_date: holiday.end_date ? parseISO(holiday.end_date) : undefined,
+      is_recurring: holiday.is_recurring,
+      holiday_type: holiday.holiday_type,
+      partial_end_time: holiday.partial_end_time || '12:00'
+    });
+    setIsEditing(true);
+    setDialogOpen(true);
+  };
+
+  const handleSaveHoliday = async () => {
+    if (!formState.name || !formState.date) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -87,7 +122,7 @@ const Holidays = () => {
       return;
     }
 
-    if (newHoliday.holiday_type === 'extended' && !newHoliday.end_date) {
+    if (formState.holiday_type === 'extended' && !formState.end_date) {
       toast({
         title: "Erro",
         description: "Para feriados prolongados, informe a data de término",
@@ -96,7 +131,7 @@ const Holidays = () => {
       return;
     }
 
-    if (newHoliday.holiday_type === 'extended' && newHoliday.end_date && newHoliday.end_date < newHoliday.date) {
+    if (formState.holiday_type === 'extended' && formState.end_date && formState.end_date < formState.date) {
       toast({
         title: "Erro",
         description: "A data de término deve ser posterior à data de início",
@@ -106,47 +141,66 @@ const Holidays = () => {
     }
 
     try {
-      const insertData: any = {
-        name: newHoliday.name,
-        date: format(newHoliday.date, 'yyyy-MM-dd'),
-        is_recurring: newHoliday.is_recurring,
-        holiday_type: newHoliday.holiday_type,
-        is_partial: newHoliday.holiday_type === 'partial'
+      const holidayData: Record<string, unknown> = {
+        name: formState.name,
+        date: format(formState.date, 'yyyy-MM-dd'),
+        is_recurring: formState.is_recurring,
+        holiday_type: formState.holiday_type,
+        is_partial: formState.holiday_type === 'partial',
+        partial_end_time: formState.holiday_type === 'partial' ? formState.partial_end_time : null,
+        end_date: formState.holiday_type === 'extended' && formState.end_date 
+          ? format(formState.end_date, 'yyyy-MM-dd') 
+          : null
       };
 
-      if (newHoliday.holiday_type === 'partial') {
-        insertData.partial_end_time = newHoliday.partial_end_time;
+      if (isEditing && formState.id) {
+        const { error } = await supabase
+          .from('holidays')
+          .update({
+            name: holidayData.name as string,
+            date: holidayData.date as string,
+            is_recurring: holidayData.is_recurring as boolean,
+            holiday_type: holidayData.holiday_type as string,
+            is_partial: holidayData.is_partial as boolean,
+            partial_end_time: holidayData.partial_end_time as string | null,
+            end_date: holidayData.end_date as string | null
+          })
+          .eq('id', formState.id);
+
+        toast({
+          title: "Feriado atualizado",
+          description: "O feriado foi atualizado com sucesso"
+        });
+      } else {
+        const { error } = await supabase
+          .from('holidays')
+          .insert({
+            name: holidayData.name as string,
+            date: holidayData.date as string,
+            is_recurring: holidayData.is_recurring as boolean,
+            holiday_type: holidayData.holiday_type as string,
+            is_partial: holidayData.is_partial as boolean,
+            partial_end_time: holidayData.partial_end_time as string | null,
+            end_date: holidayData.end_date as string | null
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Feriado criado",
+          description: "O feriado foi cadastrado com sucesso"
+        });
       }
-
-      if (newHoliday.holiday_type === 'extended' && newHoliday.end_date) {
-        insertData.end_date = format(newHoliday.end_date, 'yyyy-MM-dd');
-      }
-
-      const { error } = await supabase
-        .from('holidays')
-        .insert(insertData);
-
-      if (error) throw error;
-
-      toast({
-        title: "Feriado criado",
-        description: "O feriado foi cadastrado com sucesso"
-      });
 
       setDialogOpen(false);
-      setNewHoliday({ 
-        name: '', 
-        date: undefined, 
-        end_date: undefined,
-        is_recurring: false, 
-        holiday_type: 'full',
-        partial_end_time: '12:00'
-      });
+      setFormState(initialFormState);
+      setIsEditing(false);
       fetchHolidays();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro ao criar feriado",
-        description: error.message,
+        title: isEditing ? "Erro ao atualizar feriado" : "Erro ao criar feriado",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -167,63 +221,49 @@ const Holidays = () => {
       });
 
       fetchHolidays();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao excluir feriado",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive"
       });
     }
   };
 
-  const addNationalHolidays = async () => {
-    const currentYear = new Date().getFullYear();
-    const nationalHolidays = [
-      { name: 'Confraternização Universal', date: `${currentYear}-01-01`, is_recurring: true, holiday_type: 'full', is_partial: false },
-      { name: 'Tiradentes', date: `${currentYear}-04-21`, is_recurring: true, holiday_type: 'full', is_partial: false },
-      { name: 'Dia do Trabalho', date: `${currentYear}-05-01`, is_recurring: true, holiday_type: 'full', is_partial: false },
-      { name: 'Independência do Brasil', date: `${currentYear}-09-07`, is_recurring: true, holiday_type: 'full', is_partial: false },
-      { name: 'Nossa Senhora Aparecida', date: `${currentYear}-10-12`, is_recurring: true, holiday_type: 'full', is_partial: false },
-      { name: 'Finados', date: `${currentYear}-11-02`, is_recurring: true, holiday_type: 'full', is_partial: false },
-      { name: 'Proclamação da República', date: `${currentYear}-11-15`, is_recurring: true, holiday_type: 'full', is_partial: false },
-      { name: 'Natal', date: `${currentYear}-12-25`, is_recurring: true, holiday_type: 'full', is_partial: false }
-    ];
-
+  const syncNationalHolidays = async (year?: number) => {
+    setSyncing(true);
     try {
-      const { data: existingHolidays } = await supabase
-        .from('holidays')
-        .select('date');
-      
-      const existingDates = new Set((existingHolidays || []).map(h => h.date));
-      const newHolidays = nationalHolidays.filter(h => !existingDates.has(h.date));
-
-      if (newHolidays.length === 0) {
-        toast({
-          title: "Feriados já cadastrados",
-          description: "Todos os feriados nacionais já estão cadastrados"
-        });
-        return;
-      }
-
-      const { error } = await supabase
-        .from('holidays')
-        .insert(newHolidays);
+      const { data, error } = await supabase.functions.invoke('sync-national-holidays', {
+        body: year ? { year } : {}
+      });
 
       if (error) throw error;
 
       toast({
-        title: "Feriados nacionais adicionados",
-        description: `${newHolidays.length} feriados foram cadastrados com sucesso`
+        title: data.success ? "Sincronização concluída" : "Aviso",
+        description: data.message,
+        variant: data.success ? "default" : "destructive"
       });
 
-      fetchHolidays();
-    } catch (error: any) {
+      if (data.success && data.inserted > 0) {
+        fetchHolidays();
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro ao adicionar feriados",
-        description: error.message,
+        title: "Erro na sincronização",
+        description: errorMessage,
         variant: "destructive"
       });
+    } finally {
+      setSyncing(false);
     }
+  };
+
+  const addNationalHolidays = async () => {
+    const currentYear = new Date().getFullYear();
+    await syncNationalHolidays(currentYear);
   };
 
   const getHolidayTypeLabel = (holiday: Holiday) => {
@@ -275,23 +315,31 @@ const Holidays = () => {
             Gerencie os feriados e dias não úteis
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={addNationalHolidays}>
-            <CalendarDays className="mr-2 h-4 w-4" />
-            Adicionar Feriados Nacionais
+        <div className="flex gap-2 flex-wrap">
+          <Button 
+            variant="outline" 
+            onClick={addNationalHolidays}
+            disabled={syncing}
+          >
+            {syncing ? (
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <CalendarDays className="mr-2 h-4 w-4" />
+            )}
+            Sincronizar Feriados Nacionais
           </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={handleOpenCreate}>
                 <Plus className="mr-2 h-4 w-4" />
                 Novo Feriado
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>Novo Feriado</DialogTitle>
+                <DialogTitle>{isEditing ? 'Editar Feriado' : 'Novo Feriado'}</DialogTitle>
                 <DialogDescription>
-                  Cadastre um novo feriado ou dia não útil
+                  {isEditing ? 'Altere os dados do feriado' : 'Cadastre um novo feriado ou dia não útil'}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -299,8 +347,8 @@ const Holidays = () => {
                   <Label htmlFor="name">Nome do Feriado</Label>
                   <Input
                     id="name"
-                    value={newHoliday.name}
-                    onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
+                    value={formState.name}
+                    onChange={(e) => setFormState({ ...formState, name: e.target.value })}
                     placeholder="Ex: Natal"
                   />
                 </div>
@@ -308,8 +356,8 @@ const Holidays = () => {
                 <div className="space-y-2">
                   <Label>Tipo de Feriado</Label>
                   <Select 
-                    value={newHoliday.holiday_type} 
-                    onValueChange={(value: HolidayType) => setNewHoliday({ ...newHoliday, holiday_type: value })}
+                    value={formState.holiday_type} 
+                    onValueChange={(value: HolidayType) => setFormState({ ...formState, holiday_type: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo" />
@@ -339,25 +387,25 @@ const Holidays = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>{newHoliday.holiday_type === 'extended' ? 'Data de Início' : 'Data'}</Label>
+                    <Label>{formState.holiday_type === 'extended' ? 'Data de Início' : 'Data'}</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           className={cn(
                             "w-full justify-start text-left font-normal",
-                            !newHoliday.date && "text-muted-foreground"
+                            !formState.date && "text-muted-foreground"
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {newHoliday.date ? format(newHoliday.date, "dd/MM/yyyy") : "Selecione"}
+                          {formState.date ? format(formState.date, "dd/MM/yyyy") : "Selecione"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={newHoliday.date}
-                          onSelect={(date) => setNewHoliday({ ...newHoliday, date })}
+                          selected={formState.date}
+                          onSelect={(date) => setFormState({ ...formState, date })}
                           initialFocus
                           className="pointer-events-auto"
                         />
@@ -365,7 +413,7 @@ const Holidays = () => {
                     </Popover>
                   </div>
 
-                  {newHoliday.holiday_type === 'extended' && (
+                  {formState.holiday_type === 'extended' && (
                     <div className="space-y-2">
                       <Label>Data de Término</Label>
                       <Popover>
@@ -374,19 +422,19 @@ const Holidays = () => {
                             variant="outline"
                             className={cn(
                               "w-full justify-start text-left font-normal",
-                              !newHoliday.end_date && "text-muted-foreground"
+                              !formState.end_date && "text-muted-foreground"
                             )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {newHoliday.end_date ? format(newHoliday.end_date, "dd/MM/yyyy") : "Selecione"}
+                            {formState.end_date ? format(formState.end_date, "dd/MM/yyyy") : "Selecione"}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={newHoliday.end_date}
-                            onSelect={(date) => setNewHoliday({ ...newHoliday, end_date: date })}
-                            disabled={(date) => newHoliday.date ? date < newHoliday.date : false}
+                            selected={formState.end_date}
+                            onSelect={(date) => setFormState({ ...formState, end_date: date })}
+                            disabled={(date) => formState.date ? date < formState.date : false}
                             initialFocus
                             className="pointer-events-auto"
                           />
@@ -395,12 +443,12 @@ const Holidays = () => {
                     </div>
                   )}
 
-                  {newHoliday.holiday_type === 'partial' && (
+                  {formState.holiday_type === 'partial' && (
                     <div className="space-y-2">
                       <Label>Feriado até</Label>
                       <Select 
-                        value={newHoliday.partial_end_time} 
-                        onValueChange={(value) => setNewHoliday({ ...newHoliday, partial_end_time: value })}
+                        value={formState.partial_end_time} 
+                        onValueChange={(value) => setFormState({ ...formState, partial_end_time: value })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Horário" />
@@ -424,9 +472,9 @@ const Holidays = () => {
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="recurring"
-                    checked={newHoliday.is_recurring}
+                    checked={formState.is_recurring}
                     onCheckedChange={(checked) => 
-                      setNewHoliday({ ...newHoliday, is_recurring: checked as boolean })
+                      setFormState({ ...formState, is_recurring: checked as boolean })
                     }
                   />
                   <Label htmlFor="recurring">Feriado recorrente (repete todo ano)</Label>
@@ -436,8 +484,8 @@ const Holidays = () => {
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateHoliday}>
-                  Salvar
+                <Button onClick={handleSaveHoliday}>
+                  {isEditing ? 'Salvar Alterações' : 'Salvar'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -449,13 +497,13 @@ const Holidays = () => {
         <CardHeader>
           <CardTitle>Calendário de Feriados</CardTitle>
           <CardDescription>
-            Lista de todos os feriados cadastrados
+            Lista de todos os feriados cadastrados. Os feriados nacionais são sincronizados automaticamente em 31/12 e 01/01.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {holidays.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum feriado cadastrado. Clique em "Adicionar Feriados Nacionais" para começar.
+              Nenhum feriado cadastrado. Clique em "Sincronizar Feriados Nacionais" para começar.
             </div>
           ) : (
             <Table>
@@ -482,13 +530,22 @@ const Holidays = () => {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteHoliday(holiday.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenEdit(holiday)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteHoliday(holiday.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
