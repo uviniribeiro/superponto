@@ -2865,27 +2865,39 @@ export type Database = {
           company_id: string | null
           created_at: string
           date: string
+          end_date: string | null
+          holiday_type: string | null
           id: string
+          is_partial: boolean | null
           is_recurring: boolean
           name: string
+          partial_end_time: string | null
           updated_at: string
         }
         Insert: {
           company_id?: string | null
           created_at?: string
           date: string
+          end_date?: string | null
+          holiday_type?: string | null
           id?: string
+          is_partial?: boolean | null
           is_recurring?: boolean
           name: string
+          partial_end_time?: string | null
           updated_at?: string
         }
         Update: {
           company_id?: string | null
           created_at?: string
           date?: string
+          end_date?: string | null
+          holiday_type?: string | null
           id?: string
+          is_partial?: boolean | null
           is_recurring?: boolean
           name?: string
+          partial_end_time?: string | null
           updated_at?: string
         }
         Relationships: [
