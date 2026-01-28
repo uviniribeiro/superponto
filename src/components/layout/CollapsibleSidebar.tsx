@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { NotificationCenter } from '@/components/NotificationCenter';
 import { SupportChat } from '@/components/support/SupportChat';
 import { AnnouncementPopup } from '@/components/announcements/AnnouncementPopup';
 import { WhatsNewPopup } from '@/components/WhatsNewPopup';
+import { MenuPositionSelector } from '@/components/MenuPositionSelector';
+import { useMenuPosition, MenuPosition } from '@/hooks/useMenuPosition';
 import { getVersionString, APP_NAME } from '@/lib/version';
 import superpontoLogo from '@/assets/superponto-logo-new.png';
 import {
@@ -77,9 +79,11 @@ import {
   School,
   Hospital,
   AlertCircle,
+  ArrowLeft,
+  Grid3X3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Outlet } from 'react-router-dom';
+import { categoryHubConfigMap } from '@/config/categoryHubConfigs';
 
 interface CompanySettings {
   company_name: string;
@@ -268,7 +272,6 @@ const menuCategories: MenuCategory[] = [
     icon: FileBarChart,
     roles: ['admin', 'manager'],
     items: [
-      { title: 'Central de Relatórios', icon: FileBarChart, href: '/reports', roles: ['admin', 'manager'] },
       { title: 'Espelho de Ponto', icon: FileText, href: '/reports/mirror-point', roles: ['admin', 'manager'] },
       { title: 'Horas Trabalhadas', icon: Clock, href: '/reports/worked-hours', roles: ['admin', 'manager'] },
       { title: 'Horas Extras', icon: TrendingUp, href: '/reports/overtime', roles: ['admin', 'manager'] },
@@ -312,6 +315,7 @@ export default function CollapsibleSidebar() {
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [openCategories, setOpenCategories] = useState<string[]>(['home', 'ponto']);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { position, setPosition, isHorizontal } = useMenuPosition();
 
   useEffect(() => {
     const fetchCompanySettings = async () => {
@@ -356,7 +360,7 @@ export default function CollapsibleSidebar() {
   };
 
   const toggleCategory = (categoryId: string) => {
-    if (isCollapsed) {
+    if (isCollapsed && !isHorizontal) {
       setIsCollapsed(false);
       setOpenCategories([categoryId]);
       return;
@@ -402,14 +406,215 @@ export default function CollapsibleSidebar() {
     return location.pathname === href || location.pathname.startsWith(href + '/');
   };
 
-  const sidebarWidth = isCollapsed ? 'w-16' : 'w-64';
+  const getCurrentCategory = () => {
+    // Check if on category page
+    if (location.pathname.startsWith('/category/')) {
+      const categoryId = location.pathname.split('/category/')[1];
+      return menuCategories.find(c => c.id === categoryId) || null;
+    }
+    // Find category by current route
+    for (const category of menuCategories) {
+      const hasItem = category.items.some(i => isActiveLink(i.href));
+      if (hasItem) return category;
+    }
+    return null;
+  };
 
+  const handleBack = () => {
+    const currentCategory = getCurrentCategory();
+    if (currentCategory && location.pathname !== '/home' && !location.pathname.startsWith('/category/')) {
+      // Navigate to category hub
+      navigate(`/category/${currentCategory.id}`);
+    } else if (location.pathname.startsWith('/category/')) {
+      // From category hub, go to home
+      navigate('/home');
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const getCurrentPageTitle = () => {
+    // Check category page first
+    if (location.pathname.startsWith('/category/')) {
+      const categoryId = location.pathname.split('/category/')[1];
+      const category = menuCategories.find(c => c.id === categoryId);
+      return category ? `Central de ${category.title}` : 'Categorias';
+    }
+    // Find in menu items
+    for (const category of menuCategories) {
+      const item = category.items.find(i => isActiveLink(i.href));
+      if (item) return item.title;
+    }
+    return 'Início';
+  };
+
+  const sidebarWidth = isCollapsed ? 'w-16' : 'w-64';
+  const sidebarHeight = isCollapsed ? 'h-14' : 'h-auto';
+
+  // Render horizontal menu (top/bottom)
+  if (isHorizontal) {
+    return (
+      <div className={cn(
+        "min-h-screen flex w-full bg-muted/30",
+        position === 'top' ? "flex-col" : "flex-col-reverse"
+      )}>
+        {/* Horizontal Navigation Bar */}
+        <nav className={cn(
+          "bg-sidebar border-sidebar-border flex items-center px-4 py-2 z-40",
+          position === 'top' ? "border-b sticky top-0" : "border-t sticky bottom-0"
+        )}>
+          {/* Logo */}
+          <div className="flex items-center gap-2 mr-4">
+            <img 
+              src={companySettings?.logo_url || superpontoLogo} 
+              alt={companySettings?.company_name || APP_NAME} 
+              className="h-8 w-8 rounded-lg object-contain"
+            />
+            <span className="font-semibold text-sm text-sidebar-foreground hidden lg:block">
+              {companySettings?.company_name || APP_NAME}
+            </span>
+          </div>
+
+          {/* Navigation Buttons */}
+          <div className="flex items-center gap-1 mr-4">
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Voltar</TooltipContent>
+            </Tooltip>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Link to="/home">
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Home className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>Início</TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Category Buttons */}
+          <ScrollArea className="flex-1">
+            <div className="flex items-center gap-1">
+              {menuCategories.filter(filterCategory).filter(c => c.id !== 'home').map((category) => {
+                const hasActiveChild = category.items.some(item => isActiveLink(item.href));
+                const isCategoryPage = location.pathname === `/category/${category.id}`;
+                
+                return (
+                  <DropdownMenu key={category.id}>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant={hasActiveChild || isCategoryPage ? "default" : "ghost"} 
+                        size="sm"
+                        className="h-8 gap-1.5 shrink-0"
+                      >
+                        <category.icon className="h-4 w-4" />
+                        <span className="hidden md:inline text-xs">{category.title}</span>
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                      <DropdownMenuLabel className="flex items-center gap-2">
+                        <category.icon className="h-4 w-4" />
+                        {category.title}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to={`/category/${category.id}`} className="flex items-center gap-2">
+                          <Grid3X3 className="h-4 w-4" />
+                          <span>Central de {category.title}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {category.items.filter(filterItem).map((item) => (
+                        <DropdownMenuItem key={item.href} asChild>
+                          <Link 
+                            to={item.href}
+                            className={cn(
+                              "flex items-center gap-2",
+                              isActiveLink(item.href) && "bg-accent"
+                            )}
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                );
+              })}
+            </div>
+          </ScrollArea>
+
+          {/* Right Side Actions */}
+          <div className="flex items-center gap-1 ml-4">
+            <MenuPositionSelector position={position} onPositionChange={setPosition} compact />
+            <ThemeToggle />
+            <NotificationCenter />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      {profile?.full_name ? getInitials(profile.full_name) : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div>
+                    <p className="text-sm font-medium">{profile?.full_name || 'Usuário'}</p>
+                    <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/account-settings')}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Configurações
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </nav>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto">
+          <div className="p-4 lg:p-6">
+            <Outlet />
+          </div>
+        </main>
+
+        {/* Utility Components */}
+        <SupportChat />
+        <AnnouncementPopup />
+        <WhatsNewPopup />
+      </div>
+    );
+  }
+
+  // Render vertical menu (left/right)
   return (
-    <div className="min-h-screen flex w-full bg-muted/30">
+    <div className={cn(
+      "min-h-screen flex w-full bg-muted/30",
+      position === 'right' && "flex-row-reverse"
+    )}>
       {/* Sidebar */}
       <aside className={cn(
-        "bg-sidebar border-r border-sidebar-border flex flex-col fixed h-full z-40 transition-all duration-300",
-        sidebarWidth
+        "bg-sidebar border-sidebar-border flex flex-col fixed h-full z-40 transition-all duration-300",
+        sidebarWidth,
+        position === 'left' ? "left-0 border-r" : "right-0 border-l"
       )}>
         {/* Logo/Brand */}
         <div className="p-3 border-b border-sidebar-border">
@@ -434,15 +639,44 @@ export default function CollapsibleSidebar() {
         <Button
           variant="ghost"
           size="sm"
-          className="absolute -right-3 top-16 h-6 w-6 rounded-full border bg-background shadow-sm z-50"
+          className={cn(
+            "absolute top-16 h-6 w-6 rounded-full border bg-background shadow-sm z-50",
+            position === 'left' ? "-right-3" : "-left-3"
+          )}
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
-          {isCollapsed ? (
-            <ChevronRight className="h-3 w-3" />
+          {position === 'left' ? (
+            isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />
           ) : (
-            <ChevronLeft className="h-3 w-3" />
+            isCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />
           )}
         </Button>
+
+        {/* Quick Actions */}
+        {!isCollapsed && (
+          <div className="p-2 border-b border-sidebar-border flex items-center gap-1">
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side={position === 'left' ? 'right' : 'left'}>Voltar</TooltipContent>
+            </Tooltip>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Link to="/home">
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Home className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side={position === 'left' ? 'right' : 'left'}>Início</TooltipContent>
+            </Tooltip>
+            <div className="flex-1" />
+            <MenuPositionSelector position={position} onPositionChange={setPosition} compact />
+          </div>
+        )}
 
         {/* Navigation */}
         <ScrollArea className="flex-1 py-2">
@@ -453,6 +687,7 @@ export default function CollapsibleSidebar() {
 
               const isOpen = openCategories.includes(category.id);
               const hasActiveChild = filteredItems.some(item => isActiveLink(item.href));
+              const isCategoryPage = location.pathname === `/category/${category.id}`;
 
               if (isCollapsed) {
                 // Collapsed mode - show only icons with tooltip
@@ -463,7 +698,7 @@ export default function CollapsibleSidebar() {
                         onClick={() => toggleCategory(category.id)}
                         className={cn(
                           "flex items-center justify-center w-full p-2.5 rounded-lg text-sm transition-colors",
-                          hasActiveChild
+                          hasActiveChild || isCategoryPage
                             ? "bg-primary text-primary-foreground"
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
                         )}
@@ -471,9 +706,15 @@ export default function CollapsibleSidebar() {
                         <category.icon className="w-5 h-5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="flex flex-col gap-1">
+                    <TooltipContent side={position === 'left' ? 'right' : 'left'} className="flex flex-col gap-1">
                       <span className="font-medium">{category.title}</span>
                       <div className="text-xs text-muted-foreground">
+                        <Link
+                          to={`/category/${category.id}`}
+                          className="block py-1 hover:text-foreground text-primary font-medium"
+                        >
+                          Central de {category.title}
+                        </Link>
                         {filteredItems.map(item => (
                           <Link
                             key={item.href}
@@ -498,7 +739,7 @@ export default function CollapsibleSidebar() {
                     onClick={() => toggleCategory(category.id)}
                     className={cn(
                       "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      hasActiveChild
+                      hasActiveChild || isCategoryPage
                         ? "text-sidebar-foreground"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                     )}
@@ -519,13 +760,13 @@ export default function CollapsibleSidebar() {
                       to={`/category/${category.id}`}
                       className={cn(
                         "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors",
-                        location.pathname === `/category/${category.id}`
+                        isCategoryPage
                           ? "bg-primary text-primary-foreground font-medium"
                           : "text-primary hover:bg-sidebar-accent/50"
                       )}
                     >
-                      <LayoutDashboard className="w-4 h-4 shrink-0" />
-                      <span className="truncate">Central de {category.title}</span>
+                      <Grid3X3 className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Central</span>
                     </Link>
                     {filteredItems.map((item) => (
                       <Link
@@ -610,7 +851,9 @@ export default function CollapsibleSidebar() {
       {/* Main Content */}
       <main className={cn(
         "flex-1 transition-all duration-300",
-        isCollapsed ? "ml-16" : "ml-64"
+        position === 'left' 
+          ? (isCollapsed ? "ml-16" : "ml-64") 
+          : (isCollapsed ? "mr-16" : "mr-64")
       )}>
         <div className="p-4 lg:p-6">
           <Outlet />
