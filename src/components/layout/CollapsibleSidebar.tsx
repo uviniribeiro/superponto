@@ -652,31 +652,32 @@ export default function CollapsibleSidebar() {
           )}
         </Button>
 
-        {/* Quick Actions */}
-        {!isCollapsed && (
-          <div className="p-2 border-b border-sidebar-border flex items-center gap-1">
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
-                  <ArrowLeft className="h-4 w-4" />
+        {/* Quick Actions - Always visible */}
+        <div className={cn(
+          "p-2 border-b border-sidebar-border flex items-center",
+          isCollapsed ? "flex-col gap-2 justify-center" : "gap-1"
+        )}>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleBack}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side={position === 'left' ? 'right' : 'left'}>Voltar</TooltipContent>
+          </Tooltip>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Link to="/home">
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                  <Home className="h-4 w-4" />
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent side={position === 'left' ? 'right' : 'left'}>Voltar</TooltipContent>
-            </Tooltip>
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Link to="/home">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Home className="h-4 w-4" />
-                  </Button>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side={position === 'left' ? 'right' : 'left'}>Início</TooltipContent>
-            </Tooltip>
-            <div className="flex-1" />
-            <MenuPositionSelector position={position} onPositionChange={setPosition} compact />
-          </div>
-        )}
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side={position === 'left' ? 'right' : 'left'}>Início</TooltipContent>
+          </Tooltip>
+          {!isCollapsed && <div className="flex-1" />}
+          <MenuPositionSelector position={position} onPositionChange={setPosition} compact />
+        </div>
 
         {/* Navigation */}
         <ScrollArea className="flex-1 py-2">
@@ -792,12 +793,13 @@ export default function CollapsibleSidebar() {
 
         {/* Footer - User */}
         <div className="border-t border-sidebar-border p-2">
-          {!isCollapsed && (
-            <div className="flex items-center gap-2 px-2 py-1 mb-2">
-              <ThemeToggle />
-              <NotificationCenter />
-            </div>
-          )}
+          <div className={cn(
+            "flex items-center gap-2 mb-2",
+            isCollapsed ? "flex-col px-0 py-1" : "px-2 py-1"
+          )}>
+            <ThemeToggle />
+            <NotificationCenter />
+          </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
