@@ -45,7 +45,7 @@ export function MenuPositionSelector({ position, onPositionChange, compact }: Me
               </Button>
             </PopoverTrigger>
           </TooltipTrigger>
-          <TooltipContent side="right">
+          <TooltipContent>
             <p>Posição do Menu</p>
           </TooltipContent>
         </Tooltip>
