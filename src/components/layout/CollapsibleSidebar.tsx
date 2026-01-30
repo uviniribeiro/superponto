@@ -654,8 +654,8 @@ export default function CollapsibleSidebar() {
 
         {/* Quick Actions - Always visible */}
         <div className={cn(
-          "p-2 border-b border-sidebar-border flex items-center",
-          isCollapsed ? "flex-col gap-2 justify-center" : "gap-1"
+          "p-2 border-b border-sidebar-border flex",
+          isCollapsed ? "flex-col gap-1 items-center justify-center" : "flex-row items-center gap-1"
         )}>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
@@ -794,8 +794,8 @@ export default function CollapsibleSidebar() {
         {/* Footer - User */}
         <div className="border-t border-sidebar-border p-2">
           <div className={cn(
-            "flex items-center gap-2 mb-2",
-            isCollapsed ? "flex-col px-0 py-1" : "px-2 py-1"
+            "flex items-center mb-2",
+            isCollapsed ? "flex-col gap-1 justify-center" : "flex-row gap-2 px-2 py-1"
           )}>
             <ThemeToggle />
             <NotificationCenter />
