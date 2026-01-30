@@ -480,7 +480,7 @@ export default function CollapsibleSidebar() {
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
-                  <ArrowLeft className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4 text-sidebar-foreground" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Voltar</TooltipContent>
@@ -489,7 +489,7 @@ export default function CollapsibleSidebar() {
               <TooltipTrigger asChild>
                 <Link to="/home">
                   <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Home className="h-4 w-4" />
+                    <Home className="h-4 w-4 text-sidebar-foreground" />
                   </Button>
                 </Link>
               </TooltipTrigger>
@@ -660,7 +660,7 @@ export default function CollapsibleSidebar() {
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleBack}>
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4 text-sidebar-foreground" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side={position === 'left' ? 'right' : 'left'}>Voltar</TooltipContent>
@@ -669,7 +669,7 @@ export default function CollapsibleSidebar() {
             <TooltipTrigger asChild>
               <Link to="/home">
                 <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                  <Home className="h-4 w-4" />
+                  <Home className="h-4 w-4 text-sidebar-foreground" />
                 </Button>
               </Link>
             </TooltipTrigger>
