@@ -124,6 +124,163 @@
     --holiday-primary: 152 76% 42%;
     --holiday-secondary: 220 14% 92%;
     --holiday-accent: 152 76% 94%;
+    --holiday-gradient: linear-gradient(135deg, hsl(152, 76%, 42%), hsl(173, 80%, 40%));
+  }
+
+  /* ===== HOLIDAY THEMES - Full Interface Customization ===== */
+  
+  /* Carnival Theme */
+  [data-holiday-theme="carnival"] {
+    --primary: 280 85% 50%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 45 100% 50%;
+    --accent-foreground: 0 0% 10%;
+    --ring: 280 85% 50%;
+    --sidebar-primary: 280 85% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --chart-1: 280 85% 50%;
+    --chart-2: 45 100% 50%;
+    --chart-3: 150 80% 45%;
+    --chart-4: 320 80% 55%;
+    --chart-5: 200 90% 50%;
+  }
+  
+  [data-holiday-theme="carnival"].dark {
+    --primary: 280 75% 60%;
+    --accent: 45 100% 55%;
+    --sidebar-primary: 280 75% 60%;
+  }
+
+  /* Easter Theme */
+  [data-holiday-theme="easter"] {
+    --primary: 280 60% 65%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 150 70% 60%;
+    --accent-foreground: 0 0% 10%;
+    --ring: 280 60% 65%;
+    --sidebar-primary: 280 60% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --chart-1: 280 60% 65%;
+    --chart-2: 45 100% 70%;
+    --chart-3: 150 70% 60%;
+    --chart-4: 320 70% 70%;
+    --chart-5: 30 90% 65%;
+  }
+
+  [data-holiday-theme="easter"].dark {
+    --primary: 280 55% 70%;
+    --accent: 150 65% 55%;
+    --sidebar-primary: 280 55% 70%;
+  }
+
+  /* Labor Day Theme */
+  [data-holiday-theme="labor_day"] {
+    --primary: 0 70% 50%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 45 100% 50%;
+    --accent-foreground: 0 0% 10%;
+    --ring: 0 70% 50%;
+    --sidebar-primary: 0 70% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --chart-1: 0 70% 50%;
+    --chart-2: 45 100% 50%;
+    --chart-3: 220 70% 50%;
+    --chart-4: 30 80% 55%;
+    --chart-5: 280 60% 50%;
+  }
+
+  [data-holiday-theme="labor_day"].dark {
+    --primary: 0 65% 55%;
+    --accent: 45 100% 55%;
+    --sidebar-primary: 0 65% 55%;
+  }
+
+  /* Corpus Christi Theme */
+  [data-holiday-theme="corpus_christi"] {
+    --primary: 45 100% 45%;
+    --primary-foreground: 0 0% 10%;
+    --accent: 280 80% 60%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 45 100% 45%;
+    --sidebar-primary: 45 100% 45%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --chart-1: 45 100% 45%;
+    --chart-2: 280 80% 60%;
+    --chart-3: 0 0% 85%;
+    --chart-4: 30 90% 50%;
+    --chart-5: 320 70% 55%;
+  }
+
+  [data-holiday-theme="corpus_christi"].dark {
+    --primary: 45 100% 50%;
+    --accent: 280 75% 65%;
+    --sidebar-primary: 45 100% 50%;
+  }
+
+  /* Independence Day Theme (Brazil) */
+  [data-holiday-theme="independence"] {
+    --primary: 120 80% 35%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 45 100% 50%;
+    --accent-foreground: 0 0% 10%;
+    --ring: 120 80% 35%;
+    --sidebar-primary: 120 80% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --chart-1: 120 80% 35%;
+    --chart-2: 45 100% 50%;
+    --chart-3: 220 70% 50%;
+    --chart-4: 0 60% 45%;
+    --chart-5: 280 60% 50%;
+  }
+
+  [data-holiday-theme="independence"].dark {
+    --primary: 120 75% 40%;
+    --accent: 45 100% 55%;
+    --sidebar-primary: 120 75% 40%;
+  }
+
+  /* Christmas Theme */
+  [data-holiday-theme="christmas"] {
+    --primary: 0 80% 45%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 120 80% 30%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 0 80% 45%;
+    --sidebar-primary: 0 80% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --chart-1: 0 80% 45%;
+    --chart-2: 120 80% 30%;
+    --chart-3: 45 100% 50%;
+    --chart-4: 0 0% 85%;
+    --chart-5: 30 90% 55%;
+  }
+
+  [data-holiday-theme="christmas"].dark {
+    --primary: 0 75% 50%;
+    --accent: 120 75% 35%;
+    --sidebar-primary: 0 75% 50%;
+  }
+
+  /* New Year Theme */
+  [data-holiday-theme="new_year"] {
+    --primary: 45 100% 50%;
+    --primary-foreground: 0 0% 10%;
+    --accent: 210 100% 60%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 45 100% 50%;
+    --sidebar-primary: 45 100% 50%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --chart-1: 45 100% 50%;
+    --chart-2: 210 100% 60%;
+    --chart-3: 280 70% 55%;
+    --chart-4: 0 0% 15%;
+    --chart-5: 320 80% 50%;
+  }
+
+  [data-holiday-theme="new_year"].dark {
+    --primary: 45 100% 55%;
+    --accent: 210 100% 65%;
+    --sidebar-primary: 45 100% 55%;
   }
 
   .dark {
@@ -257,6 +414,47 @@
   /* Glow effect */
   .glow-primary {
     box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+
+  /* Icon visibility - ensure icons are always visible in both themes */
+  .icon-adaptive {
+    @apply text-foreground;
+  }
+
+  /* Holiday decorative elements */
+  .holiday-glow {
+    box-shadow: 0 0 30px var(--holiday-primary, hsl(var(--primary) / 0.4));
+  }
+
+  .holiday-gradient-bg {
+    background: var(--holiday-gradient, linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent))));
+  }
+
+  .holiday-gradient-text {
+    background: var(--holiday-gradient, linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent))));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Holiday animated background patterns */
+  .holiday-pattern {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .holiday-pattern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.03;
+    pointer-events: none;
+    background-image: var(--holiday-pattern, none);
+    background-size: 100px 100px;
+    z-index: 0;
   }
 }
 
