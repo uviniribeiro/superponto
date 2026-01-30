@@ -477,24 +477,24 @@ export default function CollapsibleSidebar() {
 
           {/* Navigation Buttons */}
           <div className="flex items-center gap-1 mr-4">
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBack}>
-                  <ArrowLeft className="h-4 w-4 text-sidebar-foreground" />
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-sidebar-foreground hover:text-sidebar-foreground" onClick={handleBack}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Voltar</TooltipContent>
+          </Tooltip>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Link to="/home">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-sidebar-foreground hover:text-sidebar-foreground">
+                  <Home className="h-4 w-4" />
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>Voltar</TooltipContent>
-            </Tooltip>
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Link to="/home">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Home className="h-4 w-4 text-sidebar-foreground" />
-                  </Button>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent>Início</TooltipContent>
-            </Tooltip>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>Início</TooltipContent>
+          </Tooltip>
           </div>
 
           {/* Category Buttons */}
@@ -659,8 +659,8 @@ export default function CollapsibleSidebar() {
         )}>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleBack}>
-                <ArrowLeft className="h-4 w-4 text-sidebar-foreground" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-sidebar-foreground hover:text-sidebar-foreground" onClick={handleBack}>
+                <ArrowLeft className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side={position === 'left' ? 'right' : 'left'}>Voltar</TooltipContent>
@@ -668,8 +668,8 @@ export default function CollapsibleSidebar() {
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Link to="/home">
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                  <Home className="h-4 w-4 text-sidebar-foreground" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-sidebar-foreground hover:text-sidebar-foreground">
+                  <Home className="h-4 w-4" />
                 </Button>
               </Link>
             </TooltipTrigger>
