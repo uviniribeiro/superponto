@@ -49,8 +49,8 @@ export function NotificationCenter() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 relative">
-          <Bell className="h-4 w-4 text-foreground" />
+        <Button variant="ghost" size="icon" className="h-8 w-8 relative text-sidebar-foreground hover:text-sidebar-foreground">
+          <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
             <Badge 
               className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-destructive"
