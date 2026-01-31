@@ -123,20 +123,6 @@ export default function Home() {
 
   return (
     <div className="relative min-h-[calc(100vh-8rem)]">
-      {/* Background Logo */}
-      {companySettings?.logo_url && (
-        <div 
-          className="fixed inset-0 flex items-center justify-center pointer-events-none z-0"
-          style={{
-            backgroundImage: `url(${companySettings.logo_url})`,
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: '40%',
-            opacity: 0.08,
-          }}
-        />
-      )}
-
       {/* Content */}
       <div className="relative z-10 space-y-6">
         {/* Welcome Header */}
@@ -263,8 +249,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* No logo message */}
-        {!companySettings?.logo_url && (
+        {/* No favorites hint */}
+        {favoriteItems.length === 0 && !recentItems.length && (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground">
               💡 Dica: Configure a logo da empresa em{' '}
