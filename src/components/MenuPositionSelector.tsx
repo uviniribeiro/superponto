@@ -40,7 +40,7 @@ export function MenuPositionSelector({ position, onPositionChange, compact }: Me
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-sidebar-foreground hover:text-sidebar-foreground">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white">
                 <Settings2 className="h-4 w-4" />
               </Button>
             </PopoverTrigger>

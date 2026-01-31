@@ -470,7 +470,7 @@ export default function CollapsibleSidebar() {
               alt={companySettings?.company_name || APP_NAME} 
               className="h-8 w-8 rounded-lg object-contain"
             />
-            <span className="font-semibold text-sm text-sidebar-foreground hidden lg:block">
+            <span className="font-semibold text-sm text-white hidden lg:block">
               {companySettings?.company_name || APP_NAME}
             </span>
           </div>
@@ -479,7 +479,7 @@ export default function CollapsibleSidebar() {
           <div className="flex items-center gap-1 mr-4">
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-sidebar-foreground hover:text-sidebar-foreground" onClick={handleBack}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -488,7 +488,7 @@ export default function CollapsibleSidebar() {
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Link to="/home">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-sidebar-foreground hover:text-sidebar-foreground">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white">
                   <Home className="h-4 w-4" />
                 </Button>
               </Link>
@@ -510,7 +510,7 @@ export default function CollapsibleSidebar() {
                       <Button 
                         variant={hasActiveChild || isCategoryPage ? "default" : "ghost"} 
                         size="sm"
-                        className="h-8 gap-1.5 shrink-0"
+                        className="h-8 gap-1.5 shrink-0 text-white hover:text-white"
                       >
                         <category.icon className="h-4 w-4" />
                         <span className="hidden md:inline text-xs">{category.title}</span>
@@ -559,7 +559,7 @@ export default function CollapsibleSidebar() {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white">
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                       {profile?.full_name ? getInitials(profile.full_name) : 'U'}
@@ -626,10 +626,10 @@ export default function CollapsibleSidebar() {
             />
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <h1 className="font-semibold text-sm text-sidebar-foreground truncate">
+                <h1 className="font-semibold text-sm text-white truncate">
                   {companySettings?.company_name || APP_NAME}
                 </h1>
-                <p className="text-xs text-sidebar-foreground/60">Gestão de Ponto</p>
+                <p className="text-xs text-white/60">Gestão de Ponto</p>
               </div>
             )}
           </div>
@@ -659,7 +659,7 @@ export default function CollapsibleSidebar() {
         )}>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-sidebar-foreground hover:text-sidebar-foreground" onClick={handleBack}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:text-white" onClick={handleBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -668,7 +668,7 @@ export default function CollapsibleSidebar() {
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Link to="/home">
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-sidebar-foreground hover:text-sidebar-foreground">
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-white hover:text-white">
                   <Home className="h-4 w-4" />
                 </Button>
               </Link>
@@ -700,8 +700,8 @@ export default function CollapsibleSidebar() {
                         className={cn(
                           "flex items-center justify-center w-full p-2.5 rounded-lg text-sm transition-colors",
                           hasActiveChild || isCategoryPage
-                            ? "bg-primary text-primary-foreground"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
+                            ? "bg-primary text-white"
+                            : "text-white/70 hover:bg-sidebar-accent/50 hover:text-white"
                         )}
                       >
                         <category.icon className="w-5 h-5" />
@@ -741,8 +741,8 @@ export default function CollapsibleSidebar() {
                     className={cn(
                       "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                       hasActiveChild || isCategoryPage
-                        ? "text-sidebar-foreground"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                        ? "text-white"
+                        : "text-white/70 hover:bg-sidebar-accent/50 hover:text-white"
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -762,8 +762,8 @@ export default function CollapsibleSidebar() {
                       className={cn(
                         "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors",
                         isCategoryPage
-                          ? "bg-primary text-primary-foreground font-medium"
-                          : "text-primary hover:bg-sidebar-accent/50"
+                          ? "bg-primary text-white font-medium"
+                          : "text-white/80 hover:bg-sidebar-accent/50 hover:text-white"
                       )}
                     >
                       <Grid3X3 className="w-4 h-4 shrink-0" />
@@ -776,8 +776,8 @@ export default function CollapsibleSidebar() {
                         className={cn(
                           "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors",
                           isActiveLink(item.href)
-                            ? "bg-primary text-primary-foreground font-medium"
-                            : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                            ? "bg-primary text-white font-medium"
+                            : "text-white/60 hover:bg-sidebar-accent/50 hover:text-white"
                         )}
                       >
                         <item.icon className="w-4 h-4 shrink-0" />
@@ -808,21 +808,21 @@ export default function CollapsibleSidebar() {
                 isCollapsed && "justify-center"
               )}>
                 <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                  <AvatarFallback className="bg-primary text-white text-xs">
                     {profile?.full_name ? getInitials(profile.full_name) : 'U'}
                   </AvatarFallback>
                 </Avatar>
                 {!isCollapsed && (
                   <>
                     <div className="flex-1 text-left min-w-0">
-                      <p className="text-sm font-medium text-sidebar-foreground truncate">
+                      <p className="text-sm font-medium text-white truncate">
                         {profile?.full_name || 'Usuário'}
                       </p>
-                      <p className="text-xs text-sidebar-foreground/50 truncate">
+                      <p className="text-xs text-white/50 truncate">
                         {profile?.email}
                       </p>
                     </div>
-                    <ChevronUp className="w-4 h-4 text-sidebar-foreground/50 shrink-0" />
+                    <ChevronUp className="w-4 h-4 text-white/50 shrink-0" />
                   </>
                 )}
               </button>
@@ -843,7 +843,7 @@ export default function CollapsibleSidebar() {
           </DropdownMenu>
 
           {!isCollapsed && (
-            <p className="text-[10px] text-center text-sidebar-foreground/40 mt-2">
+            <p className="text-[10px] text-center text-white/40 mt-2">
               {getVersionString()}
             </p>
           )}
