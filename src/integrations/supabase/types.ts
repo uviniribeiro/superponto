@@ -983,12 +983,12 @@ export type Database = {
       }
       compensation_banks: {
         Row: {
-          balance: unknown
+          balance: string | null
           company_id: string | null
           created_at: string
           created_by: string | null
-          credit_hours: unknown
-          debit_hours: unknown
+          credit_hours: string | null
+          debit_hours: string | null
           id: string
           notes: string | null
           profile_id: string
@@ -996,12 +996,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          balance?: unknown
+          balance?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string | null
-          credit_hours?: unknown
-          debit_hours?: unknown
+          credit_hours?: string | null
+          debit_hours?: string | null
           id?: string
           notes?: string | null
           profile_id: string
@@ -1009,12 +1009,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          balance?: unknown
+          balance?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string | null
-          credit_hours?: unknown
-          debit_hours?: unknown
+          credit_hours?: string | null
+          debit_hours?: string | null
           id?: string
           notes?: string | null
           profile_id?: string
