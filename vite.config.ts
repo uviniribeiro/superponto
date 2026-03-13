@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
-    mode === 'production' && obfuscatorPlugin({
+    mode === 'production' && obfuscator({
       options: {
         compact: true,
         controlFlowFlattening: true,
