@@ -307,6 +307,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Empresa', icon: Building2, href: '/company-settings', roles: ['admin'] },
       { title: 'Dados da Empresa', icon: FileCheck, href: '/company', roles: ['admin'] },
       { title: 'Usuários', icon: Users, href: '/users', roles: ['admin'] },
+      { title: 'Segurança', icon: Shield, href: '/security', roles: ['admin'] },
       { title: 'Calculadora de Horas', icon: Clock, href: '/hours-calculator', roles: ['admin', 'manager'] },
       { title: 'Textos Customizados', icon: FileText, href: '/custom-texts', roles: ['admin'] },
       { title: 'Manual do Sistema', icon: BookOpen, href: '/system-manual', roles: ['admin', 'manager', 'employee'] },
