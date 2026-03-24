@@ -181,6 +181,9 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'Central de Presença', icon: Users, href: '/presence-monitoring', roles: ['admin', 'manager'] },
       { title: 'Postos de Trabalho', icon: MapPin, href: '/work-stations', roles: ['admin'] },
+      { title: 'In Itinere', icon: Clock, href: '/commute-time', roles: ['admin'] },
+      { title: 'Sobre Aviso', icon: Bell, href: '/on-call-schedules', roles: ['admin'] },
+      { title: 'Abono em Lote', icon: ListChecks, href: '/batch-absolutions', roles: ['admin'] },
       { title: 'Notificações', icon: Bell, href: '/custom-notifications', roles: ['admin'] },
     ]
   },
