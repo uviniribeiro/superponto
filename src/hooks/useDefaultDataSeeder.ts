@@ -84,7 +84,7 @@ export function useDefaultDataSeeder() {
     companyId?: string
   ) => {
     try {
-      const { count, error: countError } = await supabase
+      const { count, error: countError } = await (supabase as any)
         .from(tableName)
         .select('*', { count: 'exact', head: true });
 
@@ -101,8 +101,7 @@ export function useDefaultDataSeeder() {
         company_id: companyId || null,
       }));
 
-      // @ts-ignore - dynamic table
-      const { error } = await supabase.from(tableName).insert(records);
+      const { error } = await (supabase as any).from(tableName).insert(records);
       if (error) {
         console.warn(`Error seeding ${tableName}:`, error.message);
       } else {
