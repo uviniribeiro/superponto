@@ -129,7 +129,9 @@ const menuCategories: MenuCategory[] = [
       { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
       { title: 'Sindicatos', icon: Briefcase, href: '/unions', roles: ['admin'] },
       { title: 'Justificativas', icon: ClipboardCheck, href: '/justifications', roles: ['admin'] },
-      { title: 'Tipos de Funcionário', icon: UserCog, href: '/basic-registrations', roles: ['admin'] },
+      { title: 'Estados Civis', icon: Users, href: '/marital-statuses', roles: ['admin'] },
+      { title: 'Cidades', icon: MapPin, href: '/cities', roles: ['admin'] },
+      { title: 'Cadastros Básicos', icon: UserCog, href: '/basic-registrations', roles: ['admin'] },
     ]
   },
   {
