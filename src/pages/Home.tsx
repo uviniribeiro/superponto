@@ -76,6 +76,7 @@ export default function Home() {
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const { favorites, recentRoutes, toggleFavorite, isFavorite } = useFavorites();
   const { isAdmin, isManager } = useAuth();
+  useDefaultDataSeeder(); // Auto-seed default registration data
 
   useEffect(() => {
     const fetchCompanySettings = async () => {

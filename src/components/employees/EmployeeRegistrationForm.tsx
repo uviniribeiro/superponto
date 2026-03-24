@@ -523,6 +523,7 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
                       <SelectItem value="masculino">Masculino</SelectItem>
                       <SelectItem value="feminino">Feminino</SelectItem>
                       <SelectItem value="outro">Outro</SelectItem>
+                      <SelectItem value="nao_informado">Não Informado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
