@@ -191,6 +191,7 @@ const menuCategories: MenuCategory[] = [
     roles: ['admin', 'manager', 'employee'],
     items: [
       { title: 'Banco de Horas', icon: Timer, href: '/time-bank', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Compensação', icon: ArrowUpDown, href: '/compensation-bank', roles: ['admin'] },
       { title: 'Regras de HE', icon: TrendingUp, href: '/overtime-percentages', roles: ['admin'] },
       { title: 'Dashboard HE', icon: BarChart3, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
     ]
