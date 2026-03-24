@@ -129,7 +129,9 @@ const menuCategories: MenuCategory[] = [
       { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
       { title: 'Sindicatos', icon: Briefcase, href: '/unions', roles: ['admin'] },
       { title: 'Justificativas', icon: ClipboardCheck, href: '/justifications', roles: ['admin'] },
-      { title: 'Tipos de Funcionário', icon: UserCog, href: '/basic-registrations', roles: ['admin'] },
+      { title: 'Estados Civis', icon: Users, href: '/marital-statuses', roles: ['admin'] },
+      { title: 'Cidades', icon: MapPin, href: '/cities', roles: ['admin'] },
+      { title: 'Cadastros Básicos', icon: UserCog, href: '/basic-registrations', roles: ['admin'] },
     ]
   },
   {
@@ -179,6 +181,9 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'Central de Presença', icon: Users, href: '/presence-monitoring', roles: ['admin', 'manager'] },
       { title: 'Postos de Trabalho', icon: MapPin, href: '/work-stations', roles: ['admin'] },
+      { title: 'In Itinere', icon: Clock, href: '/commute-time', roles: ['admin'] },
+      { title: 'Sobre Aviso', icon: Bell, href: '/on-call-schedules', roles: ['admin'] },
+      { title: 'Abono em Lote', icon: ListChecks, href: '/batch-absolutions', roles: ['admin'] },
       { title: 'Notificações', icon: Bell, href: '/custom-notifications', roles: ['admin'] },
     ]
   },
@@ -189,6 +194,7 @@ const menuCategories: MenuCategory[] = [
     roles: ['admin', 'manager', 'employee'],
     items: [
       { title: 'Banco de Horas', icon: Timer, href: '/time-bank', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Compensação', icon: ArrowUpDown, href: '/compensation-bank', roles: ['admin'] },
       { title: 'Regras de HE', icon: TrendingUp, href: '/overtime-percentages', roles: ['admin'] },
       { title: 'Dashboard HE', icon: BarChart3, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
     ]
@@ -301,6 +307,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Empresa', icon: Building2, href: '/company-settings', roles: ['admin'] },
       { title: 'Dados da Empresa', icon: FileCheck, href: '/company', roles: ['admin'] },
       { title: 'Usuários', icon: Users, href: '/users', roles: ['admin'] },
+      { title: 'Segurança', icon: Shield, href: '/security', roles: ['admin'] },
       { title: 'Calculadora de Horas', icon: Clock, href: '/hours-calculator', roles: ['admin', 'manager'] },
       { title: 'Textos Customizados', icon: FileText, href: '/custom-texts', roles: ['admin'] },
       { title: 'Manual do Sistema', icon: BookOpen, href: '/system-manual', roles: ['admin', 'manager', 'employee'] },

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useDefaultDataSeeder } from '@/hooks/useDefaultDataSeeder';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,7 @@ export default function Home() {
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const { favorites, recentRoutes, toggleFavorite, isFavorite } = useFavorites();
   const { isAdmin, isManager } = useAuth();
+  useDefaultDataSeeder(); // Auto-seed default registration data
 
   useEffect(() => {
     const fetchCompanySettings = async () => {
