@@ -1352,6 +1352,157 @@ serve(async (req) => {
       );
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // CLOUD COMMUNICATOR ACTIONS (used by superponto-communicator.py)
+    // ═══════════════════════════════════════════════════════════
+
+    if (action === 'list_equipment') {
+      // List all equipment for a company (used by agent to know what to sync)
+      const { data: equipment, error: fetchError } = await supabase
+        .from('time_clock_equipment')
+        .select('id, name, manufacturer, model, ip_address, port, protocol, api_endpoint, username, is_active, sync_interval_seconds, serial_number, location')
+        .eq('is_active', true)
+        .order('name');
+
+      if (fetchError) throw new Error(`Failed to list equipment: ${fetchError.message}`);
+
+      return new Response(
+        JSON.stringify({ success: true, equipment: equipment || [] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'agent_heartbeat') {
+      // Agent heartbeat - update last communication and online status
+      const { serverIp, agentVersion, equipmentStatuses } = body;
+      
+      // Update equipment statuses based on agent report
+      if (equipmentStatuses && typeof equipmentStatuses === 'object') {
+        for (const [eqId, status] of Object.entries(equipmentStatuses)) {
+          const eqStatus = status as any;
+          await supabase
+            .from('time_clock_equipment')
+            .update({
+              is_online: eqStatus?.online || false,
+              last_communication: new Date().toISOString(),
+            })
+            .eq('id', eqId);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Heartbeat received', serverTime: new Date().toISOString() }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'update_status') {
+      // Update equipment online/offline status
+      const { online, message: statusMessage } = body;
+      
+      if (equipmentId) {
+        await supabase
+          .from('time_clock_equipment')
+          .update({
+            is_online: online,
+            last_communication: new Date().toISOString(),
+          })
+          .eq('id', equipmentId);
+
+        await supabase
+          .from('equipment_communication_logs')
+          .insert({
+            equipment_id: equipmentId,
+            status: online ? 'success' : 'error',
+            message: statusMessage || (online ? 'Online' : 'Offline'),
+            request_type: 'agent_status_update',
+          });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (action === 'receive_records') {
+      // Receive records sent by the cloud communicator agent
+      const { records: rawRecords } = body;
+      
+      if (!equipmentId) {
+        throw new Error('equipmentId is required for receive_records');
+      }
+
+      // Get equipment info
+      const { data: equipment } = await supabase
+        .from('time_clock_equipment')
+        .select('id, manufacturer, company_id')
+        .eq('id', equipmentId)
+        .single();
+
+      if (!equipment) throw new Error('Equipment not found');
+
+      let recordsSynced = 0;
+      
+      // Parse and insert records
+      const parsedRecords = typeof rawRecords === 'string' 
+        ? parseRecords(equipment.manufacturer, rawRecords)
+        : (Array.isArray(rawRecords) ? rawRecords : []);
+
+      for (const record of parsedRecords) {
+        const identifier = record.identifier || record.employee_id || record.pis || '';
+        const recordedAt = record.recordedAt || record.recorded_at || record.timestamp;
+        
+        if (!identifier || !recordedAt) continue;
+
+        const { error: insertError } = await supabase
+          .from('equipment_pending_records')
+          .insert({
+            equipment_id: equipmentId,
+            employee_identifier: String(identifier),
+            recorded_at: new Date(recordedAt).toISOString(),
+            record_type: record.recordType || record.type || null,
+            company_id: equipment.company_id,
+          });
+
+        if (!insertError) recordsSynced++;
+      }
+
+      // Update equipment last_sync
+      await supabase
+        .from('time_clock_equipment')
+        .update({
+          is_online: true,
+          last_sync: new Date().toISOString(),
+          last_communication: new Date().toISOString(),
+        })
+        .eq('id', equipmentId);
+
+      // Log
+      await supabase
+        .from('equipment_communication_logs')
+        .insert({
+          equipment_id: equipmentId,
+          company_id: equipment.company_id,
+          status: 'success',
+          message: `Agent sent ${recordsSynced} records`,
+          request_type: 'agent_receive_records',
+          records_synced: recordsSynced,
+        });
+
+      // Process pending records
+      const processResult = await processPendingRecords(supabase);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          records_synced: recordsSynced,
+          records_processed: processResult.processed,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: 'Invalid action' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
