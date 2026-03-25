@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, Check, Info, HelpCircle, Download, Monitor, Wifi, Server, FileCode, Terminal, Bot, Settings, Gauge, Package, Cpu, FileText } from 'lucide-react';
+import { Copy, Check, Info, HelpCircle, Download, Monitor, Wifi, Server, FileCode, Terminal, Bot, Settings, Gauge, Package, Cpu, FileText, Cloud, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateEquipmentDocPDF } from '@/components/equipment/EquipmentDocPDF';
 
