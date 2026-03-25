@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, Check, Info, HelpCircle, Download, Monitor, Wifi, Server, FileCode, Terminal, Bot, Settings, Gauge, Package, Cpu, FileText } from 'lucide-react';
+import { Copy, Check, Info, HelpCircle, Download, Monitor, Wifi, Server, FileCode, Terminal, Bot, Settings, Gauge, Package, Cpu, FileText, Cloud, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateEquipmentDocPDF } from '@/components/equipment/EquipmentDocPDF';
 
@@ -46,6 +46,111 @@ export default function EquipmentHelp() {
           Baixar Manual PDF
         </Button>
       </div>
+      {/* SuperPonto Communicator - Destaque principal */}
+      <Card className="border-2 border-primary bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 rounded-lg bg-primary/20">
+              <Cloud className="h-6 w-6 text-primary" />
+            </div>
+            SuperPonto Communicator v2.0
+            <Badge className="bg-primary text-primary-foreground">NOVO</Badge>
+            <Badge variant="outline" className="border-primary text-primary">Recomendado</Badge>
+          </CardTitle>
+          <CardDescription className="text-base">
+            Robô de comunicação online via nuvem para todos os relógios de ponto. Instala automaticamente como serviço Windows 
+            e sincroniza continuamente com a nuvem.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
+              <Zap className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <h4 className="font-medium text-sm">Comunicação Cloud</h4>
+                <p className="text-xs text-muted-foreground">Sincroniza via IPv4 do servidor com a nuvem SuperPonto em tempo real</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
+              <Settings className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <h4 className="font-medium text-sm">Serviço Windows</h4>
+                <p className="text-xs text-muted-foreground">Instala automaticamente e inicia com o Windows</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
+              <Gauge className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <h4 className="font-medium text-sm">Dashboard Local</h4>
+                <p className="text-xs text-muted-foreground">Monitoramento em http://localhost:8899</p>
+              </div>
+            </div>
+          </div>
+
+          <Alert className="border-primary/30 bg-primary/5">
+            <Cloud className="h-4 w-4" />
+            <AlertTitle>Como funciona</AlertTitle>
+            <AlertDescription className="mt-2 text-sm">
+              O Communicator é instalado no servidor local da empresa (Windows). Ele escaneia a rede automaticamente, 
+              detecta todos os relógios de ponto (Henry, Dimep, Control iD, ZKTeco, Topdata, Biomtech, etc.), 
+              coleta os registros e envia para a nuvem SuperPonto. Tudo automático, sem intervenção manual.
+            </AlertDescription>
+          </Alert>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="bg-card hover:bg-accent/50 transition-colors cursor-pointer border-primary/30"
+              onClick={() => downloadFile('install-communicator.bat')}>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="p-3 rounded-full bg-primary/10">
+                    <Download className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Instalador Automático</h4>
+                    <p className="text-sm text-muted-foreground">install-communicator.bat</p>
+                    <p className="text-xs text-muted-foreground mt-1">Execute como Administrador — instala tudo automaticamente</p>
+                  </div>
+                  <Button size="sm" className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Baixar Instalador
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+              onClick={() => downloadFile('superponto-communicator.py')}>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="p-3 rounded-full bg-accent">
+                    <FileCode className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Script do Comunicador</h4>
+                    <p className="text-sm text-muted-foreground">superponto-communicator.py</p>
+                    <p className="text-xs text-muted-foreground mt-1">Código-fonte completo</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Baixar Script
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="bg-muted/30 rounded-lg p-4">
+            <h4 className="font-medium mb-2">Instalação rápida:</h4>
+            <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+              <li>Baixe os dois arquivos acima</li>
+              <li>Coloque ambos na mesma pasta</li>
+              <li>Clique com botão direito no <code className="bg-muted px-1.5 py-0.5 rounded">install-communicator.bat</code> → "Executar como administrador"</li>
+              <li>Siga o assistente de configuração (informe código da empresa e IP do servidor)</li>
+              <li>Pronto! O serviço inicia automaticamente e sincroniza todos os relógios</li>
+            </ol>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabs for Windows/Linux */}
       <Tabs defaultValue="windows" className="space-y-6">
