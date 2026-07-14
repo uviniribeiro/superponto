@@ -526,7 +526,7 @@ export default function IdentificationMethods() {
                                     title: 'QR Code gerado',
                                     description: `Válido por ${validDays} dias (até ${new Date(newExpiry).toLocaleDateString('pt-BR')}).`,
                                   });
-                                  fetchMethods();
+                                  fetchData();
                                 } catch (e) {
                                   toast({ title: 'Erro', description: 'Falha ao gerar QR Code', variant: 'destructive' });
                                 }
