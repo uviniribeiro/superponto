@@ -252,16 +252,24 @@ export default function TimeClock() {
     setDragProgress(progress);
   }, [isDragging]);
 
+  const triggerRecord = useCallback(() => {
+    if (identMethods.length > 0) {
+      setShowValidation(true);
+    } else {
+      recordTimeEntry();
+    }
+  }, [identMethods]);
+
   const handleMouseUp = useCallback(() => {
     if (!isDragging) return;
     setIsDragging(false);
     
     if (dragProgress >= 90) {
-      recordTimeEntry();
+      triggerRecord();
     } else {
       setDragProgress(0);
     }
-  }, [isDragging, dragProgress]);
+  }, [isDragging, dragProgress, triggerRecord]);
 
   // Double-click handler
   const handleClick = useCallback(() => {
@@ -275,7 +283,7 @@ export default function TimeClock() {
       }
       
       if (newCount === 2) {
-        recordTimeEntry();
+        triggerRecord();
         return 0;
       }
       
