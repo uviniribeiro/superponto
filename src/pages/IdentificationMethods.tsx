@@ -12,7 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
-import { Plus, Trash2, Edit, Fingerprint, QrCode, CreditCard, KeyRound, Scan, Camera } from 'lucide-react';
+import { Plus, Trash2, Edit, Fingerprint, QrCode, CreditCard, KeyRound, Scan, Camera, Download } from 'lucide-react';
+import QRCode from 'qrcode';
 
 interface Profile {
   id: string;
@@ -500,6 +501,27 @@ export default function IdentificationMethods() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          {method.method_type === 'qrcode' && method.identifier && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Baixar QR Code"
+                              onClick={async () => {
+                                try {
+                                  const url = await QRCode.toDataURL(method.identifier!, { width: 512, margin: 2 });
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  const name = method.profiles?.full_name?.replace(/\s+/g, '_') || 'funcionario';
+                                  a.download = `qrcode_${name}.png`;
+                                  a.click();
+                                } catch (e) {
+                                  toast({ title: 'Erro', description: 'Falha ao gerar QR Code', variant: 'destructive' });
+                                }
+                              }}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(method)}>
                             <Edit className="h-4 w-4" />
                           </Button>
