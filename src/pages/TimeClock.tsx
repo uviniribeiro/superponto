@@ -525,6 +525,8 @@ export default function TimeClock() {
         onOpenChange={setShowValidation}
         methods={identMethods}
         photoUrl={profile?.photo_url}
+        profileId={profile?.id}
+        companyId={profile?.company_id}
         onSuccess={recordTimeEntry}
       />
 
