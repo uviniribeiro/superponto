@@ -1858,34 +1858,40 @@ export type Database = {
         Row: {
           company_id: string | null
           created_at: string
+          expires_at: string | null
           facial_data: string | null
           id: string
           identifier: string | null
           is_active: boolean
           method_type: string
           profile_id: string
+          qr_valid_days: number
           updated_at: string
         }
         Insert: {
           company_id?: string | null
           created_at?: string
+          expires_at?: string | null
           facial_data?: string | null
           id?: string
           identifier?: string | null
           is_active?: boolean
           method_type: string
           profile_id: string
+          qr_valid_days?: number
           updated_at?: string
         }
         Update: {
           company_id?: string | null
           created_at?: string
+          expires_at?: string | null
           facial_data?: string | null
           id?: string
           identifier?: string | null
           is_active?: boolean
           method_type?: string
           profile_id?: string
+          qr_valid_days?: number
           updated_at?: string
         }
         Relationships: [
@@ -2953,6 +2959,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      identification_validation_attempts: {
+        Row: {
+          company_id: string | null
+          confidence: number | null
+          created_at: string
+          id: string
+          identifier_matched: string | null
+          method_type: string
+          profile_id: string | null
+          reason: string | null
+          success: boolean
+          time_record_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          identifier_matched?: string | null
+          method_type: string
+          profile_id?: string | null
+          reason?: string | null
+          success: boolean
+          time_record_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          identifier_matched?: string | null
+          method_type?: string
+          profile_id?: string | null
+          reason?: string | null
+          success?: boolean
+          time_record_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       in_itinere_hours: {
         Row: {
@@ -6922,6 +6973,15 @@ export type Database = {
       }
       record_failed_login: { Args: { _user_id: string }; Returns: Json }
       reset_failed_login: { Args: { _user_id: string }; Returns: undefined }
+      validate_qrcode_identifier: {
+        Args: { _identifier: string }
+        Returns: {
+          company_id: string
+          is_valid: boolean
+          profile_id: string
+          reason: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "employee" | "super_admin"
