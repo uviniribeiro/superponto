@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import TimeRecordReceipt from '@/components/time-records/TimeRecordReceipt';
 import { generateTimeRecordHash } from '@/lib/transactionHash';
+import MobileValidationDialog, { type IdentificationMethod } from '@/components/time-records/MobileValidationDialog';
 
 type RecordType = 'entry' | 'break_start' | 'break_end' | 'exit';
 
@@ -40,6 +41,10 @@ export default function TimeClock() {
   const [lastRecord, setLastRecord] = useState<any>(null);
   const [companySettings, setCompanySettings] = useState<any>(null);
 
+  // Mobile validation
+  const [identMethods, setIdentMethods] = useState<IdentificationMethod[]>([]);
+  const [showValidation, setShowValidation] = useState(false);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -50,8 +55,20 @@ export default function TimeClock() {
     if (profile) {
       fetchTodayRecords();
       fetchCompanySettings();
+      fetchIdentificationMethods();
     }
   }, [profile]);
+
+  const fetchIdentificationMethods = async () => {
+    if (!profile) return;
+    const { data } = await supabase
+      .from('employee_identification_methods')
+      .select('id, method_type, identifier, is_active')
+      .eq('profile_id', profile.id)
+      .eq('is_active', true)
+      .in('method_type', ['facial', 'qrcode']);
+    setIdentMethods((data as IdentificationMethod[]) || []);
+  };
 
   const fetchCompanySettings = async () => {
     const { data } = await supabase
