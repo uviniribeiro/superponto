@@ -505,15 +505,28 @@ export default function IdentificationMethods() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="Baixar QR Code"
+                              title="Baixar QR Code (renova validade)"
                               onClick={async () => {
                                 try {
+                                  const validDays = (method as any).qr_valid_days || 30;
+                                  const newExpiry = new Date(Date.now() + validDays * 24 * 60 * 60 * 1000).toISOString();
+                                  const { error: upErr } = await supabase
+                                    .from('employee_identification_methods')
+                                    .update({ expires_at: newExpiry })
+                                    .eq('id', method.id);
+                                  if (upErr) throw upErr;
+
                                   const url = await QRCode.toDataURL(method.identifier!, { width: 512, margin: 2 });
                                   const a = document.createElement('a');
                                   a.href = url;
                                   const name = method.profiles?.full_name?.replace(/\s+/g, '_') || 'funcionario';
                                   a.download = `qrcode_${name}.png`;
                                   a.click();
+                                  toast({
+                                    title: 'QR Code gerado',
+                                    description: `Válido por ${validDays} dias (até ${new Date(newExpiry).toLocaleDateString('pt-BR')}).`,
+                                  });
+                                  fetchMethods();
                                 } catch (e) {
                                   toast({ title: 'Erro', description: 'Falha ao gerar QR Code', variant: 'destructive' });
                                 }
