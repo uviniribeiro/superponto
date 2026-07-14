@@ -520,6 +520,14 @@ export default function TimeClock() {
         </DialogContent>
       </Dialog>
 
+      <MobileValidationDialog
+        open={showValidation}
+        onOpenChange={setShowValidation}
+        methods={identMethods}
+        photoUrl={profile?.photo_url}
+        onSuccess={recordTimeEntry}
+      />
+
       <HelpButton pageKey="timeclock" />
     </div>
   );
