@@ -539,6 +539,20 @@ export default function IdentificationMethods() {
                         {format(parseISO(method.created_at), 'dd/MM/yyyy')}
                       </TableCell>
                       <TableCell>
+                        {method.method_type === 'qrcode' ? (
+                          (() => {
+                            const c = formatCountdown(method.expires_at);
+                            const cls =
+                              c.tone === 'destructive' ? 'text-destructive font-semibold' :
+                              c.tone === 'warning' ? 'text-amber-600 font-medium' :
+                              c.tone === 'muted' ? 'text-muted-foreground' : '';
+                            return <span className={`font-mono text-xs ${cls}`}>{c.text}</span>;
+                          })()
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Switch
                           checked={method.is_active}
                           onCheckedChange={() => toggleActive(method.id, method.is_active)}
