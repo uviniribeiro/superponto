@@ -386,6 +386,36 @@ export default function TimeClock() {
         <p className="text-muted-foreground">Olá, {profile?.full_name?.split(' ')[0]}</p>
       </div>
 
+      {/* Test mode toggle */}
+      <Card className={testMode ? 'border-amber-500/60 bg-amber-500/5' : ''}>
+        <CardContent className="py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <FlaskConical className={`h-4 w-4 ${testMode ? 'text-amber-600' : 'text-muted-foreground'}`} />
+            <div>
+              <Label htmlFor="test-mode" className="text-sm font-medium cursor-pointer">Modo de teste</Label>
+              <p className="text-xs text-muted-foreground">Simula a validação e a permissão sem gravar o ponto.</p>
+            </div>
+          </div>
+          <Switch id="test-mode" checked={testMode} onCheckedChange={setTestMode} />
+        </CardContent>
+      </Card>
+
+      {/* Error alert */}
+      {lastError && (
+        <Alert variant="destructive">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>{lastError.title}</AlertTitle>
+          <AlertDescription className="space-y-1">
+            <p>{lastError.message}</p>
+            {lastError.hint && <p className="text-xs opacity-90"><AlertTriangle className="inline h-3 w-3 mr-1" />{lastError.hint}</p>}
+            <p className="text-xs">
+              Veja detalhes técnicos em{' '}
+              <Link to="/validation-audit" className="underline">Auditoria de Validações</Link>.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Clock Display */}
       <Card className="overflow-hidden">
         <CardContent className="pt-6 text-center">
