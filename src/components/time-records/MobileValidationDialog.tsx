@@ -302,6 +302,14 @@ export default function MobileValidationDialog({
     setMessage('Comparando com foto cadastrada...');
     setNextSteps([]);
 
+    if (testMode) {
+      setStatus('success');
+      setMessage('Modo teste: rosto simulado como válido');
+      toast.success('Modo teste: facial OK');
+      setTimeout(() => { onSuccess(); onOpenChange(false); }, 500);
+      return;
+    }
+
     try {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
