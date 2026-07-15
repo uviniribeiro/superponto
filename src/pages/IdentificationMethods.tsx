@@ -506,6 +506,7 @@ export default function IdentificationMethods() {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Identificador</TableHead>
                   <TableHead>Cadastro</TableHead>
+                  <TableHead>Validade (QR)</TableHead>
                   <TableHead>Ativo</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
