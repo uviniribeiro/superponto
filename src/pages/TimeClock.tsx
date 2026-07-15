@@ -607,6 +607,7 @@ export default function TimeClock() {
         profileId={profile?.id}
         companyId={profile?.company_id}
         onSuccess={recordTimeEntry}
+        testMode={testMode}
       />
 
       <HelpButton pageKey="timeclock" />
