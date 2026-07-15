@@ -161,6 +161,7 @@ export default function TimeClock() {
 
       const { data: newRecord, error } = await supabase.from('time_records').insert({
         profile_id: profile.id,
+        company_id: profile.company_id,
         record_type: nextRecordType,
         recorded_at: recordedAt.toISOString(),
         latitude: location.latitude,
