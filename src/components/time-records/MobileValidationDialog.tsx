@@ -214,6 +214,13 @@ export default function MobileValidationDialog({
             setStatus('validating');
             setMessage('Validando QR Code...');
             const scanned = code.data;
+            if (testMode) {
+              setStatus('success');
+              setMessage('Modo teste: QR simulado como válido');
+              toast.success('Modo teste: QR OK');
+              setTimeout(() => { onSuccess(); onOpenChange(false); }, 500);
+              return;
+            }
             try {
               const { data, error } = await supabase.rpc('validate_qrcode_identifier', {
                 _identifier: scanned,
