@@ -285,6 +285,7 @@ export const pontoMobileHubConfig: CategoryHubConfig = {
       subtitle: 'Métodos de autenticação no mobile',
       items: [
         { title: 'Métodos de Identificação', description: 'Biometria facial, PIN e outros', icon: Smartphone, href: '/identification-methods', color: 'text-blue-600' },
+        { title: 'Auditoria de Validações', description: 'Tentativas de QR/facial, filtros e exportação', icon: Shield, href: '/validation-audit', color: 'text-emerald-600' },
       ],
     },
     {
