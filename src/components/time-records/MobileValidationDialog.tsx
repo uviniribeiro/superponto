@@ -76,6 +76,7 @@ export default function MobileValidationDialog({
   profileId,
   companyId,
   onSuccess,
+  testMode = false,
 }: Props) {
   const hasFacial = methods.some(m => m.method_type === 'facial' && m.is_active);
   const hasQr = methods.some(m => m.method_type === 'qrcode' && m.is_active);
