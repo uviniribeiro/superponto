@@ -33,6 +33,7 @@ interface Props {
   profileId?: string;
   companyId?: string | null;
   onSuccess: () => void;
+  testMode?: boolean;
 }
 
 type CameraState = 'idle' | 'starting' | 'ready' | 'denied' | 'unavailable' | 'error';
