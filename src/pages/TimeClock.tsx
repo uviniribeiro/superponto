@@ -49,6 +49,10 @@ export default function TimeClock() {
   const [identMethods, setIdentMethods] = useState<IdentificationMethod[]>([]);
   const [showValidation, setShowValidation] = useState(false);
 
+  // Test mode + error state
+  const [testMode, setTestMode] = useState(false);
+  const [lastError, setLastError] = useState<{ title: string; message: string; hint?: string } | null>(null);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
