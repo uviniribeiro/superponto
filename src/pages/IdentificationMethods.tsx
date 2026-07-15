@@ -28,6 +28,8 @@ interface IdentificationMethod {
   identifier: string | null;
   is_active: boolean;
   created_at: string;
+  expires_at?: string | null;
+  qr_valid_days?: number | null;
   profiles?: {
     full_name: string;
     registration_number: string | null;
