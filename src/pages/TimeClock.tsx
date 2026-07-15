@@ -140,25 +140,64 @@ export default function TimeClock() {
     setTodayRecords(data || []);
   };
 
+  const parseInsertError = (error: any): { title: string; message: string; hint?: string } => {
+    const msg = String(error?.message || '');
+    const code = error?.code || '';
+    if (msg.includes('row-level security') || code === '42501') {
+      return {
+        title: 'Bloqueado pela política de segurança (RLS)',
+        message: 'Seu usuário não tem permissão para registrar ponto nesta empresa. Isso costuma acontecer quando o perfil está sem empresa vinculada ou fora do horário/local permitido.',
+        hint: 'Peça ao RH/administrador para conferir seu perfil (empresa e cargo). Se acabou de ser criado, faça logout e login novamente.',
+      };
+    }
+    if (code === '23505') {
+      return { title: 'Registro duplicado', message: 'Já existe uma marcação idêntica registrada.', hint: 'Aguarde alguns segundos antes de tentar novamente.' };
+    }
+    if (code === '23503') {
+      return { title: 'Vínculo inválido', message: 'Perfil ou empresa não encontrados no banco.', hint: 'Faça logout e login novamente.' };
+    }
+    if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+      return { title: 'Sem conexão', message: 'Não foi possível contatar o servidor.', hint: 'Verifique sua internet e tente de novo.' };
+    }
+    return { title: 'Erro ao registrar ponto', message: msg || 'Erro desconhecido.', hint: 'Tente novamente. Se persistir, contate o suporte com este horário.' };
+  };
+
   const recordTimeEntry = async () => {
+    setLastError(null);
     const nextRecordType = getNextRecordType();
-    
+
     if (!profile || !nextRecordType) {
       toast.error('Todos os registros do dia já foram feitos');
       return;
     }
 
+    if (!profile.company_id) {
+      const err = { title: 'Empresa não vinculada', message: 'Seu perfil não está vinculado a uma empresa.', hint: 'Contate o administrador para vincular seu perfil à empresa.' };
+      setLastError(err);
+      toast.error(err.title);
+      return;
+    }
+
     if (!location.latitude || !location.longitude) {
-      toast.error('Localização é obrigatória para registrar o ponto');
+      const err = { title: 'Localização não disponível', message: 'Precisamos da localização para registrar seu ponto.', hint: 'Permita o acesso à localização no navegador (ícone de cadeado) e tente novamente.' };
+      setLastError(err);
+      toast.error(err.title);
       return;
     }
 
     setIsRecording(true);
 
+    // TEST MODE: simulate everything, do not insert
+    if (testMode) {
+      await new Promise(r => setTimeout(r, 600));
+      toast.success(`Modo teste: validação e permissões OK para "${recordTypeConfig[nextRecordType].label}"`);
+      setIsRecording(false);
+      setDragProgress(0);
+      return;
+    }
+
     try {
       const recordedAt = new Date();
-      
-      // Generate transaction hash
       const transactionHash = await generateTimeRecordHash(
         profile.id,
         nextRecordType,
@@ -182,8 +221,7 @@ export default function TimeClock() {
       if (error) throw error;
 
       toast.success('Ponto registrado com sucesso!');
-      
-      // Show receipt
+
       if (newRecord) {
         setLastRecord({
           id: newRecord.id,
@@ -197,11 +235,13 @@ export default function TimeClock() {
         });
         setShowReceipt(true);
       }
-      
+
       fetchTodayRecords();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error recording time:', error);
-      toast.error('Erro ao registrar ponto');
+      const parsed = parseInsertError(error);
+      setLastError(parsed);
+      toast.error(parsed.title, { description: parsed.message });
     } finally {
       setIsRecording(false);
       setDragProgress(0);
