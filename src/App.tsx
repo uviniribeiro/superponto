@@ -71,6 +71,7 @@ const OvertimePercentages = React.lazy(() => import("@/pages/OvertimePercentages
 const CompetencyPeriods = React.lazy(() => import("@/pages/CompetencyPeriods"));
 const GeoreferencedLocations = React.lazy(() => import("@/pages/GeoreferencedLocations"));
 const IdentificationMethods = React.lazy(() => import("@/pages/IdentificationMethods"));
+const ValidationAudit = React.lazy(() => import("@/pages/ValidationAudit"));
 const Vacations = React.lazy(() => import("@/pages/Vacations"));
 const PresenceMonitoring = React.lazy(() => import("@/pages/PresenceMonitoring"));
 const WorkStations = React.lazy(() => import("@/pages/WorkStations"));
@@ -270,6 +271,7 @@ const App = () => (
                   <Route path="leave-management" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><LeaveManagement /></ProtectedRoute>} />
                   <Route path="payroll-exports" element={<ProtectedRoute requiredRoles={['admin']}><PayrollExports /></ProtectedRoute>} />
                   <Route path="identification-methods" element={<ProtectedRoute requiredRoles={['admin']}><IdentificationMethods /></ProtectedRoute>} />
+                  <Route path="validation-audit" element={<ProtectedRoute><ValidationAudit /></ProtectedRoute>} />
                   <Route path="basic-registrations" element={<ProtectedRoute requiredRoles={['admin']}><BasicRegistrations /></ProtectedRoute>} />
                   <Route path="unions" element={<ProtectedRoute requiredRoles={['admin']}><Unions /></ProtectedRoute>} />
                   <Route path="justifications" element={<ProtectedRoute requiredRoles={['admin']}><Justifications /></ProtectedRoute>} />

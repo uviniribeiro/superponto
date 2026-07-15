@@ -28,6 +28,8 @@ interface IdentificationMethod {
   identifier: string | null;
   is_active: boolean;
   created_at: string;
+  expires_at?: string | null;
+  qr_valid_days?: number | null;
   profiles?: {
     full_name: string;
     registration_number: string | null;
@@ -57,9 +59,51 @@ export default function IdentificationMethods() {
     identifier: '',
   });
 
+  const [now, setNow] = useState<number>(Date.now());
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Auto-renew QR expirations passing while page is open
+  useEffect(() => {
+    const expiring = methods.filter(m =>
+      m.method_type === 'qrcode' && m.is_active && m.expires_at && new Date(m.expires_at).getTime() <= now
+    );
+    if (expiring.length === 0) return;
+    (async () => {
+      for (const m of expiring) {
+        const days = m.qr_valid_days || 30;
+        const newExpiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+        await supabase
+          .from('employee_identification_methods')
+          .update({ expires_at: newExpiry })
+          .eq('id', m.id);
+      }
+      fetchData();
+      toast({ title: 'QR renovado', description: `${expiring.length} QR Code(s) expirado(s) foram renovados automaticamente.` });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now, methods]);
+
+  const formatCountdown = (iso?: string | null) => {
+    if (!iso) return { text: '—', tone: 'muted' as const };
+    const diff = new Date(iso).getTime() - now;
+    if (diff <= 0) return { text: 'Expirado — renovando…', tone: 'destructive' as const };
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    const tone = days < 1 ? 'warning' : 'default';
+    if (days > 0) return { text: `${days}d ${hours}h`, tone: tone as any };
+    if (hours > 0) return { text: `${hours}h ${mins}m`, tone: tone as any };
+    return { text: `${mins}m ${secs}s`, tone: 'warning' as const };
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -462,6 +506,7 @@ export default function IdentificationMethods() {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Identificador</TableHead>
                   <TableHead>Cadastro</TableHead>
+                  <TableHead>Validade (QR)</TableHead>
                   <TableHead>Ativo</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -492,6 +537,20 @@ export default function IdentificationMethods() {
                       </TableCell>
                       <TableCell>
                         {format(parseISO(method.created_at), 'dd/MM/yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        {method.method_type === 'qrcode' ? (
+                          (() => {
+                            const c = formatCountdown(method.expires_at);
+                            const cls =
+                              c.tone === 'destructive' ? 'text-destructive font-semibold' :
+                              c.tone === 'warning' ? 'text-amber-600 font-medium' :
+                              c.tone === 'muted' ? 'text-muted-foreground' : '';
+                            return <span className={`font-mono text-xs ${cls}`}>{c.text}</span>;
+                          })()
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Switch

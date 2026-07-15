@@ -4,7 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Check, FileText, Fingerprint, Hash } from 'lucide-react';
+import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Check, FileText, Fingerprint, Hash, FlaskConical, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'react-router-dom';
 import { HelpButton } from '@/components/HelpButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -44,6 +48,10 @@ export default function TimeClock() {
   // Mobile validation
   const [identMethods, setIdentMethods] = useState<IdentificationMethod[]>([]);
   const [showValidation, setShowValidation] = useState(false);
+
+  // Test mode + error state
+  const [testMode, setTestMode] = useState(false);
+  const [lastError, setLastError] = useState<{ title: string; message: string; hint?: string } | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -132,25 +140,64 @@ export default function TimeClock() {
     setTodayRecords(data || []);
   };
 
+  const parseInsertError = (error: any): { title: string; message: string; hint?: string } => {
+    const msg = String(error?.message || '');
+    const code = error?.code || '';
+    if (msg.includes('row-level security') || code === '42501') {
+      return {
+        title: 'Bloqueado pela política de segurança (RLS)',
+        message: 'Seu usuário não tem permissão para registrar ponto nesta empresa. Isso costuma acontecer quando o perfil está sem empresa vinculada ou fora do horário/local permitido.',
+        hint: 'Peça ao RH/administrador para conferir seu perfil (empresa e cargo). Se acabou de ser criado, faça logout e login novamente.',
+      };
+    }
+    if (code === '23505') {
+      return { title: 'Registro duplicado', message: 'Já existe uma marcação idêntica registrada.', hint: 'Aguarde alguns segundos antes de tentar novamente.' };
+    }
+    if (code === '23503') {
+      return { title: 'Vínculo inválido', message: 'Perfil ou empresa não encontrados no banco.', hint: 'Faça logout e login novamente.' };
+    }
+    if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) {
+      return { title: 'Sem conexão', message: 'Não foi possível contatar o servidor.', hint: 'Verifique sua internet e tente de novo.' };
+    }
+    return { title: 'Erro ao registrar ponto', message: msg || 'Erro desconhecido.', hint: 'Tente novamente. Se persistir, contate o suporte com este horário.' };
+  };
+
   const recordTimeEntry = async () => {
+    setLastError(null);
     const nextRecordType = getNextRecordType();
-    
+
     if (!profile || !nextRecordType) {
       toast.error('Todos os registros do dia já foram feitos');
       return;
     }
 
+    if (!profile.company_id) {
+      const err = { title: 'Empresa não vinculada', message: 'Seu perfil não está vinculado a uma empresa.', hint: 'Contate o administrador para vincular seu perfil à empresa.' };
+      setLastError(err);
+      toast.error(err.title);
+      return;
+    }
+
     if (!location.latitude || !location.longitude) {
-      toast.error('Localização é obrigatória para registrar o ponto');
+      const err = { title: 'Localização não disponível', message: 'Precisamos da localização para registrar seu ponto.', hint: 'Permita o acesso à localização no navegador (ícone de cadeado) e tente novamente.' };
+      setLastError(err);
+      toast.error(err.title);
       return;
     }
 
     setIsRecording(true);
 
+    // TEST MODE: simulate everything, do not insert
+    if (testMode) {
+      await new Promise(r => setTimeout(r, 600));
+      toast.success(`Modo teste: validação e permissões OK para "${recordTypeConfig[nextRecordType].label}"`);
+      setIsRecording(false);
+      setDragProgress(0);
+      return;
+    }
+
     try {
       const recordedAt = new Date();
-      
-      // Generate transaction hash
       const transactionHash = await generateTimeRecordHash(
         profile.id,
         nextRecordType,
@@ -174,8 +221,7 @@ export default function TimeClock() {
       if (error) throw error;
 
       toast.success('Ponto registrado com sucesso!');
-      
-      // Show receipt
+
       if (newRecord) {
         setLastRecord({
           id: newRecord.id,
@@ -189,11 +235,13 @@ export default function TimeClock() {
         });
         setShowReceipt(true);
       }
-      
+
       fetchTodayRecords();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error recording time:', error);
-      toast.error('Erro ao registrar ponto');
+      const parsed = parseInsertError(error);
+      setLastError(parsed);
+      toast.error(parsed.title, { description: parsed.message });
     } finally {
       setIsRecording(false);
       setDragProgress(0);
@@ -337,6 +385,36 @@ export default function TimeClock() {
         </div>
         <p className="text-muted-foreground">Olá, {profile?.full_name?.split(' ')[0]}</p>
       </div>
+
+      {/* Test mode toggle */}
+      <Card className={testMode ? 'border-amber-500/60 bg-amber-500/5' : ''}>
+        <CardContent className="py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <FlaskConical className={`h-4 w-4 ${testMode ? 'text-amber-600' : 'text-muted-foreground'}`} />
+            <div>
+              <Label htmlFor="test-mode" className="text-sm font-medium cursor-pointer">Modo de teste</Label>
+              <p className="text-xs text-muted-foreground">Simula a validação e a permissão sem gravar o ponto.</p>
+            </div>
+          </div>
+          <Switch id="test-mode" checked={testMode} onCheckedChange={setTestMode} />
+        </CardContent>
+      </Card>
+
+      {/* Error alert */}
+      {lastError && (
+        <Alert variant="destructive">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>{lastError.title}</AlertTitle>
+          <AlertDescription className="space-y-1">
+            <p>{lastError.message}</p>
+            {lastError.hint && <p className="text-xs opacity-90"><AlertTriangle className="inline h-3 w-3 mr-1" />{lastError.hint}</p>}
+            <p className="text-xs">
+              Veja detalhes técnicos em{' '}
+              <Link to="/validation-audit" className="underline">Auditoria de Validações</Link>.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Clock Display */}
       <Card className="overflow-hidden">
@@ -529,6 +607,7 @@ export default function TimeClock() {
         profileId={profile?.id}
         companyId={profile?.company_id}
         onSuccess={recordTimeEntry}
+        testMode={testMode}
       />
 
       <HelpButton pageKey="timeclock" />

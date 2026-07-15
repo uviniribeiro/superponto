@@ -33,6 +33,7 @@ interface Props {
   profileId?: string;
   companyId?: string | null;
   onSuccess: () => void;
+  testMode?: boolean;
 }
 
 type CameraState = 'idle' | 'starting' | 'ready' | 'denied' | 'unavailable' | 'error';
@@ -75,6 +76,7 @@ export default function MobileValidationDialog({
   profileId,
   companyId,
   onSuccess,
+  testMode = false,
 }: Props) {
   const hasFacial = methods.some(m => m.method_type === 'facial' && m.is_active);
   const hasQr = methods.some(m => m.method_type === 'qrcode' && m.is_active);
@@ -212,6 +214,13 @@ export default function MobileValidationDialog({
             setStatus('validating');
             setMessage('Validando QR Code...');
             const scanned = code.data;
+            if (testMode) {
+              setStatus('success');
+              setMessage('Modo teste: QR simulado como válido');
+              toast.success('Modo teste: QR OK');
+              setTimeout(() => { onSuccess(); onOpenChange(false); }, 500);
+              return;
+            }
             try {
               const { data, error } = await supabase.rpc('validate_qrcode_identifier', {
                 _identifier: scanned,
@@ -292,6 +301,14 @@ export default function MobileValidationDialog({
     setStatus('validating');
     setMessage('Comparando com foto cadastrada...');
     setNextSteps([]);
+
+    if (testMode) {
+      setStatus('success');
+      setMessage('Modo teste: rosto simulado como válido');
+      toast.success('Modo teste: facial OK');
+      setTimeout(() => { onSuccess(); onOpenChange(false); }, 500);
+      return;
+    }
 
     try {
       canvas.width = video.videoWidth;
