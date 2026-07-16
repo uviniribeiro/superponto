@@ -66,8 +66,56 @@ export default function TimeClock() {
       fetchTodayRecords();
       fetchCompanySettings();
       fetchIdentificationMethods();
+      runFieldDiagnostic();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
+
+  const runFieldDiagnostic = () => {
+    if (!profile) return;
+    const currentTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
+    const key = 'sp_tc_signature';
+    const details: string[] = [];
+    let title = '';
+    let message = '';
+
+    if (!profile.company_id) {
+      title = 'Empresa não vinculada';
+      message = 'Seu perfil não possui empresa vinculada. O registro de ponto será bloqueado até que o RH corrija.';
+      details.push(`profile_id: ${profile.id}`);
+      details.push('company_id: (vazio)');
+      details.push(`timezone: ${currentTz}`);
+      setDiagnostic({ title, message, details });
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const prev = JSON.parse(raw) as { profile_id?: string; company_id?: string; timezone?: string };
+        const diffs: string[] = [];
+        if (prev.profile_id && prev.profile_id !== profile.id) diffs.push(`profile_id anterior: ${prev.profile_id} → atual: ${profile.id}`);
+        if (prev.company_id && prev.company_id !== profile.company_id) diffs.push(`company_id anterior: ${prev.company_id} → atual: ${profile.company_id}`);
+        if (prev.timezone && prev.timezone !== currentTz) diffs.push(`timezone anterior: ${prev.timezone} → atual: ${currentTz}`);
+        if (diffs.length > 0) {
+          setDiagnostic({
+            title: 'Divergência entre dispositivos detectada',
+            message: 'Os campos enviados por este dispositivo diferem do último dispositivo utilizado. Isso pode causar falhas ou marcações inconsistentes.',
+            details: diffs,
+          });
+          return;
+        }
+      }
+    } catch { /* ignore */ }
+
+    localStorage.setItem(key, JSON.stringify({
+      profile_id: profile.id,
+      company_id: profile.company_id,
+      timezone: currentTz,
+    }));
+    setDiagnostic(null);
+  };
+
 
   const fetchIdentificationMethods = async () => {
     if (!profile) return;
