@@ -231,6 +231,12 @@ export default function TimeClock() {
       return;
     }
 
+    if (diagnostic && !divergenceAck) {
+      setDivergenceOpen(true);
+      return;
+    }
+
+
     if (!location.latitude || !location.longitude) {
       const err = { title: 'Localização não disponível', message: 'Precisamos da localização para registrar seu ponto.', hint: 'Permita o acesso à localização no navegador (ícone de cadeado) e tente novamente.' };
       setLastError(err);
