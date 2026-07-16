@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Check, FileText, Fingerprint, Hash, FlaskConical, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -10,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import { HelpButton } from '@/components/HelpButton';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import TimeRecordReceipt from '@/components/time-records/TimeRecordReceipt';
@@ -52,6 +54,9 @@ export default function TimeClock() {
   // Test mode + error state
   const [testMode, setTestMode] = useState(false);
   const [lastError, setLastError] = useState<{ title: string; message: string; hint?: string } | null>(null);
+  const [divergenceOpen, setDivergenceOpen] = useState(false);
+  const [divergenceJustification, setDivergenceJustification] = useState('');
+  const [divergenceAck, setDivergenceAck] = useState(false);
   const [diagnostic, setDiagnostic] = useState<{ title: string; message: string; details: string[] } | null>(null);
 
 
@@ -228,6 +233,12 @@ export default function TimeClock() {
       return;
     }
 
+    if (diagnostic && !divergenceAck) {
+      setDivergenceOpen(true);
+      return;
+    }
+
+
     if (!location.latitude || !location.longitude) {
       const err = { title: 'Localização não disponível', message: 'Precisamos da localização para registrar seu ponto.', hint: 'Permita o acesso à localização no navegador (ícone de cadeado) e tente novamente.' };
       setLastError(err);
@@ -264,7 +275,9 @@ export default function TimeClock() {
         latitude: location.latitude,
         longitude: location.longitude,
         address: location.address,
-        device_info: navigator.userAgent,
+        device_info: divergenceJustification
+          ? `${navigator.userAgent} | Divergência confirmada: ${divergenceJustification}`
+          : navigator.userAgent,
         transaction_hash: transactionHash,
       }).select('id, nsr, recorded_at, record_type, latitude, longitude, address, transaction_hash').single();
 
@@ -675,7 +688,52 @@ export default function TimeClock() {
         testMode={testMode}
       />
 
+      <Dialog open={divergenceOpen} onOpenChange={(o) => { setDivergenceOpen(o); if (!o) { setDivergenceJustification(''); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" /> Divergência de dispositivo detectada
+            </DialogTitle>
+            <DialogDescription>
+              Os campos deste dispositivo (funcionário, empresa ou fuso horário) diferem do último dispositivo utilizado. Por segurança, a marcação está bloqueada até você justificar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {diagnostic && (
+            <ul className="text-xs list-disc pl-5 space-y-0.5 rounded-md border p-3 bg-muted/40">
+              {diagnostic.details.map((d, i) => <li key={i} className="font-mono">{d}</li>)}
+            </ul>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Justificativa (obrigatória)</label>
+            <Textarea
+              value={divergenceJustification}
+              onChange={(e) => setDivergenceJustification(e.target.value)}
+              placeholder="Ex.: Estou usando um dispositivo novo / celular emprestado / trabalho remoto autorizado…"
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">A justificativa será registrada junto ao ponto para fins de auditoria.</p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDivergenceOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={divergenceJustification.trim().length < 5}
+              onClick={() => {
+                setDivergenceAck(true);
+                setDivergenceOpen(false);
+                setTimeout(() => recordTimeEntry(), 0);
+              }}
+            >
+              Confirmar e registrar ponto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <HelpButton pageKey="timeclock" />
+
     </div>
   );
 }

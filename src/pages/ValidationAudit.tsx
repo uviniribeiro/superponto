@@ -11,8 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format, parseISO, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert, Filter, FileDown, FileBarChart } from 'lucide-react';
+import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert, Filter, FileDown, FileBarChart, ChevronRight } from 'lucide-react';
 import { generateStandardPDF, addFooter } from '@/lib/pdfUtils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
 
 interface Attempt {
   id: string;
@@ -94,6 +97,44 @@ export default function ValidationAudit() {
     const qr = attempts.filter(a => a.method_type === 'qrcode').length;
     return { total, ok, fail, facial, qr, rate: total ? Math.round((ok / total) * 100) : 0 };
   }, [attempts]);
+
+  const [showDrilldown, setShowDrilldown] = useState(false);
+
+  const dailySeries = useMemo(() => {
+    const map = new Map<string, { day: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number }>();
+    attempts.forEach(a => {
+      const day = format(parseISO(a.created_at), 'dd/MM');
+      const row = map.get(day) || { day, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0 };
+      const bucket =
+        a.method_type === 'facial' ? (a.success ? 'facial_ok' : 'facial_fail')
+        : a.method_type === 'qrcode' ? (a.success ? 'qr_ok' : 'qr_fail')
+        : null;
+      if (bucket) (row as any)[bucket]++;
+      map.set(day, row);
+    });
+    return Array.from(map.values()).reverse();
+  }, [attempts]);
+
+  const monthlyDrilldown = useMemo(() => {
+    const start = startOfMonth(new Date());
+    const end = endOfMonth(new Date());
+    const inMonth = attempts.filter(a => {
+      const d = parseISO(a.created_at);
+      return d >= start && d <= end;
+    });
+    const byEmp = new Map<string, { name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; total: number }>();
+    inMonth.forEach(a => {
+      const key = a.profile_id || 'unknown';
+      const name = a.profiles?.full_name || '—';
+      const row = byEmp.get(key) || { name, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0, total: 0 };
+      row.total++;
+      if (a.method_type === 'facial') a.success ? row.facial_ok++ : row.facial_fail++;
+      else if (a.method_type === 'qrcode') a.success ? row.qr_ok++ : row.qr_fail++;
+      byEmp.set(key, row);
+    });
+    return Array.from(byEmp.values()).sort((a, b) => b.total - a.total);
+  }, [attempts]);
+
 
   const monthly = useMemo(() => {
     const start = startOfMonth(new Date());
@@ -293,11 +334,20 @@ export default function ValidationAudit() {
         <Card><CardHeader className="pb-2"><CardDescription>Facial / QR</CardDescription><CardTitle className="text-2xl">{stats.facial}/{stats.qr}</CardTitle></CardHeader></Card>
       </div>
 
-      {/* Monthly summary */}
-      <Card>
+      {/* Monthly summary — clickable */}
+      <Card
+        role="button"
+        tabIndex={0}
+        onClick={() => setShowDrilldown(true)}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setShowDrilldown(true)}
+        className="cursor-pointer transition hover:border-primary/40 hover:shadow-sm"
+      >
         <CardHeader>
-          <CardTitle className="text-base">Consolidado do mês atual ({format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })})</CardTitle>
-          <CardDescription>Resumo agregado para conformidade e auditoria.</CardDescription>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span>Consolidado do mês atual ({format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })})</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-1">Abrir detalhamento <ChevronRight className="h-3 w-3" /></span>
+          </CardTitle>
+          <CardDescription>Clique para ver o detalhamento por funcionário e por método (facial / QR).</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-3 gap-4 text-sm">
           <div><p className="text-muted-foreground">Tentativas no mês</p><p className="text-xl font-semibold">{monthly.total}</p></div>
@@ -305,6 +355,69 @@ export default function ValidationAudit() {
           <div><p className="text-muted-foreground">Reprovadas</p><p className="text-xl font-semibold text-destructive">{monthly.fail}</p></div>
         </CardContent>
       </Card>
+
+      {/* Daily chart */}
+      {canSeeAll && dailySeries.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Validações por dia</CardTitle>
+            <CardDescription>Quantidade por método (facial / QR) e resultado (aprovada / reprovada).</CardDescription>
+          </CardHeader>
+          <CardContent className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dailySeries}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="day" fontSize={11} />
+                <YAxis fontSize={11} allowDecimals={false} />
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="facial_ok" name="Facial aprovada" stackId="facial" fill="#10b981" />
+                <Bar dataKey="facial_fail" name="Facial reprovada" stackId="facial" fill="#ef4444" />
+                <Bar dataKey="qr_ok" name="QR aprovada" stackId="qr" fill="#0ea5e9" />
+                <Bar dataKey="qr_fail" name="QR reprovada" stackId="qr" fill="#f59e0b" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Drilldown dialog */}
+      <Dialog open={showDrilldown} onOpenChange={setShowDrilldown}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhamento — {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}</DialogTitle>
+            <DialogDescription>Validações por funcionário, separadas por método (Facial / QR Code).</DialogDescription>
+          </DialogHeader>
+          {monthlyDrilldown.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">Sem validações no mês.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Funcionário</TableHead>
+                  <TableHead className="text-center">Facial ✓</TableHead>
+                  <TableHead className="text-center">Facial ✗</TableHead>
+                  <TableHead className="text-center">QR ✓</TableHead>
+                  <TableHead className="text-center">QR ✗</TableHead>
+                  <TableHead className="text-center">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {monthlyDrilldown.map((r, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-medium">{r.name}</TableCell>
+                    <TableCell className="text-center text-emerald-600">{r.facial_ok}</TableCell>
+                    <TableCell className="text-center text-destructive">{r.facial_fail}</TableCell>
+                    <TableCell className="text-center text-emerald-600">{r.qr_ok}</TableCell>
+                    <TableCell className="text-center text-destructive">{r.qr_fail}</TableCell>
+                    <TableCell className="text-center font-semibold">{r.total}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Filters */}
       <Card>
