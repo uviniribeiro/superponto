@@ -98,6 +98,44 @@ export default function ValidationAudit() {
     return { total, ok, fail, facial, qr, rate: total ? Math.round((ok / total) * 100) : 0 };
   }, [attempts]);
 
+  const [showDrilldown, setShowDrilldown] = useState(false);
+
+  const dailySeries = useMemo(() => {
+    const map = new Map<string, { day: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number }>();
+    attempts.forEach(a => {
+      const day = format(parseISO(a.created_at), 'dd/MM');
+      const row = map.get(day) || { day, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0 };
+      const bucket =
+        a.method_type === 'facial' ? (a.success ? 'facial_ok' : 'facial_fail')
+        : a.method_type === 'qrcode' ? (a.success ? 'qr_ok' : 'qr_fail')
+        : null;
+      if (bucket) (row as any)[bucket]++;
+      map.set(day, row);
+    });
+    return Array.from(map.values()).reverse();
+  }, [attempts]);
+
+  const monthlyDrilldown = useMemo(() => {
+    const start = startOfMonth(new Date());
+    const end = endOfMonth(new Date());
+    const inMonth = attempts.filter(a => {
+      const d = parseISO(a.created_at);
+      return d >= start && d <= end;
+    });
+    const byEmp = new Map<string, { name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; total: number }>();
+    inMonth.forEach(a => {
+      const key = a.profile_id || 'unknown';
+      const name = a.profiles?.full_name || '—';
+      const row = byEmp.get(key) || { name, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0, total: 0 };
+      row.total++;
+      if (a.method_type === 'facial') a.success ? row.facial_ok++ : row.facial_fail++;
+      else if (a.method_type === 'qrcode') a.success ? row.qr_ok++ : row.qr_fail++;
+      byEmp.set(key, row);
+    });
+    return Array.from(byEmp.values()).sort((a, b) => b.total - a.total);
+  }, [attempts]);
+
+
   const monthly = useMemo(() => {
     const start = startOfMonth(new Date());
     const end = endOfMonth(new Date());
