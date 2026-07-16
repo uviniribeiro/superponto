@@ -687,7 +687,52 @@ export default function TimeClock() {
         testMode={testMode}
       />
 
+      <Dialog open={divergenceOpen} onOpenChange={(o) => { setDivergenceOpen(o); if (!o) { setDivergenceJustification(''); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" /> Divergência de dispositivo detectada
+            </DialogTitle>
+            <DialogDescription>
+              Os campos deste dispositivo (funcionário, empresa ou fuso horário) diferem do último dispositivo utilizado. Por segurança, a marcação está bloqueada até você justificar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {diagnostic && (
+            <ul className="text-xs list-disc pl-5 space-y-0.5 rounded-md border p-3 bg-muted/40">
+              {diagnostic.details.map((d, i) => <li key={i} className="font-mono">{d}</li>)}
+            </ul>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Justificativa (obrigatória)</label>
+            <Textarea
+              value={divergenceJustification}
+              onChange={(e) => setDivergenceJustification(e.target.value)}
+              placeholder="Ex.: Estou usando um dispositivo novo / celular emprestado / trabalho remoto autorizado…"
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">A justificativa será registrada junto ao ponto para fins de auditoria.</p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDivergenceOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={divergenceJustification.trim().length < 5}
+              onClick={() => {
+                setDivergenceAck(true);
+                setDivergenceOpen(false);
+                setTimeout(() => recordTimeEntry(), 0);
+              }}
+            >
+              Confirmar e registrar ponto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <HelpButton pageKey="timeclock" />
+
     </div>
   );
 }
