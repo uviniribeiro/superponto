@@ -450,6 +450,21 @@ export default function TimeClock() {
         </CardContent>
       </Card>
 
+      {/* Diagnostic alert (field divergence) */}
+      {diagnostic && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{diagnostic.title}</AlertTitle>
+          <AlertDescription className="space-y-1">
+            <p>{diagnostic.message}</p>
+            <ul className="text-xs list-disc pl-4 opacity-90">
+              {diagnostic.details.map((d, i) => <li key={i} className="font-mono">{d}</li>)}
+            </ul>
+            <p className="text-xs">Faça logout/login neste dispositivo, ou contate o RH se o vínculo estiver incorreto.</p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Error alert */}
       {lastError && (
         <Alert variant="destructive">
