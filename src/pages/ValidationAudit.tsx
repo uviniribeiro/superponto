@@ -133,6 +133,122 @@ export default function ValidationAudit() {
     toast.success('CSV exportado');
   };
 
+  const exportPdf = async () => {
+    if (attempts.length === 0) {
+      toast.info('Nada para exportar');
+      return;
+    }
+    try {
+      const head = [['Data/Hora', 'Usuário', 'Método', 'Resultado', 'Motivo']];
+      const body = attempts.map(a => [
+        format(parseISO(a.created_at), 'dd/MM/yy HH:mm:ss'),
+        a.profiles?.full_name || '-',
+        a.method_type === 'facial' ? 'Facial' : a.method_type === 'qrcode' ? 'QR Code' : a.method_type,
+        a.success ? 'Aprovado' : 'Reprovado',
+        (a.reason || (a.success ? 'OK' : '-')).slice(0, 80),
+      ]);
+      const doc = await generateStandardPDF(
+        {
+          title: 'Auditoria de Validações',
+          subtitle: canSeeAll ? 'Tentativas de validação da empresa' : 'Minhas tentativas de validação',
+          period: { start: format(parseISO(fStart), 'dd/MM/yyyy'), end: format(parseISO(fEnd), 'dd/MM/yyyy') },
+          orientation: 'landscape',
+        },
+        { head, body, footer: [[`Total: ${stats.total}`, `Aprovadas: ${stats.ok}`, `Reprovadas: ${stats.fail}`, `Taxa: ${stats.rate}%`, '']] }
+      );
+      addFooter(doc);
+      doc.save(`auditoria_validacoes_${fStart}_a_${fEnd}.pdf`);
+      toast.success('PDF exportado');
+    } catch (e: any) {
+      toast.error('Falha ao gerar PDF: ' + (e?.message || 'erro'));
+    }
+  };
+
+  const generateMonthlyConsolidated = async () => {
+    try {
+      const start = startOfMonth(new Date());
+      const end = endOfMonth(new Date());
+      let recordsQ = supabase
+        .from('time_records')
+        .select('recorded_at, record_type, profile_id, profiles:profile_id(full_name)')
+        .gte('recorded_at', start.toISOString())
+        .lte('recorded_at', end.toISOString())
+        .order('recorded_at', { ascending: true })
+        .limit(2000);
+      if (canSeeAll && fEmployee !== 'all') recordsQ = recordsQ.eq('profile_id', fEmployee);
+      const { data: recs, error } = await recordsQ;
+      if (error) throw error;
+
+      const inMonth = attempts.filter(a => {
+        const d = parseISO(a.created_at);
+        return d >= start && d <= end;
+      });
+      const okA = inMonth.filter(a => a.success).length;
+      const facialA = inMonth.filter(a => a.method_type === 'facial').length;
+      const qrA = inMonth.filter(a => a.method_type === 'qrcode').length;
+
+      const typeLabel: Record<string, string> = {
+        entry: 'Entrada', break_start: 'Início Interv.', break_end: 'Fim Interv.', exit: 'Saída',
+      };
+      const recBody = (recs || []).slice(0, 400).map((r: any) => [
+        format(parseISO(r.recorded_at), 'dd/MM HH:mm'),
+        r.profiles?.full_name || '-',
+        typeLabel[r.record_type] || r.record_type,
+      ]);
+
+      const doc = await generateStandardPDF(
+        {
+          title: 'Relatório Mensal Consolidado',
+          subtitle: 'Marcações de ponto e validações (facial + QR)',
+          period: { start: format(start, 'dd/MM/yyyy'), end: format(end, 'dd/MM/yyyy') },
+          orientation: 'portrait',
+        },
+        {
+          head: [['Resumo', 'Valor']],
+          body: [
+            ['Marcações de ponto no mês', String(recs?.length || 0)],
+            ['Tentativas de validação', String(inMonth.length)],
+            ['Validações aprovadas', String(okA)],
+            ['Validações reprovadas', String(inMonth.length - okA)],
+            ['Método facial', String(facialA)],
+            ['Método QR Code', String(qrA)],
+            ['Taxa de sucesso', inMonth.length ? `${Math.round((okA / inMonth.length) * 100)}%` : '-'],
+          ],
+        },
+        (doc, y) => {
+          const jsdoc: any = doc;
+          jsdoc.setFontSize(10);
+          jsdoc.setFont('helvetica', 'bold');
+          jsdoc.text(`Mês: ${format(start, "MMMM 'de' yyyy", { locale: ptBR })}`, 14, y);
+          return y + 6;
+        }
+      );
+
+      // Append records table on a new page
+      const jsdoc: any = doc;
+      jsdoc.addPage();
+      jsdoc.setFontSize(12);
+      jsdoc.setFont('helvetica', 'bold');
+      jsdoc.text('Marcações de Ponto (até 400 primeiras)', 14, 20);
+      const autoTable = (await import('jspdf-autotable')).default;
+      autoTable(jsdoc, {
+        startY: 25,
+        head: [['Data/Hora', 'Funcionário', 'Tipo']],
+        body: recBody,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] },
+        margin: { left: 14, right: 14 },
+      });
+
+      addFooter(doc);
+      doc.save(`relatorio_mensal_${format(start, 'yyyy-MM')}.pdf`);
+      toast.success('Relatório mensal gerado');
+    } catch (e: any) {
+      toast.error('Falha ao gerar relatório: ' + (e?.message || 'erro'));
+    }
+  };
+
+
   const methodIcon = (m: string) =>
     m === 'facial' ? <Camera className="h-3 w-3" /> : m === 'qrcode' ? <QrCode className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />;
 
