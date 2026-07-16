@@ -263,16 +263,25 @@ export default function ValidationAudit() {
               : 'Suas tentativas de validação de ponto (facial e QR Code).'}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={load} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
-          <Button onClick={exportCsv}>
+          <Button variant="outline" onClick={exportCsv}>
             <Download className="h-4 w-4 mr-2" />
-            Exportar CSV
+            CSV
+          </Button>
+          <Button variant="outline" onClick={exportPdf}>
+            <FileDown className="h-4 w-4 mr-2" />
+            PDF
+          </Button>
+          <Button onClick={generateMonthlyConsolidated}>
+            <FileBarChart className="h-4 w-4 mr-2" />
+            Relatório mensal
           </Button>
         </div>
+
       </div>
 
       {/* KPIs */}
