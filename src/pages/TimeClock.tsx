@@ -52,6 +52,9 @@ export default function TimeClock() {
   // Test mode + error state
   const [testMode, setTestMode] = useState(false);
   const [lastError, setLastError] = useState<{ title: string; message: string; hint?: string } | null>(null);
+  const [divergenceOpen, setDivergenceOpen] = useState(false);
+  const [divergenceJustification, setDivergenceJustification] = useState('');
+  const [divergenceAck, setDivergenceAck] = useState(false);
   const [diagnostic, setDiagnostic] = useState<{ title: string; message: string; details: string[] } | null>(null);
 
 
