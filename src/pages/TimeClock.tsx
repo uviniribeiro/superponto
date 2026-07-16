@@ -273,7 +273,9 @@ export default function TimeClock() {
         latitude: location.latitude,
         longitude: location.longitude,
         address: location.address,
-        device_info: navigator.userAgent,
+        device_info: divergenceJustification
+          ? `${navigator.userAgent} | Divergência confirmada: ${divergenceJustification}`
+          : navigator.userAgent,
         transaction_hash: transactionHash,
       }).select('id, nsr, recorded_at, record_type, latitude, longitude, address, transaction_hash').single();
 
