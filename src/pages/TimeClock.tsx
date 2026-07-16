@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import { HelpButton } from '@/components/HelpButton';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import TimeRecordReceipt from '@/components/time-records/TimeRecordReceipt';
