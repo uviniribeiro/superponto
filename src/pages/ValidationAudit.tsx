@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format, parseISO, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert, Filter } from 'lucide-react';
+import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert, Filter, FileDown, FileBarChart } from 'lucide-react';
+import { generateStandardPDF, addFooter } from '@/lib/pdfUtils';
 
 interface Attempt {
   id: string;
