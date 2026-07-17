@@ -551,6 +551,8 @@ export default function ValidationAudit() {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="facial">Facial</SelectItem>
                   <SelectItem value="qrcode">QR Code</SelectItem>
+                  <SelectItem value="divergence">Bloqueio por divergência</SelectItem>
+
                 </SelectContent>
               </Select>
             </div>
