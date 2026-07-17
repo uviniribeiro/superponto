@@ -741,11 +741,25 @@ export default function TimeClock() {
             <Button variant="outline" onClick={() => setDivergenceOpen(false)}>Cancelar</Button>
             <Button
               disabled={divergenceJustification.trim().length < 5}
-              onClick={() => {
+              onClick={async () => {
+                try {
+                  if (profile && diagnostic) {
+                    await supabase.from('identification_validation_attempts').insert({
+                      user_id: profile.user_id,
+                      profile_id: profile.id,
+                      company_id: profile.company_id,
+                      method_type: 'divergence',
+                      success: true,
+                      reason: `[JUSTIFICATIVA] ${divergenceJustification.trim()} — ${diagnostic.details.join(' | ')}`,
+                      user_agent: `${navigator.userAgent} | profile_id=${profile.id} | company_id=${profile.company_id ?? ''} | tz=${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
+                    });
+                  }
+                } catch { /* non-blocking */ }
                 setDivergenceAck(true);
                 setDivergenceOpen(false);
                 setTimeout(() => recordTimeEntry(), 0);
               }}
+
             >
               Confirmar e registrar ponto
             </Button>
