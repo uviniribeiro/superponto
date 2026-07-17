@@ -11,10 +11,12 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format, parseISO, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert, Filter, FileDown, FileBarChart, ChevronRight } from 'lucide-react';
+import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert, Filter, FileDown, FileBarChart, ChevronRight, Search, Info, AlertTriangle } from 'lucide-react';
 import { generateStandardPDF, addFooter } from '@/lib/pdfUtils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
 
 
 interface Attempt {
@@ -99,6 +101,10 @@ export default function ValidationAudit() {
   }, [attempts]);
 
   const [showDrilldown, setShowDrilldown] = useState(false);
+  const [drillSearch, setDrillSearch] = useState('');
+  const [drillPage, setDrillPage] = useState(1);
+  const DRILL_PAGE_SIZE = 10;
+
 
   const dailySeries = useMemo(() => {
     const map = new Map<string, { day: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number }>();
@@ -115,37 +121,56 @@ export default function ValidationAudit() {
     return Array.from(map.values()).reverse();
   }, [attempts]);
 
-  const monthlyDrilldown = useMemo(() => {
-    const start = startOfMonth(new Date());
-    const end = endOfMonth(new Date());
-    const inMonth = attempts.filter(a => {
+  // Consolidated: uses active filter period (not just current month)
+  const periodConsolidated = useMemo(() => {
+    const start = parseISO(`${fStart}T00:00:00`);
+    const end = parseISO(`${fEnd}T23:59:59`);
+    const inRange = attempts.filter(a => {
       const d = parseISO(a.created_at);
       return d >= start && d <= end;
     });
-    const byEmp = new Map<string, { name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; total: number }>();
-    inMonth.forEach(a => {
+    const byEmp = new Map<string, { name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; divergence: number; total: number }>();
+    inRange.forEach(a => {
       const key = a.profile_id || 'unknown';
       const name = a.profiles?.full_name || '—';
-      const row = byEmp.get(key) || { name, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0, total: 0 };
+      const row = byEmp.get(key) || { name, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0, divergence: 0, total: 0 };
       row.total++;
       if (a.method_type === 'facial') a.success ? row.facial_ok++ : row.facial_fail++;
       else if (a.method_type === 'qrcode') a.success ? row.qr_ok++ : row.qr_fail++;
+      else if (a.method_type === 'divergence') row.divergence++;
       byEmp.set(key, row);
     });
     return Array.from(byEmp.values()).sort((a, b) => b.total - a.total);
-  }, [attempts]);
+  }, [attempts, fStart, fEnd]);
 
+  const monthlyDrilldown = periodConsolidated;
+
+  const filteredDrilldown = useMemo(() => {
+    const q = drillSearch.trim().toLowerCase();
+    if (!q) return monthlyDrilldown;
+    return monthlyDrilldown.filter(r => r.name.toLowerCase().includes(q));
+  }, [monthlyDrilldown, drillSearch]);
+
+  const pagedDrilldown = useMemo(() => {
+    const start = (drillPage - 1) * DRILL_PAGE_SIZE;
+    return filteredDrilldown.slice(start, start + DRILL_PAGE_SIZE);
+  }, [filteredDrilldown, drillPage]);
+
+  const totalDrillPages = Math.max(1, Math.ceil(filteredDrilldown.length / DRILL_PAGE_SIZE));
+
+  useEffect(() => { setDrillPage(1); }, [drillSearch, fStart, fEnd, fEmployee, fMethod, fStatus]);
 
   const monthly = useMemo(() => {
-    const start = startOfMonth(new Date());
-    const end = endOfMonth(new Date());
-    const inMonth = attempts.filter(a => {
+    const start = parseISO(`${fStart}T00:00:00`);
+    const end = parseISO(`${fEnd}T23:59:59`);
+    const inRange = attempts.filter(a => {
       const d = parseISO(a.created_at);
       return d >= start && d <= end;
     });
-    const ok = inMonth.filter(a => a.success).length;
-    return { total: inMonth.length, ok, fail: inMonth.length - ok };
-  }, [attempts]);
+    const ok = inRange.filter(a => a.success).length;
+    return { total: inRange.length, ok, fail: inRange.length - ok };
+  }, [attempts, fStart, fEnd]);
+
 
   const exportCsv = () => {
     if (attempts.length === 0) {
@@ -205,10 +230,34 @@ export default function ValidationAudit() {
     }
   };
 
+  const exportMonthlyCsv = () => {
+    if (periodConsolidated.length === 0) {
+      toast.info('Nada para exportar no período');
+      return;
+    }
+    const header = ['Funcionário', 'Facial Aprov.', 'Facial Reprov.', 'QR Aprov.', 'QR Reprov.', 'Bloqueios Divergência', 'Total'];
+    const rows = periodConsolidated.map(r => [r.name, r.facial_ok, r.facial_fail, r.qr_ok, r.qr_fail, r.divergence, r.total]);
+    const totals = periodConsolidated.reduce((acc, r) => ({
+      fok: acc.fok + r.facial_ok, ffail: acc.ffail + r.facial_fail,
+      qok: acc.qok + r.qr_ok, qfail: acc.qfail + r.qr_fail,
+      div: acc.div + r.divergence, tot: acc.tot + r.total,
+    }), { fok: 0, ffail: 0, qok: 0, qfail: 0, div: 0, tot: 0 });
+    rows.push(['TOTAL', totals.fok, totals.ffail, totals.qok, totals.qfail, totals.div, totals.tot]);
+    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `consolidado_${fStart}_a_${fEnd}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Consolidado CSV exportado');
+  };
+
   const generateMonthlyConsolidated = async () => {
     try {
-      const start = startOfMonth(new Date());
-      const end = endOfMonth(new Date());
+      const start = parseISO(`${fStart}T00:00:00`);
+      const end = parseISO(`${fEnd}T23:59:59`);
       let recordsQ = supabase
         .from('time_records')
         .select('recorded_at, record_type, profile_id, profiles:profile_id(full_name)')
@@ -220,13 +269,11 @@ export default function ValidationAudit() {
       const { data: recs, error } = await recordsQ;
       if (error) throw error;
 
-      const inMonth = attempts.filter(a => {
-        const d = parseISO(a.created_at);
-        return d >= start && d <= end;
-      });
-      const okA = inMonth.filter(a => a.success).length;
-      const facialA = inMonth.filter(a => a.method_type === 'facial').length;
-      const qrA = inMonth.filter(a => a.method_type === 'qrcode').length;
+      const inRange = attempts;
+      const okA = inRange.filter(a => a.success).length;
+      const facialA = inRange.filter(a => a.method_type === 'facial').length;
+      const qrA = inRange.filter(a => a.method_type === 'qrcode').length;
+      const divA = inRange.filter(a => a.method_type === 'divergence').length;
 
       const typeLabel: Record<string, string> = {
         entry: 'Entrada', break_start: 'Início Interv.', break_end: 'Fim Interv.', exit: 'Saída',
@@ -237,41 +284,60 @@ export default function ValidationAudit() {
         typeLabel[r.record_type] || r.record_type,
       ]);
 
+      const empFilterLabel = canSeeAll && fEmployee !== 'all'
+        ? (employees.find(e => e.id === fEmployee)?.full_name || fEmployee)
+        : 'Todos os funcionários';
+
       const doc = await generateStandardPDF(
         {
-          title: 'Relatório Mensal Consolidado',
-          subtitle: 'Marcações de ponto e validações (facial + QR)',
+          title: 'Relatório Consolidado',
+          subtitle: `Marcações de ponto e validações — ${empFilterLabel}`,
           period: { start: format(start, 'dd/MM/yyyy'), end: format(end, 'dd/MM/yyyy') },
           orientation: 'portrait',
         },
         {
           head: [['Resumo', 'Valor']],
           body: [
-            ['Marcações de ponto no mês', String(recs?.length || 0)],
-            ['Tentativas de validação', String(inMonth.length)],
+            ['Marcações de ponto', String(recs?.length || 0)],
+            ['Tentativas de validação', String(inRange.length)],
             ['Validações aprovadas', String(okA)],
-            ['Validações reprovadas', String(inMonth.length - okA)],
+            ['Validações reprovadas', String(inRange.length - okA)],
             ['Método facial', String(facialA)],
             ['Método QR Code', String(qrA)],
-            ['Taxa de sucesso', inMonth.length ? `${Math.round((okA / inMonth.length) * 100)}%` : '-'],
+            ['Bloqueios por divergência', String(divA)],
+            ['Taxa de sucesso', inRange.length ? `${Math.round((okA / inRange.length) * 100)}%` : '-'],
           ],
         },
         (doc, y) => {
           const jsdoc: any = doc;
           jsdoc.setFontSize(10);
           jsdoc.setFont('helvetica', 'bold');
-          jsdoc.text(`Mês: ${format(start, "MMMM 'de' yyyy", { locale: ptBR })}`, 14, y);
+          jsdoc.text(`Filtros ativos: ${empFilterLabel}`, 14, y);
           return y + 6;
         }
       );
 
-      // Append records table on a new page
       const jsdoc: any = doc;
+      // Per-employee table
+      jsdoc.addPage();
+      jsdoc.setFontSize(12);
+      jsdoc.setFont('helvetica', 'bold');
+      jsdoc.text('Consolidado por funcionário', 14, 20);
+      const autoTable = (await import('jspdf-autotable')).default;
+      autoTable(jsdoc, {
+        startY: 25,
+        head: [['Funcionário', 'Facial ✓', 'Facial ✗', 'QR ✓', 'QR ✗', 'Divergência', 'Total']],
+        body: periodConsolidated.map(r => [r.name, r.facial_ok, r.facial_fail, r.qr_ok, r.qr_fail, r.divergence, r.total]),
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] },
+        margin: { left: 14, right: 14 },
+      });
+
+      // Records table on a new page
       jsdoc.addPage();
       jsdoc.setFontSize(12);
       jsdoc.setFont('helvetica', 'bold');
       jsdoc.text('Marcações de Ponto (até 400 primeiras)', 14, 20);
-      const autoTable = (await import('jspdf-autotable')).default;
       autoTable(jsdoc, {
         startY: 25,
         head: [['Data/Hora', 'Funcionário', 'Tipo']],
@@ -282,12 +348,14 @@ export default function ValidationAudit() {
       });
 
       addFooter(doc);
-      doc.save(`relatorio_mensal_${format(start, 'yyyy-MM')}.pdf`);
-      toast.success('Relatório mensal gerado');
+      doc.save(`consolidado_${fStart}_a_${fEnd}.pdf`);
+      toast.success('Relatório consolidado gerado');
     } catch (e: any) {
       toast.error('Falha ao gerar relatório: ' + (e?.message || 'erro'));
     }
   };
+
+
 
 
   const methodIcon = (m: string) =>
@@ -317,10 +385,15 @@ export default function ValidationAudit() {
             <FileDown className="h-4 w-4 mr-2" />
             PDF
           </Button>
+          <Button variant="outline" onClick={exportMonthlyCsv}>
+            <FileBarChart className="h-4 w-4 mr-2" />
+            Consolidado CSV
+          </Button>
           <Button onClick={generateMonthlyConsolidated}>
             <FileBarChart className="h-4 w-4 mr-2" />
-            Relatório mensal
+            Consolidado PDF
           </Button>
+
         </div>
 
       </div>
@@ -344,17 +417,18 @@ export default function ValidationAudit() {
       >
         <CardHeader>
           <CardTitle className="text-base flex items-center justify-between">
-            <span>Consolidado do mês atual ({format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })})</span>
+            <span>Consolidado do período ({format(parseISO(fStart), 'dd/MM/yyyy')} — {format(parseISO(fEnd), 'dd/MM/yyyy')})</span>
             <span className="text-xs text-muted-foreground flex items-center gap-1">Abrir detalhamento <ChevronRight className="h-3 w-3" /></span>
           </CardTitle>
-          <CardDescription>Clique para ver o detalhamento por funcionário e por método (facial / QR).</CardDescription>
+          <CardDescription>Clique para ver detalhamento por funcionário e por método (Facial / QR / Divergência).</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-3 gap-4 text-sm">
-          <div><p className="text-muted-foreground">Tentativas no mês</p><p className="text-xl font-semibold">{monthly.total}</p></div>
+          <div><p className="text-muted-foreground">Tentativas no período</p><p className="text-xl font-semibold">{monthly.total}</p></div>
           <div><p className="text-muted-foreground">Aprovadas</p><p className="text-xl font-semibold text-emerald-600">{monthly.ok}</p></div>
           <div><p className="text-muted-foreground">Reprovadas</p><p className="text-xl font-semibold text-destructive">{monthly.fail}</p></div>
         </CardContent>
       </Card>
+
 
       {/* Daily chart */}
       {canSeeAll && dailySeries.length > 0 && (
@@ -385,39 +459,74 @@ export default function ValidationAudit() {
       <Dialog open={showDrilldown} onOpenChange={setShowDrilldown}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhamento — {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}</DialogTitle>
-            <DialogDescription>Validações por funcionário, separadas por método (Facial / QR Code).</DialogDescription>
+            <DialogTitle>Detalhamento — {format(parseISO(fStart), 'dd/MM/yyyy')} a {format(parseISO(fEnd), 'dd/MM/yyyy')}</DialogTitle>
+            <DialogDescription>Validações por funcionário, separadas por método (Facial / QR / Divergência).</DialogDescription>
           </DialogHeader>
-          {monthlyDrilldown.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground">Sem validações no mês.</div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={drillSearch}
+                onChange={e => setDrillSearch(e.target.value)}
+                placeholder="Buscar funcionário..."
+                className="pl-8"
+              />
+            </div>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {filteredDrilldown.length} funcionário(s)
+            </span>
+          </div>
+
+          {filteredDrilldown.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">Nenhum resultado.</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Funcionário</TableHead>
-                  <TableHead className="text-center">Facial ✓</TableHead>
-                  <TableHead className="text-center">Facial ✗</TableHead>
-                  <TableHead className="text-center">QR ✓</TableHead>
-                  <TableHead className="text-center">QR ✗</TableHead>
-                  <TableHead className="text-center">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {monthlyDrilldown.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{r.name}</TableCell>
-                    <TableCell className="text-center text-emerald-600">{r.facial_ok}</TableCell>
-                    <TableCell className="text-center text-destructive">{r.facial_fail}</TableCell>
-                    <TableCell className="text-center text-emerald-600">{r.qr_ok}</TableCell>
-                    <TableCell className="text-center text-destructive">{r.qr_fail}</TableCell>
-                    <TableCell className="text-center font-semibold">{r.total}</TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Funcionário</TableHead>
+                    <TableHead className="text-center">Facial ✓</TableHead>
+                    <TableHead className="text-center">Facial ✗</TableHead>
+                    <TableHead className="text-center">QR ✓</TableHead>
+                    <TableHead className="text-center">QR ✗</TableHead>
+                    <TableHead className="text-center">Diverg.</TableHead>
+                    <TableHead className="text-center">Total</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {pagedDrilldown.map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell className="text-center text-emerald-600">{r.facial_ok}</TableCell>
+                      <TableCell className="text-center text-destructive">{r.facial_fail}</TableCell>
+                      <TableCell className="text-center text-emerald-600">{r.qr_ok}</TableCell>
+                      <TableCell className="text-center text-destructive">{r.qr_fail}</TableCell>
+                      <TableCell className="text-center text-amber-600">{r.divergence}</TableCell>
+                      <TableCell className="text-center font-semibold">{r.total}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <div className="flex items-center justify-between pt-3">
+                <span className="text-xs text-muted-foreground">
+                  Página {drillPage} de {totalDrillPages}
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" disabled={drillPage <= 1} onClick={() => setDrillPage(p => Math.max(1, p - 1))}>
+                    Anterior
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={drillPage >= totalDrillPages} onClick={() => setDrillPage(p => Math.min(totalDrillPages, p + 1))}>
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
+
 
       {/* Filters */}
       <Card>
@@ -442,6 +551,8 @@ export default function ValidationAudit() {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="facial">Facial</SelectItem>
                   <SelectItem value="qrcode">QR Code</SelectItem>
+                  <SelectItem value="divergence">Bloqueio por divergência</SelectItem>
+
                 </SelectContent>
               </Select>
             </div>
@@ -496,44 +607,95 @@ export default function ValidationAudit() {
                     <TableHead>Resultado</TableHead>
                     <TableHead>Confiança</TableHead>
                     <TableHead>Motivo / Política</TableHead>
+                    <TableHead className="text-center">Detalhes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {attempts.map(a => (
-                    <TableRow key={a.id}>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">
-                        {format(parseISO(a.created_at), 'dd/MM/yyyy HH:mm:ss')}
-                      </TableCell>
-                      {canSeeAll && (
-                        <TableCell className="text-sm">
-                          {a.profiles?.full_name || <span className="text-muted-foreground">-</span>}
+                  {attempts.map(a => {
+                    const isDiv = a.method_type === 'divergence';
+                    const methodLabel = a.method_type === 'facial' ? 'Facial'
+                      : a.method_type === 'qrcode' ? 'QR Code'
+                      : isDiv ? 'Divergência' : a.method_type;
+                    // Parse user_agent for device_info fields
+                    const ua = a.user_agent || '';
+                    const parts = ua.split('|').map(s => s.trim());
+                    const rawUa = parts[0] || '';
+                    const meta: Record<string, string> = {};
+                    parts.slice(1).forEach(p => {
+                      const [k, ...v] = p.split('=');
+                      if (k && v.length) meta[k.trim()] = v.join('=').trim();
+                    });
+                    // Extract justification / block context from reason
+                    const reason = a.reason || '';
+                    const justMatch = reason.match(/\[JUSTIFICATIVA\]\s*([^—]+)/);
+                    const blockMatch = reason.match(/\[BLOQUEIO\]\s*(.+)/);
+                    return (
+                      <TableRow key={a.id} className={isDiv ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''}>
+                        <TableCell className="font-mono text-xs whitespace-nowrap">
+                          {format(parseISO(a.created_at), 'dd/MM/yyyy HH:mm:ss')}
                         </TableCell>
-                      )}
-                      <TableCell>
-                        <Badge variant="outline" className="flex w-fit items-center gap-1">
-                          {methodIcon(a.method_type)}
-                          {a.method_type === 'facial' ? 'Facial' : a.method_type === 'qrcode' ? 'QR Code' : a.method_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {a.success ? (
-                          <Badge className="bg-emerald-600 hover:bg-emerald-700 flex w-fit items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3" /> Aprovado
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive" className="flex w-fit items-center gap-1">
-                            <XCircle className="h-3 w-3" /> Reprovado
-                          </Badge>
+                        {canSeeAll && (
+                          <TableCell className="text-sm">
+                            {a.profiles?.full_name || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
                         )}
-                      </TableCell>
-                      <TableCell className="text-sm">{a.confidence != null ? `${a.confidence}%` : '-'}</TableCell>
-                      <TableCell className="text-sm max-w-[420px]">
-                        <span className={a.success ? 'text-muted-foreground' : 'text-destructive'}>
-                          {a.reason || (a.success ? 'OK' : 'Sem detalhes')}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        <TableCell>
+                          <Badge variant={isDiv ? 'secondary' : 'outline'} className="flex w-fit items-center gap-1">
+                            {isDiv ? <AlertTriangle className="h-3 w-3 text-amber-600" /> : methodIcon(a.method_type)}
+                            {methodLabel}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {a.success ? (
+                            <Badge className="bg-emerald-600 hover:bg-emerald-700 flex w-fit items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" /> {isDiv ? 'Justificado' : 'Aprovado'}
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive" className="flex w-fit items-center gap-1">
+                              <XCircle className="h-3 w-3" /> {isDiv ? 'Bloqueado' : 'Reprovado'}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">{a.confidence != null ? `${a.confidence}%` : '-'}</TableCell>
+                        <TableCell className="text-sm max-w-[420px]">
+                          <span className={a.success ? 'text-muted-foreground' : 'text-destructive'}>
+                            {reason || (a.success ? 'OK' : 'Sem detalhes')}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <Info className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-96 text-xs space-y-2">
+                              <div>
+                                <p className="font-semibold mb-1">Dispositivo (device_info)</p>
+                                <div className="rounded border p-2 bg-muted/40 space-y-0.5 font-mono">
+                                  <div><span className="text-muted-foreground">profile_id:</span> {meta.profile_id || a.profile_id || '—'}</div>
+                                  <div><span className="text-muted-foreground">company_id:</span> {meta.company_id || a.company_id || '—'}</div>
+                                  <div><span className="text-muted-foreground">timezone:</span> {meta.tz || '—'}</div>
+                                  <div className="pt-1 break-all"><span className="text-muted-foreground">user-agent:</span> {rawUa || '—'}</div>
+                                </div>
+                              </div>
+                              {isDiv && (justMatch || blockMatch) && (
+                                <div>
+                                  <p className="font-semibold mb-1">
+                                    {justMatch ? 'Justificativa anexada' : 'Contexto do bloqueio'}
+                                  </p>
+                                  <div className="rounded border p-2 bg-amber-50 dark:bg-amber-950/20">
+                                    {(justMatch?.[1] || blockMatch?.[1] || '').trim()}
+                                  </div>
+                                </div>
+                              )}
+                            </PopoverContent>
+                          </Popover>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+
                 </TableBody>
               </Table>
             </div>
