@@ -101,6 +101,10 @@ export default function ValidationAudit() {
   }, [attempts]);
 
   const [showDrilldown, setShowDrilldown] = useState(false);
+  const [drillSearch, setDrillSearch] = useState('');
+  const [drillPage, setDrillPage] = useState(1);
+  const DRILL_PAGE_SIZE = 10;
+
 
   const dailySeries = useMemo(() => {
     const map = new Map<string, { day: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number }>();
