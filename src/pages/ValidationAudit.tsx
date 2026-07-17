@@ -385,10 +385,15 @@ export default function ValidationAudit() {
             <FileDown className="h-4 w-4 mr-2" />
             PDF
           </Button>
+          <Button variant="outline" onClick={exportMonthlyCsv}>
+            <FileBarChart className="h-4 w-4 mr-2" />
+            Consolidado CSV
+          </Button>
           <Button onClick={generateMonthlyConsolidated}>
             <FileBarChart className="h-4 w-4 mr-2" />
-            Relatório mensal
+            Consolidado PDF
           </Button>
+
         </div>
 
       </div>
