@@ -459,39 +459,74 @@ export default function ValidationAudit() {
       <Dialog open={showDrilldown} onOpenChange={setShowDrilldown}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhamento — {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}</DialogTitle>
-            <DialogDescription>Validações por funcionário, separadas por método (Facial / QR Code).</DialogDescription>
+            <DialogTitle>Detalhamento — {format(parseISO(fStart), 'dd/MM/yyyy')} a {format(parseISO(fEnd), 'dd/MM/yyyy')}</DialogTitle>
+            <DialogDescription>Validações por funcionário, separadas por método (Facial / QR / Divergência).</DialogDescription>
           </DialogHeader>
-          {monthlyDrilldown.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground">Sem validações no mês.</div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={drillSearch}
+                onChange={e => setDrillSearch(e.target.value)}
+                placeholder="Buscar funcionário..."
+                className="pl-8"
+              />
+            </div>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {filteredDrilldown.length} funcionário(s)
+            </span>
+          </div>
+
+          {filteredDrilldown.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">Nenhum resultado.</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Funcionário</TableHead>
-                  <TableHead className="text-center">Facial ✓</TableHead>
-                  <TableHead className="text-center">Facial ✗</TableHead>
-                  <TableHead className="text-center">QR ✓</TableHead>
-                  <TableHead className="text-center">QR ✗</TableHead>
-                  <TableHead className="text-center">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {monthlyDrilldown.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{r.name}</TableCell>
-                    <TableCell className="text-center text-emerald-600">{r.facial_ok}</TableCell>
-                    <TableCell className="text-center text-destructive">{r.facial_fail}</TableCell>
-                    <TableCell className="text-center text-emerald-600">{r.qr_ok}</TableCell>
-                    <TableCell className="text-center text-destructive">{r.qr_fail}</TableCell>
-                    <TableCell className="text-center font-semibold">{r.total}</TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Funcionário</TableHead>
+                    <TableHead className="text-center">Facial ✓</TableHead>
+                    <TableHead className="text-center">Facial ✗</TableHead>
+                    <TableHead className="text-center">QR ✓</TableHead>
+                    <TableHead className="text-center">QR ✗</TableHead>
+                    <TableHead className="text-center">Diverg.</TableHead>
+                    <TableHead className="text-center">Total</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {pagedDrilldown.map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell className="text-center text-emerald-600">{r.facial_ok}</TableCell>
+                      <TableCell className="text-center text-destructive">{r.facial_fail}</TableCell>
+                      <TableCell className="text-center text-emerald-600">{r.qr_ok}</TableCell>
+                      <TableCell className="text-center text-destructive">{r.qr_fail}</TableCell>
+                      <TableCell className="text-center text-amber-600">{r.divergence}</TableCell>
+                      <TableCell className="text-center font-semibold">{r.total}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <div className="flex items-center justify-between pt-3">
+                <span className="text-xs text-muted-foreground">
+                  Página {drillPage} de {totalDrillPages}
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" disabled={drillPage <= 1} onClick={() => setDrillPage(p => Math.max(1, p - 1))}>
+                    Anterior
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={drillPage >= totalDrillPages} onClick={() => setDrillPage(p => Math.min(totalDrillPages, p + 1))}>
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
+
 
       {/* Filters */}
       <Card>
