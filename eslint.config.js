@@ -29,8 +29,12 @@ export default tseslint.config(
       "no-empty": "warn",
       "no-case-declarations": "off",
       "no-useless-escape": "warn",
+      "no-constant-binary-expression": "warn",
+      "no-shadow-restricted-names": "warn",
+      "@typescript-eslint/no-unused-expressions": "warn",
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/rules-of-hooks": "warn",
+
     },
   },
 );
