@@ -121,37 +121,56 @@ export default function ValidationAudit() {
     return Array.from(map.values()).reverse();
   }, [attempts]);
 
-  const monthlyDrilldown = useMemo(() => {
-    const start = startOfMonth(new Date());
-    const end = endOfMonth(new Date());
-    const inMonth = attempts.filter(a => {
+  // Consolidated: uses active filter period (not just current month)
+  const periodConsolidated = useMemo(() => {
+    const start = parseISO(`${fStart}T00:00:00`);
+    const end = parseISO(`${fEnd}T23:59:59`);
+    const inRange = attempts.filter(a => {
       const d = parseISO(a.created_at);
       return d >= start && d <= end;
     });
-    const byEmp = new Map<string, { name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; total: number }>();
-    inMonth.forEach(a => {
+    const byEmp = new Map<string, { name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; divergence: number; total: number }>();
+    inRange.forEach(a => {
       const key = a.profile_id || 'unknown';
       const name = a.profiles?.full_name || '—';
-      const row = byEmp.get(key) || { name, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0, total: 0 };
+      const row = byEmp.get(key) || { name, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0, divergence: 0, total: 0 };
       row.total++;
       if (a.method_type === 'facial') a.success ? row.facial_ok++ : row.facial_fail++;
       else if (a.method_type === 'qrcode') a.success ? row.qr_ok++ : row.qr_fail++;
+      else if (a.method_type === 'divergence') row.divergence++;
       byEmp.set(key, row);
     });
     return Array.from(byEmp.values()).sort((a, b) => b.total - a.total);
-  }, [attempts]);
+  }, [attempts, fStart, fEnd]);
 
+  const monthlyDrilldown = periodConsolidated;
+
+  const filteredDrilldown = useMemo(() => {
+    const q = drillSearch.trim().toLowerCase();
+    if (!q) return monthlyDrilldown;
+    return monthlyDrilldown.filter(r => r.name.toLowerCase().includes(q));
+  }, [monthlyDrilldown, drillSearch]);
+
+  const pagedDrilldown = useMemo(() => {
+    const start = (drillPage - 1) * DRILL_PAGE_SIZE;
+    return filteredDrilldown.slice(start, start + DRILL_PAGE_SIZE);
+  }, [filteredDrilldown, drillPage]);
+
+  const totalDrillPages = Math.max(1, Math.ceil(filteredDrilldown.length / DRILL_PAGE_SIZE));
+
+  useEffect(() => { setDrillPage(1); }, [drillSearch, fStart, fEnd, fEmployee, fMethod, fStatus]);
 
   const monthly = useMemo(() => {
-    const start = startOfMonth(new Date());
-    const end = endOfMonth(new Date());
-    const inMonth = attempts.filter(a => {
+    const start = parseISO(`${fStart}T00:00:00`);
+    const end = parseISO(`${fEnd}T23:59:59`);
+    const inRange = attempts.filter(a => {
       const d = parseISO(a.created_at);
       return d >= start && d <= end;
     });
-    const ok = inMonth.filter(a => a.success).length;
-    return { total: inMonth.length, ok, fail: inMonth.length - ok };
-  }, [attempts]);
+    const ok = inRange.filter(a => a.success).length;
+    return { total: inRange.length, ok, fail: inRange.length - ok };
+  }, [attempts, fStart, fEnd]);
+
 
   const exportCsv = () => {
     if (attempts.length === 0) {
