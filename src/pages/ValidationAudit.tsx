@@ -230,10 +230,34 @@ export default function ValidationAudit() {
     }
   };
 
+  const exportMonthlyCsv = () => {
+    if (periodConsolidated.length === 0) {
+      toast.info('Nada para exportar no período');
+      return;
+    }
+    const header = ['Funcionário', 'Facial Aprov.', 'Facial Reprov.', 'QR Aprov.', 'QR Reprov.', 'Bloqueios Divergência', 'Total'];
+    const rows = periodConsolidated.map(r => [r.name, r.facial_ok, r.facial_fail, r.qr_ok, r.qr_fail, r.divergence, r.total]);
+    const totals = periodConsolidated.reduce((acc, r) => ({
+      fok: acc.fok + r.facial_ok, ffail: acc.ffail + r.facial_fail,
+      qok: acc.qok + r.qr_ok, qfail: acc.qfail + r.qr_fail,
+      div: acc.div + r.divergence, tot: acc.tot + r.total,
+    }), { fok: 0, ffail: 0, qok: 0, qfail: 0, div: 0, tot: 0 });
+    rows.push(['TOTAL', totals.fok, totals.ffail, totals.qok, totals.qfail, totals.div, totals.tot]);
+    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `consolidado_${fStart}_a_${fEnd}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Consolidado CSV exportado');
+  };
+
   const generateMonthlyConsolidated = async () => {
     try {
-      const start = startOfMonth(new Date());
-      const end = endOfMonth(new Date());
+      const start = parseISO(`${fStart}T00:00:00`);
+      const end = parseISO(`${fEnd}T23:59:59`);
       let recordsQ = supabase
         .from('time_records')
         .select('recorded_at, record_type, profile_id, profiles:profile_id(full_name)')
@@ -245,13 +269,11 @@ export default function ValidationAudit() {
       const { data: recs, error } = await recordsQ;
       if (error) throw error;
 
-      const inMonth = attempts.filter(a => {
-        const d = parseISO(a.created_at);
-        return d >= start && d <= end;
-      });
-      const okA = inMonth.filter(a => a.success).length;
-      const facialA = inMonth.filter(a => a.method_type === 'facial').length;
-      const qrA = inMonth.filter(a => a.method_type === 'qrcode').length;
+      const inRange = attempts;
+      const okA = inRange.filter(a => a.success).length;
+      const facialA = inRange.filter(a => a.method_type === 'facial').length;
+      const qrA = inRange.filter(a => a.method_type === 'qrcode').length;
+      const divA = inRange.filter(a => a.method_type === 'divergence').length;
 
       const typeLabel: Record<string, string> = {
         entry: 'Entrada', break_start: 'Início Interv.', break_end: 'Fim Interv.', exit: 'Saída',
@@ -262,41 +284,60 @@ export default function ValidationAudit() {
         typeLabel[r.record_type] || r.record_type,
       ]);
 
+      const empFilterLabel = canSeeAll && fEmployee !== 'all'
+        ? (employees.find(e => e.id === fEmployee)?.full_name || fEmployee)
+        : 'Todos os funcionários';
+
       const doc = await generateStandardPDF(
         {
-          title: 'Relatório Mensal Consolidado',
-          subtitle: 'Marcações de ponto e validações (facial + QR)',
+          title: 'Relatório Consolidado',
+          subtitle: `Marcações de ponto e validações — ${empFilterLabel}`,
           period: { start: format(start, 'dd/MM/yyyy'), end: format(end, 'dd/MM/yyyy') },
           orientation: 'portrait',
         },
         {
           head: [['Resumo', 'Valor']],
           body: [
-            ['Marcações de ponto no mês', String(recs?.length || 0)],
-            ['Tentativas de validação', String(inMonth.length)],
+            ['Marcações de ponto', String(recs?.length || 0)],
+            ['Tentativas de validação', String(inRange.length)],
             ['Validações aprovadas', String(okA)],
-            ['Validações reprovadas', String(inMonth.length - okA)],
+            ['Validações reprovadas', String(inRange.length - okA)],
             ['Método facial', String(facialA)],
             ['Método QR Code', String(qrA)],
-            ['Taxa de sucesso', inMonth.length ? `${Math.round((okA / inMonth.length) * 100)}%` : '-'],
+            ['Bloqueios por divergência', String(divA)],
+            ['Taxa de sucesso', inRange.length ? `${Math.round((okA / inRange.length) * 100)}%` : '-'],
           ],
         },
         (doc, y) => {
           const jsdoc: any = doc;
           jsdoc.setFontSize(10);
           jsdoc.setFont('helvetica', 'bold');
-          jsdoc.text(`Mês: ${format(start, "MMMM 'de' yyyy", { locale: ptBR })}`, 14, y);
+          jsdoc.text(`Filtros ativos: ${empFilterLabel}`, 14, y);
           return y + 6;
         }
       );
 
-      // Append records table on a new page
       const jsdoc: any = doc;
+      // Per-employee table
+      jsdoc.addPage();
+      jsdoc.setFontSize(12);
+      jsdoc.setFont('helvetica', 'bold');
+      jsdoc.text('Consolidado por funcionário', 14, 20);
+      const autoTable = (await import('jspdf-autotable')).default;
+      autoTable(jsdoc, {
+        startY: 25,
+        head: [['Funcionário', 'Facial ✓', 'Facial ✗', 'QR ✓', 'QR ✗', 'Divergência', 'Total']],
+        body: periodConsolidated.map(r => [r.name, r.facial_ok, r.facial_fail, r.qr_ok, r.qr_fail, r.divergence, r.total]),
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] },
+        margin: { left: 14, right: 14 },
+      });
+
+      // Records table on a new page
       jsdoc.addPage();
       jsdoc.setFontSize(12);
       jsdoc.setFont('helvetica', 'bold');
       jsdoc.text('Marcações de Ponto (até 400 primeiras)', 14, 20);
-      const autoTable = (await import('jspdf-autotable')).default;
       autoTable(jsdoc, {
         startY: 25,
         head: [['Data/Hora', 'Funcionário', 'Tipo']],
@@ -307,12 +348,14 @@ export default function ValidationAudit() {
       });
 
       addFooter(doc);
-      doc.save(`relatorio_mensal_${format(start, 'yyyy-MM')}.pdf`);
-      toast.success('Relatório mensal gerado');
+      doc.save(`consolidado_${fStart}_a_${fEnd}.pdf`);
+      toast.success('Relatório consolidado gerado');
     } catch (e: any) {
       toast.error('Falha ao gerar relatório: ' + (e?.message || 'erro'));
     }
   };
+
+
 
 
   const methodIcon = (m: string) =>
