@@ -607,44 +607,95 @@ export default function ValidationAudit() {
                     <TableHead>Resultado</TableHead>
                     <TableHead>Confiança</TableHead>
                     <TableHead>Motivo / Política</TableHead>
+                    <TableHead className="text-center">Detalhes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {attempts.map(a => (
-                    <TableRow key={a.id}>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">
-                        {format(parseISO(a.created_at), 'dd/MM/yyyy HH:mm:ss')}
-                      </TableCell>
-                      {canSeeAll && (
-                        <TableCell className="text-sm">
-                          {a.profiles?.full_name || <span className="text-muted-foreground">-</span>}
+                  {attempts.map(a => {
+                    const isDiv = a.method_type === 'divergence';
+                    const methodLabel = a.method_type === 'facial' ? 'Facial'
+                      : a.method_type === 'qrcode' ? 'QR Code'
+                      : isDiv ? 'Divergência' : a.method_type;
+                    // Parse user_agent for device_info fields
+                    const ua = a.user_agent || '';
+                    const parts = ua.split('|').map(s => s.trim());
+                    const rawUa = parts[0] || '';
+                    const meta: Record<string, string> = {};
+                    parts.slice(1).forEach(p => {
+                      const [k, ...v] = p.split('=');
+                      if (k && v.length) meta[k.trim()] = v.join('=').trim();
+                    });
+                    // Extract justification / block context from reason
+                    const reason = a.reason || '';
+                    const justMatch = reason.match(/\[JUSTIFICATIVA\]\s*([^—]+)/);
+                    const blockMatch = reason.match(/\[BLOQUEIO\]\s*(.+)/);
+                    return (
+                      <TableRow key={a.id} className={isDiv ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''}>
+                        <TableCell className="font-mono text-xs whitespace-nowrap">
+                          {format(parseISO(a.created_at), 'dd/MM/yyyy HH:mm:ss')}
                         </TableCell>
-                      )}
-                      <TableCell>
-                        <Badge variant="outline" className="flex w-fit items-center gap-1">
-                          {methodIcon(a.method_type)}
-                          {a.method_type === 'facial' ? 'Facial' : a.method_type === 'qrcode' ? 'QR Code' : a.method_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {a.success ? (
-                          <Badge className="bg-emerald-600 hover:bg-emerald-700 flex w-fit items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3" /> Aprovado
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive" className="flex w-fit items-center gap-1">
-                            <XCircle className="h-3 w-3" /> Reprovado
-                          </Badge>
+                        {canSeeAll && (
+                          <TableCell className="text-sm">
+                            {a.profiles?.full_name || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
                         )}
-                      </TableCell>
-                      <TableCell className="text-sm">{a.confidence != null ? `${a.confidence}%` : '-'}</TableCell>
-                      <TableCell className="text-sm max-w-[420px]">
-                        <span className={a.success ? 'text-muted-foreground' : 'text-destructive'}>
-                          {a.reason || (a.success ? 'OK' : 'Sem detalhes')}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        <TableCell>
+                          <Badge variant={isDiv ? 'secondary' : 'outline'} className="flex w-fit items-center gap-1">
+                            {isDiv ? <AlertTriangle className="h-3 w-3 text-amber-600" /> : methodIcon(a.method_type)}
+                            {methodLabel}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {a.success ? (
+                            <Badge className="bg-emerald-600 hover:bg-emerald-700 flex w-fit items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" /> {isDiv ? 'Justificado' : 'Aprovado'}
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive" className="flex w-fit items-center gap-1">
+                              <XCircle className="h-3 w-3" /> {isDiv ? 'Bloqueado' : 'Reprovado'}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">{a.confidence != null ? `${a.confidence}%` : '-'}</TableCell>
+                        <TableCell className="text-sm max-w-[420px]">
+                          <span className={a.success ? 'text-muted-foreground' : 'text-destructive'}>
+                            {reason || (a.success ? 'OK' : 'Sem detalhes')}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <Info className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-96 text-xs space-y-2">
+                              <div>
+                                <p className="font-semibold mb-1">Dispositivo (device_info)</p>
+                                <div className="rounded border p-2 bg-muted/40 space-y-0.5 font-mono">
+                                  <div><span className="text-muted-foreground">profile_id:</span> {meta.profile_id || a.profile_id || '—'}</div>
+                                  <div><span className="text-muted-foreground">company_id:</span> {meta.company_id || a.company_id || '—'}</div>
+                                  <div><span className="text-muted-foreground">timezone:</span> {meta.tz || '—'}</div>
+                                  <div className="pt-1 break-all"><span className="text-muted-foreground">user-agent:</span> {rawUa || '—'}</div>
+                                </div>
+                              </div>
+                              {isDiv && (justMatch || blockMatch) && (
+                                <div>
+                                  <p className="font-semibold mb-1">
+                                    {justMatch ? 'Justificativa anexada' : 'Contexto do bloqueio'}
+                                  </p>
+                                  <div className="rounded border p-2 bg-amber-50 dark:bg-amber-950/20">
+                                    {(justMatch?.[1] || blockMatch?.[1] || '').trim()}
+                                  </div>
+                                </div>
+                              )}
+                            </PopoverContent>
+                          </Popover>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+
                 </TableBody>
               </Table>
             </div>
