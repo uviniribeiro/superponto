@@ -234,9 +234,30 @@ export default function TimeClock() {
     }
 
     if (diagnostic && !divergenceAck) {
+      // Log block for admin auditing (attempt row + security event)
+      try {
+        const details = diagnostic.details.join(' | ');
+        await supabase.from('identification_validation_attempts').insert({
+          user_id: profile.user_id,
+          profile_id: profile.id,
+          company_id: profile.company_id,
+          method_type: 'divergence',
+          success: false,
+          reason: `[BLOQUEIO] ${diagnostic.title} — ${details}`,
+          user_agent: `${navigator.userAgent} | profile_id=${profile.id} | company_id=${profile.company_id ?? ''} | tz=${Intl.DateTimeFormat().resolvedOptions().timeZone}`,
+        });
+        await supabase.rpc('log_security_event', {
+          _user_id: profile.user_id,
+          _event_type: 'timeclock_blocked_divergence',
+          _severity: 'warning',
+          _user_agent: navigator.userAgent,
+          _metadata: { title: diagnostic.title, details: diagnostic.details, profile_id: profile.id, company_id: profile.company_id } as any,
+        });
+      } catch { /* non-blocking */ }
       setDivergenceOpen(true);
       return;
     }
+
 
 
     if (!location.latitude || !location.longitude) {
