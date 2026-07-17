@@ -417,17 +417,18 @@ export default function ValidationAudit() {
       >
         <CardHeader>
           <CardTitle className="text-base flex items-center justify-between">
-            <span>Consolidado do mês atual ({format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })})</span>
+            <span>Consolidado do período ({format(parseISO(fStart), 'dd/MM/yyyy')} — {format(parseISO(fEnd), 'dd/MM/yyyy')})</span>
             <span className="text-xs text-muted-foreground flex items-center gap-1">Abrir detalhamento <ChevronRight className="h-3 w-3" /></span>
           </CardTitle>
-          <CardDescription>Clique para ver o detalhamento por funcionário e por método (facial / QR).</CardDescription>
+          <CardDescription>Clique para ver detalhamento por funcionário e por método (Facial / QR / Divergência).</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-3 gap-4 text-sm">
-          <div><p className="text-muted-foreground">Tentativas no mês</p><p className="text-xl font-semibold">{monthly.total}</p></div>
+          <div><p className="text-muted-foreground">Tentativas no período</p><p className="text-xl font-semibold">{monthly.total}</p></div>
           <div><p className="text-muted-foreground">Aprovadas</p><p className="text-xl font-semibold text-emerald-600">{monthly.ok}</p></div>
           <div><p className="text-muted-foreground">Reprovadas</p><p className="text-xl font-semibold text-destructive">{monthly.fail}</p></div>
         </CardContent>
       </Card>
+
 
       {/* Daily chart */}
       {canSeeAll && dailySeries.length > 0 && (
