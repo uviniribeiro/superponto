@@ -241,7 +241,7 @@ export default function ValidationAudit() {
     const ok = filteredAttempts.filter(a => a.success).length;
     return { total: filteredAttempts.length, ok, fail: filteredAttempts.length - ok };
   }, [filteredAttempts]);
-  }, [attempts, fStart, fEnd]);
+  
 
 
   const exportCsv = () => {
