@@ -693,13 +693,13 @@ export default function ValidationAudit() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Tentativas</CardTitle>
-          <CardDescription>{attempts.length} registro(s) — máx. 1000 por consulta.</CardDescription>
+          <CardDescription>{filteredAttempts.length} de {attempts.length} registro(s) — máx. 1000 por consulta.</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="py-10 text-center text-muted-foreground">Carregando...</div>
-          ) : attempts.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground">Nenhuma tentativa encontrada no período.</div>
+          ) : filteredAttempts.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">Nenhuma tentativa encontrada.</div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -711,16 +711,15 @@ export default function ValidationAudit() {
                     <TableHead>Resultado</TableHead>
                     <TableHead>Confiança</TableHead>
                     <TableHead>Motivo / Política</TableHead>
-                    <TableHead className="text-center">Detalhes</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {attempts.map(a => {
+                  {filteredAttempts.map(a => {
                     const isDiv = a.method_type === 'divergence';
                     const methodLabel = a.method_type === 'facial' ? 'Facial'
                       : a.method_type === 'qrcode' ? 'QR Code'
                       : isDiv ? 'Divergência' : a.method_type;
-                    // Parse user_agent for device_info fields
                     const ua = a.user_agent || '';
                     const parts = ua.split('|').map(s => s.trim());
                     const rawUa = parts[0] || '';
@@ -729,12 +728,16 @@ export default function ValidationAudit() {
                       const [k, ...v] = p.split('=');
                       if (k && v.length) meta[k.trim()] = v.join('=').trim();
                     });
-                    // Extract justification / block context from reason
                     const reason = a.reason || '';
                     const justMatch = reason.match(/\[JUSTIFICATIVA\]\s*([^—]+)/);
                     const blockMatch = reason.match(/\[BLOQUEIO\]\s*(.+)/);
+                    const isFocused = focusedAttemptId === a.id;
                     return (
-                      <TableRow key={a.id} className={isDiv ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''}>
+                      <TableRow
+                        key={a.id}
+                        ref={(el) => { rowRefs.current[a.id] = el; }}
+                        className={`${isDiv ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''} ${isFocused ? 'ring-2 ring-amber-500' : ''}`}
+                      >
                         <TableCell className="font-mono text-xs whitespace-nowrap">
                           {format(parseISO(a.created_at), 'dd/MM/yyyy HH:mm:ss')}
                         </TableCell>
@@ -767,39 +770,51 @@ export default function ValidationAudit() {
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <Info className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-96 text-xs space-y-2">
-                              <div>
-                                <p className="font-semibold mb-1">Dispositivo (device_info)</p>
-                                <div className="rounded border p-2 bg-muted/40 space-y-0.5 font-mono">
-                                  <div><span className="text-muted-foreground">profile_id:</span> {meta.profile_id || a.profile_id || '—'}</div>
-                                  <div><span className="text-muted-foreground">company_id:</span> {meta.company_id || a.company_id || '—'}</div>
-                                  <div><span className="text-muted-foreground">timezone:</span> {meta.tz || '—'}</div>
-                                  <div className="pt-1 break-all"><span className="text-muted-foreground">user-agent:</span> {rawUa || '—'}</div>
-                                </div>
-                              </div>
-                              {isDiv && (justMatch || blockMatch) && (
+                          <div className="flex items-center justify-center gap-1">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" title="Detalhes do dispositivo">
+                                  <Info className="h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-96 text-xs space-y-2">
                                 <div>
-                                  <p className="font-semibold mb-1">
-                                    {justMatch ? 'Justificativa anexada' : 'Contexto do bloqueio'}
-                                  </p>
-                                  <div className="rounded border p-2 bg-amber-50 dark:bg-amber-950/20">
-                                    {(justMatch?.[1] || blockMatch?.[1] || '').trim()}
+                                  <p className="font-semibold mb-1">Dispositivo (device_info)</p>
+                                  <div className="rounded border p-2 bg-muted/40 space-y-0.5 font-mono">
+                                    <div><span className="text-muted-foreground">profile_id:</span> {meta.profile_id || a.profile_id || '—'}</div>
+                                    <div><span className="text-muted-foreground">company_id:</span> {meta.company_id || a.company_id || '—'}</div>
+                                    <div><span className="text-muted-foreground">timezone:</span> {meta.tz || '—'}</div>
+                                    <div className="pt-1 break-all"><span className="text-muted-foreground">user-agent:</span> {rawUa || '—'}</div>
                                   </div>
                                 </div>
-                              )}
-                            </PopoverContent>
-                          </Popover>
+                                {(justMatch || blockMatch) && (
+                                  <div>
+                                    <p className="font-semibold mb-1">
+                                      {justMatch ? 'Justificativa anexada' : 'Contexto do bloqueio'}
+                                    </p>
+                                    <div className="rounded border p-2 bg-amber-50 dark:bg-amber-950/20">
+                                      {(justMatch?.[1] || blockMatch?.[1] || '').trim()}
+                                    </div>
+                                  </div>
+                                )}
+                              </PopoverContent>
+                            </Popover>
+                            {isDiv && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                title="Baixar pacote de evidências (PDF)"
+                                onClick={() => exportEvidencePdf(a, meta, rawUa, justMatch?.[1]?.trim(), blockMatch?.[1]?.trim())}
+                              >
+                                <FileText className="h-4 w-4 text-amber-600" />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
                   })}
-
                 </TableBody>
               </Table>
             </div>
