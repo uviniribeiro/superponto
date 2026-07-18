@@ -326,6 +326,65 @@ export default function ValidationAudit() {
     toast.success('Consolidado CSV exportado');
   };
 
+  // Per-record evidence pack (PDF): device_info + justification/context
+  const exportEvidencePdf = async (
+    a: Attempt,
+    meta: Record<string, string>,
+    rawUa: string,
+    justification?: string,
+    blockContext?: string,
+  ) => {
+    try {
+      const doc = await createA4PDF({
+        title: 'Pacote de Evidências — Bloqueio por Divergência',
+        subtitle: `Tentativa #${a.id.slice(0, 8)}`,
+      });
+      const jsdoc: any = doc;
+      let y = getContentStartY(doc);
+      const line = (label: string, value: string) => {
+        jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(10);
+        jsdoc.text(label, 14, y);
+        jsdoc.setFont('helvetica', 'normal');
+        const lines = jsdoc.splitTextToSize(value || '—', 170);
+        jsdoc.text(lines, 55, y);
+        y += Math.max(6, lines.length * 5);
+      };
+      line('ID da tentativa:', a.id);
+      line('Data/Hora:', format(parseISO(a.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR }));
+      line('Funcionário:', a.profiles?.full_name || '—');
+      line('Matrícula:', a.profiles?.registration_number || '—');
+      line('Método:', a.method_type);
+      line('Resultado:', a.success ? 'Justificado / Confirmado' : 'Bloqueado');
+      y += 3;
+      jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
+      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+      jsdoc.text('device_info', 14, y); y += 6;
+      line('profile_id:', meta.profile_id || a.profile_id || '—');
+      line('company_id:', meta.company_id || a.company_id || '—');
+      line('timezone:', meta.tz || '—');
+      line('user-agent:', rawUa || '—');
+      y += 3;
+      jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
+      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+      jsdoc.text('Contexto do bloqueio', 14, y); y += 6;
+      line('Motivo/Política:', a.reason || '—');
+      if (blockContext) line('Detalhes:', blockContext);
+      if (justification) {
+        y += 2;
+        jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+        jsdoc.text('Justificativa do usuário', 14, y); y += 6;
+        const lines = jsdoc.splitTextToSize(justification, 180);
+        jsdoc.setFont('helvetica', 'normal'); jsdoc.setFontSize(10);
+        jsdoc.text(lines, 14, y);
+      }
+      addFooter(doc);
+      doc.save(`evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`);
+      toast.success('Pacote de evidências gerado');
+    } catch (e: any) {
+      toast.error('Falha ao gerar evidência: ' + (e?.message || 'erro'));
+    }
+  };
+
   const generateMonthlyConsolidated = async () => {
     try {
       const start = parseISO(`${fStart}T00:00:00`);
