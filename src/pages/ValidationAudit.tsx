@@ -606,8 +606,9 @@ export default function ValidationAudit() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2"><Filter className="h-4 w-4" /> Filtros</CardTitle>
+          <CardDescription>Filtre por período, método, status, dispositivo (device_info) ou busque texto livre.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="space-y-1">
               <Label>De</Label>
@@ -626,7 +627,6 @@ export default function ValidationAudit() {
                   <SelectItem value="facial">Facial</SelectItem>
                   <SelectItem value="qrcode">QR Code</SelectItem>
                   <SelectItem value="divergence">Bloqueio por divergência</SelectItem>
-
                 </SelectContent>
               </Select>
             </div>
@@ -656,6 +656,36 @@ export default function ValidationAudit() {
               </div>
             )}
           </div>
+
+          {/* Device_info + free-text search */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2 border-t">
+            <div className="space-y-1">
+              <Label className="text-xs">device_info · employee_id</Label>
+              <Input value={fDevEmployeeId} onChange={e => setFDevEmployeeId(e.target.value)} placeholder="ex.: uuid do perfil" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">device_info · company_id</Label>
+              <Input value={fDevCompanyId} onChange={e => setFDevCompanyId(e.target.value)} placeholder="ex.: uuid da empresa" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">device_info · timezone</Label>
+              <Input value={fDevTimezone} onChange={e => setFDevTimezone(e.target.value)} placeholder="ex.: America/Sao_Paulo" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Busca livre</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input value={fSearch} onChange={e => setFSearch(e.target.value)} placeholder="Nome, motivo, user-agent..." className="pl-8" />
+              </div>
+            </div>
+          </div>
+          {(fDevEmployeeId || fDevCompanyId || fDevTimezone || fSearch) && (
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" onClick={() => { setFDevEmployeeId(''); setFDevCompanyId(''); setFDevTimezone(''); setFSearch(''); }}>
+                Limpar filtros de dispositivo/busca
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
