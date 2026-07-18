@@ -54,7 +54,7 @@ export default function ValidationAudit() {
   const [fDevTimezone, setFDevTimezone] = useState<string>('');
   const [fSearch, setFSearch] = useState<string>('');
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const focusedAttemptId = searchParams.get('attempt');
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
