@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { DivergenceAlertsSubscriber } from '@/components/DivergenceAlertsSubscriber';
 import { SupportChat } from '@/components/support/SupportChat';
 import { AnnouncementPopup } from '@/components/announcements/AnnouncementPopup';
 import { WhatsNewPopup } from '@/components/WhatsNewPopup';
