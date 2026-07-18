@@ -139,6 +139,21 @@ export function NotificationCenter() {
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {notification.message}
                       </p>
+                      {notification.actionUrl && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 mt-1 text-xs"
+                          onClick={() => {
+                            handleMarkAsRead(notification.id);
+                            setOpen(false);
+                            navigate(notification.actionUrl!);
+                          }}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          {notification.actionLabel || 'Ver evidência'}
+                        </Button>
+                      )}
                       <p className="text-[10px] text-muted-foreground/70 mt-1">
                         {formatDistanceToNow(notification.createdAt, { locale: ptBR, addSuffix: true })}
                       </p>
