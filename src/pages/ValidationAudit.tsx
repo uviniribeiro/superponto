@@ -48,6 +48,15 @@ export default function ValidationAudit() {
   const [fStatus, setFStatus] = useState<string>('all');
   const [fStart, setFStart] = useState<string>(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [fEnd, setFEnd] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  // device_info-based filters (parsed from user_agent metadata)
+  const [fDevEmployeeId, setFDevEmployeeId] = useState<string>('');
+  const [fDevCompanyId, setFDevCompanyId] = useState<string>('');
+  const [fDevTimezone, setFDevTimezone] = useState<string>('');
+  const [fSearch, setFSearch] = useState<string>('');
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusedAttemptId = searchParams.get('attempt');
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
   const load = async () => {
     setLoading(true);
@@ -62,6 +71,10 @@ export default function ValidationAudit() {
     if (fMethod !== 'all') q = q.eq('method_type', fMethod);
     if (fStatus !== 'all') q = q.eq('success', fStatus === 'success');
     if (canSeeAll && fEmployee !== 'all') q = q.eq('profile_id', fEmployee);
+    // Device-info filters are stored inside user_agent as "| profile_id=... | company_id=... | tz=..."
+    if (fDevEmployeeId.trim()) q = q.ilike('user_agent', `%profile_id=${fDevEmployeeId.trim()}%`);
+    if (fDevCompanyId.trim()) q = q.ilike('user_agent', `%company_id=${fDevCompanyId.trim()}%`);
+    if (fDevTimezone.trim()) q = q.ilike('user_agent', `%tz=${fDevTimezone.trim()}%`);
 
     const { data, error } = await q;
     if (error) {
@@ -90,7 +103,32 @@ export default function ValidationAudit() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fEmployee, fMethod, fStatus, fStart, fEnd]);
+  }, [fEmployee, fMethod, fStatus, fStart, fEnd, fDevEmployeeId, fDevCompanyId, fDevTimezone]);
+
+  // Free-text search across name, reason and user_agent (client-side over loaded page)
+  const filteredAttempts = useMemo(() => {
+    const q = fSearch.trim().toLowerCase();
+    if (!q) return attempts;
+    return attempts.filter(a =>
+      (a.profiles?.full_name || '').toLowerCase().includes(q) ||
+      (a.reason || '').toLowerCase().includes(q) ||
+      (a.user_agent || '').toLowerCase().includes(q) ||
+      (a.profile_id || '').toLowerCase().includes(q) ||
+      (a.company_id || '').toLowerCase().includes(q)
+    );
+  }, [attempts, fSearch]);
+
+  // Scroll to focused attempt from ?attempt=... (arriving from notification link)
+  useEffect(() => {
+    if (!focusedAttemptId || loading) return;
+    const row = rowRefs.current[focusedAttemptId];
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.classList.add('ring-2', 'ring-amber-500');
+      const t = setTimeout(() => row.classList.remove('ring-2', 'ring-amber-500'), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [focusedAttemptId, loading, filteredAttempts]);
 
   const stats = useMemo(() => {
     const total = attempts.length;
