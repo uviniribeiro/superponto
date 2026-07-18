@@ -131,23 +131,26 @@ export default function ValidationAudit() {
   }, [focusedAttemptId, loading, filteredAttempts]);
 
   const stats = useMemo(() => {
-    const total = attempts.length;
-    const ok = attempts.filter(a => a.success).length;
+    const src = filteredAttempts;
+    const total = src.length;
+    const ok = src.filter(a => a.success).length;
     const fail = total - ok;
-    const facial = attempts.filter(a => a.method_type === 'facial').length;
-    const qr = attempts.filter(a => a.method_type === 'qrcode').length;
+    const facial = src.filter(a => a.method_type === 'facial').length;
+    const qr = src.filter(a => a.method_type === 'qrcode').length;
     return { total, ok, fail, facial, qr, rate: total ? Math.round((ok / total) * 100) : 0 };
-  }, [attempts]);
+  }, [filteredAttempts]);
 
   const [showDrilldown, setShowDrilldown] = useState(false);
   const [drillSearch, setDrillSearch] = useState('');
   const [drillPage, setDrillPage] = useState(1);
+  const [drillLoading, setDrillLoading] = useState(false);
+  const [drillRows, setDrillRows] = useState<Array<{ profile_id: string; name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; divergence: number; total: number }>>([]);
+  const [drillTotal, setDrillTotal] = useState(0);
   const DRILL_PAGE_SIZE = 10;
-
 
   const dailySeries = useMemo(() => {
     const map = new Map<string, { day: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number }>();
-    attempts.forEach(a => {
+    filteredAttempts.forEach(a => {
       const day = format(parseISO(a.created_at), 'dd/MM');
       const row = map.get(day) || { day, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0 };
       const bucket =
@@ -158,18 +161,12 @@ export default function ValidationAudit() {
       map.set(day, row);
     });
     return Array.from(map.values()).reverse();
-  }, [attempts]);
+  }, [filteredAttempts]);
 
-  // Consolidated: uses active filter period (not just current month)
+  // Client-side consolidated used by CSV export (respects filters + search)
   const periodConsolidated = useMemo(() => {
-    const start = parseISO(`${fStart}T00:00:00`);
-    const end = parseISO(`${fEnd}T23:59:59`);
-    const inRange = attempts.filter(a => {
-      const d = parseISO(a.created_at);
-      return d >= start && d <= end;
-    });
     const byEmp = new Map<string, { name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; divergence: number; total: number }>();
-    inRange.forEach(a => {
+    filteredAttempts.forEach(a => {
       const key = a.profile_id || 'unknown';
       const name = a.profiles?.full_name || '—';
       const row = byEmp.get(key) || { name, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0, divergence: 0, total: 0 };
@@ -180,34 +177,70 @@ export default function ValidationAudit() {
       byEmp.set(key, row);
     });
     return Array.from(byEmp.values()).sort((a, b) => b.total - a.total);
-  }, [attempts, fStart, fEnd]);
+  }, [filteredAttempts]);
 
-  const monthlyDrilldown = periodConsolidated;
+  // Server-side drilldown: paginate profiles table, aggregate only that page's attempts
+  const loadDrilldown = async () => {
+    if (!canSeeAll) return;
+    setDrillLoading(true);
+    try {
+      const from = (drillPage - 1) * DRILL_PAGE_SIZE;
+      const to = from + DRILL_PAGE_SIZE - 1;
+      let pq = supabase
+        .from('profiles')
+        .select('id, full_name', { count: 'exact' })
+        .eq('is_active', true)
+        .order('full_name');
+      if (profile?.company_id) pq = pq.eq('company_id', profile.company_id);
+      if (drillSearch.trim()) pq = pq.ilike('full_name', `%${drillSearch.trim()}%`);
+      const { data: profs, count, error } = await pq.range(from, to);
+      if (error) throw error;
+      setDrillTotal(count || 0);
+      const ids = (profs || []).map(p => p.id);
+      if (ids.length === 0) { setDrillRows([]); return; }
 
-  const filteredDrilldown = useMemo(() => {
-    const q = drillSearch.trim().toLowerCase();
-    if (!q) return monthlyDrilldown;
-    return monthlyDrilldown.filter(r => r.name.toLowerCase().includes(q));
-  }, [monthlyDrilldown, drillSearch]);
+      const { data: atts, error: aerr } = await supabase
+        .from('identification_validation_attempts')
+        .select('profile_id, method_type, success')
+        .in('profile_id', ids)
+        .gte('created_at', `${fStart}T00:00:00`)
+        .lte('created_at', `${fEnd}T23:59:59`);
+      if (aerr) throw aerr;
 
-  const pagedDrilldown = useMemo(() => {
-    const start = (drillPage - 1) * DRILL_PAGE_SIZE;
-    return filteredDrilldown.slice(start, start + DRILL_PAGE_SIZE);
-  }, [filteredDrilldown, drillPage]);
+      const agg = new Map<string, { profile_id: string; name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; divergence: number; total: number }>();
+      (profs || []).forEach(p => {
+        agg.set(p.id, { profile_id: p.id, name: p.full_name, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0, divergence: 0, total: 0 });
+      });
+      (atts || []).forEach((a: any) => {
+        const r = agg.get(a.profile_id);
+        if (!r) return;
+        r.total++;
+        if (a.method_type === 'facial') a.success ? r.facial_ok++ : r.facial_fail++;
+        else if (a.method_type === 'qrcode') a.success ? r.qr_ok++ : r.qr_fail++;
+        else if (a.method_type === 'divergence') r.divergence++;
+      });
+      setDrillRows(Array.from(agg.values()));
+    } catch (e: any) {
+      toast.error('Falha ao carregar detalhamento: ' + (e?.message || 'erro'));
+      setDrillRows([]);
+    } finally {
+      setDrillLoading(false);
+    }
+  };
 
-  const totalDrillPages = Math.max(1, Math.ceil(filteredDrilldown.length / DRILL_PAGE_SIZE));
+  useEffect(() => {
+    if (showDrilldown) loadDrilldown();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDrilldown, drillPage, drillSearch, fStart, fEnd]);
 
-  useEffect(() => { setDrillPage(1); }, [drillSearch, fStart, fEnd, fEmployee, fMethod, fStatus]);
+  useEffect(() => { setDrillPage(1); }, [drillSearch, fStart, fEnd]);
+
+  const totalDrillPages = Math.max(1, Math.ceil(drillTotal / DRILL_PAGE_SIZE));
 
   const monthly = useMemo(() => {
-    const start = parseISO(`${fStart}T00:00:00`);
-    const end = parseISO(`${fEnd}T23:59:59`);
-    const inRange = attempts.filter(a => {
-      const d = parseISO(a.created_at);
-      return d >= start && d <= end;
-    });
-    const ok = inRange.filter(a => a.success).length;
-    return { total: inRange.length, ok, fail: inRange.length - ok };
+    const ok = filteredAttempts.filter(a => a.success).length;
+    return { total: filteredAttempts.length, ok, fail: filteredAttempts.length - ok };
+  }, [filteredAttempts]);
   }, [attempts, fStart, fEnd]);
 
 
