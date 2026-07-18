@@ -546,11 +546,13 @@ export default function ValidationAudit() {
               />
             </div>
             <span className="text-xs text-muted-foreground whitespace-nowrap">
-              {filteredDrilldown.length} funcionário(s)
+              {drillTotal} funcionário(s)
             </span>
           </div>
 
-          {filteredDrilldown.length === 0 ? (
+          {drillLoading ? (
+            <div className="py-10 text-center text-muted-foreground">Carregando...</div>
+          ) : drillRows.length === 0 ? (
             <div className="py-10 text-center text-muted-foreground">Nenhum resultado.</div>
           ) : (
             <>
@@ -567,8 +569,8 @@ export default function ValidationAudit() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pagedDrilldown.map((r, i) => (
-                    <TableRow key={i}>
+                  {drillRows.map((r) => (
+                    <TableRow key={r.profile_id}>
                       <TableCell className="font-medium">{r.name}</TableCell>
                       <TableCell className="text-center text-emerald-600">{r.facial_ok}</TableCell>
                       <TableCell className="text-center text-destructive">{r.facial_fail}</TableCell>
