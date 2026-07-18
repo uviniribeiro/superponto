@@ -665,6 +665,7 @@ export default function AppLayout() {
         <SupportChat />
         <AnnouncementPopup />
         <WhatsNewPopup />
+        <DivergenceAlertsSubscriber />
       </div>
     </SidebarProvider>
   );
