@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Bell, Check, CheckCheck, Trash2, Wifi, WifiOff, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Check, CheckCheck, Trash2, Wifi, WifiOff, X, ShieldAlert, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -15,6 +16,7 @@ import { ptBR } from 'date-fns/locale';
 export function NotificationCenter() {
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotification, clearAll } = useNotifications();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const getNotificationIcon = useCallback((type: Notification['type']) => {
     switch (type) {
@@ -22,6 +24,8 @@ export function NotificationCenter() {
         return <WifiOff className="h-4 w-4 text-destructive" />;
       case 'equipment_reconnected':
         return <Wifi className="h-4 w-4 text-success" />;
+      case 'divergence_block':
+        return <ShieldAlert className="h-4 w-4 text-amber-600" />;
       default:
         return <Bell className="h-4 w-4 text-muted-foreground" />;
     }
@@ -135,6 +139,21 @@ export function NotificationCenter() {
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {notification.message}
                       </p>
+                      {notification.actionUrl && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 mt-1 text-xs"
+                          onClick={() => {
+                            handleMarkAsRead(notification.id);
+                            setOpen(false);
+                            navigate(notification.actionUrl!);
+                          }}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          {notification.actionLabel || 'Ver evidência'}
+                        </Button>
+                      )}
                       <p className="text-[10px] text-muted-foreground/70 mt-1">
                         {formatDistanceToNow(notification.createdAt, { locale: ptBR, addSuffix: true })}
                       </p>

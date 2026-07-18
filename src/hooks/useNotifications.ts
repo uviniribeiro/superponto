@@ -4,13 +4,15 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export interface Notification {
   id: string;
-  type: 'equipment_offline' | 'equipment_reconnected' | 'info' | 'warning' | 'error';
+  type: 'equipment_offline' | 'equipment_reconnected' | 'info' | 'warning' | 'error' | 'divergence_block';
   title: string;
   message: string;
   createdAt: Date;
   read: boolean;
   equipmentId?: string;
   equipmentName?: string;
+  actionUrl?: string;
+  actionLabel?: string;
 }
 
 // Store notifications in memory (could be persisted to localStorage or database)

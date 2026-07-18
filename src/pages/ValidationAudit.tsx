@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { format, parseISO, startOfMonth, endOfMonth, subDays } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert, Filter, FileDown, FileBarChart, ChevronRight, Search, Info, AlertTriangle } from 'lucide-react';
-import { generateStandardPDF, addFooter } from '@/lib/pdfUtils';
+import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert, Filter, FileDown, FileBarChart, ChevronRight, Search, Info, AlertTriangle, FileText } from 'lucide-react';
+import { generateStandardPDF, addFooter, createA4PDF, getContentStartY } from '@/lib/pdfUtils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -47,6 +48,15 @@ export default function ValidationAudit() {
   const [fStatus, setFStatus] = useState<string>('all');
   const [fStart, setFStart] = useState<string>(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [fEnd, setFEnd] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  // device_info-based filters (parsed from user_agent metadata)
+  const [fDevEmployeeId, setFDevEmployeeId] = useState<string>('');
+  const [fDevCompanyId, setFDevCompanyId] = useState<string>('');
+  const [fDevTimezone, setFDevTimezone] = useState<string>('');
+  const [fSearch, setFSearch] = useState<string>('');
+
+  const [searchParams] = useSearchParams();
+  const focusedAttemptId = searchParams.get('attempt');
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
   const load = async () => {
     setLoading(true);
@@ -61,6 +71,10 @@ export default function ValidationAudit() {
     if (fMethod !== 'all') q = q.eq('method_type', fMethod);
     if (fStatus !== 'all') q = q.eq('success', fStatus === 'success');
     if (canSeeAll && fEmployee !== 'all') q = q.eq('profile_id', fEmployee);
+    // Device-info filters are stored inside user_agent as "| profile_id=... | company_id=... | tz=..."
+    if (fDevEmployeeId.trim()) q = q.ilike('user_agent', `%profile_id=${fDevEmployeeId.trim()}%`);
+    if (fDevCompanyId.trim()) q = q.ilike('user_agent', `%company_id=${fDevCompanyId.trim()}%`);
+    if (fDevTimezone.trim()) q = q.ilike('user_agent', `%tz=${fDevTimezone.trim()}%`);
 
     const { data, error } = await q;
     if (error) {
@@ -89,26 +103,54 @@ export default function ValidationAudit() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fEmployee, fMethod, fStatus, fStart, fEnd]);
+  }, [fEmployee, fMethod, fStatus, fStart, fEnd, fDevEmployeeId, fDevCompanyId, fDevTimezone]);
+
+  // Free-text search across name, reason and user_agent (client-side over loaded page)
+  const filteredAttempts = useMemo(() => {
+    const q = fSearch.trim().toLowerCase();
+    if (!q) return attempts;
+    return attempts.filter(a =>
+      (a.profiles?.full_name || '').toLowerCase().includes(q) ||
+      (a.reason || '').toLowerCase().includes(q) ||
+      (a.user_agent || '').toLowerCase().includes(q) ||
+      (a.profile_id || '').toLowerCase().includes(q) ||
+      (a.company_id || '').toLowerCase().includes(q)
+    );
+  }, [attempts, fSearch]);
+
+  // Scroll to focused attempt from ?attempt=... (arriving from notification link)
+  useEffect(() => {
+    if (!focusedAttemptId || loading) return;
+    const row = rowRefs.current[focusedAttemptId];
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.classList.add('ring-2', 'ring-amber-500');
+      const t = setTimeout(() => row.classList.remove('ring-2', 'ring-amber-500'), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [focusedAttemptId, loading, filteredAttempts]);
 
   const stats = useMemo(() => {
-    const total = attempts.length;
-    const ok = attempts.filter(a => a.success).length;
+    const src = filteredAttempts;
+    const total = src.length;
+    const ok = src.filter(a => a.success).length;
     const fail = total - ok;
-    const facial = attempts.filter(a => a.method_type === 'facial').length;
-    const qr = attempts.filter(a => a.method_type === 'qrcode').length;
+    const facial = src.filter(a => a.method_type === 'facial').length;
+    const qr = src.filter(a => a.method_type === 'qrcode').length;
     return { total, ok, fail, facial, qr, rate: total ? Math.round((ok / total) * 100) : 0 };
-  }, [attempts]);
+  }, [filteredAttempts]);
 
   const [showDrilldown, setShowDrilldown] = useState(false);
   const [drillSearch, setDrillSearch] = useState('');
   const [drillPage, setDrillPage] = useState(1);
+  const [drillLoading, setDrillLoading] = useState(false);
+  const [drillRows, setDrillRows] = useState<Array<{ profile_id: string; name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; divergence: number; total: number }>>([]);
+  const [drillTotal, setDrillTotal] = useState(0);
   const DRILL_PAGE_SIZE = 10;
-
 
   const dailySeries = useMemo(() => {
     const map = new Map<string, { day: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number }>();
-    attempts.forEach(a => {
+    filteredAttempts.forEach(a => {
       const day = format(parseISO(a.created_at), 'dd/MM');
       const row = map.get(day) || { day, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0 };
       const bucket =
@@ -119,18 +161,12 @@ export default function ValidationAudit() {
       map.set(day, row);
     });
     return Array.from(map.values()).reverse();
-  }, [attempts]);
+  }, [filteredAttempts]);
 
-  // Consolidated: uses active filter period (not just current month)
+  // Client-side consolidated used by CSV export (respects filters + search)
   const periodConsolidated = useMemo(() => {
-    const start = parseISO(`${fStart}T00:00:00`);
-    const end = parseISO(`${fEnd}T23:59:59`);
-    const inRange = attempts.filter(a => {
-      const d = parseISO(a.created_at);
-      return d >= start && d <= end;
-    });
     const byEmp = new Map<string, { name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; divergence: number; total: number }>();
-    inRange.forEach(a => {
+    filteredAttempts.forEach(a => {
       const key = a.profile_id || 'unknown';
       const name = a.profiles?.full_name || '—';
       const row = byEmp.get(key) || { name, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0, divergence: 0, total: 0 };
@@ -141,35 +177,71 @@ export default function ValidationAudit() {
       byEmp.set(key, row);
     });
     return Array.from(byEmp.values()).sort((a, b) => b.total - a.total);
-  }, [attempts, fStart, fEnd]);
+  }, [filteredAttempts]);
 
-  const monthlyDrilldown = periodConsolidated;
+  // Server-side drilldown: paginate profiles table, aggregate only that page's attempts
+  const loadDrilldown = async () => {
+    if (!canSeeAll) return;
+    setDrillLoading(true);
+    try {
+      const from = (drillPage - 1) * DRILL_PAGE_SIZE;
+      const to = from + DRILL_PAGE_SIZE - 1;
+      let pq = supabase
+        .from('profiles')
+        .select('id, full_name', { count: 'exact' })
+        .eq('is_active', true)
+        .order('full_name');
+      if (profile?.company_id) pq = pq.eq('company_id', profile.company_id);
+      if (drillSearch.trim()) pq = pq.ilike('full_name', `%${drillSearch.trim()}%`);
+      const { data: profs, count, error } = await pq.range(from, to);
+      if (error) throw error;
+      setDrillTotal(count || 0);
+      const ids = (profs || []).map(p => p.id);
+      if (ids.length === 0) { setDrillRows([]); return; }
 
-  const filteredDrilldown = useMemo(() => {
-    const q = drillSearch.trim().toLowerCase();
-    if (!q) return monthlyDrilldown;
-    return monthlyDrilldown.filter(r => r.name.toLowerCase().includes(q));
-  }, [monthlyDrilldown, drillSearch]);
+      const { data: atts, error: aerr } = await supabase
+        .from('identification_validation_attempts')
+        .select('profile_id, method_type, success')
+        .in('profile_id', ids)
+        .gte('created_at', `${fStart}T00:00:00`)
+        .lte('created_at', `${fEnd}T23:59:59`);
+      if (aerr) throw aerr;
 
-  const pagedDrilldown = useMemo(() => {
-    const start = (drillPage - 1) * DRILL_PAGE_SIZE;
-    return filteredDrilldown.slice(start, start + DRILL_PAGE_SIZE);
-  }, [filteredDrilldown, drillPage]);
+      const agg = new Map<string, { profile_id: string; name: string; facial_ok: number; facial_fail: number; qr_ok: number; qr_fail: number; divergence: number; total: number }>();
+      (profs || []).forEach(p => {
+        agg.set(p.id, { profile_id: p.id, name: p.full_name, facial_ok: 0, facial_fail: 0, qr_ok: 0, qr_fail: 0, divergence: 0, total: 0 });
+      });
+      (atts || []).forEach((a: any) => {
+        const r = agg.get(a.profile_id);
+        if (!r) return;
+        r.total++;
+        if (a.method_type === 'facial') a.success ? r.facial_ok++ : r.facial_fail++;
+        else if (a.method_type === 'qrcode') a.success ? r.qr_ok++ : r.qr_fail++;
+        else if (a.method_type === 'divergence') r.divergence++;
+      });
+      setDrillRows(Array.from(agg.values()));
+    } catch (e: any) {
+      toast.error('Falha ao carregar detalhamento: ' + (e?.message || 'erro'));
+      setDrillRows([]);
+    } finally {
+      setDrillLoading(false);
+    }
+  };
 
-  const totalDrillPages = Math.max(1, Math.ceil(filteredDrilldown.length / DRILL_PAGE_SIZE));
+  useEffect(() => {
+    if (showDrilldown) loadDrilldown();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDrilldown, drillPage, drillSearch, fStart, fEnd]);
 
-  useEffect(() => { setDrillPage(1); }, [drillSearch, fStart, fEnd, fEmployee, fMethod, fStatus]);
+  useEffect(() => { setDrillPage(1); }, [drillSearch, fStart, fEnd]);
+
+  const totalDrillPages = Math.max(1, Math.ceil(drillTotal / DRILL_PAGE_SIZE));
 
   const monthly = useMemo(() => {
-    const start = parseISO(`${fStart}T00:00:00`);
-    const end = parseISO(`${fEnd}T23:59:59`);
-    const inRange = attempts.filter(a => {
-      const d = parseISO(a.created_at);
-      return d >= start && d <= end;
-    });
-    const ok = inRange.filter(a => a.success).length;
-    return { total: inRange.length, ok, fail: inRange.length - ok };
-  }, [attempts, fStart, fEnd]);
+    const ok = filteredAttempts.filter(a => a.success).length;
+    return { total: filteredAttempts.length, ok, fail: filteredAttempts.length - ok };
+  }, [filteredAttempts]);
+  
 
 
   const exportCsv = () => {
@@ -252,6 +324,65 @@ export default function ValidationAudit() {
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Consolidado CSV exportado');
+  };
+
+  // Per-record evidence pack (PDF): device_info + justification/context
+  const exportEvidencePdf = async (
+    a: Attempt,
+    meta: Record<string, string>,
+    rawUa: string,
+    justification?: string,
+    blockContext?: string,
+  ) => {
+    try {
+      const doc = await createA4PDF({
+        title: 'Pacote de Evidências — Bloqueio por Divergência',
+        subtitle: `Tentativa #${a.id.slice(0, 8)}`,
+      });
+      const jsdoc: any = doc;
+      let y = getContentStartY(doc);
+      const line = (label: string, value: string) => {
+        jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(10);
+        jsdoc.text(label, 14, y);
+        jsdoc.setFont('helvetica', 'normal');
+        const lines = jsdoc.splitTextToSize(value || '—', 170);
+        jsdoc.text(lines, 55, y);
+        y += Math.max(6, lines.length * 5);
+      };
+      line('ID da tentativa:', a.id);
+      line('Data/Hora:', format(parseISO(a.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR }));
+      line('Funcionário:', a.profiles?.full_name || '—');
+      line('Matrícula:', a.profiles?.registration_number || '—');
+      line('Método:', a.method_type);
+      line('Resultado:', a.success ? 'Justificado / Confirmado' : 'Bloqueado');
+      y += 3;
+      jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
+      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+      jsdoc.text('device_info', 14, y); y += 6;
+      line('profile_id:', meta.profile_id || a.profile_id || '—');
+      line('company_id:', meta.company_id || a.company_id || '—');
+      line('timezone:', meta.tz || '—');
+      line('user-agent:', rawUa || '—');
+      y += 3;
+      jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
+      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+      jsdoc.text('Contexto do bloqueio', 14, y); y += 6;
+      line('Motivo/Política:', a.reason || '—');
+      if (blockContext) line('Detalhes:', blockContext);
+      if (justification) {
+        y += 2;
+        jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+        jsdoc.text('Justificativa do usuário', 14, y); y += 6;
+        const lines = jsdoc.splitTextToSize(justification, 180);
+        jsdoc.setFont('helvetica', 'normal'); jsdoc.setFontSize(10);
+        jsdoc.text(lines, 14, y);
+      }
+      addFooter(doc);
+      doc.save(`evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`);
+      toast.success('Pacote de evidências gerado');
+    } catch (e: any) {
+      toast.error('Falha ao gerar evidência: ' + (e?.message || 'erro'));
+    }
   };
 
   const generateMonthlyConsolidated = async () => {
@@ -474,11 +605,13 @@ export default function ValidationAudit() {
               />
             </div>
             <span className="text-xs text-muted-foreground whitespace-nowrap">
-              {filteredDrilldown.length} funcionário(s)
+              {drillTotal} funcionário(s)
             </span>
           </div>
 
-          {filteredDrilldown.length === 0 ? (
+          {drillLoading ? (
+            <div className="py-10 text-center text-muted-foreground">Carregando...</div>
+          ) : drillRows.length === 0 ? (
             <div className="py-10 text-center text-muted-foreground">Nenhum resultado.</div>
           ) : (
             <>
@@ -495,8 +628,8 @@ export default function ValidationAudit() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pagedDrilldown.map((r, i) => (
-                    <TableRow key={i}>
+                  {drillRows.map((r) => (
+                    <TableRow key={r.profile_id}>
                       <TableCell className="font-medium">{r.name}</TableCell>
                       <TableCell className="text-center text-emerald-600">{r.facial_ok}</TableCell>
                       <TableCell className="text-center text-destructive">{r.facial_fail}</TableCell>
@@ -532,8 +665,9 @@ export default function ValidationAudit() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2"><Filter className="h-4 w-4" /> Filtros</CardTitle>
+          <CardDescription>Filtre por período, método, status, dispositivo (device_info) ou busque texto livre.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="space-y-1">
               <Label>De</Label>
@@ -552,7 +686,6 @@ export default function ValidationAudit() {
                   <SelectItem value="facial">Facial</SelectItem>
                   <SelectItem value="qrcode">QR Code</SelectItem>
                   <SelectItem value="divergence">Bloqueio por divergência</SelectItem>
-
                 </SelectContent>
               </Select>
             </div>
@@ -582,6 +715,36 @@ export default function ValidationAudit() {
               </div>
             )}
           </div>
+
+          {/* Device_info + free-text search */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2 border-t">
+            <div className="space-y-1">
+              <Label className="text-xs">device_info · employee_id</Label>
+              <Input value={fDevEmployeeId} onChange={e => setFDevEmployeeId(e.target.value)} placeholder="ex.: uuid do perfil" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">device_info · company_id</Label>
+              <Input value={fDevCompanyId} onChange={e => setFDevCompanyId(e.target.value)} placeholder="ex.: uuid da empresa" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">device_info · timezone</Label>
+              <Input value={fDevTimezone} onChange={e => setFDevTimezone(e.target.value)} placeholder="ex.: America/Sao_Paulo" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Busca livre</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input value={fSearch} onChange={e => setFSearch(e.target.value)} placeholder="Nome, motivo, user-agent..." className="pl-8" />
+              </div>
+            </div>
+          </div>
+          {(fDevEmployeeId || fDevCompanyId || fDevTimezone || fSearch) && (
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" onClick={() => { setFDevEmployeeId(''); setFDevCompanyId(''); setFDevTimezone(''); setFSearch(''); }}>
+                Limpar filtros de dispositivo/busca
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -589,13 +752,13 @@ export default function ValidationAudit() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Tentativas</CardTitle>
-          <CardDescription>{attempts.length} registro(s) — máx. 1000 por consulta.</CardDescription>
+          <CardDescription>{filteredAttempts.length} de {attempts.length} registro(s) — máx. 1000 por consulta.</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="py-10 text-center text-muted-foreground">Carregando...</div>
-          ) : attempts.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground">Nenhuma tentativa encontrada no período.</div>
+          ) : filteredAttempts.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">Nenhuma tentativa encontrada.</div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -607,16 +770,15 @@ export default function ValidationAudit() {
                     <TableHead>Resultado</TableHead>
                     <TableHead>Confiança</TableHead>
                     <TableHead>Motivo / Política</TableHead>
-                    <TableHead className="text-center">Detalhes</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {attempts.map(a => {
+                  {filteredAttempts.map(a => {
                     const isDiv = a.method_type === 'divergence';
                     const methodLabel = a.method_type === 'facial' ? 'Facial'
                       : a.method_type === 'qrcode' ? 'QR Code'
                       : isDiv ? 'Divergência' : a.method_type;
-                    // Parse user_agent for device_info fields
                     const ua = a.user_agent || '';
                     const parts = ua.split('|').map(s => s.trim());
                     const rawUa = parts[0] || '';
@@ -625,12 +787,16 @@ export default function ValidationAudit() {
                       const [k, ...v] = p.split('=');
                       if (k && v.length) meta[k.trim()] = v.join('=').trim();
                     });
-                    // Extract justification / block context from reason
                     const reason = a.reason || '';
                     const justMatch = reason.match(/\[JUSTIFICATIVA\]\s*([^—]+)/);
                     const blockMatch = reason.match(/\[BLOQUEIO\]\s*(.+)/);
+                    const isFocused = focusedAttemptId === a.id;
                     return (
-                      <TableRow key={a.id} className={isDiv ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''}>
+                      <TableRow
+                        key={a.id}
+                        ref={(el) => { rowRefs.current[a.id] = el; }}
+                        className={`${isDiv ? 'bg-amber-50/40 dark:bg-amber-950/10' : ''} ${isFocused ? 'ring-2 ring-amber-500' : ''}`}
+                      >
                         <TableCell className="font-mono text-xs whitespace-nowrap">
                           {format(parseISO(a.created_at), 'dd/MM/yyyy HH:mm:ss')}
                         </TableCell>
@@ -663,39 +829,51 @@ export default function ValidationAudit() {
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <Info className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-96 text-xs space-y-2">
-                              <div>
-                                <p className="font-semibold mb-1">Dispositivo (device_info)</p>
-                                <div className="rounded border p-2 bg-muted/40 space-y-0.5 font-mono">
-                                  <div><span className="text-muted-foreground">profile_id:</span> {meta.profile_id || a.profile_id || '—'}</div>
-                                  <div><span className="text-muted-foreground">company_id:</span> {meta.company_id || a.company_id || '—'}</div>
-                                  <div><span className="text-muted-foreground">timezone:</span> {meta.tz || '—'}</div>
-                                  <div className="pt-1 break-all"><span className="text-muted-foreground">user-agent:</span> {rawUa || '—'}</div>
-                                </div>
-                              </div>
-                              {isDiv && (justMatch || blockMatch) && (
+                          <div className="flex items-center justify-center gap-1">
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" title="Detalhes do dispositivo">
+                                  <Info className="h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-96 text-xs space-y-2">
                                 <div>
-                                  <p className="font-semibold mb-1">
-                                    {justMatch ? 'Justificativa anexada' : 'Contexto do bloqueio'}
-                                  </p>
-                                  <div className="rounded border p-2 bg-amber-50 dark:bg-amber-950/20">
-                                    {(justMatch?.[1] || blockMatch?.[1] || '').trim()}
+                                  <p className="font-semibold mb-1">Dispositivo (device_info)</p>
+                                  <div className="rounded border p-2 bg-muted/40 space-y-0.5 font-mono">
+                                    <div><span className="text-muted-foreground">profile_id:</span> {meta.profile_id || a.profile_id || '—'}</div>
+                                    <div><span className="text-muted-foreground">company_id:</span> {meta.company_id || a.company_id || '—'}</div>
+                                    <div><span className="text-muted-foreground">timezone:</span> {meta.tz || '—'}</div>
+                                    <div className="pt-1 break-all"><span className="text-muted-foreground">user-agent:</span> {rawUa || '—'}</div>
                                   </div>
                                 </div>
-                              )}
-                            </PopoverContent>
-                          </Popover>
+                                {(justMatch || blockMatch) && (
+                                  <div>
+                                    <p className="font-semibold mb-1">
+                                      {justMatch ? 'Justificativa anexada' : 'Contexto do bloqueio'}
+                                    </p>
+                                    <div className="rounded border p-2 bg-amber-50 dark:bg-amber-950/20">
+                                      {(justMatch?.[1] || blockMatch?.[1] || '').trim()}
+                                    </div>
+                                  </div>
+                                )}
+                              </PopoverContent>
+                            </Popover>
+                            {isDiv && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                title="Baixar pacote de evidências (PDF)"
+                                onClick={() => exportEvidencePdf(a, meta, rawUa, justMatch?.[1]?.trim(), blockMatch?.[1]?.trim())}
+                              >
+                                <FileText className="h-4 w-4 text-amber-600" />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
                   })}
-
                 </TableBody>
               </Table>
             </div>
