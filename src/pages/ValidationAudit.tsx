@@ -12,8 +12,9 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { format, parseISO, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert, Filter, FileDown, FileBarChart, ChevronRight, Search, Info, AlertTriangle, FileText } from 'lucide-react';
+import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert, Filter, FileDown, FileBarChart, ChevronRight, Search, Info, AlertTriangle, FileText, Archive } from 'lucide-react';
 import { generateStandardPDF, addFooter, createA4PDF, getContentStartY } from '@/lib/pdfUtils';
+import JSZip from 'jszip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -36,7 +37,7 @@ interface Attempt {
 }
 
 export default function ValidationAudit() {
-  const { profile, isAdmin, isManager } = useAuth();
+  const { user, profile, isAdmin, isManager } = useAuth();
   const canSeeAll = isAdmin || isManager;
 
   const [loading, setLoading] = useState(true);
@@ -54,34 +55,49 @@ export default function ValidationAudit() {
   const [fDevTimezone, setFDevTimezone] = useState<string>('');
   const [fSearch, setFSearch] = useState<string>('');
 
+  // Server-side pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
   const [searchParams] = useSearchParams();
   const focusedAttemptId = searchParams.get('attempt');
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
-  const load = async () => {
-    setLoading(true);
+  const buildBaseQuery = () => {
     let q = supabase
       .from('identification_validation_attempts')
-      .select('*, profiles:profile_id(full_name, registration_number)')
+      .select('*, profiles:profile_id(full_name, registration_number)', { count: 'exact' })
       .gte('created_at', `${fStart}T00:00:00`)
       .lte('created_at', `${fEnd}T23:59:59`)
-      .order('created_at', { ascending: false })
-      .limit(1000);
+      .order('created_at', { ascending: false });
 
     if (fMethod !== 'all') q = q.eq('method_type', fMethod);
     if (fStatus !== 'all') q = q.eq('success', fStatus === 'success');
     if (canSeeAll && fEmployee !== 'all') q = q.eq('profile_id', fEmployee);
-    // Device-info filters are stored inside user_agent as "| profile_id=... | company_id=... | tz=..."
     if (fDevEmployeeId.trim()) q = q.ilike('user_agent', `%profile_id=${fDevEmployeeId.trim()}%`);
     if (fDevCompanyId.trim()) q = q.ilike('user_agent', `%company_id=${fDevCompanyId.trim()}%`);
     if (fDevTimezone.trim()) q = q.ilike('user_agent', `%tz=${fDevTimezone.trim()}%`);
+    if (fSearch.trim()) {
+      const term = fSearch.trim().replace(/[%,]/g, '');
+      q = q.or(`reason.ilike.%${term}%,user_agent.ilike.%${term}%,identifier_matched.ilike.%${term}%`);
+    }
+    return q;
+  };
 
-    const { data, error } = await q;
+  const load = async () => {
+    setLoading(true);
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const { data, count, error } = await buildBaseQuery().range(from, to);
     if (error) {
       toast.error('Erro ao carregar auditoria: ' + error.message);
       setAttempts([]);
+      setTotalCount(0);
     } else {
       setAttempts((data as unknown as Attempt[]) || []);
+      setTotalCount(count || 0);
     }
     setLoading(false);
   };
@@ -103,20 +119,13 @@ export default function ValidationAudit() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fEmployee, fMethod, fStatus, fStart, fEnd, fDevEmployeeId, fDevCompanyId, fDevTimezone]);
+  }, [fEmployee, fMethod, fStatus, fStart, fEnd, fDevEmployeeId, fDevCompanyId, fDevTimezone, fSearch, page, pageSize]);
 
-  // Free-text search across name, reason and user_agent (client-side over loaded page)
-  const filteredAttempts = useMemo(() => {
-    const q = fSearch.trim().toLowerCase();
-    if (!q) return attempts;
-    return attempts.filter(a =>
-      (a.profiles?.full_name || '').toLowerCase().includes(q) ||
-      (a.reason || '').toLowerCase().includes(q) ||
-      (a.user_agent || '').toLowerCase().includes(q) ||
-      (a.profile_id || '').toLowerCase().includes(q) ||
-      (a.company_id || '').toLowerCase().includes(q)
-    );
-  }, [attempts, fSearch]);
+  // Reset to first page whenever filters change
+  useEffect(() => { setPage(1); }, [fEmployee, fMethod, fStatus, fStart, fEnd, fDevEmployeeId, fDevCompanyId, fDevTimezone, fSearch]);
+
+  // Search is now applied server-side; keep alias for existing consumers
+  const filteredAttempts = attempts;
 
   // Scroll to focused attempt from ?attempt=... (arriving from notification link)
   useEffect(() => {
@@ -244,47 +253,67 @@ export default function ValidationAudit() {
   
 
 
-  const exportCsv = () => {
-    if (attempts.length === 0) {
-      toast.info('Nada para exportar');
-      return;
+  // Fetch every row that matches current filters (respects server-side filters + search)
+  const fetchAllFiltered = async (): Promise<Attempt[]> => {
+    const { data, error } = await buildBaseQuery().limit(5000);
+    if (error) throw error;
+    return (data as unknown as Attempt[]) || [];
+  };
+
+  const exportCsv = async () => {
+    try {
+      const all = await fetchAllFiltered();
+      if (all.length === 0) { toast.info('Nada para exportar'); return; }
+      const header = ['Data/Hora', 'Funcionário', 'Matrícula', 'Método', 'Resultado', 'Confiança', 'Motivo', 'profile_id (device)', 'company_id (device)', 'timezone (device)', 'user-agent'];
+      const rows = all.map(a => {
+        const parts = (a.user_agent || '').split('|').map(s => s.trim());
+        const rawUa = parts[0] || '';
+        const meta: Record<string, string> = {};
+        parts.slice(1).forEach(p => {
+          const [k, ...v] = p.split('=');
+          if (k && v.length) meta[k.trim()] = v.join('=').trim();
+        });
+        return [
+          format(parseISO(a.created_at), 'dd/MM/yyyy HH:mm:ss'),
+          a.profiles?.full_name || '-',
+          a.profiles?.registration_number || '-',
+          a.method_type === 'facial' ? 'Facial' : a.method_type === 'qrcode' ? 'QR Code' : a.method_type,
+          a.success ? 'Aprovado' : 'Reprovado',
+          a.confidence != null ? `${a.confidence}%` : '-',
+          (a.reason || '').replace(/[\r\n;]/g, ' '),
+          meta.profile_id || a.profile_id || '-',
+          meta.company_id || a.company_id || '-',
+          meta.tz || '-',
+          rawUa.replace(/[\r\n;]/g, ' ').slice(0, 120),
+        ];
+      });
+      const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `auditoria_validacoes_${fStart}_a_${fEnd}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`CSV exportado (${all.length} registro(s))`);
+    } catch (e: any) {
+      toast.error('Falha ao exportar CSV: ' + (e?.message || 'erro'));
     }
-    const header = ['Data/Hora', 'Funcionário', 'Matrícula', 'Método', 'Resultado', 'Confiança', 'Motivo', 'Dispositivo'];
-    const rows = attempts.map(a => [
-      format(parseISO(a.created_at), 'dd/MM/yyyy HH:mm:ss'),
-      a.profiles?.full_name || '-',
-      a.profiles?.registration_number || '-',
-      a.method_type === 'facial' ? 'Facial' : a.method_type === 'qrcode' ? 'QR Code' : a.method_type,
-      a.success ? 'Aprovado' : 'Reprovado',
-      a.confidence != null ? `${a.confidence}%` : '-',
-      (a.reason || '').replace(/[\r\n;]/g, ' '),
-      (a.user_agent || '').replace(/[\r\n;]/g, ' ').slice(0, 80),
-    ]);
-    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `auditoria_validacoes_${fStart}_a_${fEnd}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('CSV exportado');
   };
 
   const exportPdf = async () => {
-    if (attempts.length === 0) {
-      toast.info('Nada para exportar');
-      return;
-    }
     try {
+      const all = await fetchAllFiltered();
+      if (all.length === 0) { toast.info('Nada para exportar'); return; }
       const head = [['Data/Hora', 'Usuário', 'Método', 'Resultado', 'Motivo']];
-      const body = attempts.map(a => [
+      const body = all.map(a => [
         format(parseISO(a.created_at), 'dd/MM/yy HH:mm:ss'),
         a.profiles?.full_name || '-',
         a.method_type === 'facial' ? 'Facial' : a.method_type === 'qrcode' ? 'QR Code' : a.method_type,
         a.success ? 'Aprovado' : 'Reprovado',
         (a.reason || (a.success ? 'OK' : '-')).slice(0, 80),
       ]);
+      const okA = all.filter(a => a.success).length;
       const doc = await generateStandardPDF(
         {
           title: 'Auditoria de Validações',
@@ -292,7 +321,7 @@ export default function ValidationAudit() {
           period: { start: format(parseISO(fStart), 'dd/MM/yyyy'), end: format(parseISO(fEnd), 'dd/MM/yyyy') },
           orientation: 'landscape',
         },
-        { head, body, footer: [[`Total: ${stats.total}`, `Aprovadas: ${stats.ok}`, `Reprovadas: ${stats.fail}`, `Taxa: ${stats.rate}%`, '']] }
+        { head, body, footer: [[`Total: ${all.length}`, `Aprovadas: ${okA}`, `Reprovadas: ${all.length - okA}`, '', '']] }
       );
       addFooter(doc);
       doc.save(`auditoria_validacoes_${fStart}_a_${fEnd}.pdf`);
@@ -326,7 +355,135 @@ export default function ValidationAudit() {
     toast.success('Consolidado CSV exportado');
   };
 
-  // Per-record evidence pack (PDF): device_info + justification/context
+  // Log evidence download for traceability
+  const logDownload = async (payload: {
+    type: 'single_pdf' | 'zip_bundle';
+    attemptId?: string;
+    attemptIds?: string[];
+    filename: string;
+  }) => {
+    try {
+      await supabase.from('evidence_download_log').insert({
+        user_id: user?.id,
+        attempt_id: payload.attemptId ?? null,
+        attempt_ids: payload.attemptIds ?? null,
+        download_type: payload.type,
+        filename: payload.filename,
+        user_agent: navigator.userAgent,
+      });
+    } catch {/* non-blocking */}
+  };
+
+  // Compute expected values (from server-side attempt row) vs sent (device_info meta) and
+  // return the list of fields that diverged.
+  const computeDivergence = (a: Attempt, meta: Record<string, string>) => {
+    const expected = {
+      profile_id: a.profile_id || '—',
+      company_id: a.company_id || '—',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '—',
+    };
+    const sent = {
+      profile_id: meta.profile_id || '—',
+      company_id: meta.company_id || '—',
+      timezone: meta.tz || '—',
+    };
+    const divergent: Array<'profile_id' | 'company_id' | 'timezone'> = [];
+    (Object.keys(expected) as Array<'profile_id' | 'company_id' | 'timezone'>).forEach(k => {
+      if (expected[k] !== '—' && sent[k] !== '—' && expected[k] !== sent[k]) divergent.push(k);
+    });
+    return { expected, sent, divergent };
+  };
+
+  // Build evidence PDF for a single attempt and either save it or return the underlying jsPDF
+  const buildEvidenceDoc = async (
+    a: Attempt,
+    meta: Record<string, string>,
+    rawUa: string,
+    justification?: string,
+    blockContext?: string,
+  ) => {
+    const doc = await createA4PDF({
+      title: 'Pacote de Evidências — Bloqueio por Divergência',
+      subtitle: `Tentativa #${a.id.slice(0, 8)}`,
+    });
+    const jsdoc: any = doc;
+    let y = getContentStartY(doc);
+    const line = (label: string, value: string) => {
+      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(10);
+      jsdoc.text(label, 14, y);
+      jsdoc.setFont('helvetica', 'normal');
+      const lines = jsdoc.splitTextToSize(value || '—', 170);
+      jsdoc.text(lines, 55, y);
+      y += Math.max(6, lines.length * 5);
+    };
+    line('ID da tentativa:', a.id);
+    line('Data/Hora:', format(parseISO(a.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR }));
+    line('Funcionário:', a.profiles?.full_name || '—');
+    line('Matrícula:', a.profiles?.registration_number || '—');
+    line('Método:', a.method_type);
+    line('Resultado:', a.success ? 'Justificado / Confirmado' : 'Bloqueado');
+
+    y += 3;
+    jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
+    jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+    jsdoc.text('Comparativo esperado × enviado', 14, y); y += 6;
+
+    const { expected, sent, divergent } = computeDivergence(a, meta);
+    const autoTable = (await import('jspdf-autotable')).default;
+    const rows: any[] = (['profile_id', 'company_id', 'timezone'] as const).map(k => {
+      const diff = divergent.includes(k);
+      return [
+        { content: k, styles: { fontStyle: diff ? 'bold' : 'normal' } },
+        { content: expected[k], styles: { fontStyle: diff ? 'bold' : 'normal' } },
+        { content: sent[k], styles: { fontStyle: diff ? 'bold' : 'normal', textColor: diff ? [180, 30, 30] : [0, 0, 0], fillColor: diff ? [254, 226, 226] : undefined } },
+        { content: diff ? '⚠ Divergente' : 'OK', styles: { textColor: diff ? [180, 30, 30] : [16, 130, 90], fontStyle: 'bold' } },
+      ];
+    });
+    autoTable(jsdoc, {
+      startY: y,
+      head: [['Campo', 'Esperado', 'Enviado', 'Status']],
+      body: rows,
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] },
+      margin: { left: 14, right: 14 },
+    });
+    y = (jsdoc.lastAutoTable?.finalY || y) + 6;
+
+    jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(10);
+    jsdoc.text(
+      divergent.length
+        ? `Campo(s) que causaram o bloqueio: ${divergent.join(', ')}`
+        : 'Nenhum campo divergente identificado nos metadados enviados.',
+      14, y,
+    );
+    y += 8;
+
+    jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
+    jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+    jsdoc.text('device_info (bruto)', 14, y); y += 6;
+    line('profile_id:', meta.profile_id || a.profile_id || '—');
+    line('company_id:', meta.company_id || a.company_id || '—');
+    line('timezone:', meta.tz || '—');
+    line('user-agent:', rawUa || '—');
+
+    y += 3;
+    jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
+    jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+    jsdoc.text('Contexto do bloqueio', 14, y); y += 6;
+    line('Motivo/Política:', a.reason || '—');
+    if (blockContext) line('Detalhes:', blockContext);
+    if (justification) {
+      y += 2;
+      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+      jsdoc.text('Justificativa do usuário', 14, y); y += 6;
+      const lines = jsdoc.splitTextToSize(justification, 180);
+      jsdoc.setFont('helvetica', 'normal'); jsdoc.setFontSize(10);
+      jsdoc.text(lines, 14, y);
+    }
+    addFooter(doc);
+    return doc;
+  };
+
   const exportEvidencePdf = async (
     a: Attempt,
     meta: Record<string, string>,
@@ -335,55 +492,54 @@ export default function ValidationAudit() {
     blockContext?: string,
   ) => {
     try {
-      const doc = await createA4PDF({
-        title: 'Pacote de Evidências — Bloqueio por Divergência',
-        subtitle: `Tentativa #${a.id.slice(0, 8)}`,
-      });
-      const jsdoc: any = doc;
-      let y = getContentStartY(doc);
-      const line = (label: string, value: string) => {
-        jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(10);
-        jsdoc.text(label, 14, y);
-        jsdoc.setFont('helvetica', 'normal');
-        const lines = jsdoc.splitTextToSize(value || '—', 170);
-        jsdoc.text(lines, 55, y);
-        y += Math.max(6, lines.length * 5);
-      };
-      line('ID da tentativa:', a.id);
-      line('Data/Hora:', format(parseISO(a.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR }));
-      line('Funcionário:', a.profiles?.full_name || '—');
-      line('Matrícula:', a.profiles?.registration_number || '—');
-      line('Método:', a.method_type);
-      line('Resultado:', a.success ? 'Justificado / Confirmado' : 'Bloqueado');
-      y += 3;
-      jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
-      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
-      jsdoc.text('device_info', 14, y); y += 6;
-      line('profile_id:', meta.profile_id || a.profile_id || '—');
-      line('company_id:', meta.company_id || a.company_id || '—');
-      line('timezone:', meta.tz || '—');
-      line('user-agent:', rawUa || '—');
-      y += 3;
-      jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
-      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
-      jsdoc.text('Contexto do bloqueio', 14, y); y += 6;
-      line('Motivo/Política:', a.reason || '—');
-      if (blockContext) line('Detalhes:', blockContext);
-      if (justification) {
-        y += 2;
-        jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
-        jsdoc.text('Justificativa do usuário', 14, y); y += 6;
-        const lines = jsdoc.splitTextToSize(justification, 180);
-        jsdoc.setFont('helvetica', 'normal'); jsdoc.setFontSize(10);
-        jsdoc.text(lines, 14, y);
-      }
-      addFooter(doc);
-      doc.save(`evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`);
+      const doc = await buildEvidenceDoc(a, meta, rawUa, justification, blockContext);
+      const filename = `evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`;
+      doc.save(filename);
+      await logDownload({ type: 'single_pdf', attemptId: a.id, filename });
       toast.success('Pacote de evidências gerado');
     } catch (e: any) {
       toast.error('Falha ao gerar evidência: ' + (e?.message || 'erro'));
     }
   };
+
+  // Bundle: build one evidence PDF per divergence attempt currently matching filters, zip them.
+  const exportEvidenceZip = async () => {
+    try {
+      toast.info('Preparando pacote ZIP...');
+      const all = await fetchAllFiltered();
+      const divs = all.filter(x => x.method_type === 'divergence');
+      if (divs.length === 0) { toast.info('Nenhuma tentativa bloqueada por divergência nos filtros atuais'); return; }
+      const zip = new JSZip();
+      for (const a of divs) {
+        const parts = (a.user_agent || '').split('|').map(s => s.trim());
+        const rawUa = parts[0] || '';
+        const meta: Record<string, string> = {};
+        parts.slice(1).forEach(p => {
+          const [k, ...v] = p.split('=');
+          if (k && v.length) meta[k.trim()] = v.join('=').trim();
+        });
+        const reason = a.reason || '';
+        const justMatch = reason.match(/\[JUSTIFICATIVA\]\s*([^—]+)/);
+        const blockMatch = reason.match(/\[BLOQUEIO\]\s*(.+)/);
+        const doc = await buildEvidenceDoc(a, meta, rawUa, justMatch?.[1]?.trim(), blockMatch?.[1]?.trim());
+        const buf = doc.output('arraybuffer');
+        zip.file(`evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`, buf);
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const filename = `evidencias_${fStart}_a_${fEnd}.zip`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      await logDownload({ type: 'zip_bundle', attemptIds: divs.map(d => d.id), filename });
+      toast.success(`ZIP gerado com ${divs.length} evidência(s)`);
+    } catch (e: any) {
+      toast.error('Falha ao gerar ZIP: ' + (e?.message || 'erro'));
+    }
+  };
+
 
   const generateMonthlyConsolidated = async () => {
     try {
@@ -516,6 +672,12 @@ export default function ValidationAudit() {
             <FileDown className="h-4 w-4 mr-2" />
             PDF
           </Button>
+          {canSeeAll && (
+            <Button variant="outline" onClick={exportEvidenceZip}>
+              <Archive className="h-4 w-4 mr-2" />
+              ZIP Evidências
+            </Button>
+          )}
           <Button variant="outline" onClick={exportMonthlyCsv}>
             <FileBarChart className="h-4 w-4 mr-2" />
             Consolidado CSV
@@ -876,6 +1038,24 @@ export default function ValidationAudit() {
                   })}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          {!loading && totalCount > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} de {totalCount}
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                  <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[25, 50, 100, 200].map(n => <SelectItem key={n} value={String(n)}>{n} / pág.</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Anterior</Button>
+                <span className="text-sm">Página {page} de {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Próxima</Button>
+              </div>
             </div>
           )}
         </CardContent>

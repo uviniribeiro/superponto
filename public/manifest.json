@@ -1,6 +1,6 @@
 {
-  "name": "SuperPonto",
-  "short_name": "SuperPonto",
+  "name": "PontoMax",
+  "short_name": "PontoMax",
   "description": "Sistema de Ponto Eletrônico para Prefeituras e Empresas",
   "start_url": "/",
   "display": "standalone",
