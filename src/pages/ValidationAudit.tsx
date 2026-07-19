@@ -119,20 +119,13 @@ export default function ValidationAudit() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fEmployee, fMethod, fStatus, fStart, fEnd, fDevEmployeeId, fDevCompanyId, fDevTimezone]);
+  }, [fEmployee, fMethod, fStatus, fStart, fEnd, fDevEmployeeId, fDevCompanyId, fDevTimezone, fSearch, page, pageSize]);
 
-  // Free-text search across name, reason and user_agent (client-side over loaded page)
-  const filteredAttempts = useMemo(() => {
-    const q = fSearch.trim().toLowerCase();
-    if (!q) return attempts;
-    return attempts.filter(a =>
-      (a.profiles?.full_name || '').toLowerCase().includes(q) ||
-      (a.reason || '').toLowerCase().includes(q) ||
-      (a.user_agent || '').toLowerCase().includes(q) ||
-      (a.profile_id || '').toLowerCase().includes(q) ||
-      (a.company_id || '').toLowerCase().includes(q)
-    );
-  }, [attempts, fSearch]);
+  // Reset to first page whenever filters change
+  useEffect(() => { setPage(1); }, [fEmployee, fMethod, fStatus, fStart, fEnd, fDevEmployeeId, fDevCompanyId, fDevTimezone, fSearch]);
+
+  // Search is now applied server-side; keep alias for existing consumers
+  const filteredAttempts = attempts;
 
   // Scroll to focused attempt from ?attempt=... (arriving from notification link)
   useEffect(() => {
