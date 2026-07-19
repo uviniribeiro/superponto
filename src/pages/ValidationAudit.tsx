@@ -672,6 +672,12 @@ export default function ValidationAudit() {
             <FileDown className="h-4 w-4 mr-2" />
             PDF
           </Button>
+          {canSeeAll && (
+            <Button variant="outline" onClick={exportEvidenceZip}>
+              <Archive className="h-4 w-4 mr-2" />
+              ZIP Evidências
+            </Button>
+          )}
           <Button variant="outline" onClick={exportMonthlyCsv}>
             <FileBarChart className="h-4 w-4 mr-2" />
             Consolidado CSV
