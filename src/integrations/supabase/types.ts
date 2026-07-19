@@ -2557,6 +2557,42 @@ export type Database = {
           },
         ]
       }
+      evidence_download_log: {
+        Row: {
+          attempt_id: string | null
+          attempt_ids: string[] | null
+          created_at: string
+          download_type: string
+          filename: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          attempt_id?: string | null
+          attempt_ids?: string[] | null
+          created_at?: string
+          download_type: string
+          filename?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string | null
+          attempt_ids?: string[] | null
+          created_at?: string
+          download_type?: string
+          filename?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       export_layouts: {
         Row: {
           company_id: string | null
@@ -5577,6 +5613,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_suggestions: {
+        Row: {
+          admin_notes: string | null
+          category: string
+          company_id: string | null
+          created_at: string
+          description: string
+          id: string
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          category: string
+          company_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          category?: string
+          company_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       teacher_schedule_slots: {
         Row: {
