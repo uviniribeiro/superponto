@@ -1,6 +1,6 @@
 // Application version configuration
-export const APP_VERSION = '2.5.0';
-export const APP_BUILD_DATE = '2026-01-31';
+export const APP_VERSION = '2.6.0';
+export const APP_BUILD_DATE = '2026-07-19';
 export const APP_NAME = 'PontoMax';
 
 // Changelog entries
