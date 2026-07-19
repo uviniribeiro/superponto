@@ -72,6 +72,7 @@ const CompetencyPeriods = React.lazy(() => import("@/pages/CompetencyPeriods"));
 const GeoreferencedLocations = React.lazy(() => import("@/pages/GeoreferencedLocations"));
 const IdentificationMethods = React.lazy(() => import("@/pages/IdentificationMethods"));
 const ValidationAudit = React.lazy(() => import("@/pages/ValidationAudit"));
+const Suggestions = React.lazy(() => import("@/pages/Suggestions"));
 const Vacations = React.lazy(() => import("@/pages/Vacations"));
 const PresenceMonitoring = React.lazy(() => import("@/pages/PresenceMonitoring"));
 const WorkStations = React.lazy(() => import("@/pages/WorkStations"));
