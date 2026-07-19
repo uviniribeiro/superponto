@@ -253,47 +253,67 @@ export default function ValidationAudit() {
   
 
 
-  const exportCsv = () => {
-    if (attempts.length === 0) {
-      toast.info('Nada para exportar');
-      return;
+  // Fetch every row that matches current filters (respects server-side filters + search)
+  const fetchAllFiltered = async (): Promise<Attempt[]> => {
+    const { data, error } = await buildBaseQuery().limit(5000);
+    if (error) throw error;
+    return (data as unknown as Attempt[]) || [];
+  };
+
+  const exportCsv = async () => {
+    try {
+      const all = await fetchAllFiltered();
+      if (all.length === 0) { toast.info('Nada para exportar'); return; }
+      const header = ['Data/Hora', 'Funcionário', 'Matrícula', 'Método', 'Resultado', 'Confiança', 'Motivo', 'profile_id (device)', 'company_id (device)', 'timezone (device)', 'user-agent'];
+      const rows = all.map(a => {
+        const parts = (a.user_agent || '').split('|').map(s => s.trim());
+        const rawUa = parts[0] || '';
+        const meta: Record<string, string> = {};
+        parts.slice(1).forEach(p => {
+          const [k, ...v] = p.split('=');
+          if (k && v.length) meta[k.trim()] = v.join('=').trim();
+        });
+        return [
+          format(parseISO(a.created_at), 'dd/MM/yyyy HH:mm:ss'),
+          a.profiles?.full_name || '-',
+          a.profiles?.registration_number || '-',
+          a.method_type === 'facial' ? 'Facial' : a.method_type === 'qrcode' ? 'QR Code' : a.method_type,
+          a.success ? 'Aprovado' : 'Reprovado',
+          a.confidence != null ? `${a.confidence}%` : '-',
+          (a.reason || '').replace(/[\r\n;]/g, ' '),
+          meta.profile_id || a.profile_id || '-',
+          meta.company_id || a.company_id || '-',
+          meta.tz || '-',
+          rawUa.replace(/[\r\n;]/g, ' ').slice(0, 120),
+        ];
+      });
+      const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `auditoria_validacoes_${fStart}_a_${fEnd}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`CSV exportado (${all.length} registro(s))`);
+    } catch (e: any) {
+      toast.error('Falha ao exportar CSV: ' + (e?.message || 'erro'));
     }
-    const header = ['Data/Hora', 'Funcionário', 'Matrícula', 'Método', 'Resultado', 'Confiança', 'Motivo', 'Dispositivo'];
-    const rows = attempts.map(a => [
-      format(parseISO(a.created_at), 'dd/MM/yyyy HH:mm:ss'),
-      a.profiles?.full_name || '-',
-      a.profiles?.registration_number || '-',
-      a.method_type === 'facial' ? 'Facial' : a.method_type === 'qrcode' ? 'QR Code' : a.method_type,
-      a.success ? 'Aprovado' : 'Reprovado',
-      a.confidence != null ? `${a.confidence}%` : '-',
-      (a.reason || '').replace(/[\r\n;]/g, ' '),
-      (a.user_agent || '').replace(/[\r\n;]/g, ' ').slice(0, 80),
-    ]);
-    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `auditoria_validacoes_${fStart}_a_${fEnd}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('CSV exportado');
   };
 
   const exportPdf = async () => {
-    if (attempts.length === 0) {
-      toast.info('Nada para exportar');
-      return;
-    }
     try {
+      const all = await fetchAllFiltered();
+      if (all.length === 0) { toast.info('Nada para exportar'); return; }
       const head = [['Data/Hora', 'Usuário', 'Método', 'Resultado', 'Motivo']];
-      const body = attempts.map(a => [
+      const body = all.map(a => [
         format(parseISO(a.created_at), 'dd/MM/yy HH:mm:ss'),
         a.profiles?.full_name || '-',
         a.method_type === 'facial' ? 'Facial' : a.method_type === 'qrcode' ? 'QR Code' : a.method_type,
         a.success ? 'Aprovado' : 'Reprovado',
         (a.reason || (a.success ? 'OK' : '-')).slice(0, 80),
       ]);
+      const okA = all.filter(a => a.success).length;
       const doc = await generateStandardPDF(
         {
           title: 'Auditoria de Validações',
@@ -301,7 +321,7 @@ export default function ValidationAudit() {
           period: { start: format(parseISO(fStart), 'dd/MM/yyyy'), end: format(parseISO(fEnd), 'dd/MM/yyyy') },
           orientation: 'landscape',
         },
-        { head, body, footer: [[`Total: ${stats.total}`, `Aprovadas: ${stats.ok}`, `Reprovadas: ${stats.fail}`, `Taxa: ${stats.rate}%`, '']] }
+        { head, body, footer: [[`Total: ${all.length}`, `Aprovadas: ${okA}`, `Reprovadas: ${all.length - okA}`, '', '']] }
       );
       addFooter(doc);
       doc.save(`auditoria_validacoes_${fStart}_a_${fEnd}.pdf`);
