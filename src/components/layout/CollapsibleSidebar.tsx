@@ -185,6 +185,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Sobre Aviso', icon: Bell, href: '/on-call-schedules', roles: ['admin'] },
       { title: 'Abono em Lote', icon: ListChecks, href: '/batch-absolutions', roles: ['admin'] },
       { title: 'Notificações', icon: Bell, href: '/custom-notifications', roles: ['admin'] },
+      { title: 'Sugestões', icon: Bell, href: '/suggestions', roles: ['admin', 'manager', 'employee'] },
     ]
   },
   {
