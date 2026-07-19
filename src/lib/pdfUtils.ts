@@ -82,7 +82,7 @@ export async function createA4PDF(config: PDFConfig): Promise<jsPDF> {
   }
 
   // Company name header
-  const displayName = branding?.trade_name || branding?.company_name || 'SuperPonto';
+  const displayName = branding?.trade_name || branding?.company_name || 'PontoMax';
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.text(displayName, A4_WIDTH / 2, headerY, { align: 'center' });
@@ -219,7 +219,7 @@ export function addFooter(doc: jsPDF): void {
     );
     
     // System credit
-    doc.text('SuperPonto - Sistema de Ponto Eletrônico', MARGIN, A4_HEIGHT - 10);
+    doc.text('PontoMax - Sistema de Ponto Eletrônico', MARGIN, A4_HEIGHT - 10);
     
     doc.setTextColor(0);
   }

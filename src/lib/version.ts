@@ -1,7 +1,7 @@
 // Application version configuration
 export const APP_VERSION = '2.5.0';
 export const APP_BUILD_DATE = '2026-01-31';
-export const APP_NAME = 'SuperPonto';
+export const APP_NAME = 'PontoMax';
 
 // Changelog entries
 export interface ChangelogEntry {
@@ -46,7 +46,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Nova Identidade Visual',
     type: 'minor',
     changes: [
-      'Nova logo SuperPonto moderna',
+      'Nova logo PontoMax moderna',
       'Interface renovada com visual futurista',
       'Separação de Jornadas, Escalas Fixas e Agendadas',
       'Sistema de escala individual e em lote',
@@ -80,10 +80,10 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '2.0.0',
     date: '2026-01-24',
-    title: 'Nova Identidade SuperPonto',
+    title: 'Nova Identidade PontoMax',
     type: 'major',
     changes: [
-      'Rebranding completo para SuperPonto',
+      'Rebranding completo para PontoMax',
       'Nova paleta de cores moderna',
       'Autenticação com verificação em duas etapas',
       'Login com biometria (digital/reconhecimento facial)',
