@@ -273,6 +273,7 @@ const App = () => (
                   <Route path="payroll-exports" element={<ProtectedRoute requiredRoles={['admin']}><PayrollExports /></ProtectedRoute>} />
                   <Route path="identification-methods" element={<ProtectedRoute requiredRoles={['admin']}><IdentificationMethods /></ProtectedRoute>} />
                   <Route path="validation-audit" element={<ProtectedRoute><ValidationAudit /></ProtectedRoute>} />
+                  <Route path="suggestions" element={<ProtectedRoute><Suggestions /></ProtectedRoute>} />
                   <Route path="basic-registrations" element={<ProtectedRoute requiredRoles={['admin']}><BasicRegistrations /></ProtectedRoute>} />
                   <Route path="unions" element={<ProtectedRoute requiredRoles={['admin']}><Unions /></ProtectedRoute>} />
                   <Route path="justifications" element={<ProtectedRoute requiredRoles={['admin']}><Justifications /></ProtectedRoute>} />
