@@ -355,7 +355,135 @@ export default function ValidationAudit() {
     toast.success('Consolidado CSV exportado');
   };
 
-  // Per-record evidence pack (PDF): device_info + justification/context
+  // Log evidence download for traceability
+  const logDownload = async (payload: {
+    type: 'single_pdf' | 'zip_bundle';
+    attemptId?: string;
+    attemptIds?: string[];
+    filename: string;
+  }) => {
+    try {
+      await supabase.from('evidence_download_log').insert({
+        user_id: user?.id,
+        attempt_id: payload.attemptId ?? null,
+        attempt_ids: payload.attemptIds ?? null,
+        download_type: payload.type,
+        filename: payload.filename,
+        user_agent: navigator.userAgent,
+      });
+    } catch {/* non-blocking */}
+  };
+
+  // Compute expected values (from server-side attempt row) vs sent (device_info meta) and
+  // return the list of fields that diverged.
+  const computeDivergence = (a: Attempt, meta: Record<string, string>) => {
+    const expected = {
+      profile_id: a.profile_id || '—',
+      company_id: a.company_id || '—',
+      timezone: profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || '—',
+    };
+    const sent = {
+      profile_id: meta.profile_id || '—',
+      company_id: meta.company_id || '—',
+      timezone: meta.tz || '—',
+    };
+    const divergent: Array<'profile_id' | 'company_id' | 'timezone'> = [];
+    (Object.keys(expected) as Array<'profile_id' | 'company_id' | 'timezone'>).forEach(k => {
+      if (expected[k] !== '—' && sent[k] !== '—' && expected[k] !== sent[k]) divergent.push(k);
+    });
+    return { expected, sent, divergent };
+  };
+
+  // Build evidence PDF for a single attempt and either save it or return the underlying jsPDF
+  const buildEvidenceDoc = async (
+    a: Attempt,
+    meta: Record<string, string>,
+    rawUa: string,
+    justification?: string,
+    blockContext?: string,
+  ) => {
+    const doc = await createA4PDF({
+      title: 'Pacote de Evidências — Bloqueio por Divergência',
+      subtitle: `Tentativa #${a.id.slice(0, 8)}`,
+    });
+    const jsdoc: any = doc;
+    let y = getContentStartY(doc);
+    const line = (label: string, value: string) => {
+      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(10);
+      jsdoc.text(label, 14, y);
+      jsdoc.setFont('helvetica', 'normal');
+      const lines = jsdoc.splitTextToSize(value || '—', 170);
+      jsdoc.text(lines, 55, y);
+      y += Math.max(6, lines.length * 5);
+    };
+    line('ID da tentativa:', a.id);
+    line('Data/Hora:', format(parseISO(a.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR }));
+    line('Funcionário:', a.profiles?.full_name || '—');
+    line('Matrícula:', a.profiles?.registration_number || '—');
+    line('Método:', a.method_type);
+    line('Resultado:', a.success ? 'Justificado / Confirmado' : 'Bloqueado');
+
+    y += 3;
+    jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
+    jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+    jsdoc.text('Comparativo esperado × enviado', 14, y); y += 6;
+
+    const { expected, sent, divergent } = computeDivergence(a, meta);
+    const autoTable = (await import('jspdf-autotable')).default;
+    const rows: any[] = (['profile_id', 'company_id', 'timezone'] as const).map(k => {
+      const diff = divergent.includes(k);
+      return [
+        { content: k, styles: { fontStyle: diff ? 'bold' : 'normal' } },
+        { content: expected[k], styles: { fontStyle: diff ? 'bold' : 'normal' } },
+        { content: sent[k], styles: { fontStyle: diff ? 'bold' : 'normal', textColor: diff ? [180, 30, 30] : [0, 0, 0], fillColor: diff ? [254, 226, 226] : undefined } },
+        { content: diff ? '⚠ Divergente' : 'OK', styles: { textColor: diff ? [180, 30, 30] : [16, 130, 90], fontStyle: 'bold' } },
+      ];
+    });
+    autoTable(jsdoc, {
+      startY: y,
+      head: [['Campo', 'Esperado', 'Enviado', 'Status']],
+      body: rows,
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] },
+      margin: { left: 14, right: 14 },
+    });
+    y = (jsdoc.lastAutoTable?.finalY || y) + 6;
+
+    jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(10);
+    jsdoc.text(
+      divergent.length
+        ? `Campo(s) que causaram o bloqueio: ${divergent.join(', ')}`
+        : 'Nenhum campo divergente identificado nos metadados enviados.',
+      14, y,
+    );
+    y += 8;
+
+    jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
+    jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+    jsdoc.text('device_info (bruto)', 14, y); y += 6;
+    line('profile_id:', meta.profile_id || a.profile_id || '—');
+    line('company_id:', meta.company_id || a.company_id || '—');
+    line('timezone:', meta.tz || '—');
+    line('user-agent:', rawUa || '—');
+
+    y += 3;
+    jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
+    jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+    jsdoc.text('Contexto do bloqueio', 14, y); y += 6;
+    line('Motivo/Política:', a.reason || '—');
+    if (blockContext) line('Detalhes:', blockContext);
+    if (justification) {
+      y += 2;
+      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
+      jsdoc.text('Justificativa do usuário', 14, y); y += 6;
+      const lines = jsdoc.splitTextToSize(justification, 180);
+      jsdoc.setFont('helvetica', 'normal'); jsdoc.setFontSize(10);
+      jsdoc.text(lines, 14, y);
+    }
+    addFooter(doc);
+    return doc;
+  };
+
   const exportEvidencePdf = async (
     a: Attempt,
     meta: Record<string, string>,
@@ -364,55 +492,54 @@ export default function ValidationAudit() {
     blockContext?: string,
   ) => {
     try {
-      const doc = await createA4PDF({
-        title: 'Pacote de Evidências — Bloqueio por Divergência',
-        subtitle: `Tentativa #${a.id.slice(0, 8)}`,
-      });
-      const jsdoc: any = doc;
-      let y = getContentStartY(doc);
-      const line = (label: string, value: string) => {
-        jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(10);
-        jsdoc.text(label, 14, y);
-        jsdoc.setFont('helvetica', 'normal');
-        const lines = jsdoc.splitTextToSize(value || '—', 170);
-        jsdoc.text(lines, 55, y);
-        y += Math.max(6, lines.length * 5);
-      };
-      line('ID da tentativa:', a.id);
-      line('Data/Hora:', format(parseISO(a.created_at), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR }));
-      line('Funcionário:', a.profiles?.full_name || '—');
-      line('Matrícula:', a.profiles?.registration_number || '—');
-      line('Método:', a.method_type);
-      line('Resultado:', a.success ? 'Justificado / Confirmado' : 'Bloqueado');
-      y += 3;
-      jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
-      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
-      jsdoc.text('device_info', 14, y); y += 6;
-      line('profile_id:', meta.profile_id || a.profile_id || '—');
-      line('company_id:', meta.company_id || a.company_id || '—');
-      line('timezone:', meta.tz || '—');
-      line('user-agent:', rawUa || '—');
-      y += 3;
-      jsdoc.setDrawColor(200); jsdoc.line(14, y, 196, y); y += 5;
-      jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
-      jsdoc.text('Contexto do bloqueio', 14, y); y += 6;
-      line('Motivo/Política:', a.reason || '—');
-      if (blockContext) line('Detalhes:', blockContext);
-      if (justification) {
-        y += 2;
-        jsdoc.setFont('helvetica', 'bold'); jsdoc.setFontSize(11);
-        jsdoc.text('Justificativa do usuário', 14, y); y += 6;
-        const lines = jsdoc.splitTextToSize(justification, 180);
-        jsdoc.setFont('helvetica', 'normal'); jsdoc.setFontSize(10);
-        jsdoc.text(lines, 14, y);
-      }
-      addFooter(doc);
-      doc.save(`evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`);
+      const doc = await buildEvidenceDoc(a, meta, rawUa, justification, blockContext);
+      const filename = `evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`;
+      doc.save(filename);
+      await logDownload({ type: 'single_pdf', attemptId: a.id, filename });
       toast.success('Pacote de evidências gerado');
     } catch (e: any) {
       toast.error('Falha ao gerar evidência: ' + (e?.message || 'erro'));
     }
   };
+
+  // Bundle: build one evidence PDF per divergence attempt currently matching filters, zip them.
+  const exportEvidenceZip = async () => {
+    try {
+      toast.info('Preparando pacote ZIP...');
+      const all = await fetchAllFiltered();
+      const divs = all.filter(x => x.method_type === 'divergence');
+      if (divs.length === 0) { toast.info('Nenhuma tentativa bloqueada por divergência nos filtros atuais'); return; }
+      const zip = new JSZip();
+      for (const a of divs) {
+        const parts = (a.user_agent || '').split('|').map(s => s.trim());
+        const rawUa = parts[0] || '';
+        const meta: Record<string, string> = {};
+        parts.slice(1).forEach(p => {
+          const [k, ...v] = p.split('=');
+          if (k && v.length) meta[k.trim()] = v.join('=').trim();
+        });
+        const reason = a.reason || '';
+        const justMatch = reason.match(/\[JUSTIFICATIVA\]\s*([^—]+)/);
+        const blockMatch = reason.match(/\[BLOQUEIO\]\s*(.+)/);
+        const doc = await buildEvidenceDoc(a, meta, rawUa, justMatch?.[1]?.trim(), blockMatch?.[1]?.trim());
+        const buf = doc.output('arraybuffer');
+        zip.file(`evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`, buf);
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const filename = `evidencias_${fStart}_a_${fEnd}.zip`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      await logDownload({ type: 'zip_bundle', attemptIds: divs.map(d => d.id), filename });
+      toast.success(`ZIP gerado com ${divs.length} evidência(s)`);
+    } catch (e: any) {
+      toast.error('Falha ao gerar ZIP: ' + (e?.message || 'erro'));
+    }
+  };
+
 
   const generateMonthlyConsolidated = async () => {
     try {
