@@ -380,7 +380,7 @@ export default function ValidationAudit() {
     const expected = {
       profile_id: a.profile_id || '—',
       company_id: a.company_id || '—',
-      timezone: profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || '—',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '—',
     };
     const sent = {
       profile_id: meta.profile_id || '—',
