@@ -55,34 +55,49 @@ export default function ValidationAudit() {
   const [fDevTimezone, setFDevTimezone] = useState<string>('');
   const [fSearch, setFSearch] = useState<string>('');
 
+  // Server-side pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [totalCount, setTotalCount] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
   const [searchParams] = useSearchParams();
   const focusedAttemptId = searchParams.get('attempt');
   const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
-  const load = async () => {
-    setLoading(true);
+  const buildBaseQuery = () => {
     let q = supabase
       .from('identification_validation_attempts')
-      .select('*, profiles:profile_id(full_name, registration_number)')
+      .select('*, profiles:profile_id(full_name, registration_number)', { count: 'exact' })
       .gte('created_at', `${fStart}T00:00:00`)
       .lte('created_at', `${fEnd}T23:59:59`)
-      .order('created_at', { ascending: false })
-      .limit(1000);
+      .order('created_at', { ascending: false });
 
     if (fMethod !== 'all') q = q.eq('method_type', fMethod);
     if (fStatus !== 'all') q = q.eq('success', fStatus === 'success');
     if (canSeeAll && fEmployee !== 'all') q = q.eq('profile_id', fEmployee);
-    // Device-info filters are stored inside user_agent as "| profile_id=... | company_id=... | tz=..."
     if (fDevEmployeeId.trim()) q = q.ilike('user_agent', `%profile_id=${fDevEmployeeId.trim()}%`);
     if (fDevCompanyId.trim()) q = q.ilike('user_agent', `%company_id=${fDevCompanyId.trim()}%`);
     if (fDevTimezone.trim()) q = q.ilike('user_agent', `%tz=${fDevTimezone.trim()}%`);
+    if (fSearch.trim()) {
+      const term = fSearch.trim().replace(/[%,]/g, '');
+      q = q.or(`reason.ilike.%${term}%,user_agent.ilike.%${term}%,identifier_matched.ilike.%${term}%`);
+    }
+    return q;
+  };
 
-    const { data, error } = await q;
+  const load = async () => {
+    setLoading(true);
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const { data, count, error } = await buildBaseQuery().range(from, to);
     if (error) {
       toast.error('Erro ao carregar auditoria: ' + error.message);
       setAttempts([]);
+      setTotalCount(0);
     } else {
       setAttempts((data as unknown as Attempt[]) || []);
+      setTotalCount(count || 0);
     }
     setLoading(false);
   };
