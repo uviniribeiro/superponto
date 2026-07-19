@@ -14,6 +14,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '2.6.0',
+    date: '2026-07-19',
+    title: 'PontoMax — Nova Identidade e Sugestões',
+    type: 'major',
+    changes: [
+      'Sistema renomeado para PontoMax com nova identidade visual',
+      'Novo canal de Sugestões: envie melhorias, funcionalidades e relatórios direto pelo sistema',
+      'Painel administrativo de Sugestões com controle de status e notas internas',
+      'Auditoria com paginação por página para grandes volumes de registros',
+      'Download em lote (ZIP) dos pacotes de evidências de bloqueios',
+      'Pacote de evidências agora destaca o campo divergente (esperado × enviado)',
+      'Registro completo de quem baixou cada evidência (rastreabilidade)',
+    ],
+  },
+  {
     version: '2.5.0',
     date: '2026-01-31',
     title: 'Temas de Feriados e Menu Aprimorado',
