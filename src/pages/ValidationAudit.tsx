@@ -37,7 +37,7 @@ interface Attempt {
 }
 
 export default function ValidationAudit() {
-  const { profile, isAdmin, isManager } = useAuth();
+  const { user, profile, isAdmin, isManager } = useAuth();
   const canSeeAll = isAdmin || isManager;
 
   const [loading, setLoading] = useState(true);
