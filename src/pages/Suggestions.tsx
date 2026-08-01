@@ -126,16 +126,27 @@ export default function Suggestions() {
           Sugestões e Feedback
         </h1>
         <p className="text-muted-foreground">
-          Envie ideias de melhorias, novas funcionalidades ou relatórios para o PontoMax.
+          {isAdmin
+            ? 'Painel administrativo — registre e acompanhe melhorias, funcionalidades e relatórios do PontoMax.'
+            : 'Acompanhe o andamento das sugestões enviadas para o PontoMax.'}
         </p>
       </div>
 
+      {isAdmin && (
       <Card>
         <CardHeader>
           <CardTitle>Enviar nova sugestão</CardTitle>
-          <CardDescription>Descreva a sua ideia com o máximo de detalhes possível.</CardDescription>
+          <CardDescription>
+            Formulário exclusivo do administrador — já preenchido com o contexto atual do sistema.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground space-y-0.5">
+            <div><strong>Sistema:</strong> {APP_NAME} v{APP_VERSION}</div>
+            <div><strong>Responsável:</strong> {profile?.full_name || user?.email || '-'}</div>
+            <div><strong>Empresa:</strong> {profile?.company_id || 'não vinculada'}</div>
+            <div><strong>Módulo atual:</strong> {systemContext.module}</div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Categoria</Label>
@@ -162,10 +173,14 @@ export default function Suggestions() {
           </div>
           <div className="space-y-1">
             <Label>Descrição</Label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={5}
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={10}
               placeholder="Descreva o problema/oportunidade, quem se beneficia e como imagina que funcione." />
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setDescription(buildContextTemplate()); setTitle(''); }}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Restaurar modelo
+            </Button>
             <Button onClick={submit} disabled={submitting}>
               <Send className="h-4 w-4 mr-2" />
               {submitting ? 'Enviando...' : 'Enviar sugestão'}
@@ -173,6 +188,8 @@ export default function Suggestions() {
           </div>
         </CardContent>
       </Card>
+      )}
+
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
