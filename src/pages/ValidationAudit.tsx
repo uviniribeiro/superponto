@@ -751,20 +751,27 @@ export default function ValidationAudit() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
-          <Button variant="outline" onClick={exportCsv}>
-            <Download className="h-4 w-4 mr-2" />
-            CSV
+          <Button variant="outline" onClick={() => setConfirmExport('csv')} disabled={exportingCsv}>
+            {exportingCsv ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            {exportingCsv ? 'Exportando...' : 'CSV'}
           </Button>
-          <Button variant="outline" onClick={exportPdf}>
-            <FileDown className="h-4 w-4 mr-2" />
-            PDF
+          <Button variant="outline" onClick={() => setConfirmExport('pdf')} disabled={exportingPdf}>
+            {exportingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+            {exportingPdf ? 'Gerando...' : 'PDF'}
           </Button>
           {canSeeAll && (
-            <Button variant="outline" onClick={exportEvidenceZip}>
-              <Archive className="h-4 w-4 mr-2" />
-              ZIP Evidências
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setConfirmExport('zip')} disabled={zipJob.status === 'running'}>
+                {zipJob.status === 'running' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Archive className="h-4 w-4 mr-2" />}
+                {zipJob.status === 'running' ? 'Processando ZIP...' : 'ZIP Evidências'}
+              </Button>
+              <Button variant="outline" onClick={() => setShowHistory(true)}>
+                <History className="h-4 w-4 mr-2" />
+                Histórico de downloads
+              </Button>
+            </>
           )}
+
           <Button variant="outline" onClick={exportMonthlyCsv}>
             <FileBarChart className="h-4 w-4 mr-2" />
             Consolidado CSV
