@@ -354,8 +354,11 @@ export default function ValidationAudit() {
       toast.success('PDF exportado');
     } catch (e: any) {
       toast.error('Falha ao gerar PDF: ' + (e?.message || 'erro'));
+    } finally {
+      setExportingPdf(false);
     }
   };
+
 
   const exportMonthlyCsv = () => {
     if (periodConsolidated.length === 0) {
