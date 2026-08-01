@@ -495,6 +495,8 @@ export default function ValidationAudit() {
     justification?: string,
     blockContext?: string,
   ) => {
+    if (pdfEvidenceId) return;
+    setPdfEvidenceId(a.id);
     try {
       const doc = await buildEvidenceDoc(a, meta, rawUa, justification, blockContext);
       const filename = `evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`;
@@ -503,18 +505,28 @@ export default function ValidationAudit() {
       toast.success('Pacote de evidências gerado');
     } catch (e: any) {
       toast.error('Falha ao gerar evidência: ' + (e?.message || 'erro'));
+    } finally {
+      setPdfEvidenceId(null);
     }
   };
 
   // Bundle: build one evidence PDF per divergence attempt currently matching filters, zip them.
+  // Processamento assíncrono em lotes para não travar a interface.
   const exportEvidenceZip = async () => {
+    if (zipJob.status === 'running') { toast.info('Já existe um pacote em processamento'); return; }
+    setZipJob({ status: 'running', total: 0, done: 0, message: 'Buscando evidências...' });
     try {
-      toast.info('Preparando pacote ZIP...');
       const all = await fetchAllFiltered();
       const divs = all.filter(x => x.method_type === 'divergence');
-      if (divs.length === 0) { toast.info('Nenhuma tentativa bloqueada por divergência nos filtros atuais'); return; }
+      if (divs.length === 0) {
+        setZipJob({ status: 'idle', total: 0, done: 0, message: '' });
+        toast.info('Nenhuma tentativa bloqueada por divergência nos filtros atuais');
+        return;
+      }
+      setZipJob({ status: 'running', total: divs.length, done: 0, message: 'Gerando pacotes de evidência...' });
       const zip = new JSZip();
-      for (const a of divs) {
+      for (let i = 0; i < divs.length; i++) {
+        const a = divs[i];
         const parts = (a.user_agent || '').split('|').map(s => s.trim());
         const rawUa = parts[0] || '';
         const meta: Record<string, string> = {};
@@ -528,21 +540,67 @@ export default function ValidationAudit() {
         const doc = await buildEvidenceDoc(a, meta, rawUa, justMatch?.[1]?.trim(), blockMatch?.[1]?.trim());
         const buf = doc.output('arraybuffer');
         zip.file(`evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`, buf);
+        setZipJob(j => ({ ...j, done: i + 1, message: `Gerando evidência ${i + 1} de ${divs.length}...` }));
+        // Cede o controle ao navegador entre os itens (mantém a interface fluida)
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
-      const blob = await zip.generateAsync({ type: 'blob' });
+      setZipJob(j => ({ ...j, message: 'Compactando arquivo ZIP...' }));
+      const blob = await zip.generateAsync({ type: 'blob' }, (m) => {
+        setZipJob(j => (j.status === 'running' ? { ...j, message: `Compactando... ${Math.round(m.percent)}%` } : j));
+      });
       const filename = `evidencias_${fStart}_a_${fEnd}.zip`;
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
       URL.revokeObjectURL(url);
       await logDownload({ type: 'zip_bundle', attemptIds: divs.map(d => d.id), filename });
+      setZipJob({ status: 'done', total: divs.length, done: divs.length, message: `Concluído — ${divs.length} evidência(s)` });
       toast.success(`ZIP gerado com ${divs.length} evidência(s)`);
     } catch (e: any) {
+      setZipJob({ status: 'error', total: 0, done: 0, message: e?.message || 'erro' });
       toast.error('Falha ao gerar ZIP: ' + (e?.message || 'erro'));
     }
   };
+
+  // ---- Histórico de downloads de evidências ----
+  const loadDownloadHistory = async () => {
+    setHistLoading(true);
+    try {
+      let q = supabase
+        .from('evidence_download_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (histStart) q = q.gte('created_at', new Date(`${histStart}T00:00:00`).toISOString());
+      if (histEnd) q = q.lte('created_at', new Date(`${histEnd}T23:59:59`).toISOString());
+      if (histAttempt.trim()) q = q.or(`attempt_id.eq.${histAttempt.trim()},filename.ilike.%${histAttempt.trim()}%`);
+      const { data, error } = await q;
+      if (error) throw error;
+      const rows = (data as any[]) || [];
+      const userIds = Array.from(new Set(rows.map(r => r.user_id).filter(Boolean)));
+      let names: Record<string, string> = {};
+      if (userIds.length) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', userIds);
+        (profs || []).forEach((p: any) => { names[p.user_id] = p.full_name; });
+      }
+      setHistory(rows.map(r => ({ ...r, user_name: names[r.user_id] || r.user_id })));
+    } catch (e: any) {
+      toast.error('Falha ao carregar histórico: ' + (e?.message || 'erro'));
+    } finally {
+      setHistLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showHistory) loadDownloadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHistory, histStart, histEnd, histAttempt]);
+
 
 
   const generateMonthlyConsolidated = async () => {
