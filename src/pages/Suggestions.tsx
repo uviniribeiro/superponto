@@ -58,6 +58,39 @@ export default function Suggestions() {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const systemContext = useMemo(() => ({
+    app: `${APP_NAME} v${APP_VERSION}`,
+    module: typeof window !== 'undefined' ? (window.location.pathname || '/') : '/',
+    user: profile?.full_name || user?.email || '-',
+    company: profile?.company_id || 'não vinculada',
+    device: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '-',
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  }), [profile?.full_name, profile?.company_id, user?.email]);
+
+  const buildContextTemplate = () => [
+    '## Contexto do sistema',
+    `- Sistema: ${systemContext.app}`,
+    `- Solicitante: ${systemContext.user}`,
+    `- Empresa: ${systemContext.company}`,
+    `- Módulo/tela: ${systemContext.module}`,
+    `- Fuso horário: ${systemContext.tz}`,
+    `- Dispositivo: ${systemContext.device}`,
+    `- Data: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+    '',
+    '## Situação atual',
+    '',
+    '## Melhoria proposta',
+    '',
+    '## Benefício esperado',
+    '',
+  ].join('\n');
+
+  useEffect(() => {
+    if (isAdmin && !description.trim()) setDescription(buildContextTemplate());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, systemContext]);
+
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
