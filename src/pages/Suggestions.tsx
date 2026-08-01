@@ -125,7 +125,7 @@ export default function Suggestions() {
     setSubmitting(false);
     if (error) { toast.error('Erro: ' + error.message); return; }
     toast.success('Sugestão enviada. Obrigado!');
-    setTitle(''); setDescription(''); setCategory('improvement'); setPriority('medium');
+    setTitle(''); setDescription(buildContextTemplate()); setCategory('improvement'); setPriority('medium');
     load();
   };
 
