@@ -1229,9 +1229,13 @@ export default function ValidationAudit() {
                                 size="icon"
                                 className="h-7 w-7"
                                 title="Baixar pacote de evidências (PDF)"
+                                disabled={pdfEvidenceId === a.id}
                                 onClick={() => exportEvidencePdf(a, meta, rawUa, justMatch?.[1]?.trim(), blockMatch?.[1]?.trim())}
                               >
-                                <FileText className="h-4 w-4 text-amber-600" />
+                                {pdfEvidenceId === a.id
+                                  ? <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+                                  : <FileText className="h-4 w-4 text-amber-600" />}
+
                               </Button>
                             )}
                           </div>
