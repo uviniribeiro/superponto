@@ -16,6 +16,10 @@ import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert
 import { generateStandardPDF, addFooter, createA4PDF, getContentStartY } from '@/lib/pdfUtils';
 import JSZip from 'jszip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Progress } from '@/components/ui/progress';
+import { Loader2, History } from 'lucide-react';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
