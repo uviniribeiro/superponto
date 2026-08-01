@@ -103,7 +103,7 @@ export default function Unions() {
       toast.error('Sigla deve ter pelo menos 3 caracteres');
       return;
     }
-    if (!validateCNPJ(formData.cnpj)) {
+    if (!validateCNPJ(formData.cnpj).valid) {
       toast.error('CNPJ inválido');
       return;
     }

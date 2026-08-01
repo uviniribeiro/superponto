@@ -110,64 +110,80 @@ export function formatPIS(pis: string): string {
 }
 
 /**
- * Valida CNPJ com dígito verificador
- * @param cnpj - CNPJ com ou sem formatação
- * @returns objeto com status de validação e mensagem
+ * CNPJ Alfanumérico (Receita Federal — vigente a partir de 2026, IN RFB nº 2.229/2024).
+ * Estrutura: 12 posições alfanuméricas (0-9, A-Z) + 2 dígitos verificadores numéricos.
+ * O DV é calculado com o valor ASCII do caractere menos 48.
  */
-export function validateCNPJ(cnpj: string): { valid: boolean; message: string } {
-  const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
-  
-  if (cleanCNPJ.length !== 14) {
-    return { valid: false, message: 'CNPJ deve ter 14 dígitos' };
-  }
-  
-  if (/^(\d)\1{13}$/.test(cleanCNPJ)) {
-    return { valid: false, message: 'CNPJ inválido - dígitos repetidos' };
-  }
-  
-  // Calcula primeiro dígito verificador
-  let size = cleanCNPJ.length - 2;
-  let numbers = cleanCNPJ.substring(0, size);
-  const digits = cleanCNPJ.substring(size);
+const CNPJ_WEIGHTS_1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+const CNPJ_WEIGHTS_2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+/** Remove máscara e normaliza para maiúsculas, mantendo apenas [0-9A-Z] */
+export function cleanCNPJ(cnpj: string): string {
+  return (cnpj || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+}
+
+/** Retorna true se o CNPJ contém letras (novo formato alfanumérico) */
+export function isAlphanumericCNPJ(cnpj: string): boolean {
+  return /[A-Z]/.test(cleanCNPJ(cnpj));
+}
+
+function cnpjCharValue(char: string): number {
+  return char.charCodeAt(0) - 48;
+}
+
+function cnpjCheckDigit(base: string, weights: number[]): number {
   let sum = 0;
-  let pos = size - 7;
-  
-  for (let i = size; i >= 1; i--) {
-    sum += parseInt(numbers.charAt(size - i)) * pos--;
-    if (pos < 2) pos = 9;
+  for (let i = 0; i < base.length; i++) {
+    sum += cnpjCharValue(base.charAt(i)) * weights[i];
   }
-  
-  let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-  if (result !== parseInt(digits.charAt(0))) {
-    return { valid: false, message: 'CNPJ inválido - primeiro dígito verificador incorreto' };
-  }
-  
-  // Calcula segundo dígito verificador
-  size = size + 1;
-  numbers = cleanCNPJ.substring(0, size);
-  sum = 0;
-  pos = size - 7;
-  
-  for (let i = size; i >= 1; i--) {
-    sum += parseInt(numbers.charAt(size - i)) * pos--;
-    if (pos < 2) pos = 9;
-  }
-  
-  result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
-  if (result !== parseInt(digits.charAt(1))) {
-    return { valid: false, message: 'CNPJ inválido - segundo dígito verificador incorreto' };
-  }
-  
-  return { valid: true, message: 'CNPJ válido' };
+  const remainder = sum % 11;
+  return remainder < 2 ? 0 : 11 - remainder;
 }
 
 /**
- * Formata CNPJ para exibição
- * @param cnpj - CNPJ sem formatação
- * @returns CNPJ formatado (00.000.000/0000-00)
+ * Valida CNPJ numérico ou alfanumérico (padrão Receita Federal 2026)
+ */
+export function validateCNPJ(cnpj: string): { valid: boolean; message: string } {
+  const clean = cleanCNPJ(cnpj);
+
+  if (clean.length !== 14) {
+    return { valid: false, message: 'CNPJ deve ter 14 caracteres' };
+  }
+
+  // Os dois últimos caracteres (DV) devem ser sempre numéricos
+  if (!/^\d{2}$/.test(clean.slice(12))) {
+    return { valid: false, message: 'CNPJ inválido - dígitos verificadores devem ser numéricos' };
+  }
+
+  // Raiz/ordem: 12 posições alfanuméricas
+  if (!/^[0-9A-Z]{12}$/.test(clean.slice(0, 12))) {
+    return { valid: false, message: 'CNPJ inválido - use apenas números e letras (A-Z)' };
+  }
+
+  if (/^(.)\1{13}$/.test(clean)) {
+    return { valid: false, message: 'CNPJ inválido - caracteres repetidos' };
+  }
+
+  const base = clean.slice(0, 12);
+  const digits = clean.slice(12);
+
+  if (cnpjCheckDigit(base, CNPJ_WEIGHTS_1) !== parseInt(digits.charAt(0))) {
+    return { valid: false, message: 'CNPJ inválido - primeiro dígito verificador incorreto' };
+  }
+
+  if (cnpjCheckDigit(base + digits.charAt(0), CNPJ_WEIGHTS_2) !== parseInt(digits.charAt(1))) {
+    return { valid: false, message: 'CNPJ inválido - segundo dígito verificador incorreto' };
+  }
+
+  return { valid: true, message: isAlphanumericCNPJ(clean) ? 'CNPJ alfanumérico válido' : 'CNPJ válido' };
+}
+
+/**
+ * Formata CNPJ (numérico ou alfanumérico) para exibição: 00.000.000/0000-00
  */
 export function formatCNPJ(cnpj: string): string {
-  const cleanCNPJ = cnpj.replace(/[^\d]/g, '');
-  if (cleanCNPJ.length !== 14) return cnpj;
-  return cleanCNPJ.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  const clean = cleanCNPJ(cnpj);
+  if (clean.length !== 14) return cnpj;
+  return `${clean.slice(0, 2)}.${clean.slice(2, 5)}.${clean.slice(5, 8)}/${clean.slice(8, 12)}-${clean.slice(12)}`;
 }
+

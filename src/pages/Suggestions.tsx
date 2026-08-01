@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { APP_NAME, APP_VERSION } from '@/lib/version';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,6 +60,39 @@ export default function Suggestions() {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const systemContext = useMemo(() => ({
+    app: `${APP_NAME} v${APP_VERSION}`,
+    module: typeof window !== 'undefined' ? (window.location.pathname || '/') : '/',
+    user: profile?.full_name || user?.email || '-',
+    company: profile?.company_id || 'não vinculada',
+    device: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '-',
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  }), [profile?.full_name, profile?.company_id, user?.email]);
+
+  const buildContextTemplate = () => [
+    '## Contexto do sistema',
+    `- Sistema: ${systemContext.app}`,
+    `- Solicitante: ${systemContext.user}`,
+    `- Empresa: ${systemContext.company}`,
+    `- Módulo/tela: ${systemContext.module}`,
+    `- Fuso horário: ${systemContext.tz}`,
+    `- Dispositivo: ${systemContext.device}`,
+    `- Data: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+    '',
+    '## Situação atual',
+    '',
+    '## Melhoria proposta',
+    '',
+    '## Benefício esperado',
+    '',
+  ].join('\n');
+
+  useEffect(() => {
+    if (isAdmin && !description.trim()) setDescription(buildContextTemplate());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, systemContext]);
+
+
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -90,7 +125,7 @@ export default function Suggestions() {
     setSubmitting(false);
     if (error) { toast.error('Erro: ' + error.message); return; }
     toast.success('Sugestão enviada. Obrigado!');
-    setTitle(''); setDescription(''); setCategory('improvement'); setPriority('medium');
+    setTitle(''); setDescription(buildContextTemplate()); setCategory('improvement'); setPriority('medium');
     load();
   };
 
@@ -126,16 +161,27 @@ export default function Suggestions() {
           Sugestões e Feedback
         </h1>
         <p className="text-muted-foreground">
-          Envie ideias de melhorias, novas funcionalidades ou relatórios para o PontoMax.
+          {isAdmin
+            ? 'Painel administrativo — registre e acompanhe melhorias, funcionalidades e relatórios do PontoMax.'
+            : 'Acompanhe o andamento das sugestões enviadas para o PontoMax.'}
         </p>
       </div>
 
+      {isAdmin && (
       <Card>
         <CardHeader>
           <CardTitle>Enviar nova sugestão</CardTitle>
-          <CardDescription>Descreva a sua ideia com o máximo de detalhes possível.</CardDescription>
+          <CardDescription>
+            Formulário exclusivo do administrador — já preenchido com o contexto atual do sistema.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground space-y-0.5">
+            <div><strong>Sistema:</strong> {APP_NAME} v{APP_VERSION}</div>
+            <div><strong>Responsável:</strong> {profile?.full_name || user?.email || '-'}</div>
+            <div><strong>Empresa:</strong> {profile?.company_id || 'não vinculada'}</div>
+            <div><strong>Módulo atual:</strong> {systemContext.module}</div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label>Categoria</Label>
@@ -162,10 +208,14 @@ export default function Suggestions() {
           </div>
           <div className="space-y-1">
             <Label>Descrição</Label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={5}
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={10}
               placeholder="Descreva o problema/oportunidade, quem se beneficia e como imagina que funcione." />
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setDescription(buildContextTemplate()); setTitle(''); }}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Restaurar modelo
+            </Button>
             <Button onClick={submit} disabled={submitting}>
               <Send className="h-4 w-4 mr-2" />
               {submitting ? 'Enviando...' : 'Enviar sugestão'}
@@ -173,6 +223,8 @@ export default function Suggestions() {
           </div>
         </CardContent>
       </Card>
+      )}
+
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

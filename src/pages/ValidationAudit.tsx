@@ -16,6 +16,10 @@ import { Download, RefreshCw, CheckCircle2, XCircle, Camera, QrCode, ShieldAlert
 import { generateStandardPDF, addFooter, createA4PDF, getContentStartY } from '@/lib/pdfUtils';
 import JSZip from 'jszip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Progress } from '@/components/ui/progress';
+import { Loader2, History } from 'lucide-react';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -41,6 +45,20 @@ export default function ValidationAudit() {
   const canSeeAll = isAdmin || isManager;
 
   const [loading, setLoading] = useState(true);
+  // Exportações: estados de carregamento, confirmação e job assíncrono do ZIP
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [pdfEvidenceId, setPdfEvidenceId] = useState<string | null>(null);
+  const [confirmExport, setConfirmExport] = useState<null | 'csv' | 'pdf' | 'zip'>(null);
+  const [zipJob, setZipJob] = useState<{ status: 'idle' | 'running' | 'done' | 'error'; total: number; done: number; message: string }>({ status: 'idle', total: 0, done: 0, message: '' });
+  // Histórico de downloads de evidências
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [histLoading, setHistLoading] = useState(false);
+  const [histStart, setHistStart] = useState('');
+  const [histEnd, setHistEnd] = useState('');
+  const [histAttempt, setHistAttempt] = useState('');
+
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
 
@@ -261,8 +279,11 @@ export default function ValidationAudit() {
   };
 
   const exportCsv = async () => {
+    if (exportingCsv) return;
+    setExportingCsv(true);
     try {
       const all = await fetchAllFiltered();
+
       if (all.length === 0) { toast.info('Nada para exportar'); return; }
       const header = ['Data/Hora', 'Funcionário', 'Matrícula', 'Método', 'Resultado', 'Confiança', 'Motivo', 'profile_id (device)', 'company_id (device)', 'timezone (device)', 'user-agent'];
       const rows = all.map(a => {
@@ -298,12 +319,17 @@ export default function ValidationAudit() {
       toast.success(`CSV exportado (${all.length} registro(s))`);
     } catch (e: any) {
       toast.error('Falha ao exportar CSV: ' + (e?.message || 'erro'));
+    } finally {
+      setExportingCsv(false);
     }
   };
 
   const exportPdf = async () => {
+    if (exportingPdf) return;
+    setExportingPdf(true);
     try {
       const all = await fetchAllFiltered();
+
       if (all.length === 0) { toast.info('Nada para exportar'); return; }
       const head = [['Data/Hora', 'Usuário', 'Método', 'Resultado', 'Motivo']];
       const body = all.map(a => [
@@ -328,8 +354,11 @@ export default function ValidationAudit() {
       toast.success('PDF exportado');
     } catch (e: any) {
       toast.error('Falha ao gerar PDF: ' + (e?.message || 'erro'));
+    } finally {
+      setExportingPdf(false);
     }
   };
+
 
   const exportMonthlyCsv = () => {
     if (periodConsolidated.length === 0) {
@@ -491,6 +520,8 @@ export default function ValidationAudit() {
     justification?: string,
     blockContext?: string,
   ) => {
+    if (pdfEvidenceId) return;
+    setPdfEvidenceId(a.id);
     try {
       const doc = await buildEvidenceDoc(a, meta, rawUa, justification, blockContext);
       const filename = `evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`;
@@ -499,18 +530,28 @@ export default function ValidationAudit() {
       toast.success('Pacote de evidências gerado');
     } catch (e: any) {
       toast.error('Falha ao gerar evidência: ' + (e?.message || 'erro'));
+    } finally {
+      setPdfEvidenceId(null);
     }
   };
 
   // Bundle: build one evidence PDF per divergence attempt currently matching filters, zip them.
+  // Processamento assíncrono em lotes para não travar a interface.
   const exportEvidenceZip = async () => {
+    if (zipJob.status === 'running') { toast.info('Já existe um pacote em processamento'); return; }
+    setZipJob({ status: 'running', total: 0, done: 0, message: 'Buscando evidências...' });
     try {
-      toast.info('Preparando pacote ZIP...');
       const all = await fetchAllFiltered();
       const divs = all.filter(x => x.method_type === 'divergence');
-      if (divs.length === 0) { toast.info('Nenhuma tentativa bloqueada por divergência nos filtros atuais'); return; }
+      if (divs.length === 0) {
+        setZipJob({ status: 'idle', total: 0, done: 0, message: '' });
+        toast.info('Nenhuma tentativa bloqueada por divergência nos filtros atuais');
+        return;
+      }
+      setZipJob({ status: 'running', total: divs.length, done: 0, message: 'Gerando pacotes de evidência...' });
       const zip = new JSZip();
-      for (const a of divs) {
+      for (let i = 0; i < divs.length; i++) {
+        const a = divs[i];
         const parts = (a.user_agent || '').split('|').map(s => s.trim());
         const rawUa = parts[0] || '';
         const meta: Record<string, string> = {};
@@ -524,21 +565,67 @@ export default function ValidationAudit() {
         const doc = await buildEvidenceDoc(a, meta, rawUa, justMatch?.[1]?.trim(), blockMatch?.[1]?.trim());
         const buf = doc.output('arraybuffer');
         zip.file(`evidencia_${a.id.slice(0, 8)}_${format(parseISO(a.created_at), 'yyyyMMdd_HHmmss')}.pdf`, buf);
+        setZipJob(j => ({ ...j, done: i + 1, message: `Gerando evidência ${i + 1} de ${divs.length}...` }));
+        // Cede o controle ao navegador entre os itens (mantém a interface fluida)
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
-      const blob = await zip.generateAsync({ type: 'blob' });
+      setZipJob(j => ({ ...j, message: 'Compactando arquivo ZIP...' }));
+      const blob = await zip.generateAsync({ type: 'blob' }, (m) => {
+        setZipJob(j => (j.status === 'running' ? { ...j, message: `Compactando... ${Math.round(m.percent)}%` } : j));
+      });
       const filename = `evidencias_${fStart}_a_${fEnd}.zip`;
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
       URL.revokeObjectURL(url);
       await logDownload({ type: 'zip_bundle', attemptIds: divs.map(d => d.id), filename });
+      setZipJob({ status: 'done', total: divs.length, done: divs.length, message: `Concluído — ${divs.length} evidência(s)` });
       toast.success(`ZIP gerado com ${divs.length} evidência(s)`);
     } catch (e: any) {
+      setZipJob({ status: 'error', total: 0, done: 0, message: e?.message || 'erro' });
       toast.error('Falha ao gerar ZIP: ' + (e?.message || 'erro'));
     }
   };
+
+  // ---- Histórico de downloads de evidências ----
+  const loadDownloadHistory = async () => {
+    setHistLoading(true);
+    try {
+      let q = supabase
+        .from('evidence_download_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (histStart) q = q.gte('created_at', new Date(`${histStart}T00:00:00`).toISOString());
+      if (histEnd) q = q.lte('created_at', new Date(`${histEnd}T23:59:59`).toISOString());
+      if (histAttempt.trim()) q = q.or(`attempt_id.eq.${histAttempt.trim()},filename.ilike.%${histAttempt.trim()}%`);
+      const { data, error } = await q;
+      if (error) throw error;
+      const rows = (data as any[]) || [];
+      const userIds = Array.from(new Set(rows.map(r => r.user_id).filter(Boolean)));
+      let names: Record<string, string> = {};
+      if (userIds.length) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', userIds);
+        (profs || []).forEach((p: any) => { names[p.user_id] = p.full_name; });
+      }
+      setHistory(rows.map(r => ({ ...r, user_name: names[r.user_id] || r.user_id })));
+    } catch (e: any) {
+      toast.error('Falha ao carregar histórico: ' + (e?.message || 'erro'));
+    } finally {
+      setHistLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showHistory) loadDownloadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHistory, histStart, histEnd, histAttempt]);
+
 
 
   const generateMonthlyConsolidated = async () => {
@@ -664,20 +751,27 @@ export default function ValidationAudit() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Atualizar
           </Button>
-          <Button variant="outline" onClick={exportCsv}>
-            <Download className="h-4 w-4 mr-2" />
-            CSV
+          <Button variant="outline" onClick={() => setConfirmExport('csv')} disabled={exportingCsv}>
+            {exportingCsv ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            {exportingCsv ? 'Exportando...' : 'CSV'}
           </Button>
-          <Button variant="outline" onClick={exportPdf}>
-            <FileDown className="h-4 w-4 mr-2" />
-            PDF
+          <Button variant="outline" onClick={() => setConfirmExport('pdf')} disabled={exportingPdf}>
+            {exportingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+            {exportingPdf ? 'Gerando...' : 'PDF'}
           </Button>
           {canSeeAll && (
-            <Button variant="outline" onClick={exportEvidenceZip}>
-              <Archive className="h-4 w-4 mr-2" />
-              ZIP Evidências
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setConfirmExport('zip')} disabled={zipJob.status === 'running'}>
+                {zipJob.status === 'running' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Archive className="h-4 w-4 mr-2" />}
+                {zipJob.status === 'running' ? 'Processando ZIP...' : 'ZIP Evidências'}
+              </Button>
+              <Button variant="outline" onClick={() => setShowHistory(true)}>
+                <History className="h-4 w-4 mr-2" />
+                Histórico de downloads
+              </Button>
+            </>
           )}
+
           <Button variant="outline" onClick={exportMonthlyCsv}>
             <FileBarChart className="h-4 w-4 mr-2" />
             Consolidado CSV
@@ -690,6 +784,115 @@ export default function ValidationAudit() {
         </div>
 
       </div>
+
+      {/* Status do processamento assíncrono do ZIP */}
+      {zipJob.status !== 'idle' && (
+        <Card>
+          <CardContent className="pt-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 font-medium">
+                {zipJob.status === 'running' && <Loader2 className="h-4 w-4 animate-spin" />}
+                {zipJob.status === 'running' ? 'Pacote ZIP em andamento' : zipJob.status === 'done' ? 'Pacote ZIP concluído' : 'Falha ao gerar pacote ZIP'}
+              </span>
+              <span className="text-muted-foreground">{zipJob.message}</span>
+            </div>
+            <Progress value={zipJob.total ? Math.round((zipJob.done / zipJob.total) * 100) : zipJob.status === 'done' ? 100 : 5} />
+            {zipJob.status !== 'running' && (
+              <div className="flex justify-end">
+                <Button size="sm" variant="ghost" onClick={() => setZipJob({ status: 'idle', total: 0, done: 0, message: '' })}>
+                  Fechar
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Confirmação das exportações */}
+      <AlertDialog open={confirmExport !== null} onOpenChange={(o) => !o && setConfirmExport(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exportação</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmExport === 'csv' && 'Exportar todas as tentativas que correspondem aos filtros atuais em formato CSV?'}
+              {confirmExport === 'pdf' && 'Gerar o relatório PDF com todas as tentativas que correspondem aos filtros atuais?'}
+              {confirmExport === 'zip' && 'Gerar o pacote ZIP com as evidências das tentativas bloqueadas por divergência? O processamento ocorre em segundo plano e você pode continuar usando o sistema.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const kind = confirmExport;
+                setConfirmExport(null);
+                if (kind === 'csv') exportCsv();
+                if (kind === 'pdf') exportPdf();
+                if (kind === 'zip') exportEvidenceZip();
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Histórico de downloads de evidências */}
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Histórico de downloads de evidências</DialogTitle>
+            <DialogDescription>Quem baixou PDFs e pacotes ZIP e quando.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label>Início</Label>
+              <Input type="date" value={histStart} onChange={e => setHistStart(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Fim</Label>
+              <Input type="date" value={histEnd} onChange={e => setHistEnd(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Tentativa / arquivo</Label>
+              <Input placeholder="ID da tentativa ou nome do arquivo" value={histAttempt} onChange={e => setHistAttempt(e.target.value)} />
+            </div>
+          </div>
+          <div className="max-h-[50vh] overflow-auto border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data/Hora</TableHead>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Arquivo</TableHead>
+                  <TableHead>Tentativas</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {histLoading ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-6"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Carregando...</TableCell></TableRow>
+                ) : history.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhum download registrado no período</TableCell></TableRow>
+                ) : history.map((h) => (
+                  <TableRow key={h.id}>
+                    <TableCell>{format(parseISO(h.created_at), 'dd/MM/yyyy HH:mm:ss')}</TableCell>
+                    <TableCell>{h.user_name || '-'}</TableCell>
+                    <TableCell>
+                      <Badge variant={h.download_type === 'zip_bundle' ? 'secondary' : 'outline'}>
+                        {h.download_type === 'zip_bundle' ? 'ZIP' : 'PDF'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[240px] truncate">{h.filename || '-'}</TableCell>
+                    <TableCell>{h.attempt_ids?.length || (h.attempt_id ? 1 : 0)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -1026,9 +1229,13 @@ export default function ValidationAudit() {
                                 size="icon"
                                 className="h-7 w-7"
                                 title="Baixar pacote de evidências (PDF)"
+                                disabled={pdfEvidenceId === a.id}
                                 onClick={() => exportEvidencePdf(a, meta, rawUa, justMatch?.[1]?.trim(), blockMatch?.[1]?.trim())}
                               >
-                                <FileText className="h-4 w-4 text-amber-600" />
+                                {pdfEvidenceId === a.id
+                                  ? <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+                                  : <FileText className="h-4 w-4 text-amber-600" />}
+
                               </Button>
                             )}
                           </div>
