@@ -12,15 +12,19 @@ export const formatCPF = (value: string): string => {
   return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
 };
 
+// CNPJ alfanumérico (Receita Federal 2026): 12 posições alfanuméricas + 2 dígitos numéricos
 export const formatCNPJ = (value: string): string => {
-  const numbers = value.replace(/\D/g, '').slice(0, 14);
-  
-  if (numbers.length <= 2) return numbers;
-  if (numbers.length <= 5) return `${numbers.slice(0, 2)}.${numbers.slice(2)}`;
-  if (numbers.length <= 8) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`;
-  if (numbers.length <= 12) return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`;
-  return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8, 12)}-${numbers.slice(12)}`;
+  const raw = (value || '').toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 14);
+  // últimos 2 caracteres (DV) só aceitam números
+  const chars = raw.slice(0, 12) + raw.slice(12).replace(/\D/g, '');
+
+  if (chars.length <= 2) return chars;
+  if (chars.length <= 5) return `${chars.slice(0, 2)}.${chars.slice(2)}`;
+  if (chars.length <= 8) return `${chars.slice(0, 2)}.${chars.slice(2, 5)}.${chars.slice(5)}`;
+  if (chars.length <= 12) return `${chars.slice(0, 2)}.${chars.slice(2, 5)}.${chars.slice(5, 8)}/${chars.slice(8)}`;
+  return `${chars.slice(0, 2)}.${chars.slice(2, 5)}.${chars.slice(5, 8)}/${chars.slice(8, 12)}-${chars.slice(12)}`;
 };
+
 
 export const formatPIS = (value: string): string => {
   const numbers = value.replace(/\D/g, '').slice(0, 11);
