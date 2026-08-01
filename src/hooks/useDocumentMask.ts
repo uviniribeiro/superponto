@@ -85,31 +85,30 @@ export const validateCPF = (cpf: string): boolean => {
   return true;
 };
 
-// Validação de CNPJ
+// Validação de CNPJ (numérico e alfanumérico — padrão Receita Federal 2026)
 export const validateCNPJ = (cnpj: string): boolean => {
-  const numbers = cnpj.replace(/\D/g, '');
-  
-  if (numbers.length !== 14) return false;
-  if (/^(\d)\1+$/.test(numbers)) return false;
-  
+  const chars = (cnpj || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+
+  if (chars.length !== 14) return false;
+  if (!/^[0-9A-Z]{12}\d{2}$/.test(chars)) return false;
+  if (/^(.)\1{13}$/.test(chars)) return false;
+
   const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
   const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-  
+  const val = (i: number) => chars.charCodeAt(i) - 48;
+
   let sum = 0;
-  for (let i = 0; i < 12; i++) {
-    sum += parseInt(numbers[i]) * weights1[i];
-  }
+  for (let i = 0; i < 12; i++) sum += val(i) * weights1[i];
   let remainder = sum % 11;
   const digit1 = remainder < 2 ? 0 : 11 - remainder;
-  if (digit1 !== parseInt(numbers[12])) return false;
-  
+  if (digit1 !== parseInt(chars[12])) return false;
+
   sum = 0;
-  for (let i = 0; i < 13; i++) {
-    sum += parseInt(numbers[i]) * weights2[i];
-  }
+  for (let i = 0; i < 13; i++) sum += val(i) * weights2[i];
   remainder = sum % 11;
   const digit2 = remainder < 2 ? 0 : 11 - remainder;
-  if (digit2 !== parseInt(numbers[13])) return false;
+  if (digit2 !== parseInt(chars[13])) return false;
+
   
   return true;
 };
