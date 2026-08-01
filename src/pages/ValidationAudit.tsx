@@ -785,6 +785,115 @@ export default function ValidationAudit() {
 
       </div>
 
+      {/* Status do processamento assíncrono do ZIP */}
+      {zipJob.status !== 'idle' && (
+        <Card>
+          <CardContent className="pt-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 font-medium">
+                {zipJob.status === 'running' && <Loader2 className="h-4 w-4 animate-spin" />}
+                {zipJob.status === 'running' ? 'Pacote ZIP em andamento' : zipJob.status === 'done' ? 'Pacote ZIP concluído' : 'Falha ao gerar pacote ZIP'}
+              </span>
+              <span className="text-muted-foreground">{zipJob.message}</span>
+            </div>
+            <Progress value={zipJob.total ? Math.round((zipJob.done / zipJob.total) * 100) : zipJob.status === 'done' ? 100 : 5} />
+            {zipJob.status !== 'running' && (
+              <div className="flex justify-end">
+                <Button size="sm" variant="ghost" onClick={() => setZipJob({ status: 'idle', total: 0, done: 0, message: '' })}>
+                  Fechar
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Confirmação das exportações */}
+      <AlertDialog open={confirmExport !== null} onOpenChange={(o) => !o && setConfirmExport(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exportação</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmExport === 'csv' && 'Exportar todas as tentativas que correspondem aos filtros atuais em formato CSV?'}
+              {confirmExport === 'pdf' && 'Gerar o relatório PDF com todas as tentativas que correspondem aos filtros atuais?'}
+              {confirmExport === 'zip' && 'Gerar o pacote ZIP com as evidências das tentativas bloqueadas por divergência? O processamento ocorre em segundo plano e você pode continuar usando o sistema.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const kind = confirmExport;
+                setConfirmExport(null);
+                if (kind === 'csv') exportCsv();
+                if (kind === 'pdf') exportPdf();
+                if (kind === 'zip') exportEvidenceZip();
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Histórico de downloads de evidências */}
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Histórico de downloads de evidências</DialogTitle>
+            <DialogDescription>Quem baixou PDFs e pacotes ZIP e quando.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label>Início</Label>
+              <Input type="date" value={histStart} onChange={e => setHistStart(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Fim</Label>
+              <Input type="date" value={histEnd} onChange={e => setHistEnd(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Tentativa / arquivo</Label>
+              <Input placeholder="ID da tentativa ou nome do arquivo" value={histAttempt} onChange={e => setHistAttempt(e.target.value)} />
+            </div>
+          </div>
+          <div className="max-h-[50vh] overflow-auto border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data/Hora</TableHead>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Arquivo</TableHead>
+                  <TableHead>Tentativas</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {histLoading ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-6"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Carregando...</TableCell></TableRow>
+                ) : history.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhum download registrado no período</TableCell></TableRow>
+                ) : history.map((h) => (
+                  <TableRow key={h.id}>
+                    <TableCell>{format(parseISO(h.created_at), 'dd/MM/yyyy HH:mm:ss')}</TableCell>
+                    <TableCell>{h.user_name || '-'}</TableCell>
+                    <TableCell>
+                      <Badge variant={h.download_type === 'zip_bundle' ? 'secondary' : 'outline'}>
+                        {h.download_type === 'zip_bundle' ? 'ZIP' : 'PDF'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[240px] truncate">{h.filename || '-'}</TableCell>
+                    <TableCell>{h.attempt_ids?.length || (h.attempt_id ? 1 : 0)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
+
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card><CardHeader className="pb-2"><CardDescription>Total no período</CardDescription><CardTitle className="text-2xl">{stats.total}</CardTitle></CardHeader></Card>
