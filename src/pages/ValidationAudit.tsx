@@ -319,12 +319,17 @@ export default function ValidationAudit() {
       toast.success(`CSV exportado (${all.length} registro(s))`);
     } catch (e: any) {
       toast.error('Falha ao exportar CSV: ' + (e?.message || 'erro'));
+    } finally {
+      setExportingCsv(false);
     }
   };
 
   const exportPdf = async () => {
+    if (exportingPdf) return;
+    setExportingPdf(true);
     try {
       const all = await fetchAllFiltered();
+
       if (all.length === 0) { toast.info('Nada para exportar'); return; }
       const head = [['Data/Hora', 'Usuário', 'Método', 'Resultado', 'Motivo']];
       const body = all.map(a => [
