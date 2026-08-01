@@ -1,6 +1,6 @@
 // Application version configuration
-export const APP_VERSION = '2.6.0';
-export const APP_BUILD_DATE = '2026-07-19';
+export const APP_VERSION = '2.7.0';
+export const APP_BUILD_DATE = '2026-07-26';
 export const APP_NAME = 'PontoMax';
 
 // Changelog entries
@@ -14,6 +14,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '2.7.0',
+    date: '2026-07-26',
+    title: 'CNPJ Alfanumérico e Exportações Mais Rápidas',
+    type: 'minor',
+    changes: [
+      'Suporte ao novo CNPJ alfanumérico exigido a partir de 2026',
+      'Validação e máscara automáticas para CNPJ com letras e números',
+      'Pacote ZIP de evidências gerado em segundo plano, sem travar a tela',
+      'Acompanhamento do andamento da geração do ZIP (em andamento/concluído)',
+      'Confirmação antes de exportar CSV, PDF e ZIP para evitar envios duplicados',
+      'Indicadores de carregamento nos botões de exportação',
+      'Nova tela de histórico de downloads de evidências, com filtro por período',
+      'Formulário de sugestões exclusivo do administrador, já preenchido com o contexto do sistema',
+    ],
+  },
+  {
+
     version: '2.6.0',
     date: '2026-07-19',
     title: 'PontoMax — Nova Identidade e Sugestões',
