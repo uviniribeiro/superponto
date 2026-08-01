@@ -45,6 +45,20 @@ export default function ValidationAudit() {
   const canSeeAll = isAdmin || isManager;
 
   const [loading, setLoading] = useState(true);
+  // Exportações: estados de carregamento, confirmação e job assíncrono do ZIP
+  const [exportingCsv, setExportingCsv] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [pdfEvidenceId, setPdfEvidenceId] = useState<string | null>(null);
+  const [confirmExport, setConfirmExport] = useState<null | 'csv' | 'pdf' | 'zip'>(null);
+  const [zipJob, setZipJob] = useState<{ status: 'idle' | 'running' | 'done' | 'error'; total: number; done: number; message: string }>({ status: 'idle', total: 0, done: 0, message: '' });
+  // Histórico de downloads de evidências
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [histLoading, setHistLoading] = useState(false);
+  const [histStart, setHistStart] = useState('');
+  const [histEnd, setHistEnd] = useState('');
+  const [histAttempt, setHistAttempt] = useState('');
+
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
 
