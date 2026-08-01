@@ -279,8 +279,11 @@ export default function ValidationAudit() {
   };
 
   const exportCsv = async () => {
+    if (exportingCsv) return;
+    setExportingCsv(true);
     try {
       const all = await fetchAllFiltered();
+
       if (all.length === 0) { toast.info('Nada para exportar'); return; }
       const header = ['Data/Hora', 'Funcionário', 'Matrícula', 'Método', 'Resultado', 'Confiança', 'Motivo', 'profile_id (device)', 'company_id (device)', 'timezone (device)', 'user-agent'];
       const rows = all.map(a => {
