@@ -278,10 +278,34 @@ export default function TimeClock() {
 
 
 
-    if (!location.latitude || !location.longitude) {
-      const err = { title: 'Localização não disponível', message: 'Precisamos da localização para registrar seu ponto.', hint: 'Permita o acesso à localização no navegador (ícone de cadeado) e tente novamente.' };
+    const hasCoords = geo.latitude != null && geo.longitude != null;
+
+    // Sem coordenadas: permite registrar apenas com justificativa expressa (auditada)
+    if (!hasCoords && !locationOverride) {
+      const err = {
+        title: geo.error?.title || 'Localização não disponível',
+        message: geo.error?.message || 'Ainda não conseguimos obter sua localização.',
+        hint: geo.error?.hint || 'Toque em "Tentar novamente" no cartão de localização.',
+      };
       setLastError(err);
-      toast.error(err.title);
+      toast.error(err.title, { description: err.message });
+      setOverrideOpen(true);
+      return;
+    }
+
+    // Fora da cerca virtual: bloqueia até justificar
+    if (hasCoords && !geofence.unrestricted && !geofence.allowed && !locationOverride) {
+      const nearestText = geofence.nearest
+        ? `Local mais próximo: ${geofence.nearest.name} (${formatDistance(geofence.distanceMeters || 0)} de distância, raio permitido ${geofence.nearest.radius_meters} m).`
+        : 'Nenhum local autorizado próximo foi encontrado.';
+      const err = {
+        title: 'Fora do local autorizado',
+        message: `Você está fora das áreas liberadas para bater ponto. ${nearestText}`,
+        hint: 'Aproxime-se do local de trabalho ou justifique o registro fora da área.',
+      };
+      setLastError(err);
+      toast.error(err.title, { description: nearestText });
+      setOverrideOpen(true);
       return;
     }
 
@@ -302,21 +326,27 @@ export default function TimeClock() {
         profile.id,
         nextRecordType,
         recordedAt,
-        location.latitude || undefined,
-        location.longitude || undefined
+        geo.latitude || undefined,
+        geo.longitude || undefined
       );
+
+      const deviceParts = [navigator.userAgent];
+      if (geo.accuracy != null) deviceParts.push(`precisão=${Math.round(geo.accuracy)}m`);
+      if (geofence.nearest && geofence.distanceMeters != null) {
+        deviceParts.push(`local=${geofence.nearest.name} (${formatDistance(geofence.distanceMeters)})`);
+      }
+      if (divergenceJustification) deviceParts.push(`Divergência confirmada: ${divergenceJustification}`);
+      if (locationOverride) deviceParts.push(`Localização justificada: ${locationOverride}`);
 
       const { data: newRecord, error } = await supabase.from('time_records').insert({
         profile_id: profile.id,
         company_id: profile.company_id,
         record_type: nextRecordType,
         recorded_at: recordedAt.toISOString(),
-        latitude: location.latitude,
-        longitude: location.longitude,
-        address: location.address,
-        device_info: divergenceJustification
-          ? `${navigator.userAgent} | Divergência confirmada: ${divergenceJustification}`
-          : navigator.userAgent,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        address: geo.address,
+        device_info: deviceParts.join(' | '),
         transaction_hash: transactionHash,
       }).select('id, nsr, recorded_at, record_type, latitude, longitude, address, transaction_hash').single();
 
