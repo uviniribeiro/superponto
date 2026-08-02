@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Check, FileText, Fingerprint, Hash, FlaskConical, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Check, FileText, Fingerprint, Hash, FlaskConical, AlertTriangle, ShieldAlert, RefreshCw, Navigation, Ban } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
