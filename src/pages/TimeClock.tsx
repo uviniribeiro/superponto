@@ -144,41 +144,56 @@ export default function TimeClock() {
     setCompanySettings(data);
   };
 
-  const getLocation = () => {
-    setIsLoadingLocation(true);
-    if (!navigator.geolocation) {
-      toast.error('Geolocalização não suportada pelo navegador');
-      setIsLoadingLocation(false);
-      return;
+  const fetchAllowedLocations = async () => {
+    if (!profile) return;
+    const locations: AllowedLocation[] = [];
+
+    try {
+      const { data: stations } = await supabase
+        .from('employee_work_stations')
+        .select('work_station_id, is_active, work_stations(id, name, latitude, longitude, radius_meters, is_active)')
+        .eq('profile_id', profile.id)
+        .eq('is_active', true);
+
+      (stations || []).forEach((row: any) => {
+        const ws = row.work_stations;
+        if (ws?.is_active && ws.latitude != null && ws.longitude != null) {
+          locations.push({
+            id: ws.id,
+            name: ws.name,
+            latitude: Number(ws.latitude),
+            longitude: Number(ws.longitude),
+            radius_meters: ws.radius_meters || 100,
+            source: 'work_station',
+          });
+        }
+      });
+
+      const { data: geoLocs } = await supabase
+        .from('employee_georeferenced_locations')
+        .select('location_id, georeferenced_locations(id, description, latitude, longitude, radius_meters, is_active)')
+        .eq('profile_id', profile.id);
+
+      (geoLocs || []).forEach((row: any) => {
+        const gl = row.georeferenced_locations;
+        if (gl?.is_active && gl.latitude != null && gl.longitude != null) {
+          locations.push({
+            id: gl.id,
+            name: gl.description,
+            latitude: Number(gl.latitude),
+            longitude: Number(gl.longitude),
+            radius_meters: gl.radius_meters || 100,
+            source: 'georeferenced',
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao carregar locais permitidos:', error);
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setLocation({ latitude, longitude, address: null });
-        
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-          );
-          const data = await response.json();
-          if (data.display_name) {
-            setLocation(prev => ({ ...prev, address: data.display_name }));
-          }
-        } catch (error) {
-          console.error('Error getting address:', error);
-        }
-        
-        setIsLoadingLocation(false);
-      },
-      (error) => {
-        console.error('Geolocation error:', error);
-        toast.error('Não foi possível obter sua localização. Por favor, permita o acesso.');
-        setIsLoadingLocation(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+    setAllowedLocations(locations);
   };
+
 
   const fetchTodayRecords = async () => {
     if (!profile) return;
