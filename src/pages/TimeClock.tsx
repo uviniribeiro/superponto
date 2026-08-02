@@ -65,15 +65,19 @@ export default function TimeClock() {
   }, []);
 
   useEffect(() => {
-    getLocation();
     if (profile) {
       fetchTodayRecords();
       fetchCompanySettings();
       fetchIdentificationMethods();
+      fetchAllowedLocations();
       runFieldDiagnostic();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
+
+  const geofence: GeofenceResult = geo.latitude != null && geo.longitude != null
+    ? checkGeofence(geo.latitude, geo.longitude, allowedLocations, geo.accuracy ?? 0)
+    : { allowed: false, nearest: null, distanceMeters: null, unrestricted: allowedLocations.length === 0 };
 
   const runFieldDiagnostic = () => {
     if (!profile) return;
