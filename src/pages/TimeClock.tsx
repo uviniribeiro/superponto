@@ -17,20 +17,19 @@ import { ptBR } from 'date-fns/locale';
 import TimeRecordReceipt from '@/components/time-records/TimeRecordReceipt';
 import { generateTimeRecordHash } from '@/lib/transactionHash';
 import MobileValidationDialog, { type IdentificationMethod } from '@/components/time-records/MobileValidationDialog';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { checkGeofence, formatDistance, type AllowedLocation, type GeofenceResult } from '@/lib/geofence';
 
 type RecordType = 'entry' | 'break_start' | 'break_end' | 'exit';
-
-interface Location {
-  latitude: number | null;
-  longitude: number | null;
-  address: string | null;
-}
 
 export default function TimeClock() {
   const { profile } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [location, setLocation] = useState<Location>({ latitude: null, longitude: null, address: null });
-  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const geo = useGeolocation();
+  const [allowedLocations, setAllowedLocations] = useState<AllowedLocation[]>([]);
+  const [locationOverride, setLocationOverride] = useState<string | null>(null);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideReason, setOverrideReason] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [todayRecords, setTodayRecords] = useState<{ id?: string; nsr?: number; record_type: string; recorded_at: string; latitude?: number | null; longitude?: number | null; address?: string | null; transaction_hash?: string | null }[]>([]);
   
