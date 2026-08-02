@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Check, FileText, Fingerprint, Hash, FlaskConical, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Clock, MapPin, LogIn, Coffee, LogOut, Loader2, Check, FileText, Fingerprint, Hash, FlaskConical, AlertTriangle, ShieldAlert, RefreshCw, Navigation, Ban } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -17,20 +17,19 @@ import { ptBR } from 'date-fns/locale';
 import TimeRecordReceipt from '@/components/time-records/TimeRecordReceipt';
 import { generateTimeRecordHash } from '@/lib/transactionHash';
 import MobileValidationDialog, { type IdentificationMethod } from '@/components/time-records/MobileValidationDialog';
+import { useGeolocation } from '@/hooks/useGeolocation';
+import { checkGeofence, formatDistance, type AllowedLocation, type GeofenceResult } from '@/lib/geofence';
 
 type RecordType = 'entry' | 'break_start' | 'break_end' | 'exit';
-
-interface Location {
-  latitude: number | null;
-  longitude: number | null;
-  address: string | null;
-}
 
 export default function TimeClock() {
   const { profile } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [location, setLocation] = useState<Location>({ latitude: null, longitude: null, address: null });
-  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const geo = useGeolocation();
+  const [allowedLocations, setAllowedLocations] = useState<AllowedLocation[]>([]);
+  const [locationOverride, setLocationOverride] = useState<string | null>(null);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideReason, setOverrideReason] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [todayRecords, setTodayRecords] = useState<{ id?: string; nsr?: number; record_type: string; recorded_at: string; latitude?: number | null; longitude?: number | null; address?: string | null; transaction_hash?: string | null }[]>([]);
   
@@ -66,15 +65,19 @@ export default function TimeClock() {
   }, []);
 
   useEffect(() => {
-    getLocation();
     if (profile) {
       fetchTodayRecords();
       fetchCompanySettings();
       fetchIdentificationMethods();
+      fetchAllowedLocations();
       runFieldDiagnostic();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
+
+  const geofence: GeofenceResult = geo.latitude != null && geo.longitude != null
+    ? checkGeofence(geo.latitude, geo.longitude, allowedLocations, geo.accuracy ?? 0)
+    : { allowed: false, nearest: null, distanceMeters: null, unrestricted: allowedLocations.length === 0 };
 
   const runFieldDiagnostic = () => {
     if (!profile) return;
@@ -141,41 +144,56 @@ export default function TimeClock() {
     setCompanySettings(data);
   };
 
-  const getLocation = () => {
-    setIsLoadingLocation(true);
-    if (!navigator.geolocation) {
-      toast.error('Geolocalização não suportada pelo navegador');
-      setIsLoadingLocation(false);
-      return;
+  const fetchAllowedLocations = async () => {
+    if (!profile) return;
+    const locations: AllowedLocation[] = [];
+
+    try {
+      const { data: stations } = await supabase
+        .from('employee_work_stations')
+        .select('work_station_id, is_active, work_stations(id, name, latitude, longitude, radius_meters, is_active)')
+        .eq('profile_id', profile.id)
+        .eq('is_active', true);
+
+      (stations || []).forEach((row: any) => {
+        const ws = row.work_stations;
+        if (ws?.is_active && ws.latitude != null && ws.longitude != null) {
+          locations.push({
+            id: ws.id,
+            name: ws.name,
+            latitude: Number(ws.latitude),
+            longitude: Number(ws.longitude),
+            radius_meters: ws.radius_meters || 100,
+            source: 'work_station',
+          });
+        }
+      });
+
+      const { data: geoLocs } = await supabase
+        .from('employee_georeferenced_locations')
+        .select('location_id, georeferenced_locations(id, description, latitude, longitude, radius_meters, is_active)')
+        .eq('profile_id', profile.id);
+
+      (geoLocs || []).forEach((row: any) => {
+        const gl = row.georeferenced_locations;
+        if (gl?.is_active && gl.latitude != null && gl.longitude != null) {
+          locations.push({
+            id: gl.id,
+            name: gl.description,
+            latitude: Number(gl.latitude),
+            longitude: Number(gl.longitude),
+            radius_meters: gl.radius_meters || 100,
+            source: 'georeferenced',
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao carregar locais permitidos:', error);
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setLocation({ latitude, longitude, address: null });
-        
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-          );
-          const data = await response.json();
-          if (data.display_name) {
-            setLocation(prev => ({ ...prev, address: data.display_name }));
-          }
-        } catch (error) {
-          console.error('Error getting address:', error);
-        }
-        
-        setIsLoadingLocation(false);
-      },
-      (error) => {
-        console.error('Geolocation error:', error);
-        toast.error('Não foi possível obter sua localização. Por favor, permita o acesso.');
-        setIsLoadingLocation(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+    setAllowedLocations(locations);
   };
+
 
   const fetchTodayRecords = async () => {
     if (!profile) return;
@@ -260,10 +278,34 @@ export default function TimeClock() {
 
 
 
-    if (!location.latitude || !location.longitude) {
-      const err = { title: 'Localização não disponível', message: 'Precisamos da localização para registrar seu ponto.', hint: 'Permita o acesso à localização no navegador (ícone de cadeado) e tente novamente.' };
+    const hasCoords = geo.latitude != null && geo.longitude != null;
+
+    // Sem coordenadas: permite registrar apenas com justificativa expressa (auditada)
+    if (!hasCoords && !locationOverride) {
+      const err = {
+        title: geo.error?.title || 'Localização não disponível',
+        message: geo.error?.message || 'Ainda não conseguimos obter sua localização.',
+        hint: geo.error?.hint || 'Toque em "Tentar novamente" no cartão de localização.',
+      };
       setLastError(err);
-      toast.error(err.title);
+      toast.error(err.title, { description: err.message });
+      setOverrideOpen(true);
+      return;
+    }
+
+    // Fora da cerca virtual: bloqueia até justificar
+    if (hasCoords && !geofence.unrestricted && !geofence.allowed && !locationOverride) {
+      const nearestText = geofence.nearest
+        ? `Local mais próximo: ${geofence.nearest.name} (${formatDistance(geofence.distanceMeters || 0)} de distância, raio permitido ${geofence.nearest.radius_meters} m).`
+        : 'Nenhum local autorizado próximo foi encontrado.';
+      const err = {
+        title: 'Fora do local autorizado',
+        message: `Você está fora das áreas liberadas para bater ponto. ${nearestText}`,
+        hint: 'Aproxime-se do local de trabalho ou justifique o registro fora da área.',
+      };
+      setLastError(err);
+      toast.error(err.title, { description: nearestText });
+      setOverrideOpen(true);
       return;
     }
 
@@ -284,21 +326,27 @@ export default function TimeClock() {
         profile.id,
         nextRecordType,
         recordedAt,
-        location.latitude || undefined,
-        location.longitude || undefined
+        geo.latitude || undefined,
+        geo.longitude || undefined
       );
+
+      const deviceParts = [navigator.userAgent];
+      if (geo.accuracy != null) deviceParts.push(`precisão=${Math.round(geo.accuracy)}m`);
+      if (geofence.nearest && geofence.distanceMeters != null) {
+        deviceParts.push(`local=${geofence.nearest.name} (${formatDistance(geofence.distanceMeters)})`);
+      }
+      if (divergenceJustification) deviceParts.push(`Divergência confirmada: ${divergenceJustification}`);
+      if (locationOverride) deviceParts.push(`Localização justificada: ${locationOverride}`);
 
       const { data: newRecord, error } = await supabase.from('time_records').insert({
         profile_id: profile.id,
         company_id: profile.company_id,
         record_type: nextRecordType,
         recorded_at: recordedAt.toISOString(),
-        latitude: location.latitude,
-        longitude: location.longitude,
-        address: location.address,
-        device_info: divergenceJustification
-          ? `${navigator.userAgent} | Divergência confirmada: ${divergenceJustification}`
-          : navigator.userAgent,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        address: geo.address,
+        device_info: deviceParts.join(' | '),
         transaction_hash: transactionHash,
       }).select('id, nsr, recorded_at, record_type, latitude, longitude, address, transaction_hash').single();
 
@@ -320,6 +368,8 @@ export default function TimeClock() {
         setShowReceipt(true);
       }
 
+      setLocationOverride(null);
+      setOverrideReason('');
       fetchTodayRecords();
     } catch (error: any) {
       console.error('Error recording time:', error);
@@ -528,29 +578,76 @@ export default function TimeClock() {
       </Card>
 
       {/* Location Status */}
-      <Card>
-        <CardContent className="py-4">
+      <Card className={geo.error ? 'border-destructive/50' : ''}>
+        <CardContent className="py-4 space-y-3">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${location.latitude ? 'bg-success/20' : 'bg-warning/20'}`}>
-              {isLoadingLocation ? (
+            <div className={`p-2 rounded-full ${geo.latitude ? 'bg-success/20' : 'bg-warning/20'}`}>
+              {geo.isLoading ? (
                 <Loader2 className="h-5 w-5 text-warning animate-spin" />
+              ) : geo.error ? (
+                <Ban className="h-5 w-5 text-destructive" />
               ) : (
-                <MapPin className={`h-5 w-5 ${location.latitude ? 'text-success' : 'text-warning'}`} />
+                <MapPin className={`h-5 w-5 ${geo.latitude ? 'text-success' : 'text-warning'}`} />
               )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm">
-                {isLoadingLocation ? 'Obtendo localização...' : location.latitude ? 'Localização identificada' : 'Localização não disponível'}
+                {geo.isLoading
+                  ? 'Obtendo localização...'
+                  : geo.error
+                    ? geo.error.title
+                    : geo.latitude
+                      ? 'Localização identificada'
+                      : 'Localização não disponível'}
               </p>
-              {location.address && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {location.address}
-                </p>
+              {geo.error ? (
+                <p className="text-xs text-muted-foreground">{geo.error.hint}</p>
+              ) : (
+                <>
+                  {geo.address && <p className="text-xs text-muted-foreground truncate">{geo.address}</p>}
+                  {geo.isResolvingAddress && !geo.address && (
+                    <p className="text-xs text-muted-foreground">Buscando endereço...</p>
+                  )}
+                  {geo.accuracy != null && (
+                    <p className="text-xs text-muted-foreground">Precisão aproximada: {Math.round(geo.accuracy)} m</p>
+                  )}
+                </>
               )}
             </div>
+            <Button variant="ghost" size="sm" onClick={geo.refresh} disabled={geo.isLoading}>
+              <RefreshCw className={`h-4 w-4 ${geo.isLoading ? 'animate-spin' : ''}`} />
+              <span className="sr-only">Tentar novamente</span>
+            </Button>
           </div>
+
+          {/* Geofence status */}
+          {geo.latitude != null && !geofence.unrestricted && (
+            <div
+              className={`flex items-start gap-2 rounded-md p-2 text-xs ${
+                geofence.allowed ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
+              }`}
+            >
+              <Navigation className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                {geofence.allowed
+                  ? `Dentro da área autorizada${geofence.nearest ? `: ${geofence.nearest.name}` : ''}.`
+                  : `Fora da área autorizada.${
+                      geofence.nearest && geofence.distanceMeters != null
+                        ? ` ${geofence.nearest.name} está a ${formatDistance(geofence.distanceMeters)} (raio de ${geofence.nearest.radius_meters} m).`
+                        : ''
+                    }`}
+              </span>
+            </div>
+          )}
+
+          {locationOverride && (
+            <p className="text-xs text-amber-600">
+              Registro fora da área será gravado com justificativa: “{locationOverride}”.
+            </p>
+          )}
         </CardContent>
       </Card>
+
 
       {/* Swipe to Register Button */}
       {nextRecordType ? (
@@ -766,6 +863,81 @@ export default function TimeClock() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Localização indisponível / fora da área */}
+      <Dialog open={overrideOpen} onOpenChange={(o) => { setOverrideOpen(o); if (!o) setOverrideReason(''); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <MapPin className="h-5 w-5" />
+              {geo.latitude == null ? 'Localização não disponível' : 'Fora do local autorizado'}
+            </DialogTitle>
+            <DialogDescription>
+              {geo.latitude == null
+                ? 'Não conseguimos obter sua localização. Tente novamente ou registre o ponto com justificativa — ela ficará registrada para auditoria.'
+                : 'Você está fora das áreas liberadas para marcação. Aproxime-se do local de trabalho ou justifique o registro.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+            {geo.error && <p>{geo.error.message}</p>}
+            {geo.latitude != null && (
+              <p className="font-mono">
+                lat {geo.latitude.toFixed(6)} / lon {geo.longitude?.toFixed(6)}
+                {geo.accuracy != null ? ` (±${Math.round(geo.accuracy)} m)` : ''}
+              </p>
+            )}
+            {geofence.nearest && geofence.distanceMeters != null && (
+              <p>
+                Local mais próximo: {geofence.nearest.name} — {formatDistance(geofence.distanceMeters)} (raio permitido {geofence.nearest.radius_meters} m)
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Justificativa (obrigatória)</label>
+            <Textarea
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              placeholder="Ex.: Atendimento externo autorizado / GPS sem sinal no subsolo…"
+              rows={4}
+            />
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setOverrideOpen(false); geo.refresh(); }}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Tentar novamente
+            </Button>
+            <Button
+              disabled={overrideReason.trim().length < 5}
+              onClick={async () => {
+                const reason = overrideReason.trim();
+                try {
+                  if (profile) {
+                    await supabase.from('identification_validation_attempts').insert({
+                      user_id: profile.user_id,
+                      profile_id: profile.id,
+                      company_id: profile.company_id,
+                      method_type: 'location',
+                      success: true,
+                      reason: `[LOCALIZAÇÃO JUSTIFICADA] ${reason} — lat=${geo.latitude ?? 'n/d'} lon=${geo.longitude ?? 'n/d'} precisão=${geo.accuracy ? Math.round(geo.accuracy) : 'n/d'}m distância=${geofence.distanceMeters ?? 'n/d'}m`,
+                      user_agent: navigator.userAgent,
+                    });
+                  }
+                } catch { /* non-blocking */ }
+                setLocationOverride(reason);
+                setOverrideOpen(false);
+                setLastError(null);
+                setTimeout(() => recordTimeEntry(), 0);
+              }}
+            >
+              Justificar e registrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
 
       <HelpButton pageKey="timeclock" />
 
