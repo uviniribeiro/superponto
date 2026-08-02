@@ -862,6 +862,81 @@ export default function TimeClock() {
         </DialogContent>
       </Dialog>
 
+      {/* Localização indisponível / fora da área */}
+      <Dialog open={overrideOpen} onOpenChange={(o) => { setOverrideOpen(o); if (!o) setOverrideReason(''); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <MapPin className="h-5 w-5" />
+              {geo.latitude == null ? 'Localização não disponível' : 'Fora do local autorizado'}
+            </DialogTitle>
+            <DialogDescription>
+              {geo.latitude == null
+                ? 'Não conseguimos obter sua localização. Tente novamente ou registre o ponto com justificativa — ela ficará registrada para auditoria.'
+                : 'Você está fora das áreas liberadas para marcação. Aproxime-se do local de trabalho ou justifique o registro.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+            {geo.error && <p>{geo.error.message}</p>}
+            {geo.latitude != null && (
+              <p className="font-mono">
+                lat {geo.latitude.toFixed(6)} / lon {geo.longitude?.toFixed(6)}
+                {geo.accuracy != null ? ` (±${Math.round(geo.accuracy)} m)` : ''}
+              </p>
+            )}
+            {geofence.nearest && geofence.distanceMeters != null && (
+              <p>
+                Local mais próximo: {geofence.nearest.name} — {formatDistance(geofence.distanceMeters)} (raio permitido {geofence.nearest.radius_meters} m)
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Justificativa (obrigatória)</label>
+            <Textarea
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              placeholder="Ex.: Atendimento externo autorizado / GPS sem sinal no subsolo…"
+              rows={4}
+            />
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setOverrideOpen(false); geo.refresh(); }}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Tentar novamente
+            </Button>
+            <Button
+              disabled={overrideReason.trim().length < 5}
+              onClick={async () => {
+                const reason = overrideReason.trim();
+                try {
+                  if (profile) {
+                    await supabase.from('identification_validation_attempts').insert({
+                      user_id: profile.user_id,
+                      profile_id: profile.id,
+                      company_id: profile.company_id,
+                      method_type: 'location',
+                      success: true,
+                      reason: `[LOCALIZAÇÃO JUSTIFICADA] ${reason} — lat=${geo.latitude ?? 'n/d'} lon=${geo.longitude ?? 'n/d'} precisão=${geo.accuracy ? Math.round(geo.accuracy) : 'n/d'}m distância=${geofence.distanceMeters ?? 'n/d'}m`,
+                      user_agent: navigator.userAgent,
+                    });
+                  }
+                } catch { /* non-blocking */ }
+                setLocationOverride(reason);
+                setOverrideOpen(false);
+                setLastError(null);
+                setTimeout(() => recordTimeEntry(), 0);
+              }}
+            >
+              Justificar e registrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
       <HelpButton pageKey="timeclock" />
 
     </div>
