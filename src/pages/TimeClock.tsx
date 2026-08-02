@@ -368,6 +368,8 @@ export default function TimeClock() {
         setShowReceipt(true);
       }
 
+      setLocationOverride(null);
+      setOverrideReason('');
       fetchTodayRecords();
     } catch (error: any) {
       console.error('Error recording time:', error);
