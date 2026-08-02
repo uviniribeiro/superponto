@@ -576,29 +576,76 @@ export default function TimeClock() {
       </Card>
 
       {/* Location Status */}
-      <Card>
-        <CardContent className="py-4">
+      <Card className={geo.error ? 'border-destructive/50' : ''}>
+        <CardContent className="py-4 space-y-3">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${location.latitude ? 'bg-success/20' : 'bg-warning/20'}`}>
-              {isLoadingLocation ? (
+            <div className={`p-2 rounded-full ${geo.latitude ? 'bg-success/20' : 'bg-warning/20'}`}>
+              {geo.isLoading ? (
                 <Loader2 className="h-5 w-5 text-warning animate-spin" />
+              ) : geo.error ? (
+                <Ban className="h-5 w-5 text-destructive" />
               ) : (
-                <MapPin className={`h-5 w-5 ${location.latitude ? 'text-success' : 'text-warning'}`} />
+                <MapPin className={`h-5 w-5 ${geo.latitude ? 'text-success' : 'text-warning'}`} />
               )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm">
-                {isLoadingLocation ? 'Obtendo localização...' : location.latitude ? 'Localização identificada' : 'Localização não disponível'}
+                {geo.isLoading
+                  ? 'Obtendo localização...'
+                  : geo.error
+                    ? geo.error.title
+                    : geo.latitude
+                      ? 'Localização identificada'
+                      : 'Localização não disponível'}
               </p>
-              {location.address && (
-                <p className="text-xs text-muted-foreground truncate">
-                  {location.address}
-                </p>
+              {geo.error ? (
+                <p className="text-xs text-muted-foreground">{geo.error.hint}</p>
+              ) : (
+                <>
+                  {geo.address && <p className="text-xs text-muted-foreground truncate">{geo.address}</p>}
+                  {geo.isResolvingAddress && !geo.address && (
+                    <p className="text-xs text-muted-foreground">Buscando endereço...</p>
+                  )}
+                  {geo.accuracy != null && (
+                    <p className="text-xs text-muted-foreground">Precisão aproximada: {Math.round(geo.accuracy)} m</p>
+                  )}
+                </>
               )}
             </div>
+            <Button variant="ghost" size="sm" onClick={geo.refresh} disabled={geo.isLoading}>
+              <RefreshCw className={`h-4 w-4 ${geo.isLoading ? 'animate-spin' : ''}`} />
+              <span className="sr-only">Tentar novamente</span>
+            </Button>
           </div>
+
+          {/* Geofence status */}
+          {geo.latitude != null && !geofence.unrestricted && (
+            <div
+              className={`flex items-start gap-2 rounded-md p-2 text-xs ${
+                geofence.allowed ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
+              }`}
+            >
+              <Navigation className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                {geofence.allowed
+                  ? `Dentro da área autorizada${geofence.nearest ? `: ${geofence.nearest.name}` : ''}.`
+                  : `Fora da área autorizada.${
+                      geofence.nearest && geofence.distanceMeters != null
+                        ? ` ${geofence.nearest.name} está a ${formatDistance(geofence.distanceMeters)} (raio de ${geofence.nearest.radius_meters} m).`
+                        : ''
+                    }`}
+              </span>
+            </div>
+          )}
+
+          {locationOverride && (
+            <p className="text-xs text-amber-600">
+              Registro fora da área será gravado com justificativa: “{locationOverride}”.
+            </p>
+          )}
         </CardContent>
       </Card>
+
 
       {/* Swipe to Register Button */}
       {nextRecordType ? (
