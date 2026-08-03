@@ -235,6 +235,7 @@ export const bancoHorasHubConfig: CategoryHubConfig = {
       subtitle: 'Regras de cálculo de horas extras',
       items: [
         { title: 'Regras de HE', description: 'Percentuais e regras de horas extras', icon: TrendingUp, href: '/overtime-percentages', color: 'text-amber-600' },
+        { title: 'Regras de Apuração', description: 'Tolerâncias, noturno, intrajornada e compensação', icon: SlidersHorizontal, href: '/attendance-rules', color: 'text-sky-600' },
       ],
     },
   ],

@@ -53,6 +53,7 @@ const Scales = React.lazy(() => import("@/pages/Scales"));
 const ScheduledScales = React.lazy(() => import("@/pages/ScheduledScales"));
 const FixedScales = React.lazy(() => import("@/pages/FixedScales"));
 const Journeys = React.lazy(() => import("@/pages/Journeys"));
+const AttendanceRules = React.lazy(() => import("@/pages/AttendanceRules"));
 
 // Time Management
 const Adjustments = React.lazy(() => import("@/pages/Adjustments"));
@@ -226,6 +227,7 @@ const App = () => (
                   <Route path="schedules" element={<ProtectedRoute requiredRoles={['admin']}><WorkSchedules /></ProtectedRoute>} />
                   <Route path="work-schedules" element={<ProtectedRoute requiredRoles={['admin']}><NewScales /></ProtectedRoute>} />
                   <Route path="journeys" element={<ProtectedRoute requiredRoles={['admin']}><Journeys /></ProtectedRoute>} />
+                  <Route path="attendance-rules" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><AttendanceRules /></ProtectedRoute>} />
                   <Route path="fixed-scales" element={<ProtectedRoute requiredRoles={['admin']}><FixedScales /></ProtectedRoute>} />
                   <Route path="scheduled-scales" element={<ProtectedRoute requiredRoles={['admin']}><ScheduledScales /></ProtectedRoute>} />
                   <Route path="adjustments" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Adjustments /></ProtectedRoute>} />
