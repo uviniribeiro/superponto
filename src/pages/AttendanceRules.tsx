@@ -127,10 +127,7 @@ export default function AttendanceRulesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <HelpButton
-            title="Regras de Apuração"
-            content="Defina aqui como o sistema apura a frequência: tolerâncias, arredondamento, percentuais de horas extras, adicional noturno, intervalo mínimo e compensação automática de atrasos."
-          />
+
           <Button onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Salvar
