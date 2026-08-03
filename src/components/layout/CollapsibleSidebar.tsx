@@ -41,6 +41,7 @@ import {
   Timer,
   UserX,
   TrendingUp,
+  SlidersHorizontal,
   Briefcase,
   CalendarClock,
   GraduationCap,
