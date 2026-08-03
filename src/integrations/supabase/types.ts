@@ -198,6 +198,117 @@ export type Database = {
           },
         ]
       }
+      attendance_rules: {
+        Row: {
+          auto_compensation: boolean
+          auto_deduct_break: boolean
+          auto_discount_absences: boolean
+          company_id: string
+          compensation_deadline_days: number
+          count_break_overtime: boolean
+          created_at: string
+          daily_overtime_limit_minutes: number
+          daily_tolerance_minutes: number
+          entry_tolerance_minutes: number
+          exit_tolerance_minutes: number
+          id: string
+          is_default: boolean
+          journey_day_reference: string
+          max_compensation_minutes_per_month: number
+          max_occurrences_per_month: number
+          min_break_minutes: number
+          name: string
+          night_end: string
+          night_percent: number
+          night_start: string
+          occurrence_allocation: string
+          overtime_break_percent: number
+          overtime_holiday_percent: number
+          overtime_night_percent: number
+          overtime_normal_percent: number
+          overtime_rest_day_percent: number
+          per_punch_tolerance_minutes: number
+          require_manager_approval_early: boolean
+          rounding_minutes: number
+          rounding_mode: string
+          single_punch_balance: boolean
+          updated_at: string
+          use_reduced_night_hour: boolean
+        }
+        Insert: {
+          auto_compensation?: boolean
+          auto_deduct_break?: boolean
+          auto_discount_absences?: boolean
+          company_id: string
+          compensation_deadline_days?: number
+          count_break_overtime?: boolean
+          created_at?: string
+          daily_overtime_limit_minutes?: number
+          daily_tolerance_minutes?: number
+          entry_tolerance_minutes?: number
+          exit_tolerance_minutes?: number
+          id?: string
+          is_default?: boolean
+          journey_day_reference?: string
+          max_compensation_minutes_per_month?: number
+          max_occurrences_per_month?: number
+          min_break_minutes?: number
+          name?: string
+          night_end?: string
+          night_percent?: number
+          night_start?: string
+          occurrence_allocation?: string
+          overtime_break_percent?: number
+          overtime_holiday_percent?: number
+          overtime_night_percent?: number
+          overtime_normal_percent?: number
+          overtime_rest_day_percent?: number
+          per_punch_tolerance_minutes?: number
+          require_manager_approval_early?: boolean
+          rounding_minutes?: number
+          rounding_mode?: string
+          single_punch_balance?: boolean
+          updated_at?: string
+          use_reduced_night_hour?: boolean
+        }
+        Update: {
+          auto_compensation?: boolean
+          auto_deduct_break?: boolean
+          auto_discount_absences?: boolean
+          company_id?: string
+          compensation_deadline_days?: number
+          count_break_overtime?: boolean
+          created_at?: string
+          daily_overtime_limit_minutes?: number
+          daily_tolerance_minutes?: number
+          entry_tolerance_minutes?: number
+          exit_tolerance_minutes?: number
+          id?: string
+          is_default?: boolean
+          journey_day_reference?: string
+          max_compensation_minutes_per_month?: number
+          max_occurrences_per_month?: number
+          min_break_minutes?: number
+          name?: string
+          night_end?: string
+          night_percent?: number
+          night_start?: string
+          occurrence_allocation?: string
+          overtime_break_percent?: number
+          overtime_holiday_percent?: number
+          overtime_night_percent?: number
+          overtime_normal_percent?: number
+          overtime_rest_day_percent?: number
+          per_punch_tolerance_minutes?: number
+          require_manager_approval_early?: boolean
+          rounding_minutes?: number
+          rounding_mode?: string
+          single_punch_balance?: boolean
+          updated_at?: string
+          use_reduced_night_hour?: boolean
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string

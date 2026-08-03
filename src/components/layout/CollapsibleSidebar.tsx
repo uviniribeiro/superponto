@@ -41,6 +41,7 @@ import {
   Timer,
   UserX,
   TrendingUp,
+  SlidersHorizontal,
   Briefcase,
   CalendarClock,
   GraduationCap,
@@ -197,6 +198,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Banco de Horas', icon: Timer, href: '/time-bank', roles: ['admin', 'manager', 'employee'] },
       { title: 'Compensação', icon: ArrowUpDown, href: '/compensation-bank', roles: ['admin'] },
       { title: 'Regras de HE', icon: TrendingUp, href: '/overtime-percentages', roles: ['admin'] },
+      { title: 'Regras de Apuração', icon: SlidersHorizontal, href: '/attendance-rules', roles: ['admin', 'manager'] },
       { title: 'Dashboard HE', icon: BarChart3, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
     ]
   },
