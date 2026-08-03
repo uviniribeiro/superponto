@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, Save, SlidersHorizontal, Moon, Clock, Scale, CalendarClock } from 'lucide-react';
-import { HelpButton } from '@/components/HelpButton';
 import {
   AttendanceRules,
   DEFAULT_ATTENDANCE_RULES,
