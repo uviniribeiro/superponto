@@ -17,6 +17,8 @@ import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
+import { MaskedInput } from '@/components/ui/masked-input';
+import { validateCNPJ, cleanCNPJ, isAlphanumericCNPJ } from '@/lib/validators';
 import { EmployeeTransferDialog } from '@/components/superadmin/EmployeeTransferDialog';
 
 interface Company {
@@ -80,7 +82,7 @@ const employeeLimits = [
 
 const cityHallSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
-  cnpj: z.string().min(14, 'CNPJ inválido').max(18),
+  cnpj: z.string().refine((v) => validateCNPJ(v).valid, { message: 'CNPJ inválido' }),
 });
 
 const generateLicenseKey = (): string => {
@@ -203,8 +205,12 @@ export default function SuperAdminCityHalls() {
   const getSectors = (cityHallId: string) => companies.filter(c => c.parent_organization_id === cityHallId);
 
   const handleCnpjLookup = async (cnpj: string) => {
-    const cleanCnpj = cnpj.replace(/[^\d]/g, '');
+    const cleanCnpj = cleanCNPJ(cnpj);
     if (cleanCnpj.length !== 14) return;
+    if (isAlphanumericCNPJ(cleanCnpj)) {
+      // CNPJ alfanumérico ainda não é consultável nas bases públicas — preenchimento manual
+      return;
+    }
 
     setLookingUpCnpj(true);
     try {
@@ -242,7 +248,7 @@ export default function SuperAdminCityHalls() {
 
     try {
       const validData = cityHallSchema.parse(formData);
-      const normalizedCnpj = formData.cnpj.replace(/[^\d]/g, '');
+      const normalizedCnpj = cleanCNPJ(formData.cnpj);
       
       const { data: existingCompany } = await supabase
         .from('companies')
@@ -758,12 +764,13 @@ export default function SuperAdminCityHalls() {
       <div className="space-y-2">
         <Label htmlFor="cnpj">CNPJ *</Label>
         <div className="flex gap-2">
-          <Input
+          <MaskedInput
             id="cnpj"
+            mask="cnpj"
+            showValidation
             value={formData.cnpj}
-            onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+            onChange={(value) => setFormData({ ...formData, cnpj: value })}
             onBlur={() => handleCnpjLookup(formData.cnpj)}
-            placeholder="00.000.000/0000-00"
             className="flex-1"
           />
           <Button 
@@ -775,7 +782,7 @@ export default function SuperAdminCityHalls() {
             {lookingUpCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">Digite o CNPJ e os dados serão preenchidos automaticamente</p>
+        <p className="text-xs text-muted-foreground">Aceita CNPJ numérico ou alfanumérico (padrão Receita Federal 2026). Para CNPJ numérico os dados são preenchidos automaticamente.</p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="name">Razão Social *</Label>
