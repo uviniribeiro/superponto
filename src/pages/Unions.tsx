@@ -15,7 +15,8 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Users2, Plus, Edit, Trash2, Search, Building2 } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
-import { validateCNPJ } from '@/lib/validators';
+import { validateCNPJ, cleanCNPJ } from '@/lib/validators';
+import { MaskedInput } from '@/components/ui/masked-input';
 
 interface Union {
   id: string;
@@ -103,8 +104,9 @@ export default function Unions() {
       toast.error('Sigla deve ter pelo menos 3 caracteres');
       return;
     }
-    if (!validateCNPJ(formData.cnpj).valid) {
-      toast.error('CNPJ inválido');
+    const cnpjCheck = validateCNPJ(formData.cnpj);
+    if (!cnpjCheck.valid) {
+      toast.error(cnpjCheck.message);
       return;
     }
 
@@ -114,7 +116,7 @@ export default function Unions() {
         name: formData.name.trim(),
         abbreviation: formData.abbreviation.trim(),
         description: formData.description.trim() || null,
-        cnpj: formData.cnpj.replace(/\D/g, ''),
+        cnpj: cleanCNPJ(formData.cnpj),
         email: formData.email.trim() || null,
         phone: formData.phone.trim() || null,
         website: formData.website.trim() || null,
@@ -378,11 +380,11 @@ export default function Unions() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>CNPJ *</Label>
-                  <Input
+                  <MaskedInput
+                    mask="cnpj"
+                    showValidation
                     value={formData.cnpj}
-                    onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                    placeholder="00.000.000/0000-00"
-                    maxLength={18}
+                    onChange={(value) => setFormData({ ...formData, cnpj: value })}
                   />
                 </div>
                 <div className="space-y-2">
