@@ -66,6 +66,8 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
     const validator = maskValidators[mask];
     const placeholder = props.placeholder || maskPlaceholders[mask];
     const maxLength = maskMaxLengths[mask];
+    // CNPJ alfanumérico (Receita Federal 2026) aceita letras A-Z nas 12 primeiras posições
+    const isAlphanumericMask = mask === 'cnpj';
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const formatted = formatter(e.target.value);
@@ -73,7 +75,10 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
     };
 
     const isValid = validator ? validator(value) : true;
-    const hasValue = value.replace(/\D/g, '').length > 0;
+    const stripped = isAlphanumericMask
+      ? (value || '').toUpperCase().replace(/[^0-9A-Z]/g, '')
+      : (value || '').replace(/\D/g, '');
+    const hasValue = stripped.length > 0;
     const isComplete = value.length === maxLength;
 
     return (
@@ -81,7 +86,8 @@ const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
         <Input
           ref={ref}
           type="text"
-          inputMode="numeric"
+          inputMode={isAlphanumericMask ? 'text' : 'numeric'}
+          autoCapitalize={isAlphanumericMask ? 'characters' : undefined}
           value={value}
           onChange={handleChange}
           placeholder={placeholder}
