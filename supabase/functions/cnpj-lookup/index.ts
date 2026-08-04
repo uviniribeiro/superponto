@@ -35,15 +35,24 @@ serve(async (req) => {
       );
     }
 
-    // Remove non-numeric characters
-    const cleanCnpj = cnpj.replace(/[^\d]/g, '');
-    
-    if (cleanCnpj.length !== 14) {
+    // Normaliza mantendo letras (CNPJ alfanumérico — Receita Federal 2026)
+    const normalized = String(cnpj).toUpperCase().replace(/[^0-9A-Z]/g, '');
+
+    if (normalized.length !== 14 || !/^[0-9A-Z]{12}\d{2}$/.test(normalized)) {
       return new Response(
-        JSON.stringify({ error: 'CNPJ deve ter 14 dígitos' }),
+        JSON.stringify({ error: 'CNPJ deve ter 14 caracteres (12 alfanuméricos + 2 dígitos)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    if (/[A-Z]/.test(normalized)) {
+      return new Response(
+        JSON.stringify({ error: 'CNPJ alfanumérico ainda não é consultável nas bases públicas. Preencha os dados manualmente.' }),
+        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const cleanCnpj = normalized;
 
     console.log(`Looking up CNPJ: ${cleanCnpj}`);
 

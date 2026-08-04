@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { validateCNPJ, cleanCNPJ } from '@/lib/validators';
 
 type AppRole = 'admin' | 'manager' | 'employee' | 'super_admin';
 
@@ -238,8 +239,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (username: string, password: string, fullName: string, companyName: string, companyCnpj: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    // Use CNPJ as company code (normalized - only digits)
-    const normalizedCnpj = companyCnpj.replace(/[^\d]/g, '');
+    // CNPJ numérico ou alfanumérico (padrão Receita Federal 2026)
+    const cnpjCheck = validateCNPJ(companyCnpj);
+    if (!cnpjCheck.valid) {
+      return { error: new Error(cnpjCheck.message) };
+    }
+    const normalizedCnpj = cleanCNPJ(companyCnpj);
     
     // Check if CNPJ is already registered
     const { data: existingCompany } = await supabase
