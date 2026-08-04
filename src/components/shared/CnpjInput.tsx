@@ -42,13 +42,13 @@ export const CnpjInput = React.forwardRef<HTMLInputElement, CnpjInputProps>(
 
         <div id={id ? `${id}-feedback` : undefined} aria-live="polite" className="space-y-1">
           {feedback.status === 'valid' && (
-            <p className="flex items-center gap-1.5 text-xs text-success">
+            <div className="flex items-center gap-1.5 text-xs text-success">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-              {feedback.message}
+              <span>{feedback.message}</span>
               {feedback.isAlphanumeric && (
                 <Badge variant="secondary" className="ml-1 text-[10px]">Alfanumérico</Badge>
               )}
-            </p>
+            </div>
           )}
 
           {(feedback.status === 'invalid' || feedback.status === 'incomplete') && (
