@@ -433,6 +433,12 @@ export default function SuperAdminCityHalls() {
   const handleUpdateCityHall = async () => {
     if (!editingCityHall) return;
 
+    const cnpjCheck = validateCNPJ(formData.cnpj);
+    if (!cnpjCheck.valid) {
+      toast.error(cnpjCheck.message);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('companies')

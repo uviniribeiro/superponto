@@ -301,6 +301,12 @@ export default function SuperAdminCompanies() {
   const handleUpdateCompany = async () => {
     if (!editingCompany) return;
 
+    const cnpjCheck = validateCNPJ(formData.cnpj);
+    if (!cnpjCheck.valid) {
+      toast.error(cnpjCheck.message);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('companies')
