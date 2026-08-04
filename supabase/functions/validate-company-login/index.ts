@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
         companyData = exactMatch;
       } else {
         // Try normalized CNPJ
-        const normalizedCnpj = companyCode.replace(/[^\d]/g, '');
+        const normalizedCnpj = (companyCode || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
         const { data: cnpjMatch } = await supabase
           .from('companies')
           .select('id, company_code')

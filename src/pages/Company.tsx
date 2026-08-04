@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Building2, Save, Upload, X, Key, Calendar, Users, AlertCircle, MapPin, Phone, FileText } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 import { format, differenceInDays } from 'date-fns';
+import { cleanCNPJ, validateCNPJ } from '@/lib/validators';
 import { ptBR } from 'date-fns/locale';
 
 interface CompanySettings {
@@ -205,9 +206,15 @@ export default function Company() {
       return;
     }
 
+    const cnpjCheck = validateCNPJ(settings.cnpj);
+    if (!cnpjCheck.valid) {
+      toast.error(cnpjCheck.message);
+      return;
+    }
+
     setSaving(true);
     try {
-      const normalizedCnpj = settings.cnpj.replace(/[^\d]/g, '');
+      const normalizedCnpj = cleanCNPJ(settings.cnpj);
       
       const settingsData = {
         company_name: settings.company_name,

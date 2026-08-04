@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Building2, Settings, Link2, Scale, Upload, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MaskedInput } from '@/components/ui/masked-input';
+import { validateCNPJ } from '@/lib/validators';
 
 interface CompanySettings {
   id: string;
@@ -95,6 +97,14 @@ export default function NewCompanySettings() {
     if (!formData.company_name.trim()) {
       toast.error('Razão Social é obrigatória');
       return;
+    }
+
+    if (formData.cnpj.trim()) {
+      const cnpjCheck = validateCNPJ(formData.cnpj);
+      if (!cnpjCheck.valid) {
+        toast.error(cnpjCheck.message);
+        return;
+      }
     }
 
     setSaving(true);
@@ -231,10 +241,11 @@ export default function NewCompanySettings() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>CNPJ *</Label>
-                  <Input
+                  <MaskedInput
+                    mask="cnpj"
+                    showValidation
                     value={formData.cnpj}
-                    onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                    placeholder="12.345.678/0001-90"
+                    onChange={(value) => setFormData({ ...formData, cnpj: value })}
                   />
                 </div>
                 <div className="space-y-2">
