@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { Users2, Plus, Edit, Trash2, Search, Building2 } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 import { validateCNPJ, cleanCNPJ } from '@/lib/validators';
-import { MaskedInput } from '@/components/ui/masked-input';
+import { CnpjInput } from '@/components/shared/CnpjInput';
 
 interface Union {
   id: string;
@@ -380,9 +380,8 @@ export default function Unions() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>CNPJ *</Label>
-                  <MaskedInput
-                    mask="cnpj"
-                    showValidation
+                  <CnpjInput
+                    id="union-cnpj"
                     value={formData.cnpj}
                     onChange={(value) => setFormData({ ...formData, cnpj: value })}
                   />

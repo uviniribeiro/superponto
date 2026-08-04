@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { cleanCNPJ } from "../_shared/cnpj.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -134,7 +135,7 @@ Deno.serve(async (req) => {
         companyData = exactMatch;
       } else {
         // Try normalized CNPJ
-        const normalizedCnpj = (companyCode || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+        const normalizedCnpj = cleanCNPJ(companyCode);
         const { data: cnpjMatch } = await supabase
           .from('companies')
           .select('id, company_code')

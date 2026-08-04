@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { cleanCNPJ, validateCNPJ, isAlphanumericCNPJ } from "../_shared/cnpj.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,16 +37,17 @@ serve(async (req) => {
     }
 
     // Normaliza mantendo letras (CNPJ alfanumérico — Receita Federal 2026)
-    const normalized = String(cnpj).toUpperCase().replace(/[^0-9A-Z]/g, '');
+    const normalized = cleanCNPJ(String(cnpj));
+    const check = validateCNPJ(normalized);
 
-    if (normalized.length !== 14 || !/^[0-9A-Z]{12}\d{2}$/.test(normalized)) {
+    if (!check.valid) {
       return new Response(
-        JSON.stringify({ error: 'CNPJ deve ter 14 caracteres (12 alfanuméricos + 2 dígitos)' }),
+        JSON.stringify({ error: check.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (/[A-Z]/.test(normalized)) {
+    if (isAlphanumericCNPJ(normalized)) {
       return new Response(
         JSON.stringify({ error: 'CNPJ alfanumérico ainda não é consultável nas bases públicas. Preencha os dados manualmente.' }),
         { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

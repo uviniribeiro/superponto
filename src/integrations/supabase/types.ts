@@ -7138,6 +7138,7 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_valid_cnpj: { Args: { _cnpj: string }; Returns: boolean }
       log_2fa_attempt: {
         Args: {
           _attempt_type: string

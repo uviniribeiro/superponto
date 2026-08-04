@@ -187,3 +187,81 @@ export function formatCNPJ(cnpj: string): string {
   return `${clean.slice(0, 2)}.${clean.slice(2, 5)}.${clean.slice(5, 8)}/${clean.slice(8, 12)}-${clean.slice(12)}`;
 }
 
+/**
+ * Calcula os 2 dígitos verificadores esperados para uma raiz de 12 caracteres.
+ * Retorna null quando a raiz não é válida.
+ */
+export function computeCNPJCheckDigits(base: string): string | null {
+  const clean = cleanCNPJ(base).slice(0, 12);
+  if (!/^[0-9A-Z]{12}$/.test(clean)) return null;
+  const d1 = cnpjCheckDigit(clean, CNPJ_WEIGHTS_1);
+  const d2 = cnpjCheckDigit(`${clean}${d1}`, CNPJ_WEIGHTS_2);
+  return `${d1}${d2}`;
+}
+
+export interface CnpjFeedback {
+  status: 'empty' | 'incomplete' | 'invalid' | 'valid';
+  message: string;
+  hint?: string;
+  suggestion?: string;
+  isAlphanumeric: boolean;
+}
+
+/**
+ * Feedback detalhado para exibição em formulários: o que está errado e como corrigir.
+ */
+export function getCNPJFeedback(cnpj: string): CnpjFeedback {
+  const clean = cleanCNPJ(cnpj);
+  const isAlphanumeric = /[A-Z]/.test(clean);
+
+  if (clean.length === 0) {
+    return {
+      status: 'empty',
+      message: '',
+      hint: 'Aceita CNPJ numérico ou alfanumérico (padrão Receita Federal 2026).',
+      isAlphanumeric,
+    };
+  }
+
+  if (clean.length < 14) {
+    return {
+      status: 'incomplete',
+      message: `CNPJ incompleto — faltam ${14 - clean.length} caractere(s) de 14.`,
+      hint: 'Formato: 12 caracteres (números ou letras A-Z) + 2 dígitos verificadores numéricos.',
+      isAlphanumeric,
+    };
+  }
+
+  const result = validateCNPJ(cnpj);
+  if (result.valid) {
+    return {
+      status: 'valid',
+      message: result.message,
+      isAlphanumeric,
+    };
+  }
+
+  // Dígito verificador incorreto → sugere o valor correto para a raiz digitada
+  if (result.message.includes('dígito verificador')) {
+    const expected = computeCNPJCheckDigits(clean.slice(0, 12));
+    const suggestion = expected ? formatCNPJ(`${clean.slice(0, 12)}${expected}`) : undefined;
+    return {
+      status: 'invalid',
+      message: 'Dígito verificador não confere com a raiz informada.',
+      hint: expected
+        ? `Para a raiz ${clean.slice(0, 12)}, os dígitos verificadores corretos são “${expected}”. Confira o CNPJ no cartão da Receita Federal ou corrija os 2 últimos dígitos.`
+        : 'Confira o CNPJ no cartão CNPJ da Receita Federal.',
+      suggestion,
+      isAlphanumeric,
+    };
+  }
+
+  return {
+    status: 'invalid',
+    message: result.message,
+    hint: 'Use 12 caracteres alfanuméricos (0-9, A-Z) seguidos de 2 dígitos verificadores numéricos.',
+    isAlphanumeric,
+  };
+}
+
+
