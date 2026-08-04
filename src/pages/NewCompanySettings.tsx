@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Building2, Settings, Link2, Scale, Upload, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MaskedInput } from '@/components/ui/masked-input';
+import { CnpjInput } from '@/components/shared/CnpjInput';
 import { validateCNPJ } from '@/lib/validators';
 
 interface CompanySettings {
@@ -241,9 +241,8 @@ export default function NewCompanySettings() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>CNPJ *</Label>
-                  <MaskedInput
-                    mask="cnpj"
-                    showValidation
+                  <CnpjInput
+                    id="company-cnpj"
                     value={formData.cnpj}
                     onChange={(value) => setFormData({ ...formData, cnpj: value })}
                   />

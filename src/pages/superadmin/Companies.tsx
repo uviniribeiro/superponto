@@ -17,7 +17,7 @@ import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
-import { MaskedInput } from '@/components/ui/masked-input';
+import { CnpjInput } from '@/components/shared/CnpjInput';
 import { validateCNPJ, cleanCNPJ, isAlphanumericCNPJ } from '@/lib/validators';
 
 interface Company {
@@ -479,15 +479,14 @@ export default function SuperAdminCompanies() {
       <div className="space-y-2">
         <Label htmlFor="cnpj">CNPJ *</Label>
         <div className="flex gap-2">
-          <MaskedInput
-            id="cnpj"
-            mask="cnpj"
-            showValidation
-            value={formData.cnpj}
-            onChange={(value) => setFormData({ ...formData, cnpj: value })}
-            onBlur={() => handleCnpjLookup(formData.cnpj)}
-            className="flex-1"
-          />
+          <div className="flex-1">
+            <CnpjInput
+              id="cnpj"
+              value={formData.cnpj}
+              onChange={(value) => setFormData({ ...formData, cnpj: value })}
+              onBlur={() => handleCnpjLookup(formData.cnpj)}
+            />
+          </div>
           <Button 
             type="button" 
             variant="outline" 
