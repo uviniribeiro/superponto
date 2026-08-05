@@ -26,6 +26,7 @@ const PageLoader = () => (
 
 // Auth (eager - needed immediately)
 import Auth from "@/pages/Auth";
+const KioskTerminal = React.lazy(() => import("@/pages/KioskTerminal"));
 import SuperAdminAuth from "@/pages/SuperAdminAuth";
 import NotFound from "@/pages/NotFound";
 
@@ -188,6 +189,7 @@ const App = () => (
                 <Routes>
                 <Route path="/" element={<Navigate to="/home" replace />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/terminal" element={<Suspense fallback={<PageLoader />}><KioskTerminal /></Suspense>} />
                 <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
                 
                 {/* Public Legal Pages */}

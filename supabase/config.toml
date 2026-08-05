@@ -60,3 +60,6 @@ verify_jwt = false
 
 [functions.sync-national-holidays]
 verify_jwt = false
+
+[functions.kiosk-terminal]
+verify_jwt = false
