@@ -285,7 +285,11 @@ export default function KioskTerminal() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <CnpjInput value={cnpj} onChange={setCnpj} label="CNPJ da empresa" />
+            <div className="space-y-2">
+              <Label htmlFor="kiosk-cnpj">CNPJ da empresa</Label>
+              <CnpjInput id="kiosk-cnpj" value={cnpj} onChange={setCnpj} showHintWhenEmpty />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="terminal-name">Nome do terminal (opcional)</Label>
               <Input
