@@ -3476,6 +3476,50 @@ export type Database = {
           },
         ]
       }
+      kiosk_terminals: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          device_token: string
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          device_token: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          device_token?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kiosk_terminals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_plans: {
         Row: {
           class_date: string
