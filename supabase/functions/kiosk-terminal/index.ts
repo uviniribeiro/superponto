@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { cleanCNPJ, isValidCNPJ } from "../_shared/cnpj.ts";
+import { cleanCNPJ, validateCNPJ } from "../_shared/cnpj.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,8 +44,9 @@ Deno.serve(async (req) => {
       if (!cnpj) {
         return json({ success: false, error: 'Informe o CNPJ da empresa.' }, 400);
       }
-      if (!isValidCNPJ(cnpj)) {
-        return json({ success: false, error: 'CNPJ inválido — confira os dígitos verificadores.' }, 400);
+      const cnpjCheck = validateCNPJ(cnpj);
+      if (!cnpjCheck.valid) {
+        return json({ success: false, error: `CNPJ inválido — ${cnpjCheck.message}.` }, 400);
       }
 
       const { data: companies, error: companyError } = await supabase
