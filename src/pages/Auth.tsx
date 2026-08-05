@@ -369,6 +369,12 @@ export default function Auth() {
           </form>
         </Card>
 
+        <div className="text-center mt-4">
+          <a href="/terminal" className="text-xs text-primary underline underline-offset-4">
+            Usar este dispositivo como Terminal de Ponto (login por CNPJ)
+          </a>
+        </div>
+
         <p className="text-center text-xs text-muted-foreground mt-4">
           SuperPonto v2.0.0 © 2026
         </p>
