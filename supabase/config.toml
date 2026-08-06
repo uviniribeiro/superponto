@@ -63,3 +63,12 @@ verify_jwt = false
 
 [functions.kiosk-terminal]
 verify_jwt = false
+
+[functions.cnpj-revalidator]
+verify_jwt = false
+
+[functions.system-robot]
+verify_jwt = false
+
+[functions.system-autofix]
+verify_jwt = false

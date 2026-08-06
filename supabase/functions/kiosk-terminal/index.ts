@@ -20,6 +20,11 @@ async function sha256(value: string) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+function activationCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -35,7 +40,7 @@ Deno.serve(async (req) => {
     const action = String(body?.action || '');
 
     // ---------------------------------------------------------------
-    // 1) Ativação do terminal: apenas o CNPJ da empresa
+    // 1) Solicitação de ativação do terminal (aguarda liberação do ADM)
     // ---------------------------------------------------------------
     if (action === 'activate') {
       const cnpj = cleanCNPJ(String(body?.cnpj || ''));
@@ -52,8 +57,7 @@ Deno.serve(async (req) => {
       const { data: companies, error: companyError } = await supabase
         .from('companies')
         .select('id, name, company_code, cnpj, is_active')
-        .or(`company_code.eq.${cnpj},cnpj.eq.${cnpj}`)
-        .limit(5);
+        .limit(2000);
 
       if (companyError) throw companyError;
 
@@ -69,6 +73,7 @@ Deno.serve(async (req) => {
       }
 
       const deviceToken = crypto.randomUUID() + '.' + crypto.randomUUID();
+      const code = activationCode();
 
       const { data: terminal, error: terminalError } = await supabase
         .from('kiosk_terminals')
@@ -76,9 +81,14 @@ Deno.serve(async (req) => {
           company_id: company.id,
           name: terminalName,
           device_token: deviceToken,
+          status: 'pending',
+          activation_code: code,
+          latitude: body?.latitude ?? null,
+          longitude: body?.longitude ?? null,
+          address: body?.address ?? null,
           last_used_at: new Date().toISOString(),
         })
-        .select('id, name')
+        .select('id, name, status, activation_code')
         .single();
 
       if (terminalError) throw terminalError;
@@ -86,6 +96,8 @@ Deno.serve(async (req) => {
       return json({
         success: true,
         deviceToken,
+        status: 'pending',
+        activationCode: code,
         terminal: { id: terminal.id, name: terminal.name },
         company: { id: company.id, name: company.name },
       });
@@ -99,7 +111,7 @@ Deno.serve(async (req) => {
 
     const { data: terminal } = await supabase
       .from('kiosk_terminals')
-      .select('id, name, company_id, is_active, companies:company_id(id, name, is_active)')
+      .select('id, name, company_id, is_active, status, allow_all_employees, activation_code, latitude, longitude, address, companies:company_id(id, name, is_active)')
       .eq('device_token', deviceToken)
       .maybeSingle();
 
@@ -111,19 +123,141 @@ Deno.serve(async (req) => {
       return json({ success: false, error: 'Empresa inativa. Contate o administrador.', code: 'company_inactive' }, 403);
     }
 
+    const terminalPayload = {
+      id: terminal.id,
+      name: terminal.name,
+      status: terminal.status,
+      activationCode: terminal.activation_code,
+      latitude: terminal.latitude,
+      longitude: terminal.longitude,
+      address: terminal.address,
+    };
+
+    // Atualiza a localização do terminal quando o dispositivo informa
+    if (body?.latitude != null && body?.longitude != null && action !== 'activate') {
+      await supabase.from('kiosk_terminals').update({
+        latitude: body.latitude,
+        longitude: body.longitude,
+        address: body?.address ?? terminal.address,
+      }).eq('id', terminal.id);
+    }
+
     // ---------------------------------------------------------------
     // 2) Sessão do terminal (revalidação no carregamento)
     // ---------------------------------------------------------------
     if (action === 'session') {
       return json({
         success: true,
-        terminal: { id: terminal.id, name: terminal.name },
+        terminal: terminalPayload,
         company: { id: terminal.company_id, name: companyInfo?.name ?? '' },
       });
     }
 
+    if (terminal.status === 'rejected') {
+      return json({ success: false, error: 'Este terminal foi recusado pelo administrador.', code: 'terminal_rejected' }, 403);
+    }
+    if (terminal.status !== 'approved') {
+      return json({ success: false, error: 'Terminal aguardando liberação do administrador do sistema.', code: 'terminal_pending' }, 403);
+    }
+
+    // Lista de funcionários autorizados neste terminal
+    async function authorizedProfileIds(): Promise<string[] | null> {
+      if (terminal.allow_all_employees) return null; // null = todos
+      const { data } = await supabase
+        .from('kiosk_terminal_employees')
+        .select('profile_id')
+        .eq('terminal_id', terminal.id);
+      return (data || []).map(r => r.profile_id as string);
+    }
+
     // ---------------------------------------------------------------
-    // 3) Identificação do funcionário (QR, PIN, RFID, matrícula ou CPF)
+    // 3) Lista de funcionários liberados para este terminal
+    // ---------------------------------------------------------------
+    if (action === 'roster') {
+      const allowed = await authorizedProfileIds();
+      let query = supabase
+        .from('profiles')
+        .select('id, full_name, registration_number, department, position, photo_url')
+        .eq('company_id', terminal.company_id)
+        .eq('is_active', true)
+        .order('full_name');
+      if (allowed) {
+        if (allowed.length === 0) return json({ success: true, employees: [] });
+        query = query.in('id', allowed);
+      }
+      const { data } = await query.limit(500);
+      return json({ success: true, employees: data || [] });
+    }
+
+    async function buildIdentifyResponse(profileId: string, methodType: string) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, full_name, registration_number, department, position, photo_url, is_active, company_id')
+        .eq('id', profileId)
+        .maybeSingle();
+
+      if (!profile || !profile.is_active || profile.company_id !== terminal.company_id) {
+        return json({ success: false, error: 'Funcionário inativo ou de outra empresa.' }, 403);
+      }
+
+      const allowed = await authorizedProfileIds();
+      if (allowed && !allowed.includes(profile.id)) {
+        await supabase.from('identification_validation_attempts').insert({
+          profile_id: profile.id,
+          company_id: terminal.company_id,
+          method_type: methodType,
+          success: false,
+          reason: `Funcionário não autorizado no terminal ${terminal.name}`,
+          user_agent: `kiosk terminal=${terminal.name}`,
+        });
+        return json({ success: false, error: 'Você não está autorizado a registrar ponto neste terminal.' }, 403);
+      }
+
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const end = new Date(); end.setHours(23, 59, 59, 999);
+      const { data: todayRecords } = await supabase
+        .from('time_records')
+        .select('record_type, recorded_at')
+        .eq('profile_id', profile.id)
+        .gte('recorded_at', start.toISOString())
+        .lte('recorded_at', end.toISOString())
+        .order('recorded_at', { ascending: true });
+
+      const last = (todayRecords || []).at(-1)?.record_type as RecordType | undefined;
+      const nextIndex = last ? RECORD_ORDER.indexOf(last) + 1 : 0;
+      const nextRecordType = nextIndex < RECORD_ORDER.length ? RECORD_ORDER[nextIndex] : null;
+
+      await supabase.from('identification_validation_attempts').insert({
+        profile_id: profile.id,
+        company_id: terminal.company_id,
+        method_type: methodType,
+        success: true,
+        reason: `Identificação aceita no terminal ${terminal.name}`,
+        user_agent: `kiosk terminal=${terminal.name}`,
+      });
+
+      await supabase.from('kiosk_terminals')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('id', terminal.id);
+
+      return json({
+        success: true,
+        methodType,
+        employee: {
+          id: profile.id,
+          full_name: profile.full_name,
+          registration_number: profile.registration_number,
+          department: profile.department,
+          position: profile.position,
+          photo_url: profile.photo_url,
+        },
+        todayRecords: todayRecords || [],
+        nextRecordType,
+      });
+    }
+
+    // ---------------------------------------------------------------
+    // 4) Identificação por QR, código de barras, PIN, RFID, matrícula ou CPF
     // ---------------------------------------------------------------
     if (action === 'identify') {
       const rawIdentifier = String(body?.identifier || '').trim();
@@ -189,61 +323,84 @@ Deno.serve(async (req) => {
         return json({ success: false, error: 'Funcionário não encontrado nesta empresa.' }, 404);
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, full_name, registration_number, department, position, photo_url, is_active, company_id')
-        .eq('id', profileId)
-        .maybeSingle();
-
-      if (!profile || !profile.is_active || profile.company_id !== terminal.company_id) {
-        return json({ success: false, error: 'Funcionário inativo ou de outra empresa.' }, 403);
-      }
-
-      const start = new Date(); start.setHours(0, 0, 0, 0);
-      const end = new Date(); end.setHours(23, 59, 59, 999);
-      const { data: todayRecords } = await supabase
-        .from('time_records')
-        .select('record_type, recorded_at')
-        .eq('profile_id', profile.id)
-        .gte('recorded_at', start.toISOString())
-        .lte('recorded_at', end.toISOString())
-        .order('recorded_at', { ascending: true });
-
-      const last = (todayRecords || []).at(-1)?.record_type as RecordType | undefined;
-      const nextIndex = last ? RECORD_ORDER.indexOf(last) + 1 : 0;
-      const nextRecordType = nextIndex < RECORD_ORDER.length ? RECORD_ORDER[nextIndex] : null;
-
-      await supabase.from('identification_validation_attempts').insert({
-        profile_id: profile.id,
-        company_id: terminal.company_id,
-        method_type: methodType,
-        success: true,
-        reason: `Identificação aceita no terminal ${terminal.name}`,
-        user_agent: `kiosk terminal=${terminal.name}`,
-      });
-
-      await supabase.from('kiosk_terminals')
-        .update({ last_used_at: new Date().toISOString() })
-        .eq('id', terminal.id);
-
-      return json({
-        success: true,
-        methodType,
-        employee: {
-          id: profile.id,
-          full_name: profile.full_name,
-          registration_number: profile.registration_number,
-          department: profile.department,
-          position: profile.position,
-          photo_url: profile.photo_url,
-        },
-        todayRecords: todayRecords || [],
-        nextRecordType,
-      });
+      return await buildIdentifyResponse(profileId, methodType);
     }
 
     // ---------------------------------------------------------------
-    // 4) Registro de ponto
+    // 5) Identificação facial (compara com as fotos dos autorizados)
+    // ---------------------------------------------------------------
+    if (action === 'identify-face') {
+      const selfie = String(body?.selfieBase64 || '');
+      if (!selfie) return json({ success: false, error: 'Foto não capturada. Tente novamente.' }, 400);
+
+      const allowed = await authorizedProfileIds();
+      let query = supabase
+        .from('profiles')
+        .select('id, full_name, photo_url')
+        .eq('company_id', terminal.company_id)
+        .eq('is_active', true)
+        .not('photo_url', 'is', null);
+      if (allowed) {
+        if (allowed.length === 0) return json({ success: false, error: 'Nenhum funcionário autorizado neste terminal.' }, 403);
+        query = query.in('id', allowed);
+      }
+      const { data: roster } = await query.limit(60);
+
+      if (!roster || roster.length === 0) {
+        return json({ success: false, error: 'Nenhuma foto cadastrada para reconhecimento facial neste terminal.' }, 404);
+      }
+
+      const apiKey = Deno.env.get('LOVABLE_API_KEY');
+      if (!apiKey) return json({ success: false, error: 'Reconhecimento facial indisponível no momento.' }, 500);
+
+      const content: unknown[] = [
+        {
+          type: 'text',
+          text: `Compare a PRIMEIRA imagem (pessoa no terminal) com as demais imagens cadastradas e diga qual delas é a mesma pessoa. Responda apenas com JSON: {"index": <número da foto cadastrada a partir de 1 ou 0 se nenhuma>, "confidence": <0 a 100>}.`,
+        },
+        { type: 'image_url', image_url: { url: selfie.startsWith('data:') ? selfie : `data:image/jpeg;base64,${selfie}` } },
+      ];
+      for (const p of roster) {
+        content.push({ type: 'image_url', image_url: { url: p.photo_url } });
+      }
+
+      const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [{ role: 'user', content }],
+        }),
+      });
+
+      if (!aiRes.ok) {
+        console.error('face ai error', aiRes.status, await aiRes.text());
+        return json({ success: false, error: 'Não foi possível concluir o reconhecimento facial. Use o QR Code ou o teclado.' }, 502);
+      }
+
+      const aiJson = await aiRes.json();
+      const text = aiJson?.choices?.[0]?.message?.content ?? '';
+      const match = /\{[\s\S]*\}/.exec(text);
+      const parsed = match ? JSON.parse(match[0]) : { index: 0, confidence: 0 };
+      const idx = Number(parsed.index || 0);
+      const confidence = Number(parsed.confidence || 0);
+
+      if (!idx || idx > roster.length || confidence < 70) {
+        await supabase.from('identification_validation_attempts').insert({
+          company_id: terminal.company_id,
+          method_type: 'facial',
+          success: false,
+          reason: `Reconhecimento facial sem correspondência (confiança ${confidence}%)`,
+          user_agent: `kiosk terminal=${terminal.name}`,
+        });
+        return json({ success: false, error: 'Rosto não reconhecido. Aproxime-se, melhore a iluminação e tente de novo, ou use o QR Code.' }, 404);
+      }
+
+      return await buildIdentifyResponse(roster[idx - 1].id, 'facial');
+    }
+
+    // ---------------------------------------------------------------
+    // 6) Registro de ponto
     // ---------------------------------------------------------------
     if (action === 'punch') {
       const profileId = String(body?.profileId || '');
@@ -251,6 +408,11 @@ Deno.serve(async (req) => {
 
       if (!profileId || !RECORD_ORDER.includes(recordType)) {
         return json({ success: false, error: 'Dados do registro inválidos.' }, 400);
+      }
+
+      const allowed = await authorizedProfileIds();
+      if (allowed && !allowed.includes(profileId)) {
+        return json({ success: false, error: 'Funcionário não autorizado neste terminal.' }, 403);
       }
 
       const { data: profile } = await supabase
@@ -275,9 +437,9 @@ Deno.serve(async (req) => {
           company_id: terminal.company_id,
           record_type: recordType,
           recorded_at: recordedAt.toISOString(),
-          latitude: body?.latitude ?? null,
-          longitude: body?.longitude ?? null,
-          address: body?.address ?? null,
+          latitude: body?.latitude ?? terminal.latitude ?? null,
+          longitude: body?.longitude ?? terminal.longitude ?? null,
+          address: body?.address ?? terminal.address ?? null,
           device_info: `Terminal CNPJ | ${terminal.name} | ${String(body?.userAgent || '').slice(0, 300)}`,
           transaction_hash: transactionHash,
         })

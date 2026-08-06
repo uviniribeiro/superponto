@@ -3476,8 +3476,69 @@ export type Database = {
           },
         ]
       }
+      kiosk_terminal_employees: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          profile_id: string
+          terminal_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          profile_id: string
+          terminal_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          profile_id?: string
+          terminal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kiosk_terminal_employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kiosk_terminal_employees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kiosk_terminal_employees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kiosk_terminal_employees_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "kiosk_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kiosk_terminals: {
         Row: {
+          activation_code: string | null
+          address: string | null
+          allow_all_employees: boolean
+          approved_at: string | null
+          approved_by: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -3485,10 +3546,18 @@ export type Database = {
           id: string
           is_active: boolean
           last_used_at: string | null
+          latitude: number | null
+          longitude: number | null
           name: string
+          status: string
           updated_at: string
         }
         Insert: {
+          activation_code?: string | null
+          address?: string | null
+          allow_all_employees?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -3496,10 +3565,18 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_used_at?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string
+          status?: string
           updated_at?: string
         }
         Update: {
+          activation_code?: string | null
+          address?: string | null
+          allow_all_employees?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -3507,7 +3584,10 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_used_at?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string
+          status?: string
           updated_at?: string
         }
         Relationships: [
@@ -5233,6 +5313,8 @@ export type Database = {
           department: string | null
           email: string
           email_notifications_enabled: boolean | null
+          face_descriptor: Json | null
+          face_enrolled_at: string | null
           failed_login_attempts: number | null
           full_name: string
           hire_date: string | null
@@ -5265,6 +5347,8 @@ export type Database = {
           department?: string | null
           email: string
           email_notifications_enabled?: boolean | null
+          face_descriptor?: Json | null
+          face_enrolled_at?: string | null
           failed_login_attempts?: number | null
           full_name: string
           hire_date?: string | null
@@ -5297,6 +5381,8 @@ export type Database = {
           department?: string | null
           email?: string
           email_notifications_enabled?: boolean | null
+          face_descriptor?: Json | null
+          face_enrolled_at?: string | null
           failed_login_attempts?: number | null
           full_name?: string
           hire_date?: string | null
@@ -5768,6 +5854,108 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_diagnostics: {
+        Row: {
+          auto_fixable: boolean
+          code: string
+          company_id: string | null
+          context: Json
+          created_at: string
+          detected_at: string
+          entity_id: string | null
+          entity_table: string | null
+          fix_action: string | null
+          fix_result: string | null
+          fixed_at: string | null
+          fixed_by: string | null
+          id: string
+          occurrences: number
+          severity: string
+          status: string
+          technical_detail: string | null
+          title: string
+          updated_at: string
+          user_message: string
+        }
+        Insert: {
+          auto_fixable?: boolean
+          code: string
+          company_id?: string | null
+          context?: Json
+          created_at?: string
+          detected_at?: string
+          entity_id?: string | null
+          entity_table?: string | null
+          fix_action?: string | null
+          fix_result?: string | null
+          fixed_at?: string | null
+          fixed_by?: string | null
+          id?: string
+          occurrences?: number
+          severity?: string
+          status?: string
+          technical_detail?: string | null
+          title: string
+          updated_at?: string
+          user_message?: string
+        }
+        Update: {
+          auto_fixable?: boolean
+          code?: string
+          company_id?: string | null
+          context?: Json
+          created_at?: string
+          detected_at?: string
+          entity_id?: string | null
+          entity_table?: string | null
+          fix_action?: string | null
+          fix_result?: string | null
+          fixed_at?: string | null
+          fixed_by?: string | null
+          id?: string
+          occurrences?: number
+          severity?: string
+          status?: string
+          technical_detail?: string | null
+          title?: string
+          updated_at?: string
+          user_message?: string
+        }
+        Relationships: []
+      }
+      system_maintenance: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          expected_end_at: string | null
+          id: string
+          is_active: boolean
+          job: string | null
+          reason: string | null
+          started_at: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          expected_end_at?: string | null
+          id?: string
+          is_active?: boolean
+          job?: string | null
+          reason?: string | null
+          started_at?: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          expected_end_at?: string | null
+          id?: string
+          is_active?: boolean
+          job?: string | null
+          reason?: string | null
+          started_at?: string
+        }
+        Relationships: []
       }
       system_suggestions: {
         Row: {

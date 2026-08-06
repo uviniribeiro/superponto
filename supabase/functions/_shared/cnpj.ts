@@ -60,3 +60,12 @@ export function validateCNPJ(cnpj: string): { valid: boolean; message: string } 
 
   return { valid: true, message: isAlphanumericCNPJ(clean) ? 'CNPJ alfanumérico válido' : 'CNPJ válido' };
 }
+
+/** Calcula os 2 dígitos verificadores a partir das 12 primeiras posições. */
+export function computeCheckDigits(base12: string): string {
+  const base = cleanCNPJ(base12).slice(0, 12);
+  if (base.length !== 12) return '';
+  const d1 = checkDigit(base, WEIGHTS_1);
+  const d2 = checkDigit(base + String(d1), WEIGHTS_2);
+  return `${d1}${d2}`;
+}
