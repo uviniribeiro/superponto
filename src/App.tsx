@@ -10,6 +10,7 @@ import SuperAdminProtectedRoute from "@/components/SuperAdminProtectedRoute";
 import CollapsibleSidebar from "@/components/layout/CollapsibleSidebar";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 import { GuidedTourButton } from "@/components/GuidedTour";
+import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { GlobalWatermark } from "@/components/GlobalWatermark";
 import { WhatsNewPopup } from "@/components/WhatsNewPopup";
 import { HolidayThemeProvider } from "@/components/HolidayThemeProvider";
@@ -74,6 +75,8 @@ const CompetencyPeriods = React.lazy(() => import("@/pages/CompetencyPeriods"));
 const GeoreferencedLocations = React.lazy(() => import("@/pages/GeoreferencedLocations"));
 const IdentificationMethods = React.lazy(() => import("@/pages/IdentificationMethods"));
 const ValidationAudit = React.lazy(() => import("@/pages/ValidationAudit"));
+const KioskTerminals = React.lazy(() => import("@/pages/KioskTerminals"));
+const DiagnosticPanel = React.lazy(() => import("@/pages/admin/DiagnosticPanel"));
 const Suggestions = React.lazy(() => import("@/pages/Suggestions"));
 const Vacations = React.lazy(() => import("@/pages/Vacations"));
 const PresenceMonitoring = React.lazy(() => import("@/pages/PresenceMonitoring"));
@@ -182,6 +185,7 @@ const App = () => (
           <Sonner position="top-right" richColors closeButton />
           <BrowserRouter>
             <AuthProvider>
+              <MaintenanceBanner />
               <GlobalWatermark />
               <HolidayBanner />
               <WhatsNewPopup />
@@ -277,6 +281,8 @@ const App = () => (
                   <Route path="payroll-exports" element={<ProtectedRoute requiredRoles={['admin']}><PayrollExports /></ProtectedRoute>} />
                   <Route path="identification-methods" element={<ProtectedRoute requiredRoles={['admin']}><IdentificationMethods /></ProtectedRoute>} />
                   <Route path="validation-audit" element={<ProtectedRoute><ValidationAudit /></ProtectedRoute>} />
+                  <Route path="kiosk-terminals" element={<ProtectedRoute requiredRoles={['admin']}><KioskTerminals /></ProtectedRoute>} />
+                  <Route path="diagnostics" element={<ProtectedRoute requiredRoles={['admin']}><DiagnosticPanel /></ProtectedRoute>} />
                   <Route path="suggestions" element={<ProtectedRoute><Suggestions /></ProtectedRoute>} />
                   <Route path="basic-registrations" element={<ProtectedRoute requiredRoles={['admin']}><BasicRegistrations /></ProtectedRoute>} />
                   <Route path="unions" element={<ProtectedRoute requiredRoles={['admin']}><Unions /></ProtectedRoute>} />
