@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { revalidate } from "../cnpj-revalidator/index.ts";
+import { revalidate } from "../_shared/cnpjRevalidate.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
