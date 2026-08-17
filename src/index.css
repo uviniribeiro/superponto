@@ -46,66 +46,72 @@
 
 @layer base {
   :root {
-    /* Ponto Max 3.0 — Minimalista */
-    --background: 210 20% 99%;
-    --foreground: 220 18% 11%;
+    /* Ponto Max 4.0 — Bento Executivo (azul corporativo) */
+    --background: 212 30% 95%;
+    --foreground: 224 58% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 18% 11%;
+    --card-foreground: 224 58% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 18% 11%;
+    --popover-foreground: 224 58% 15%;
 
-    /* Verde esmeralda sóbrio */
-    --primary: 158 72% 34%;
-    --primary-foreground: 0 0% 100%;
+    /* Azul marinho institucional */
+    --primary: 224 58% 15%;
+    --primary-foreground: 212 30% 95%;
 
-    --secondary: 215 20% 96%;
-    --secondary-foreground: 220 18% 22%;
+    /* Azul de apoio (#3b6fa0) */
+    --brand: 208 46% 43%;
+    --brand-foreground: 0 0% 100%;
+    --brand-deep: 212 52% 25%;
 
-    --muted: 215 20% 96%;
-    --muted-foreground: 218 12% 47%;
+    --secondary: 212 30% 93%;
+    --secondary-foreground: 224 58% 18%;
 
-    --accent: 158 45% 95%;
-    --accent-foreground: 158 72% 24%;
+    --muted: 212 30% 93%;
+    --muted-foreground: 212 22% 42%;
 
-    --destructive: 0 72% 51%;
+    --accent: 208 42% 91%;
+    --accent-foreground: 212 52% 25%;
+
+    --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 158 72% 34%;
+    --success: 158 62% 34%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 92% 45%;
     --warning-foreground: 0 0% 10%;
 
-    --info: 212 92% 45%;
+    --info: 208 46% 43%;
     --info-foreground: 0 0% 100%;
 
-    --border: 216 18% 91%;
-    --input: 216 18% 91%;
-    --ring: 158 72% 34%;
+    --border: 212 26% 88%;
+    --input: 212 26% 88%;
+    --ring: 208 46% 43%;
 
-    --radius: 0.875rem;
+    --radius: 1.25rem;
 
-    /* Sidebar minimalista escuro */
-    --sidebar-background: 220 22% 9%;
-    --sidebar-foreground: 215 18% 92%;
-    --sidebar-primary: 158 66% 42%;
+    /* Sidebar azul marinho */
+    --sidebar-background: 224 58% 15%;
+    --sidebar-foreground: 212 30% 93%;
+    --sidebar-primary: 208 46% 43%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 14%;
+    --sidebar-accent: 212 52% 25%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 220 20% 15%;
-    --sidebar-ring: 158 66% 42%;
+    --sidebar-border: 212 40% 22%;
+    --sidebar-ring: 208 46% 43%;
 
     /* Charts */
-    --chart-1: 158 72% 34%;
-    --chart-2: 188 68% 38%;
-    --chart-3: 212 82% 48%;
-    --chart-4: 38 92% 50%;
-    --chart-5: 0 72% 51%;
+    --chart-1: 208 46% 43%;
+    --chart-2: 212 52% 25%;
+    --chart-3: 224 58% 15%;
+    --chart-4: 38 92% 45%;
+    --chart-5: 158 62% 34%;
 
     /* Fonts */
-    --font-sans: 'Geist', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Epilogue', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Urbanist', 'Epilogue', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     /* Sombras discretas */
