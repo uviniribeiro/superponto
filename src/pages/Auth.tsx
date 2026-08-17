@@ -349,6 +349,8 @@ export default function Auth() {
                   onClick={() => {
                     setLoginType('company');
                     setLoginData({ ...loginData, companyCode: '' });
+                    setTouched({ username: false, password: false, companyCode: false });
+                    setAuthError(null);
                   }}
                 >
                   <Building2 className="h-4 w-4" />
@@ -363,6 +365,8 @@ export default function Auth() {
                     setLoginType('city_hall');
                     setLoginData({ ...loginData, companyCode: '' });
                     setSelectedCityHall('');
+                    setTouched({ username: false, password: false, companyCode: false });
+                    setAuthError(null);
                   }}
                 >
                   <Landmark className="h-4 w-4" />
@@ -373,12 +377,17 @@ export default function Auth() {
                   variant={loginType === 'super_admin' ? 'default' : 'outline'}
                   size="sm"
                   className="flex flex-col h-auto py-2.5 gap-1"
-                  onClick={() => setLoginType('super_admin')}
+                  onClick={() => {
+                    setLoginType('super_admin');
+                    setTouched({ username: false, password: false, companyCode: false });
+                    setAuthError(null);
+                  }}
                 >
                   <Shield className="h-4 w-4" />
                   <span className="text-xs">Admin</span>
                 </Button>
               </div>
+
 
               {authError && (
                 <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive" role="alert">
