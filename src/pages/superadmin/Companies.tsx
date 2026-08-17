@@ -37,6 +37,7 @@ interface Company {
   state: string | null;
   phone: string | null;
   trade_name: string | null;
+  unit_type?: 'matriz' | 'filial' | null;
 }
 
 const licenseTypeOptions = [
@@ -88,6 +89,7 @@ export default function SuperAdminCompanies() {
     name: '', 
     tradeName: '',
     cnpj: '',
+    unitType: 'matriz' as 'matriz' | 'filial',
     address: '',
     city: '',
     state: '',
@@ -183,6 +185,7 @@ export default function SuperAdminCompanies() {
         .insert({
           name: validData.name,
           trade_name: formData.tradeName || null,
+          unit_type: formData.unitType,
           cnpj: formData.cnpj,
           company_code: normalizedCnpj,
           organization_type: 'company',
@@ -229,6 +232,7 @@ export default function SuperAdminCompanies() {
         company_id: newCompany.id,
         company_name: validData.name,
         trade_name: formData.tradeName || null,
+        unit_type: formData.unitType,
         cnpj: formData.cnpj,
         address: formData.address || null,
         city: formData.city || null,
@@ -267,7 +271,7 @@ export default function SuperAdminCompanies() {
       }
 
       setIsDialogOpen(false);
-      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, doctorModuleEnabled: false, payrollModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
+      setFormData({ name: '', tradeName: '', unitType: 'matriz', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, doctorModuleEnabled: false, payrollModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
       fetchCompanies();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -284,6 +288,7 @@ export default function SuperAdminCompanies() {
     setFormData({
       name: company.name,
       tradeName: company.trade_name || '',
+      unitType: ((company as any).unit_type as 'matriz' | 'filial') || 'matriz',
       cnpj: company.cnpj || '',
       address: company.address || '',
       city: company.city || '',
@@ -313,6 +318,7 @@ export default function SuperAdminCompanies() {
         .update({
           name: formData.name,
           trade_name: formData.tradeName || null,
+          unit_type: formData.unitType,
           cnpj: formData.cnpj,
           address: formData.address || null,
           city: formData.city || null,
@@ -332,6 +338,7 @@ export default function SuperAdminCompanies() {
         .update({
           company_name: formData.name,
           trade_name: formData.tradeName || null,
+          unit_type: formData.unitType,
           cnpj: formData.cnpj,
           address: formData.address || null,
           city: formData.city || null,
@@ -343,7 +350,7 @@ export default function SuperAdminCompanies() {
       toast.success('Empresa atualizada com sucesso');
       setIsEditDialogOpen(false);
       setEditingCompany(null);
-      setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, doctorModuleEnabled: false, payrollModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
+      setFormData({ name: '', tradeName: '', unitType: 'matriz', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, doctorModuleEnabled: false, payrollModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
       fetchCompanies();
     } catch (error) {
       console.error('Error updating company:', error);
@@ -507,6 +514,22 @@ export default function SuperAdminCompanies() {
           placeholder="Nome fantasia"
           disabled={lookingUpCnpj}
         />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="unitType">Tipo de unidade *</Label>
+        <Select
+          value={formData.unitType}
+          onValueChange={(value) => setFormData({ ...formData, unitType: value as 'matriz' | 'filial' })}
+        >
+          <SelectTrigger id="unitType">
+            <SelectValue placeholder="Selecione" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="matriz">Matriz</SelectItem>
+            <SelectItem value="filial">Filial</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Defina se este CNPJ é a matriz ou uma filial da base.</p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="address">Endereço</Label>
@@ -861,7 +884,7 @@ export default function SuperAdminCompanies() {
             <Button variant="outline" onClick={() => {
               setIsEditDialogOpen(false);
               setEditingCompany(null);
-              setFormData({ name: '', tradeName: '', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, doctorModuleEnabled: false, payrollModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
+              setFormData({ name: '', tradeName: '', unitType: 'matriz', cnpj: '', address: '', city: '', state: '', phone: '', teacherModuleEnabled: false, doctorModuleEnabled: false, payrollModuleEnabled: false, licenseType: 'annual', maxEmployees: 100 });
             }}>Cancelar</Button>
             <Button onClick={handleUpdateCompany} className="gradient-primary">Salvar Alterações</Button>
           </DialogFooter>

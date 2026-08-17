@@ -956,6 +956,7 @@ export type Database = {
           state: string | null
           teacher_module_enabled: boolean | null
           trade_name: string | null
+          unit_type: Database["public"]["Enums"]["company_unit_type"]
           updated_at: string
         }
         Insert: {
@@ -978,6 +979,7 @@ export type Database = {
           state?: string | null
           teacher_module_enabled?: boolean | null
           trade_name?: string | null
+          unit_type?: Database["public"]["Enums"]["company_unit_type"]
           updated_at?: string
         }
         Update: {
@@ -1000,6 +1002,7 @@ export type Database = {
           state?: string | null
           teacher_module_enabled?: boolean | null
           trade_name?: string | null
+          unit_type?: Database["public"]["Enums"]["company_unit_type"]
           updated_at?: string
         }
         Relationships: [
@@ -1088,6 +1091,90 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_units: {
+        Row: {
+          cei: string | null
+          city: string | null
+          cnpj: string
+          company_id: string
+          complement: string | null
+          created_at: string
+          district: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          number: string | null
+          parent_unit_id: string | null
+          phone: string | null
+          state: string | null
+          street: string | null
+          trade_name: string | null
+          unit_name: string
+          unit_type: Database["public"]["Enums"]["company_unit_type"]
+          updated_at: string
+          zip_code: string | null
+        }
+        Insert: {
+          cei?: string | null
+          city?: string | null
+          cnpj: string
+          company_id: string
+          complement?: string | null
+          created_at?: string
+          district?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          number?: string | null
+          parent_unit_id?: string | null
+          phone?: string | null
+          state?: string | null
+          street?: string | null
+          trade_name?: string | null
+          unit_name: string
+          unit_type?: Database["public"]["Enums"]["company_unit_type"]
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Update: {
+          cei?: string | null
+          city?: string | null
+          cnpj?: string
+          company_id?: string
+          complement?: string | null
+          created_at?: string
+          district?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          number?: string | null
+          parent_unit_id?: string | null
+          phone?: string | null
+          state?: string | null
+          street?: string | null
+          trade_name?: string | null
+          unit_name?: string
+          unit_type?: Database["public"]["Enums"]["company_unit_type"]
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_units_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_units_parent_unit_id_fkey"
+            columns: ["parent_unit_id"]
+            isOneToOne: false
+            referencedRelation: "company_units"
             referencedColumns: ["id"]
           },
         ]
@@ -5308,6 +5395,7 @@ export type Database = {
         Row: {
           backup_codes: string[] | null
           company_id: string | null
+          company_unit_id: string | null
           cpf: string | null
           created_at: string
           department: string | null
@@ -5342,6 +5430,7 @@ export type Database = {
         Insert: {
           backup_codes?: string[] | null
           company_id?: string | null
+          company_unit_id?: string | null
           cpf?: string | null
           created_at?: string
           department?: string | null
@@ -5376,6 +5465,7 @@ export type Database = {
         Update: {
           backup_codes?: string[] | null
           company_id?: string | null
+          company_unit_id?: string | null
           cpf?: string | null
           created_at?: string
           department?: string | null
@@ -5413,6 +5503,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_company_unit_id_fkey"
+            columns: ["company_unit_id"]
+            isOneToOne: false
+            referencedRelation: "company_units"
             referencedColumns: ["id"]
           },
         ]
@@ -7419,6 +7516,7 @@ export type Database = {
         | "social_assistance"
         | "urban_planning"
         | "other"
+      company_unit_type: "matriz" | "filial"
       holiday_treatment: "normal" | "overtime" | "off"
       organization_type: "company" | "city_hall"
       scale_type: "standard" | "5x1" | "6x1" | "12x36"
@@ -7563,6 +7661,7 @@ export const Constants = {
         "urban_planning",
         "other",
       ],
+      company_unit_type: ["matriz", "filial"],
       holiday_treatment: ["normal", "overtime", "off"],
       organization_type: ["company", "city_hall"],
       scale_type: ["standard", "5x1", "6x1", "12x36"],
