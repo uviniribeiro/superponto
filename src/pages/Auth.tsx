@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2 } from 'lucide-react';
+import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2, Fingerprint, MapPin, FileCheck2 } from 'lucide-react';
 import { z } from 'zod';
 import superpontoLogo from '@/assets/pontomax-logo.png';
 
@@ -443,15 +443,16 @@ export default function Auth() {
           </form>
         </Card>
 
-        <div className="text-center mt-4">
-          <a href="/terminal" className="text-xs text-primary underline underline-offset-4">
+        <div className="mt-5 rounded-2xl border border-dashed border-border bg-muted/40 p-3 text-center">
+          <a href="/terminal" className="text-xs font-medium text-primary hover:underline underline-offset-4">
             Usar este dispositivo como Terminal de Ponto (login por CNPJ)
           </a>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          Ponto Max v2.0.0 © 2026
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          Ponto Max © 2026
         </p>
+        </div>
       </div>
     </div>
   );
