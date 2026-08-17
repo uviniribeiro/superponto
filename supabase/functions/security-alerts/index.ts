@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { getAuthContext, authErrorResponse } from "../_shared/auth.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -253,7 +254,22 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { action, ...body } = await req.json();
+    const { action, ...rawBody } = await req.json();
+
+    // Autenticação obrigatória: o alvo do alerta é sempre o próprio chamador,
+    // exceto para chamadas internas server-to-server (service role).
+    const ctx = await getAuthContext(req);
+    const body = {
+      ...rawBody,
+      userId: ctx.isServiceRole ? rawBody.userId : ctx.userId,
+    };
+
+    if (!body.userId) {
+      return new Response(JSON.stringify({ error: "Usuário não identificado" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     switch (action) {
       case "send-backup-codes": {
@@ -408,6 +424,8 @@ serve(async (req) => {
         });
     }
   } catch (error: unknown) {
+    const authResponse = authErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     console.error("Security Alerts Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
     return new Response(JSON.stringify({ error: errorMessage }), {

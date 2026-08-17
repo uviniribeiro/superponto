@@ -46,8 +46,8 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       API_PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-superponto}:${POSTGRES_PASSWORD:-SuperPonto@2024}@postgres:5432/${POSTGRES_DB:-superponto}
-      JWT_SECRET: ${JWT_SECRET:-seu_jwt_secret_muito_seguro_aqui_mude_em_producao}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-seu_refresh_secret_muito_seguro_mude_em_producao}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET com um valor aleatorio forte}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?defina JWT_REFRESH_SECRET com um valor aleatorio forte}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
     ports:

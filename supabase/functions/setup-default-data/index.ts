@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireRole, authErrorResponse, generateSecurePassword } from "../_shared/auth.ts";
 
 interface SetupRequest {
   action: 'add-default-sectors' | 'recreate-all-users' | 'full-setup';
@@ -16,11 +17,7 @@ const DEFAULT_SECTORS = [
   { name: 'Saúde', sector: 'health' }
 ];
 
-// Fixed passwords
-const FIXED_PASSWORDS = {
-  suporte: 'Super@26',
-  admin: 'Admin@26'
-};
+// Senhas são geradas aleatoriamente por conta (nunca fixas no código)
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -30,6 +27,9 @@ serve(async (req) => {
   }
 
   try {
+    // Setup em nível de plataforma: exclusivo para super administradores
+    await requireRole(req, ['super_admin']);
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
@@ -58,7 +58,7 @@ serve(async (req) => {
     ): Promise<{ success: boolean; action: 'created' | 'reset' | 'error'; error?: string }> => {
       const email = generateInternalEmail(userType, company.id);
       const fullName = userType === 'suporte' ? 'Usuário Suporte' : 'Administrador';
-      const fixedPassword = FIXED_PASSWORDS[userType];
+      const fixedPassword = generateSecurePassword();
 
       console.log(`Processing ${userType} user for company ${company.name}`);
 
@@ -292,7 +292,7 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           results,
-          note: 'Senhas padrão: Suporte=Super@26, Admin=Admin@26'
+          note: 'Senhas aleatórias geradas por conta. Use a redefinição de senha para entregá-las com segurança.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -339,7 +339,7 @@ serve(async (req) => {
           success: true, 
           sectorResults,
           userResults,
-          note: 'Senhas padrão: Suporte=Super@26, Admin=Admin@26'
+          note: 'Senhas aleatórias geradas por conta. Use a redefinição de senha para entregá-las com segurança.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -351,6 +351,8 @@ serve(async (req) => {
     );
 
   } catch (error: unknown) {
+    const authResponse = authErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in setup-default-data:', errorMessage);
     return new Response(

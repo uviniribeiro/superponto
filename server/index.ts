@@ -22,9 +22,28 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || 'postgresql://superponto:SuperPonto@2024@localhost:5432/superponto',
 });
 
-// JWT Configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'seu_jwt_secret_muito_seguro_aqui';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'seu_refresh_secret_muito_seguro_aqui';
+// JWT Configuration — os segredos são obrigatórios e não possuem valor padrão.
+const PLACEHOLDER_SECRETS = new Set([
+  'seu_jwt_secret_muito_seguro_aqui',
+  'seu_refresh_secret_muito_seguro_aqui',
+  'changeme',
+]);
+
+function requireSecret(name: string): string {
+  const value = process.env[name];
+  if (!value || value.trim().length < 32 || PLACEHOLDER_SECRETS.has(value.trim())) {
+    console.error(
+      `[FATAL] A variável de ambiente ${name} não está configurada com um valor aleatório forte (mínimo 32 caracteres). ` +
+      `Gere um segredo com: openssl rand -base64 48`
+    );
+    process.exit(1);
+  }
+  return value.trim();
+}
+
+const JWT_SECRET = requireSecret('JWT_SECRET');
+const JWT_REFRESH_SECRET = requireSecret('JWT_REFRESH_SECRET');
+
 const JWT_EXPIRES_IN = '15m'; // Access token expira em 15 minutos
 const JWT_REFRESH_EXPIRES_IN = '7d'; // Refresh token expira em 7 dias
 

@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireRole, assertCompanyAccess, authErrorResponse } from "../_shared/auth.ts";
 
 // Generate a secure random password
 const generateSecurePassword = (): string => {
@@ -36,6 +37,9 @@ serve(async (req) => {
   }
 
   try {
+    // Somente super admins (ou admins da própria empresa) podem provisionar contas de suporte
+    const ctx = await requireRole(req, ['super_admin', 'admin']);
+
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -55,6 +59,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    assertCompanyAccess(ctx, companyId);
 
     console.log(`Creating support user for company: ${companyName} (${companyId})`);
 
@@ -161,6 +167,8 @@ serve(async (req) => {
     );
 
   } catch (error: unknown) {
+    const authResponse = authErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     console.error('Error in create-support-user function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(

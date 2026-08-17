@@ -2,17 +2,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireRole, assertCompanyAccess, authErrorResponse, generateSecurePassword } from "../_shared/auth.ts";
 
 interface CreateUsersRequest {
   action: 'create-for-company' | 'create-for-all' | 'list-company-users' | 'reset-passwords';
   companyId?: string;
 }
 
-// Fixed passwords as requested
-const FIXED_PASSWORDS = {
-  suporte: 'Super@26',
-  admin: 'Admin@26'
-};
+// Senhas são geradas aleatoriamente por conta (nunca fixas no código)
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -22,6 +19,9 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Provisionamento de contas privilegiadas exige sessão de super admin (ou admin da própria empresa)
+    const ctx = await requireRole(req, ['super_admin', 'admin']);
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
@@ -34,6 +34,17 @@ Deno.serve(async (req) => {
     
     const body: CreateUsersRequest = await req.json();
     const { action, companyId } = body;
+
+    const crossTenantActions = ['create-for-all'];
+    if (crossTenantActions.includes(action) && !ctx.isServiceRole && !ctx.roles.includes('super_admin')) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Apenas super administradores podem executar esta ação' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (companyId) {
+      assertCompanyAccess(ctx, companyId);
+    }
 
     console.log('Received request:', { action, companyId });
 
@@ -51,7 +62,7 @@ Deno.serve(async (req) => {
       const username = userType;
       const email = generateInternalEmail(username, company.id);
       const fullName = userType === 'suporte' ? 'Usuário Suporte' : 'Administrador';
-      const fixedPassword = FIXED_PASSWORDS[userType];
+      const generatedPassword = generateSecurePassword();
 
       console.log(`Creating ${userType} user for company ${company.name} with email ${email}`);
 
@@ -71,7 +82,7 @@ Deno.serve(async (req) => {
       // Create auth user with fixed password
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
-        password: fixedPassword,
+        password: generatedPassword,
         email_confirm: true,
         user_metadata: {
           full_name: fullName,
@@ -138,7 +149,7 @@ Deno.serve(async (req) => {
       }
 
       console.log(`Successfully created ${userType} user for company ${company.name}`);
-      return { success: true, exists: false, userId, password: fixedPassword };
+      return { success: true, exists: false, userId, password: generatedPassword };
     };
 
     if (action === 'reset-passwords' && companyId) {
@@ -156,7 +167,7 @@ Deno.serve(async (req) => {
       const results = [];
       for (const profile of profiles || []) {
         const userType = profile.email.startsWith('suporte') ? 'suporte' : 'admin';
-        const fixedPassword = FIXED_PASSWORDS[userType as keyof typeof FIXED_PASSWORDS];
+        const fixedPassword = generateSecurePassword();
         
         const { error: updateError } = await supabase.auth.admin.updateUserById(
           profile.user_id,
@@ -261,7 +272,7 @@ Deno.serve(async (req) => {
           support: { success: supportResult.success, exists: supportResult.exists, userId: supportResult.userId },
           admin: { success: adminResult.success, exists: adminResult.exists, userId: adminResult.userId },
           credentials,
-          note: 'Senhas padrão: Suporte=Super@26, Admin=Admin@26'
+          note: 'Senhas aleatórias geradas por conta e exibidas apenas uma vez. Troca obrigatória no primeiro acesso.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -325,7 +336,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           results,
-          note: 'Senhas padrão: Suporte=Super@26, Admin=Admin@26'
+          note: 'Senhas aleatórias geradas por conta e exibidas apenas uma vez. Troca obrigatória no primeiro acesso.'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -337,6 +348,8 @@ Deno.serve(async (req) => {
     );
 
   } catch (error: unknown) {
+    const authResponse = authErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in create-company-users:', errorMessage);
     return new Response(

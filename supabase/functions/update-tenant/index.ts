@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireRole, assertCompanyAccess, authErrorResponse } from "../_shared/auth.ts";
 
 interface UpdateTenantRequest {
   companyId: string;
@@ -21,6 +22,9 @@ serve(async (req) => {
   }
 
   try {
+    // Alterar módulos/configurações de um tenant exige super admin (ou admin da própria empresa)
+    const ctx = await requireRole(req, ['super_admin', 'admin']);
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -33,6 +37,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    assertCompanyAccess(ctx, companyId);
 
     // Get company data
     const { data: company, error: companyError } = await supabase
@@ -327,6 +333,8 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
+    const authResponse = authErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     console.error('Error updating tenant:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(

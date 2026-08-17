@@ -386,13 +386,13 @@ export default function SuperAdminCityHalls() {
           const creds = usersData.credentials;
           const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
           if (creds?.support?.password || creds?.admin?.password) {
-            toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. Suporte: suporte/Super@26 | Admin: admin/Admin@26`, { duration: 15000 });
+            toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. Suporte: suporte / ${creds?.support?.password ?? '(senha já definida)'} | Admin: admin / ${creds?.admin?.password ?? '(senha já definida)'} — anote agora, não serão exibidas novamente.`, { duration: 30000 });
           } else {
-            toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. Usuários: suporte/Super@26 e admin/Admin@26`);
+            toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. Usuários suporte e admin já existiam — use a redefinição de senha se necessário.`);
           }
         } else {
           const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
-          toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. Usuários: suporte/Super@26 e admin/Admin@26`);
+          toast.success(`Prefeitura cadastrada com 3 setores! Licença válida até ${validUntilFormatted}. Usuários suporte e admin já existiam — use a redefinição de senha se necessário.`);
         }
       } catch (err) {
         console.error('Error calling create-company-users:', err);
@@ -596,6 +596,8 @@ export default function SuperAdminCityHalls() {
           console.error('Error creating sector users:', usersError);
           toast.warning('Setor criado, mas houve erro ao criar usuários. Tente novamente em Gerenciar Usuários.');
         } else if (usersData?.success) {
+          const creds = usersData.credentials;
+
           const validUntilFormatted = sectorFormData.createSeparateLicense 
             ? format(sectorFormData.contractEndDate ? new Date(sectorFormData.contractEndDate) : addMonths(new Date(), sectorFormData.contractDuration), 'dd/MM/yyyy', { locale: ptBR })
             : '';
@@ -604,9 +606,9 @@ export default function SuperAdminCityHalls() {
             ? ` Licença válida até ${validUntilFormatted}.` 
             : '';
           
-          toast.success(`Setor criado com banco isolado!${licenseInfo} Suporte: suporte/Super@26 | Admin: admin/Admin@26`, { duration: 15000 });
+          toast.success(`Setor criado com banco isolado!${licenseInfo} Suporte: suporte / ${creds?.support?.password ?? '(senha já definida)'} | Admin: admin / ${creds?.admin?.password ?? '(senha já definida)'} — anote agora, não serão exibidas novamente.`, { duration: 30000 });
         } else {
-          toast.success('Setor criado! Usuários: suporte/Super@26 e admin/Admin@26');
+          toast.success('Setor criado! Usuários suporte e admin já existiam — use a redefinição de senha se necessário.');
         }
       } catch (err) {
         console.error('Error calling create-company-users:', err);

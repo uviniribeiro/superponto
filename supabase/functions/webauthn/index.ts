@@ -36,17 +36,46 @@ function bufferToBase64url(buffer: Uint8Array): string {
     .replace(/=/g, "");
 }
 
-// Verificar assinatura (simplificado - em produção usar biblioteca completa)
+// Converte assinatura ECDSA DER (r,s) para o formato raw exigido pelo WebCrypto
+function derToRawEcdsaSignature(der: Uint8Array): Uint8Array {
+  if (der[0] !== 0x30) return der; // já está em formato raw
+  let offset = 2;
+  if (der[1] & 0x80) offset = 2 + (der[1] & 0x7f);
+
+  const readInt = (): Uint8Array => {
+    if (der[offset] !== 0x02) throw new Error("Assinatura DER inválida");
+    const len = der[offset + 1];
+    let value = der.slice(offset + 2, offset + 2 + len);
+    offset += 2 + len;
+    while (value.length > 32 && value[0] === 0x00) value = value.slice(1);
+    const padded = new Uint8Array(32);
+    padded.set(value, 32 - value.length);
+    return padded;
+  };
+
+  const r = readInt();
+  const s = readInt();
+  const raw = new Uint8Array(64);
+  raw.set(r, 0);
+  raw.set(s, 32);
+  return raw;
+}
+
+function toArrayBuffer(view: Uint8Array): ArrayBuffer {
+  return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength) as ArrayBuffer;
+}
+
+// Verifica a assinatura da asserção WebAuthn com a chave pública armazenada
 async function verifySignature(
   publicKey: Uint8Array,
   signature: Uint8Array,
   data: Uint8Array
 ): Promise<boolean> {
+  const keyBuffer = toArrayBuffer(publicKey);
+  const dataBuffer = toArrayBuffer(data);
+
+  // ECDSA P-256 (algoritmo padrão dos autenticadores)
   try {
-    const keyBuffer = publicKey.buffer.slice(publicKey.byteOffset, publicKey.byteOffset + publicKey.byteLength) as ArrayBuffer;
-    const sigBuffer = signature.buffer.slice(signature.byteOffset, signature.byteOffset + signature.byteLength) as ArrayBuffer;
-    const dataBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
-    
     const key = await crypto.subtle.importKey(
       "spki",
       keyBuffer,
@@ -54,18 +83,44 @@ async function verifySignature(
       false,
       ["verify"]
     );
-
-    return await crypto.subtle.verify(
+    const raw = derToRawEcdsaSignature(signature);
+    const ok = await crypto.subtle.verify(
       { name: "ECDSA", hash: "SHA-256" },
       key,
-      sigBuffer,
+      toArrayBuffer(raw),
+      dataBuffer
+    );
+    if (ok) return true;
+  } catch (error) {
+    console.error("Falha na verificação ECDSA:", error);
+  }
+
+  // RSA (RS256) como alternativa
+  try {
+    const key = await crypto.subtle.importKey(
+      "spki",
+      keyBuffer,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+    return await crypto.subtle.verify(
+      "RSASSA-PKCS1-v1_5",
+      key,
+      toArrayBuffer(signature),
       dataBuffer
     );
   } catch (error) {
-    console.error("Erro ao verificar assinatura:", error);
+    console.error("Falha na verificação RSA:", error);
     return false;
   }
 }
+
+async function sha256(data: Uint8Array): Promise<Uint8Array> {
+  const digest = await crypto.subtle.digest("SHA-256", toArrayBuffer(data));
+  return new Uint8Array(digest);
+}
+
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -315,6 +370,14 @@ serve(async (req) => {
       case "authenticate-verify": {
         const { credential } = body;
 
+        if (!credential?.id || !credential?.response?.authenticatorData ||
+            !credential?.response?.clientDataJSON || !credential?.response?.signature) {
+          return new Response(JSON.stringify({ error: "Asserção WebAuthn incompleta" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         // Buscar credencial no banco
         const { data: storedCredential } = await supabase
           .from("webauthn_credentials")
@@ -329,25 +392,80 @@ serve(async (req) => {
           });
         }
 
-        // Verificar challenge
-        const { data: challengeData } = await supabase
-          .from("webauthn_challenges")
-          .select("*")
-          .eq("type", "authenticate")
-          .gt("expires_at", new Date().toISOString())
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        if (!challengeData) {
-          return new Response(JSON.stringify({ error: "Challenge expirado" }), {
+        // Dados do cliente assinados pelo autenticador
+        let clientData: { type?: string; challenge?: string; origin?: string };
+        const clientDataBytes = base64urlToBuffer(credential.response.clientDataJSON);
+        try {
+          clientData = JSON.parse(new TextDecoder().decode(clientDataBytes));
+        } catch {
+          return new Response(JSON.stringify({ error: "clientDataJSON inválido" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
+        if (clientData.type !== "webauthn.get" || clientData.origin !== ORIGIN) {
+          return new Response(JSON.stringify({ error: "Origem da autenticação inválida" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Challenge deve pertencer ao usuário desta credencial e corresponder ao assinado
+        const { data: challengeData } = await supabase
+          .from("webauthn_challenges")
+          .select("*")
+          .eq("type", "authenticate")
+          .eq("challenge", clientData.challenge ?? "")
+          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!challengeData ||
+            (challengeData.user_id && challengeData.user_id !== storedCredential.user_id)) {
+          return new Response(JSON.stringify({ error: "Challenge inválido ou expirado" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verificação criptográfica da assinatura (prova de posse da chave privada)
+        const authenticatorData = base64urlToBuffer(credential.response.authenticatorData);
+        const clientDataHash = await sha256(clientDataBytes);
+        const signedData = new Uint8Array(authenticatorData.length + clientDataHash.length);
+        signedData.set(authenticatorData, 0);
+        signedData.set(clientDataHash, authenticatorData.length);
+
+        const expectedRpIdHash = await sha256(new TextEncoder().encode(RP_ID));
+        const rpIdMatches = expectedRpIdHash.every((b, i) => authenticatorData[i] === b);
+        const userPresent = (authenticatorData[32] & 0x01) === 0x01;
+
+        const signatureValid = rpIdMatches && userPresent && await verifySignature(
+          base64urlToBuffer(storedCredential.public_key),
+          base64urlToBuffer(credential.response.signature),
+          signedData
+        );
+
+        if (!signatureValid) {
+          await supabase.rpc("log_security_event", {
+            _user_id: storedCredential.user_id,
+            _event_type: "webauthn_invalid_signature",
+            _severity: "critical",
+            _ip_address: clientIp,
+            _user_agent: userAgent,
+          });
+
+          return new Response(JSON.stringify({ error: "Falha na verificação da credencial" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         // Verificar counter (proteção contra replay)
-        if (credential.counter <= storedCredential.counter) {
+        const assertionCounter = Number(credential.counter ?? 0);
+        const storedCounter = Number(storedCredential.counter ?? 0);
+        if ((assertionCounter > 0 || storedCounter > 0) && assertionCounter <= storedCounter) {
           // Possível ataque de replay
           await supabase.rpc("log_security_event", {
             _user_id: storedCredential.user_id,
@@ -363,11 +481,12 @@ serve(async (req) => {
           });
         }
 
+
         // Atualizar counter e last_used
         await supabase
           .from("webauthn_credentials")
           .update({
-            counter: credential.counter,
+            counter: Math.max(assertionCounter, storedCounter),
             last_used_at: new Date().toISOString(),
           })
           .eq("id", storedCredential.id);
