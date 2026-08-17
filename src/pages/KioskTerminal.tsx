@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import jsQR from 'jsqr';
 
+import { coarseCoordinate } from "@/lib/privacy";
 const STORAGE_KEY = 'pontomax.kiosk.session';
 const QUEUE_KEY = 'pontomax.kiosk.queue';
 

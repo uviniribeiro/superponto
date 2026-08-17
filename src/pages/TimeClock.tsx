@@ -20,6 +20,7 @@ import MobileValidationDialog, { type IdentificationMethod } from '@/components/
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { checkGeofence, formatDistance, type AllowedLocation, type GeofenceResult } from '@/lib/geofence';
 
+import { coarseCoordinate } from "@/lib/privacy";
 type RecordType = 'entry' | 'break_start' | 'break_end' | 'exit';
 
 export default function TimeClock() {
