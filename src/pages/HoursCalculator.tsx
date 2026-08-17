@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Calculator, Clock, Sun, Moon, DollarSign, Plus, Trash2, RefreshCw } from 'lucide-react';
 import useSEO from '@/hooks/useSEO';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface TimeEntry {
   id: string;
@@ -182,15 +183,11 @@ export default function HoursCalculator() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Calculator className="h-6 w-6 text-primary" />
-            Calculadora de Horas
-          </h1>
-          <p className="text-muted-foreground">
-            Calcule horas extras, adicional noturno e valores estimados
-          </p>
-        </div>
+        <PageHeader
+          title="Calculadora de Horas"
+          description="Calcule horas extras, adicional noturno e valores estimados" icon={Calculator}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button variant="outline" onClick={reset}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Limpar

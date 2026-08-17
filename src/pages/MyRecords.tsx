@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { FileText, Plus, Clock, MapPin } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface TimeRecord {
   id: string;
@@ -125,13 +126,11 @@ export default function MyRecords() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <FileText className="h-8 w-8 text-primary" />
-            Meus Registros
-          </h1>
-          <p className="text-muted-foreground">Visualize e solicite ajustes nos seus registros</p>
-        </div>
+        <PageHeader
+          title="Meus Registros"
+          description="Visualize e solicite ajustes nos seus registros" icon={FileText}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gradient-primary">

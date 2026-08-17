@@ -7,6 +7,7 @@ import { HelpButton } from '@/components/HelpButton';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ReportFilters } from '@/components/reports/ReportFilters';
 import { AttendanceReport } from '@/components/reports/AttendanceReport';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface TimeRecord {
   id: string;
@@ -136,15 +137,11 @@ export default function AttendancePage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Users className="h-8 w-8 text-primary" />
-            Frequência
-          </h1>
-          <p className="text-muted-foreground">
-            Relatório de frequência por funcionário
-          </p>
-        </div>
+        <PageHeader
+          title="Frequência"
+          description="Relatório de frequência por funcionário" icon={Users}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <ReportFilters 

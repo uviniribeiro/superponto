@@ -16,6 +16,7 @@ import { CheckCircle2, XCircle, Clock, AlertTriangle, Search, Users, Calendar, F
 import { format, subMonths, startOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Employee {
   id: string;
@@ -333,15 +334,11 @@ export default function PointHomologation() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <FileCheck className="h-8 w-8 text-primary" />
-            Homologação de Ponto
-          </h1>
-          <p className="text-muted-foreground">
-            Aprove o ponto eletrônico dos servidores da sua unidade
-          </p>
-        </div>
+        <PageHeader
+          title="Homologação de Ponto"
+          description="Aprove o ponto eletrônico dos servidores da sua unidade" icon={FileCheck}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       {/* Stats Cards */}

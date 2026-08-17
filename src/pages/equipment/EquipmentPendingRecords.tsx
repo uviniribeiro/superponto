@@ -8,6 +8,7 @@ import { Clock, CheckCircle2, XCircle, FileWarning, User, Shield, Info } from 'l
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipmentData } from '@/hooks/useEquipmentData';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function EquipmentPendingRecords() {
   const { 
@@ -20,14 +21,12 @@ export default function EquipmentPendingRecords() {
   } = useEquipmentData();
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Shield className="h-8 w-8" />
-          Registros Pendentes
-        </h1>
-        <p className="text-muted-foreground">Registros importados dos relógios de ponto - Portaria 671</p>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+          title="Registros Pendentes"
+          description="Registros importados dos relógios de ponto - Portaria 671" icon={Shield}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
 
       {/* Informação sobre ordem de vinculação */}
       <Alert className="border-primary/50 bg-primary/5">

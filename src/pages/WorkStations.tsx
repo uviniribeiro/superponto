@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, MapPin, Users, Building2 } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface WorkStation {
   id: string;
@@ -205,12 +206,14 @@ export default function WorkStations() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Postos de Trabalho</h1>
-          <p className="text-muted-foreground">Gerencie as áreas georreferenciadas para registro de ponto</p>
-        </div>
+        <PageHeader
+          icon={MapPin}
+          title="Postos de Trabalho"
+          description="Gerencie as áreas georreferenciadas para registro de ponto"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>

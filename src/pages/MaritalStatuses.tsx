@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Heart, Plus, Edit, Trash2, Search } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface MaritalStatus {
   id: string;
@@ -136,15 +137,11 @@ export default function MaritalStatuses() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Heart className="h-8 w-8 text-primary" />
-            Estados Civis
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie os tipos de estado civil dos funcionários
-          </p>
-        </div>
+        <PageHeader
+          title="Estados Civis"
+          description="Gerencie os tipos de estado civil dos funcionários" icon={Heart}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gradient-primary">
           <Plus className="h-4 w-4 mr-2" />
           Novo Estado Civil

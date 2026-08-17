@@ -7,6 +7,7 @@ import { HelpButton } from '@/components/HelpButton';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ReportFilters } from '@/components/reports/ReportFilters';
 import { TimeBankReport } from '@/components/reports/TimeBankReport';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface TimeRecord {
   id: string;
@@ -170,15 +171,11 @@ export default function TimeBankPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Wallet className="h-8 w-8 text-primary" />
-            Banco de Horas
-          </h1>
-          <p className="text-muted-foreground">
-            Relatório do banco de horas por funcionário
-          </p>
-        </div>
+        <PageHeader
+          title="Banco de Horas"
+          description="Relatório do banco de horas por funcionário" icon={Wallet}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <ReportFilters 

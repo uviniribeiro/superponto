@@ -11,6 +11,7 @@ import { Building2, Settings, Link2, Scale, Upload, Save } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CnpjInput } from '@/components/shared/CnpjInput';
 import { validateCNPJ } from '@/lib/validators';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface CompanySettings {
   id: string;
@@ -160,10 +161,12 @@ export default function NewCompanySettings() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Configurações</h1>
-        <p className="text-muted-foreground">Configurações gerais do sistema</p>
-      </div>
+      <PageHeader
+          icon={Building2}
+          title="Configurações"
+          description="Configurações gerais do sistema"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

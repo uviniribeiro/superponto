@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { CnpjInput } from '@/components/shared/CnpjInput';
 import { validateCNPJ, cleanCNPJ, isAlphanumericCNPJ } from '@/lib/validators';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Company {
   id: string;
@@ -626,13 +627,11 @@ export default function SuperAdminCompanies() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Building2 className="h-8 w-8 text-primary" />
-            Empresas
-          </h1>
-          <p className="text-muted-foreground">Gerencie as empresas cadastradas no sistema</p>
-        </div>
+        <PageHeader
+          title="Empresas"
+          description="Gerencie as empresas cadastradas no sistema" icon={Building2}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <Card>

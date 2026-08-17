@@ -8,6 +8,7 @@ import {
   Smartphone, Download, ShieldCheck, MonitorSmartphone, AlertCircle, ExternalLink,
 } from 'lucide-react';
 import { APP_VERSION } from '@/lib/version';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 const APK_PATH = '/downloads/ponto-max-terminal.apk';
 
@@ -24,15 +25,11 @@ export default function TerminalApp() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Smartphone className="h-6 w-6 text-primary" />
-          App do Terminal
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Aplicativo dedicado ao registro de ponto: abre direto no login do terminal, sem acesso ao restante do sistema.
-        </p>
-      </div>
+      <PageHeader
+          title="App do Terminal"
+          description="Aplicativo dedicado ao registro de ponto: abre direto no login do terminal, sem acesso ao restante do sistema." icon={Smartphone}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
 
       <Card>
         <CardHeader className="pb-4">

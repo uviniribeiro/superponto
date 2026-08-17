@@ -17,6 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 import { SignedAvatarImage } from "@/components/shared/SignedImage";
+import { PageHeader } from '@/components/shared/PageHeader';
 interface UserWithRole {
   id: string;
   user_id: string;
@@ -392,12 +393,12 @@ export default function Users() {
         <div className="p-2 rounded-lg bg-primary/10">
           <UserCog className="h-6 w-6 text-primary" />
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">Gerenciamento de Usuários</h1>
-          <p className="text-muted-foreground">
-            Gerencie funções e permissões dos usuários do sistema
-          </p>
-        </div>
+        <PageHeader
+          icon={UserCog}
+          title="Gerenciamento de Usuários"
+          description="Gerencie funções e permissões dos usuários do sistema"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <Tabs defaultValue="users" className="space-y-4">

@@ -14,6 +14,7 @@ import { FileText, Plus, Edit, Trash2, Search, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import useSEO from '@/hooks/useSEO';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface CustomText {
   id: string;
@@ -168,15 +169,11 @@ export default function CustomTexts() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileText className="h-6 w-6 text-primary" />
-            Textos Customizados
-          </h1>
-          <p className="text-muted-foreground">
-            Personalize textos e mensagens do sistema
-          </p>
-        </div>
+        <PageHeader
+          title="Textos Customizados"
+          description="Personalize textos e mensagens do sistema" icon={FileText}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
           if (!open) resetForm();

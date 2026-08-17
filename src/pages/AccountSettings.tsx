@@ -14,6 +14,7 @@ import { User, Palette, FileSpreadsheet, Save, Building2, UserCog, Lock, Eye, Ey
 import { Link } from 'react-router-dom';
 import { TwoFactorSettings } from '@/components/auth/TwoFactorSettings';
 import { EmailNotificationSettings } from '@/components/settings/EmailNotificationSettings';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface ImportLayout {
   id?: string;
@@ -287,13 +288,11 @@ export default function AccountSettings() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <UserCog className="h-6 w-6 text-primary" />
-          Minha Conta
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Gerencie suas preferências e configurações</p>
-      </div>
+      <PageHeader
+          title="Minha Conta"
+          description="Gerencie suas preferências e configurações" icon={UserCog}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-6">

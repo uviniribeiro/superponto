@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { validateCPF, validatePIS, formatCPF, formatPIS } from '@/lib/validators';
 
 import { resolveStorageUrl } from "@/lib/storageUrl";
+import { PageHeader } from '@/components/shared/PageHeader';
 interface Employee {
   id: string;
   user_id: string;
@@ -451,13 +452,11 @@ export default function Employees() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Users className="h-8 w-8 text-primary" />
-            Funcionários
-          </h1>
-          <p className="text-muted-foreground">Gerencie o cadastro de colaboradores</p>
-        </div>
+        <PageHeader
+          title="Funcionários"
+          description="Gerencie o cadastro de colaboradores" icon={Users}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         {isAdmin && (
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setIsCsvDialogOpen(true)}>

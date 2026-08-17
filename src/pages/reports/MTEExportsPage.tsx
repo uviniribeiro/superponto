@@ -7,6 +7,7 @@ import { HelpButton } from '@/components/HelpButton';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ReportFilters } from '@/components/reports/ReportFilters';
 import { MTEExports } from '@/components/reports/MTEExports';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface TimeRecord {
   id: string;
@@ -122,15 +123,11 @@ export default function MTEExportsPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Download className="h-8 w-8 text-primary" />
-            Arquivos MTE
-          </h1>
-          <p className="text-muted-foreground">
-            Exportação de arquivos conforme Portaria 671/2021
-          </p>
-        </div>
+        <PageHeader
+          title="Arquivos MTE"
+          description="Exportação de arquivos conforme Portaria 671/2021" icon={Download}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <ReportFilters 

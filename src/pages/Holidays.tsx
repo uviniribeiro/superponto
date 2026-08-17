@@ -17,6 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Plus, Trash2, CalendarDays, Clock, CalendarRange, Pencil, RefreshCw } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Holiday {
   id: string;
@@ -309,12 +310,12 @@ const Holidays = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Feriados</h1>
-          <p className="text-muted-foreground">
-            Gerencie os feriados e dias não úteis
-          </p>
-        </div>
+        <PageHeader
+          icon={CalendarDays}
+          title="Feriados"
+          description="Gerencie os feriados e dias não úteis"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <div className="flex gap-2 flex-wrap">
           <Button 
             variant="outline" 

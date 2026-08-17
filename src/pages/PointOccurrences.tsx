@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { AlertCircle, Plus, CheckCircle2, XCircle, Clock, Search, FileText, Calendar } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Occurrence {
   id: string;
@@ -245,15 +246,11 @@ export default function PointOccurrences() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <AlertCircle className="h-8 w-8 text-primary" />
-            Registro de Ocorrências
-          </h1>
-          <p className="text-muted-foreground">
-            Registre e gerencie ocorrências do ponto eletrônico
-          </p>
-        </div>
+        <PageHeader
+          title="Registro de Ocorrências"
+          description="Registre e gerencie ocorrências do ponto eletrônico" icon={AlertCircle}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>

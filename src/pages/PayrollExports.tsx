@@ -13,6 +13,7 @@ import { toast } from '@/hooks/use-toast';
 import { format, startOfMonth, endOfMonth, parseISO, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Download, FileSpreadsheet, FileText, Loader2, RefreshCw, Calculator } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface PayrollExport {
   id: string;
@@ -347,12 +348,12 @@ export default function PayrollExports() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Integração com Folha de Pagamento</h1>
-          <p className="text-muted-foreground">
-            Exporte dados para sistemas de folha e eSocial
-          </p>
-        </div>
+        <PageHeader
+          icon={FileSpreadsheet}
+          title="Integração com Folha de Pagamento"
+          description="Exporte dados para sistemas de folha e eSocial"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <Tabs defaultValue="generate">

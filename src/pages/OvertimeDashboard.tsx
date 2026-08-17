@@ -12,6 +12,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface OvertimeData {
   employee: string;
@@ -482,12 +483,12 @@ export default function OvertimeDashboard() {
           <div className="p-2 rounded-lg bg-primary/10">
             <TrendingUp className="h-6 w-6 text-primary" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">Dashboard de Horas Extras</h1>
-            <p className="text-muted-foreground">
-              Análise de horas extras por departamento e funcionário
-            </p>
-          </div>
+          <PageHeader
+          icon={TrendingUp}
+          title="Dashboard de Horas Extras"
+          description="Análise de horas extras por departamento e funcionário"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         </div>
         <div className="flex flex-wrap gap-2">
           <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>

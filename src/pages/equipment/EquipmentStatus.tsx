@@ -1,19 +1,22 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RefreshCw } from 'lucide-react';
+import { Activity, RefreshCw } from 'lucide-react';
 import { useEquipmentData } from '@/hooks/useEquipmentData';
 import EquipmentStatusDashboard from '@/components/equipment/EquipmentStatusDashboard';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function EquipmentStatus() {
   const { syncAllMutation } = useEquipmentData();
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Status de Comunicação</h1>
-          <p className="text-muted-foreground">Monitoramento em tempo real dos equipamentos</p>
-        </div>
+        <PageHeader
+          icon={Activity}
+          title="Status de Comunicação"
+          description="Monitoramento em tempo real dos equipamentos"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button
           onClick={() => syncAllMutation.mutate()}
           disabled={syncAllMutation.isPending}

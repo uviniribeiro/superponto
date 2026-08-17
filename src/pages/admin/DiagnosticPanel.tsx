@@ -11,6 +11,7 @@ import {
   AlertTriangle, Bug, CheckCircle2, Loader2, RefreshCw, Wrench, ShieldAlert, Info, PlayCircle,
 } from 'lucide-react';
 import { useSEO } from '@/hooks/useSEO';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Diagnostic {
   id: string;
@@ -111,14 +112,11 @@ export default function DiagnosticPanel() {
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Bug className="h-6 w-6 text-primary" /> Painel de Diagnóstico
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Os usuários veem apenas “Ocorreu um erro”. Aqui o administrador vê o motivo real e corrige com um clique.
-          </p>
-        </div>
+        <PageHeader
+          title="Painel de Diagnóstico"
+          description="Os usuários veem apenas “Ocorreu um erro”. Aqui o administrador vê o motivo real e corrige com um clique." icon={Bug}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <div className="flex gap-2">
           <Button variant="outline" onClick={load} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar

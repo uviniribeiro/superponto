@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from '@/hooks/use-toast';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Check, X, Calendar, FileText, Clock, Plane, Baby, Heart, User } from 'lucide-react';
+import { Baby, Calendar, Check, Clock, FileText, Heart, Plane, Plus, User, UserMinus, X } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Profile {
   id: string;
@@ -231,12 +232,12 @@ export default function LeaveManagement() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gestão de Afastamentos</h1>
-          <p className="text-muted-foreground">
-            Férias, licenças, atestados e outros afastamentos
-          </p>
-        </div>
+        <PageHeader
+          icon={UserMinus}
+          title="Gestão de Afastamentos"
+          description="Férias, licenças, atestados e outros afastamentos"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
           if (!open) resetForm();

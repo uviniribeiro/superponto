@@ -5,9 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Upload, Download, UserMinus, Info } from 'lucide-react';
+import { Download, Info, Upload, UserMinus, Users } from 'lucide-react';
 import { useEquipmentData } from '@/hooks/useEquipmentData';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function EquipmentEmployees() {
   const { 
@@ -52,11 +53,13 @@ export default function EquipmentEmployees() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Funcionários no REP</h1>
-        <p className="text-muted-foreground">Envie e gerencie funcionários nos relógios de ponto</p>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+          icon={Users}
+          title="Funcionários no REP"
+          description="Envie e gerencie funcionários nos relógios de ponto"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Selecione o Equipamento</label>

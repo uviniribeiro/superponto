@@ -29,6 +29,7 @@ import {
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface SecurityLog {
   id: string;
@@ -235,15 +236,11 @@ export default function SecurityDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            Dashboard de Segurança
-          </h1>
-          <p className="text-muted-foreground">
-            Monitore a atividade de segurança da sua conta
-          </p>
-        </div>
+        <PageHeader
+          title="Dashboard de Segurança"
+          description="Monitore a atividade de segurança da sua conta" icon={Shield}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <div className="flex items-center gap-2">
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-32">

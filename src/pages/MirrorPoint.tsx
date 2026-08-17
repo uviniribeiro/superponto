@@ -18,6 +18,7 @@ import autoTable from 'jspdf-autotable';
 import { formatCPF, formatPIS } from '@/hooks/useDocumentMask';
 import { DayEditDialog } from '@/components/mirrorpoint/DayEditDialog';
 import { HelpButton } from '@/components/HelpButton';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface TimeRecord {
   id: string;
@@ -423,13 +424,11 @@ export default function MirrorPoint() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <FileText className="h-8 w-8 text-primary" />
-            Espelho de Ponto
-          </h1>
-          <p className="text-muted-foreground">Conforme Portarias 671/2021 e 1510/2009 do MTE</p>
-        </div>
+        <PageHeader
+          title="Espelho de Ponto"
+          description="Conforme Portarias 671/2021 e 1510/2009 do MTE" icon={FileText}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       {/* Filters */}

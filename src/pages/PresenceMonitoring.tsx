@@ -10,7 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { format, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
+import {
+  Activity,
   MapPin, 
   Users, 
   UserCheck, 
@@ -23,6 +24,7 @@ import {
   AlertTriangle,
   Building2
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface EmployeePresence {
   id: string;
@@ -138,12 +140,14 @@ export default function PresenceMonitoring() {
   const absentCount = employees.filter(e => !e.is_present).length;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Central de Monitoramento</h1>
-          <p className="text-muted-foreground">Acompanhamento em tempo real da presença dos servidores</p>
-        </div>
+        <PageHeader
+          icon={Activity}
+          title="Central de Monitoramento"
+          description="Acompanhamento em tempo real da presença dos servidores"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={() => refetch()} variant="outline">
           <RefreshCw className="h-4 w-4 mr-2" />
           Atualizar

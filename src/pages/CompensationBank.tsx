@@ -15,6 +15,7 @@ import { Scale, Plus, Search, Calendar, TrendingUp, TrendingDown, User } from 'l
 import { HelpButton } from '@/components/HelpButton';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface CompensationEntry {
   id: string;
@@ -156,15 +157,11 @@ export default function CompensationBank() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Scale className="h-8 w-8 text-primary" />
-            Banco de Compensação
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie créditos e débitos de horas para compensação
-          </p>
-        </div>
+        <PageHeader
+          title="Banco de Compensação"
+          description="Gerencie créditos e débitos de horas para compensação" icon={Scale}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gradient-primary">
           <Plus className="h-4 w-4 mr-2" />
           Novo Lançamento

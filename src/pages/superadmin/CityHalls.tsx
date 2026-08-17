@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { CnpjInput } from '@/components/shared/CnpjInput';
 import { validateCNPJ, cleanCNPJ, isAlphanumericCNPJ } from '@/lib/validators';
 import { EmployeeTransferDialog } from '@/components/superadmin/EmployeeTransferDialog';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Company {
   id: string;
@@ -927,13 +928,11 @@ export default function SuperAdminCityHalls() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Landmark className="h-8 w-8 text-primary" />
-            Prefeituras
-          </h1>
-          <p className="text-muted-foreground">Gerencie as prefeituras e seus setores</p>
-        </div>
+        <PageHeader
+          title="Prefeituras"
+          description="Gerencie as prefeituras e seus setores" icon={Landmark}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <Card>
