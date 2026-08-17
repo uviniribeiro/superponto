@@ -12,6 +12,13 @@ export interface CommunicationServer {
   port: number;
   timeout_ms: number;
   allow_private_network: boolean;
+  connection_mode: string;
+  api_base_url: string | null;
+  api_username: string | null;
+  api_password: string | null;
+  cloud_token: string | null;
+  cloud_organization_id: string | null;
+  use_https: boolean;
   command_map: Record<string, string> | null;
   description: string | null;
   is_default: boolean;
@@ -30,6 +37,13 @@ export const defaultServer: Partial<CommunicationServer> = {
   port: 3000,
   timeout_ms: 8000,
   allow_private_network: false,
+  connection_mode: 'tcp',
+  api_base_url: '',
+  api_username: 'admin',
+  api_password: '',
+  cloud_token: '',
+  cloud_organization_id: '',
+  use_https: false,
   description: '',
   is_default: false,
   is_active: true,
@@ -53,6 +67,12 @@ export function useCommunicationServers() {
     },
   });
 
+  const resolveFunction = (params: { serverId?: string; manufacturer?: string; equipmentId?: string }) => {
+    const server = params.serverId ? servers.find((s) => s.id === params.serverId) : undefined;
+    const manufacturer = params.manufacturer ?? server?.manufacturer ?? 'henry';
+    return manufacturer === 'control_id' ? 'controlid-api' : 'henry-tcp';
+  };
+
   const defaultServerRow = servers.find((s) => s.is_default && s.is_active) ?? servers.find((s) => s.is_active) ?? null;
 
   const saveMutation = useMutation({
@@ -64,6 +84,13 @@ export function useCommunicationServers() {
         port: Number(server.port) || 3000,
         timeout_ms: Number(server.timeout_ms) || 8000,
         allow_private_network: !!server.allow_private_network,
+        connection_mode: server.connection_mode || (server.manufacturer === 'control_id' ? 'device' : 'tcp'),
+        api_base_url: server.api_base_url?.trim() || null,
+        api_username: server.api_username?.trim() || null,
+        cloud_organization_id: server.cloud_organization_id?.trim() || null,
+        use_https: !!server.use_https,
+        ...(server.api_password ? { api_password: server.api_password } : {}),
+        ...(server.cloud_token ? { cloud_token: server.cloud_token } : {}),
         description: server.description || null,
         is_default: !!server.is_default,
         is_active: server.is_active !== false,
@@ -105,8 +132,8 @@ export function useCommunicationServers() {
   });
 
   const testMutation = useMutation({
-    mutationFn: async (params: { serverId?: string; equipmentId?: string; host?: string; port?: number }) => {
-      const { data, error } = await supabase.functions.invoke('henry-tcp', {
+    mutationFn: async (params: { serverId?: string; equipmentId?: string; host?: string; port?: number; manufacturer?: string }) => {
+      const { data, error } = await supabase.functions.invoke(resolveFunction(params), {
         body: { action: 'test', ...params },
       });
       if (error) throw error;
@@ -115,17 +142,21 @@ export function useCommunicationServers() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['communication-servers'] });
       if (data?.online) {
-        toast.success(`Conectado a ${data.host}:${data.port} em ${data.latencyMs ?? '?'}ms`);
+        toast.success(
+          data.host
+            ? `Conectado a ${data.host}:${data.port} em ${data.latencyMs ?? '?'}ms`
+            : `Conectado à nuvem em ${data.latencyMs ?? '?'}ms`,
+        );
       } else {
-        toast.error(`Falha na conexão TCP/IP: ${data?.error ?? 'sem resposta'}`);
+        toast.error(`Falha na conexão: ${data?.error ?? 'sem resposta'}`);
       }
     },
     onError: (error: Error) => toast.error(`Erro no teste: ${error.message}`),
   });
 
   const readRecordsMutation = useMutation({
-    mutationFn: async (params: { serverId?: string; equipmentId?: string; start?: string; end?: string }) => {
-      const { data, error } = await supabase.functions.invoke('henry-tcp', {
+    mutationFn: async (params: { serverId?: string; equipmentId?: string; start?: string; end?: string; manufacturer?: string }) => {
+      const { data, error } = await supabase.functions.invoke(resolveFunction(params), {
         body: { action: 'read_records', ...params },
       });
       if (error) throw error;
@@ -142,8 +173,8 @@ export function useCommunicationServers() {
   });
 
   const syncClockMutation = useMutation({
-    mutationFn: async (params: { serverId?: string; equipmentId?: string }) => {
-      const { data, error } = await supabase.functions.invoke('henry-tcp', {
+    mutationFn: async (params: { serverId?: string; equipmentId?: string; manufacturer?: string }) => {
+      const { data, error } = await supabase.functions.invoke(resolveFunction(params), {
         body: { action: 'set_time', ...params },
       });
       if (error) throw error;
@@ -154,8 +185,24 @@ export function useCommunicationServers() {
     onError: (error: Error) => toast.error(`Erro: ${error.message}`),
   });
 
+  const cloudDevicesMutation = useMutation({
+    mutationFn: async (params: { serverId: string }) => {
+      const { data, error } = await supabase.functions.invoke('controlid-api', {
+        body: { action: 'list_devices', mode: 'cloud', ...params },
+      });
+      if (error) throw error;
+      return data as { success: boolean; devices?: unknown; error?: string };
+    },
+    onSuccess: (data) =>
+      data?.success
+        ? toast.success('Dispositivos da iD Cloud carregados')
+        : toast.error(data?.error ?? 'Falha ao consultar a iD Cloud'),
+    onError: (error: Error) => toast.error(`Erro: ${error.message}`),
+  });
+
   return {
     servers,
+    cloudDevicesMutation,
     defaultServer: defaultServerRow,
     isLoading,
     saveMutation,

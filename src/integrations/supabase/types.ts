@@ -848,8 +848,14 @@ export type Database = {
       communication_servers: {
         Row: {
           allow_private_network: boolean
+          api_base_url: string | null
+          api_password: string | null
+          api_username: string | null
+          cloud_organization_id: string | null
+          cloud_token: string | null
           command_map: Json | null
           company_id: string | null
+          connection_mode: string
           created_at: string
           description: string | null
           host: string
@@ -864,11 +870,18 @@ export type Database = {
           port: number
           timeout_ms: number
           updated_at: string
+          use_https: boolean
         }
         Insert: {
           allow_private_network?: boolean
+          api_base_url?: string | null
+          api_password?: string | null
+          api_username?: string | null
+          cloud_organization_id?: string | null
+          cloud_token?: string | null
           command_map?: Json | null
           company_id?: string | null
+          connection_mode?: string
           created_at?: string
           description?: string | null
           host: string
@@ -883,11 +896,18 @@ export type Database = {
           port?: number
           timeout_ms?: number
           updated_at?: string
+          use_https?: boolean
         }
         Update: {
           allow_private_network?: boolean
+          api_base_url?: string | null
+          api_password?: string | null
+          api_username?: string | null
+          cloud_organization_id?: string | null
+          cloud_token?: string | null
           command_map?: Json | null
           company_id?: string | null
+          connection_mode?: string
           created_at?: string
           description?: string | null
           host?: string
@@ -902,6 +922,7 @@ export type Database = {
           port?: number
           timeout_ms?: number
           updated_at?: string
+          use_https?: boolean
         }
         Relationships: [
           {
@@ -6253,6 +6274,7 @@ export type Database = {
       time_clock_equipment: {
         Row: {
           api_endpoint: string | null
+          cloud_device_id: string | null
           communication_server_id: string | null
           communication_type: string
           company_id: string | null
@@ -6281,6 +6303,7 @@ export type Database = {
         }
         Insert: {
           api_endpoint?: string | null
+          cloud_device_id?: string | null
           communication_server_id?: string | null
           communication_type?: string
           company_id?: string | null
@@ -6309,6 +6332,7 @@ export type Database = {
         }
         Update: {
           api_endpoint?: string | null
+          cloud_device_id?: string | null
           communication_server_id?: string | null
           communication_type?: string
           company_id?: string | null
@@ -7470,6 +7494,13 @@ export type Database = {
       encrypt_equipment_password: {
         Args: { plain_password: string }
         Returns: string
+      }
+      get_communication_server_secrets: {
+        Args: { _server_id: string }
+        Returns: {
+          api_password: string
+          cloud_token: string
+        }[]
       }
       get_equipment_basic_info: {
         Args: { _company_id: string }
