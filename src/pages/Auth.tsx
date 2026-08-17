@@ -112,6 +112,24 @@ export default function Auth() {
     }
   };
 
+  const isConnectionError = (message?: string) => {
+    if (!message) return false;
+    const m = message.toLowerCase();
+    return (
+      m.includes('failed to fetch') ||
+      m.includes('load failed') ||
+      m.includes('networkerror') ||
+      m.includes('network request failed') ||
+      m.includes('fetch failed') ||
+      m.includes('timeout') ||
+      m.includes('service unavailable') ||
+      m.includes('upstream')
+    );
+  };
+
+  const CONNECTION_MESSAGE =
+    'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente em alguns instantes.';
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -124,7 +142,9 @@ export default function Auth() {
         });
 
         if (authError) {
-          toast.error('Credenciais inválidas');
+          toast.error(
+            isConnectionError(authError.message) ? CONNECTION_MESSAGE : 'Credenciais inválidas'
+          );
           setIsLoading(false);
           return;
         }
@@ -152,7 +172,9 @@ export default function Auth() {
         const { error } = await signIn(validData.username, validData.password, validData.companyCode);
         
         if (error) {
-          if (error.message.includes('Login ou senha incorretos')) {
+          if (isConnectionError(error.message)) {
+            toast.error(CONNECTION_MESSAGE);
+          } else if (error.message.includes('Login ou senha incorretos')) {
             toast.error('Login ou senha incorretos');
           } else {
             toast.error(error.message);
@@ -164,11 +186,16 @@ export default function Auth() {
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
+      } else {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('Login error:', error);
+        toast.error(isConnectionError(message) ? CONNECTION_MESSAGE : `Erro ao entrar: ${message}`);
       }
     } finally {
       setIsLoading(false);
     }
   };
+
 
   if (loading) {
     return (
