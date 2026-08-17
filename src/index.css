@@ -592,3 +592,65 @@ iframe[src*="lovable.dev"],
 .driver-popover-next-btn {
   @apply bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-primary/90;
 }
+
+/* ===== Identidade Navy Trust v4.1 — superfícies, nav e marca ===== */
+@layer utilities {
+  .brand-gradient {
+    background-image: var(--gradient-brand);
+  }
+
+  .brand-gradient-text {
+    background-image: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .shadow-brand {
+    box-shadow: var(--shadow-brand);
+  }
+
+  /* Chip de ícone padronizado */
+  .icon-chip {
+    @apply inline-flex items-center justify-center rounded-xl border border-border bg-accent text-accent-foreground transition-all duration-200;
+  }
+  .icon-chip-sm { @apply h-8 w-8; }
+  .icon-chip-md { @apply h-10 w-10; }
+  .icon-chip-lg { @apply h-12 w-12; }
+
+  /* Item de navegação lateral */
+  .nav-item {
+    @apply relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200;
+  }
+  .nav-item:hover {
+    @apply bg-white/10 text-white;
+  }
+  .nav-item-active {
+    @apply bg-white/12 text-white;
+    box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.1);
+  }
+  .nav-item-active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full;
+    background: hsl(var(--sidebar-primary));
+  }
+
+  /* Painel de marca (login split-screen) */
+  .brand-panel {
+    background-image: var(--gradient-brand);
+    position: relative;
+    overflow: hidden;
+  }
+  .brand-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 15%, hsl(0 0% 100% / 0.12), transparent 45%),
+      radial-gradient(circle at 85% 80%, hsl(208 46% 60% / 0.25), transparent 50%),
+      linear-gradient(hsl(0 0% 100% / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(0 0% 100% / 0.04) 1px, transparent 1px);
+    background-size: auto, auto, 44px 44px, 44px 44px;
+    pointer-events: none;
+  }
+}
