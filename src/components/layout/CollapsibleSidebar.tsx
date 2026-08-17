@@ -85,6 +85,11 @@ import {
   MonitorSmartphone,
   Bug,
   FileSearch,
+  UserPlus,
+  CalendarRange,
+  Stethoscope,
+  Banknote,
+  LayoutList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { categoryHubConfigMap } from '@/config/categoryHubConfigs';
@@ -143,6 +148,7 @@ const menuCategories: MenuCategory[] = [
     roles: ['admin', 'manager'],
     items: [
       { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
+      { title: 'Novo Funcionário', icon: UserPlus, href: '/employees/register', roles: ['admin', 'manager'] },
       { title: 'Cargos e Departamentos', icon: Building2, href: '/positions-departments', roles: ['admin'] },
       { title: 'Departamentos', icon: Network, href: '/departments', roles: ['admin'] },
       { title: 'Unidades (Matriz/Filiais)', icon: Building2, href: '/company-units', roles: ['admin'] },
@@ -162,8 +168,11 @@ const menuCategories: MenuCategory[] = [
     roles: ['admin'],
     items: [
       { title: 'Jornadas', icon: Clock, href: '/journeys', roles: ['admin'] },
+      { title: 'Horários de Trabalho', icon: Timer, href: '/work-schedules', roles: ['admin'] },
       { title: 'Escalas Fixas', icon: Calendar, href: '/fixed-scales', roles: ['admin'] },
       { title: 'Escalas Agendadas', icon: CalendarDays, href: '/scheduled-scales', roles: ['admin'] },
+      { title: 'Todas as Escalas', icon: Grid3X3, href: '/scales', roles: ['admin'] },
+      { title: 'Agenda de Escalas', icon: CalendarRange, href: '/schedules', roles: ['admin'] },
       { title: 'Sobre Aviso', icon: Bell, href: '/on-call-schedules', roles: ['admin'] },
       { title: 'Períodos de Competência', icon: CalendarClock, href: '/competency-periods', roles: ['admin'] },
     ]
@@ -284,6 +293,7 @@ const menuCategories: MenuCategory[] = [
     icon: GraduationCap,
     roles: ['admin', 'manager'],
     items: [
+      { title: 'Visão Geral do Módulo', icon: LayoutList, href: '/teacher-module', roles: ['admin', 'manager'] },
       { title: 'Dashboard', icon: LayoutDashboard, href: '/teacher/dashboard', roles: ['admin', 'manager'] },
       { title: 'Professores', icon: Users, href: '/teacher/professors', roles: ['admin', 'manager'] },
       { title: 'Escolas', icon: School, href: '/teacher/schools', roles: ['admin', 'manager'] },
@@ -301,6 +311,7 @@ const menuCategories: MenuCategory[] = [
     icon: Hospital,
     roles: ['admin', 'manager'],
     items: [
+      { title: 'Visão Geral do Módulo', icon: Stethoscope, href: '/doctor-module', roles: ['admin', 'manager'] },
       { title: 'Dashboard', icon: LayoutDashboard, href: '/doctor/dashboard', roles: ['admin', 'manager'] },
       { title: 'Médicos', icon: Users, href: '/doctor/doctors', roles: ['admin', 'manager'] },
       { title: 'Unidades de Saúde', icon: Hospital, href: '/doctor/health-units', roles: ['admin', 'manager'] },
@@ -317,6 +328,7 @@ const menuCategories: MenuCategory[] = [
     icon: Wallet,
     roles: ['admin'],
     items: [
+      { title: 'Visão Geral do Módulo', icon: Banknote, href: '/payroll-module', roles: ['admin'] },
       { title: 'Dashboard', icon: LayoutDashboard, href: '/payroll/dashboard', roles: ['admin'] },
       { title: 'Folhas', icon: FileText, href: '/payroll/list', roles: ['admin'] },
       { title: 'Nova Folha', icon: ListChecks, href: '/payroll/create', roles: ['admin'] },
