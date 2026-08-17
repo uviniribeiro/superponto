@@ -20,6 +20,7 @@ import MobileValidationDialog, { type IdentificationMethod } from '@/components/
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { checkGeofence, formatDistance, type AllowedLocation, type GeofenceResult } from '@/lib/geofence';
 
+import { coarseCoordinate } from "@/lib/privacy";
 type RecordType = 'entry' | 'break_start' | 'break_end' | 'exit';
 
 export default function TimeClock() {
@@ -343,8 +344,9 @@ export default function TimeClock() {
         company_id: profile.company_id,
         record_type: nextRecordType,
         recorded_at: recordedAt.toISOString(),
-        latitude: geo.latitude,
-        longitude: geo.longitude,
+        latitude: coarseCoordinate(geo.latitude),
+        longitude: coarseCoordinate(geo.longitude),
+
         address: geo.address,
         device_info: deviceParts.join(' | '),
         transaction_hash: transactionHash,

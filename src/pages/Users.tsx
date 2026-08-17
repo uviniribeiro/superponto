@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
+import { SignedAvatarImage } from "@/components/shared/SignedImage";
 interface UserWithRole {
   id: string;
   user_id: string;
@@ -464,7 +465,7 @@ export default function Users() {
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <Avatar className="h-8 w-8">
-                                <AvatarImage src={userItem.photo_url || ''} alt={userItem.full_name} />
+                                <SignedAvatarImage src={userItem.photo_url || ''} alt={userItem.full_name} />
                                 <AvatarFallback>{userItem.full_name.charAt(0)}</AvatarFallback>
                               </Avatar>
                               <span className="font-medium">{userItem.full_name}</span>
@@ -572,7 +573,7 @@ export default function Users() {
                         <SelectItem key={emp.id} value={emp.id}>
                           <div className="flex items-center gap-2">
                             <Avatar className="h-6 w-6">
-                              <AvatarImage src={emp.photo_url || ''} />
+                              <SignedAvatarImage src={emp.photo_url || ''} />
                               <AvatarFallback className="text-xs">{emp.full_name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
@@ -590,7 +591,7 @@ export default function Users() {
                   <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={selectedEmployeeData.photo_url || ''} />
+                        <SignedAvatarImage src={selectedEmployeeData.photo_url || ''} />
                         <AvatarFallback>{selectedEmployeeData.full_name.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div>

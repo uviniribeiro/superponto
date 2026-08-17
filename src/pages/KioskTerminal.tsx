@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import jsQR from 'jsqr';
 
+import { coarseCoordinate } from "@/lib/privacy";
 const STORAGE_KEY = 'pontomax.kiosk.session';
 const QUEUE_KEY = 'pontomax.kiosk.queue';
 
@@ -483,8 +484,9 @@ export default function KioskTerminal() {
       recordType: nextRecordType,
       clientRecordedAt: new Date().toISOString(),
       employeeName: employee.full_name,
-      latitude: coords?.coords.latitude ?? null,
-      longitude: coords?.coords.longitude ?? null,
+      latitude: coarseCoordinate(coords?.coords.latitude),
+      longitude: coarseCoordinate(coords?.coords.longitude),
+
     };
 
     try {

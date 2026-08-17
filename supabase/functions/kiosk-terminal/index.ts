@@ -1,16 +1,26 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { cleanCNPJ, validateCNPJ } from "../_shared/cnpj.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+
+import { getCorsHeaders } from "../_shared/cors.ts";
+
+
+let corsHeaders: Record<string, string> = getCorsHeaders(new Request("https://superponto.lovable.app"));
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+
+// Employee photos live in a private bucket; sign them for short-lived display.
+const signPhotoUrl = async (client: any, url: string | null | undefined): Promise<string | null> => {
+  if (!url) return null;
+  const match = String(url).match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+?)(?:\?|$)/);
+  if (!match) return url;
+  const { data } = await client.storage.from(match[1]).createSignedUrl(decodeURIComponent(match[2]), 300);
+  return data?.signedUrl ?? null;
+};
 
 const RECORD_ORDER = ['entry', 'break_start', 'break_end', 'exit'] as const;
 type RecordType = typeof RECORD_ORDER[number];
@@ -26,6 +36,8 @@ function activationCode() {
 }
 
 Deno.serve(async (req) => {
+  corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -305,7 +317,7 @@ Deno.serve(async (req) => {
           registration_number: profile.registration_number,
           department: profile.department,
           position: profile.position,
-          photo_url: profile.photo_url,
+          photo_url: await signPhotoUrl(supabase, profile.photo_url),
         },
         todayRecords: todayRecords || [],
         nextRecordType,
@@ -416,9 +428,17 @@ Deno.serve(async (req) => {
         },
         { type: 'image_url', image_url: { url: selfie.startsWith('data:') ? selfie : `data:image/jpeg;base64,${selfie}` } },
       ];
+      const signedRoster: Array<{ id: string; url: string }> = [];
       for (const p of roster) {
-        content.push({ type: 'image_url', image_url: { url: p.photo_url } });
+        const signed = await signPhotoUrl(supabase, p.photo_url);
+        if (!signed) continue;
+        signedRoster.push({ id: p.id, url: signed });
+        content.push({ type: 'image_url', image_url: { url: signed } });
       }
+      if (signedRoster.length === 0) {
+        return json({ success: false, error: 'Nenhuma foto disponível para reconhecimento facial neste terminal.' }, 404);
+      }
+
 
       const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -441,7 +461,7 @@ Deno.serve(async (req) => {
       const idx = Number(parsed.index || 0);
       const confidence = Number(parsed.confidence || 0);
 
-      if (!idx || idx > roster.length || confidence < 70) {
+      if (!idx || idx > signedRoster.length || confidence < 70) {
         await supabase.from('identification_validation_attempts').insert({
           company_id: terminal.company_id,
           method_type: 'facial',
@@ -452,7 +472,7 @@ Deno.serve(async (req) => {
         return json({ success: false, error: 'Rosto não reconhecido. Aproxime-se, melhore a iluminação e tente de novo, ou use o QR Code.' }, 404);
       }
 
-      return await buildIdentifyResponse(roster[idx - 1].id, 'facial');
+      return await buildIdentifyResponse(signedRoster[idx - 1].id, 'facial');
     }
 
     // ---------------------------------------------------------------

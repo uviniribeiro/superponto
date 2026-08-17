@@ -1,9 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const SYSTEM_PROMPT = `Você é o assistente de suporte técnico 24/7 do Sistema de Ponto Eletrônico. Você tem conhecimento completo sobre todas as funcionalidades do sistema.
 
@@ -120,6 +118,8 @@ O Sistema de Ponto Eletrônico é uma solução completa para gestão de jornada
 - Verificar se o equipamento está online`;
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

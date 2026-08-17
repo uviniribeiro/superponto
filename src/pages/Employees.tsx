@@ -22,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { validateCPF, validatePIS, formatCPF, formatPIS } from '@/lib/validators';
 
+import { resolveStorageUrl } from "@/lib/storageUrl";
 interface Employee {
   id: string;
   user_id: string;
@@ -358,7 +359,8 @@ export default function Employees() {
     
     // Set existing photo if available
     if (employee.photo_url) {
-      setCapturedImage(employee.photo_url);
+      setCapturedImage(null);
+      resolveStorageUrl(employee.photo_url).then((url) => setCapturedImage(url));
     } else {
       setCapturedImage(null);
     }
