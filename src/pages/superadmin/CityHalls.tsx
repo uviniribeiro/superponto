@@ -596,6 +596,8 @@ export default function SuperAdminCityHalls() {
           console.error('Error creating sector users:', usersError);
           toast.warning('Setor criado, mas houve erro ao criar usuários. Tente novamente em Gerenciar Usuários.');
         } else if (usersData?.success) {
+          const creds = usersData.credentials;
+
           const validUntilFormatted = sectorFormData.createSeparateLicense 
             ? format(sectorFormData.contractEndDate ? new Date(sectorFormData.contractEndDate) : addMonths(new Date(), sectorFormData.contractDuration), 'dd/MM/yyyy', { locale: ptBR })
             : '';
