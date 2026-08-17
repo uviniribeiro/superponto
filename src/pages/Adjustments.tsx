@@ -13,6 +13,7 @@ import { ClipboardCheck, Check, X, Clock, MessageSquare } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface AdjustmentRequest {
   id: string;
@@ -156,13 +157,11 @@ export default function Adjustments() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <ClipboardCheck className="h-8 w-8 text-primary" />
-            Aprovação de Ajustes
-          </h1>
-          <p className="text-muted-foreground">Gerencie as solicitações de ajuste de ponto</p>
-        </div>
+        <PageHeader
+          title="Aprovação de Ajustes"
+          description="Gerencie as solicitações de ajuste de ponto" icon={ClipboardCheck}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <Card>

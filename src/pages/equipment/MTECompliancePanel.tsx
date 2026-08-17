@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipmentData, PORTARIA_OPTIONS } from '@/hooks/useEquipmentData';
 import { validateCPF, validatePIS } from '@/lib/validators';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface ComplianceIssue {
   id: string;
@@ -272,13 +273,11 @@ export default function MTECompliancePanel() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
-            Conformidade MTE
-          </h1>
-          <p className="text-muted-foreground">Painel de homologação - Portarias 671, 1510 e 373</p>
-        </div>
+        <PageHeader
+          title="Conformidade MTE"
+          description="Painel de homologação - Portarias 671, 1510 e 373" icon={Shield}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={fetchComplianceData} variant="outline">
           <RefreshCw className="h-4 w-4 mr-2" />
           Atualizar

@@ -13,6 +13,7 @@ import { HelpButton } from '@/components/HelpButton';
 import { format, differenceInDays } from 'date-fns';
 import { cleanCNPJ, validateCNPJ } from '@/lib/validators';
 import { ptBR } from 'date-fns/locale';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface CompanySettings {
   id?: string;
@@ -329,13 +330,11 @@ export default function Company() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <Building2 className="h-6 w-6 text-primary" />
-          Configurações da Empresa
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Configure os dados da empresa para os relatórios AFD/AFDT</p>
-      </div>
+      <PageHeader
+          title="Configurações da Empresa"
+          description="Configure os dados da empresa para os relatórios AFD/AFDT" icon={Building2}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
 
       {/* License Card */}
       <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">

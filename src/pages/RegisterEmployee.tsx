@@ -9,6 +9,7 @@ import { UserPlus, Shield, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { EmployeeRegistrationForm } from '@/components/employees/EmployeeRegistrationForm';
 import { HelpButton } from '@/components/HelpButton';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function RegisterEmployee() {
   const navigate = useNavigate();
@@ -36,13 +37,11 @@ export default function RegisterEmployee() {
         <Button variant="ghost" size="icon" onClick={() => navigate('/employees')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <UserPlus className="h-8 w-8 text-primary" />
-            Cadastrar Funcionário
-          </h1>
-          <p className="text-muted-foreground">Adicione um novo colaborador à empresa</p>
-        </div>
+        <PageHeader
+          title="Cadastrar Funcionário"
+          description="Adicione um novo colaborador à empresa" icon={UserPlus}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <EmployeeRegistrationForm

@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Car, Plus, Edit, Trash2, Search, Clock, Users } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface CommuteTimeConfig {
   id: string;
@@ -150,15 +151,11 @@ export default function CommuteTime() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Car className="h-8 w-8 text-primary" />
-            Hora In Itinere
-          </h1>
-          <p className="text-muted-foreground">
-            Configure o tempo de deslocamento computado na jornada (CLT Art. 58, §2º)
-          </p>
-        </div>
+        <PageHeader
+          title="Hora In Itinere"
+          description="Configure o tempo de deslocamento computado na jornada (CLT Art. 58, §2º)" icon={Car}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gradient-primary">
           <Plus className="h-4 w-4 mr-2" />
           Nova Configuração

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useEquipmentData, defaultEquipment } from '@/hooks/useEquipmentData';
 import EquipmentFormDialog from '@/components/equipment/EquipmentFormDialog';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function EquipmentAdd() {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
@@ -11,10 +12,11 @@ export default function EquipmentAdd() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Adicionar Equipamento</h1>
-          <p className="text-muted-foreground">Cadastre um novo relógio de ponto</p>
-        </div>
+        <PageHeader
+          title="Adicionar Equipamento"
+          description="Cadastre um novo relógio de ponto"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <Card>

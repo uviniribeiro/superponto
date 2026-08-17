@@ -17,6 +17,7 @@ import { Users2, Plus, Edit, Trash2, Search, Building2 } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 import { validateCNPJ, cleanCNPJ } from '@/lib/validators';
 import { CnpjInput } from '@/components/shared/CnpjInput';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Union {
   id: string;
@@ -240,13 +241,11 @@ export default function Unions() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Users2 className="h-8 w-8 text-primary" />
-            Sindicatos
-          </h1>
-          <p className="text-muted-foreground">Gerencie os sindicatos vinculados à empresa</p>
-        </div>
+        <PageHeader
+          title="Sindicatos"
+          description="Gerencie os sindicatos vinculados à empresa" icon={Users2}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gradient-primary">
           <Plus className="h-4 w-4 mr-2" />
           Novo Sindicato

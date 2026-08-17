@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
 import { useEquipmentData } from '@/hooks/useEquipmentData';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function EquipmentSync() {
   const { equipments, syncAllMutation, testConnectionMutation } = useEquipmentData();
@@ -9,10 +10,11 @@ export default function EquipmentSync() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Sincronizar Equipamentos</h1>
-          <p className="text-muted-foreground">Execute a sincronização manual dos relógios de ponto</p>
-        </div>
+        <PageHeader
+          title="Sincronizar Equipamentos"
+          description="Execute a sincronização manual dos relógios de ponto"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <Card>

@@ -16,6 +16,7 @@ import { CheckCircle, Plus, Edit, Trash2, Search, Calendar, Users } from 'lucide
 import { HelpButton } from '@/components/HelpButton';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface BatchAbsolution {
   id: string;
@@ -245,15 +246,11 @@ export default function BatchAbsolutions() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <CheckCircle className="h-8 w-8 text-primary" />
-            Abono em Lote
-          </h1>
-          <p className="text-muted-foreground">
-            Abone faltas e atrasos para múltiplos funcionários de uma vez
-          </p>
-        </div>
+        <PageHeader
+          title="Abono em Lote"
+          description="Abone faltas e atrasos para múltiplos funcionários de uma vez" icon={CheckCircle}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gradient-primary">
           <Plus className="h-4 w-4 mr-2" />
           Novo Abono

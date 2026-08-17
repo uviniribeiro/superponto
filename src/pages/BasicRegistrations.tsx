@@ -18,6 +18,7 @@ import {
   Plus, Edit, Trash2, Search, FileText, Users
 } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 type RegistrationType = 'groupings' | 'specialties' | 'cost_centers' | 'sections' | 'employee_types' | 'job_functions' | 'work_locations' | 'marital_statuses';
 
@@ -209,13 +210,11 @@ export default function BasicRegistrations() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <FileText className="h-8 w-8 text-primary" />
-            Cadastros Básicos
-          </h1>
-          <p className="text-muted-foreground">Gerencie os cadastros auxiliares do sistema</p>
-        </div>
+        <PageHeader
+          title="Cadastros Básicos"
+          description="Gerencie os cadastros auxiliares do sistema" icon={FileText}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as RegistrationType)} className="w-full">

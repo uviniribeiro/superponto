@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Shield, Plus, Trash2, Eye, EyeOff, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface SuperAdminUser {
   user_id: string;
@@ -120,15 +121,11 @@ export default function SuperAdminUsers() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            Super Administradores
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie os usuários com acesso total ao sistema
-          </p>
-        </div>
+        <PageHeader
+          title="Super Administradores"
+          description="Gerencie os usuários com acesso total ao sistema" icon={Shield}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={() => setIsDialogOpen(true)} className="gradient-primary">
           <Plus className="h-4 w-4 mr-2" />
           Adicionar Super Admin

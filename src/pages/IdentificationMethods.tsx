@@ -14,6 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { Plus, Trash2, Edit, Fingerprint, QrCode, CreditCard, KeyRound, Scan, Camera, Download } from 'lucide-react';
 import QRCode from 'qrcode';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Profile {
   id: string;
@@ -285,12 +286,11 @@ export default function IdentificationMethods() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Métodos de Identificação</h1>
-          <p className="text-muted-foreground">
-            Gerencie formas de identificação dos funcionários para registro de ponto
-          </p>
-        </div>
+        <PageHeader
+          title="Métodos de Identificação"
+          description="Gerencie formas de identificação dos funcionários para registro de ponto"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
           if (!open) resetForm();

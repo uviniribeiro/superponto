@@ -14,6 +14,7 @@ import { CalendarRange, Plus, Edit, Trash2, Search } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface CompetencyPeriod {
   id: string;
@@ -191,13 +192,11 @@ export default function CompetencyPeriods() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <CalendarRange className="h-8 w-8 text-primary" />
-            Competências
-          </h1>
-          <p className="text-muted-foreground">Gerencie os períodos de competência para cálculos e relatórios</p>
-        </div>
+        <PageHeader
+          title="Competências"
+          description="Gerencie os períodos de competência para cálculos e relatórios" icon={CalendarRange}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <div className="flex gap-2">
           {periods.length === 0 && (
             <Button variant="outline" onClick={generateYearCompetencies}>

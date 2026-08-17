@@ -15,6 +15,7 @@ import { PhoneCall, Plus, Edit, Trash2, Search, Calendar, User, Clock } from 'lu
 import { HelpButton } from '@/components/HelpButton';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface OnCallSchedule {
   id: string;
@@ -183,15 +184,11 @@ export default function OnCallSchedules() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <PhoneCall className="h-8 w-8 text-primary" />
-            Sobre Aviso
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie escalas de sobreaviso dos funcionários
-          </p>
-        </div>
+        <PageHeader
+          title="Sobre Aviso"
+          description="Gerencie escalas de sobreaviso dos funcionários" icon={PhoneCall}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gradient-primary">
           <Plus className="h-4 w-4 mr-2" />
           Nova Escala

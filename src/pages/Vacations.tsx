@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, differenceInDays, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar, Plus, Check, X, Clock, CalendarDays, History } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function Vacations() {
   const { profile, isAdmin, isManager } = useAuth();
@@ -159,10 +160,11 @@ export default function Vacations() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Gestão de Férias</h1>
-          <p className="text-muted-foreground">Solicite e acompanhe suas férias</p>
-        </div>
+        <PageHeader
+          title="Gestão de Férias"
+          description="Solicite e acompanhe suas férias"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>

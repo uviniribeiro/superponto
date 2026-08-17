@@ -21,6 +21,7 @@ import { format, parse, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import AFDExportPortaria671 from '@/components/import-export/AFDExportPortaria671';
 import CSVEmployeeImport from '@/components/import-export/CSVEmployeeImport';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface CompanySettings {
   id: string;
@@ -1408,15 +1409,11 @@ export default function ImportExport() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <ArrowUpDown className="h-8 w-8 text-primary" />
-            Importação / Exportação
-          </h1>
-          <p className="text-muted-foreground">
-            Importar AFD (Portarias 1510/373/671) e exportar dados para folha de pagamento
-          </p>
-        </div>
+        <PageHeader
+          title="Importação / Exportação"
+          description="Importar AFD (Portarias 1510/373/671) e exportar dados para folha de pagamento" icon={ArrowUpDown}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

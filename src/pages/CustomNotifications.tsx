@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, Edit, Trash2, Bell, Mail, Smartphone, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface CustomNotification {
   id: string;
@@ -212,10 +213,11 @@ export default function CustomNotifications() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Notificações Customizáveis</h1>
-          <p className="text-muted-foreground">Configure alertas personalizados por e-mail ou aplicativo</p>
-        </div>
+        <PageHeader
+          title="Notificações Customizáveis"
+          description="Configure alertas personalizados por e-mail ou aplicativo"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>

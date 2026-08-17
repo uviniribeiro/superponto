@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipmentData, useAllEquipmentLogs } from '@/hooks/useEquipmentData';
 import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function EquipmentLogs() {
   const { equipments } = useEquipmentData();
@@ -30,10 +31,11 @@ export default function EquipmentLogs() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Logs de Comunicação</h1>
-        <p className="text-muted-foreground">Histórico de comunicação com os relógios de ponto</p>
-      </div>
+      <PageHeader
+          title="Logs de Comunicação"
+          description="Histórico de comunicação com os relógios de ponto"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
 
       <div className="flex items-center gap-4">
         <span className="text-sm font-medium">Filtrar por equipamento:</span>

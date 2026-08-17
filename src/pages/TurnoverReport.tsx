@@ -11,6 +11,7 @@ import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import useSEO from '@/hooks/useSEO';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface TurnoverMetric {
   id: string;
@@ -166,15 +167,11 @@ export default function TurnoverReport() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-primary" />
-            Relatório de Turnover
-          </h1>
-          <p className="text-muted-foreground">
-            Análise de rotatividade de funcionários
-          </p>
-        </div>
+        <PageHeader
+          title="Relatório de Turnover"
+          description="Análise de rotatividade de funcionários" icon={BarChart3}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <div className="flex items-center gap-2">
           <Select value={year} onValueChange={setYear}>
             <SelectTrigger className="w-32">

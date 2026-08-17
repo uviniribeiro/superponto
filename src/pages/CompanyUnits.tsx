@@ -19,6 +19,7 @@ import { Building2, Plus, Pencil, Search, Loader2, Network } from 'lucide-react'
 import { CnpjInput } from '@/components/shared/CnpjInput';
 import { ValidatedInput } from '@/components/shared/ValidatedInput';
 import {
+import { PageHeader } from '@/components/shared/PageHeader';
   BRAZILIAN_STATES, cleanCNPJ, formatCNPJ, validateCNPJ, validateAddress,
 } from '@/lib/validators';
 
@@ -204,15 +205,11 @@ export default function CompanyUnits() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <Network className="h-6 w-6 text-primary" />
-            Unidades (Matriz e Filiais)
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Cadastre vários CNPJs para a mesma base: uma matriz e quantas filiais forem necessárias.
-          </p>
-        </div>
+        <PageHeader
+          title="Unidades (Matriz e Filiais)"
+          description="Cadastre vários CNPJs para a mesma base: uma matriz e quantas filiais forem necessárias." icon={Network}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={openNew}>
           <Plus className="h-4 w-4 mr-2" /> Nova unidade
         </Button>

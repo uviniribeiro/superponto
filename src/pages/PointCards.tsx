@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { FileText, Printer, Send, CheckCircle2, Clock, Search, Users, Calendar, Download, Undo2, Filter } from 'lucide-react';
 import { format, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface PointCard {
   id: string;
@@ -284,15 +285,11 @@ export default function PointCards() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <FileText className="h-8 w-8 text-primary" />
-            Cartões de Ponto
-          </h1>
-          <p className="text-muted-foreground">
-            Gere e gerencie cartões de ponto para coleta de assinaturas
-          </p>
-        </div>
+        <PageHeader
+          title="Cartões de Ponto"
+          description="Gere e gerencie cartões de ponto para coleta de assinaturas" icon={FileText}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setGenerateDialogOpen(true)}>
             <Printer className="h-4 w-4 mr-2" />

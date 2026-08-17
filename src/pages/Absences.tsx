@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Download, AlertTriangle, Calendar, UserX } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Profile {
   id: string;
@@ -235,12 +236,11 @@ const Absences = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Faltas Injustificadas</h1>
-          <p className="text-muted-foreground">
-            Relatório de ausências não justificadas
-          </p>
-        </div>
+        <PageHeader
+          title="Faltas Injustificadas"
+          description="Relatório de ausências não justificadas"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={exportToCSV} disabled={absences.length === 0}>
           <Download className="mr-2 h-4 w-4" />
           Exportar CSV

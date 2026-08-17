@@ -14,6 +14,7 @@ import { format, startOfMonth, endOfMonth, parseISO, eachDayOfInterval, isWeeken
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { CalendarIcon, ClipboardList, Printer, Download, Shield, FileText } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface Profile {
   id: string;
@@ -458,13 +459,11 @@ export default function Timesheet() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <ClipboardList className="h-8 w-8 text-primary" />
-          Espelho de Ponto
-        </h1>
-        <p className="text-muted-foreground">Visualize e imprima o espelho de ponto dos funcionários</p>
-      </div>
+      <PageHeader
+          title="Espelho de Ponto"
+          description="Visualize e imprima o espelho de ponto dos funcionários" icon={ClipboardList}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
 
       <Card>
         <CardHeader>

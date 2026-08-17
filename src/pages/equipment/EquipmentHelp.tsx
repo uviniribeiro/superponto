@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Copy, Check, Info, HelpCircle, Download, Monitor, Wifi, Server, FileCode, Terminal, Bot, Settings, Gauge, Package, Cpu, FileText, Cloud, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateEquipmentDocPDF } from '@/components/equipment/EquipmentDocPDF';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function EquipmentHelp() {
   const [copied, setCopied] = useState<string | null>(null);
@@ -37,10 +38,11 @@ export default function EquipmentHelp() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Ajuda na Configuração</h1>
-          <p className="text-muted-foreground">Como configurar os relógios de ponto</p>
-        </div>
+        <PageHeader
+          title="Ajuda na Configuração"
+          description="Como configurar os relógios de ponto"
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={handleDownloadPDF} className="flex items-center gap-2">
           <FileText className="h-4 w-4" />
           Baixar Manual PDF

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { ArrowRight, Download, FileSearch, Loader2, PlayCircle, RefreshCw, ShieldAlert } from 'lucide-react';
 import { useSEO } from '@/hooks/useSEO';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface AuditRow {
   id: string;
@@ -138,14 +139,11 @@ export default function CnpjAudit() {
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <FileSearch className="h-6 w-6 text-primary" /> Auditoria de CNPJ
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Histórico da revalidação quinzenal e de toda alteração de CNPJ, com o valor anterior e o atual.
-          </p>
-        </div>
+        <PageHeader
+          title="Auditoria de CNPJ"
+          description="Histórico da revalidação quinzenal e de toda alteração de CNPJ, com o valor anterior e o atual." icon={FileSearch}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={load} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Atualizar

@@ -24,6 +24,7 @@ import {
   CalendarDays, Clock, AlertCircle, Info, Moon, Sun
 } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface WorkSchedule {
   id: string;
@@ -645,15 +646,11 @@ export default function WorkSchedules() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Clock className="h-8 w-8 text-primary" />
-            Jornadas e Escalas
-          </h1>
-          <p className="text-muted-foreground">
-            Configure jornadas, escalas (5x1, 6x1, 12x36) e atribua a funcionários conforme Portarias 1510 e 671
-          </p>
-        </div>
+        <PageHeader
+          title="Jornadas e Escalas"
+          description="Configure jornadas, escalas (5x1, 6x1, 12x36) e atribua a funcionários conforme Portarias 1510 e 671" icon={Clock}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
       </div>
 
       <Tabs defaultValue="schedules" className="space-y-4">

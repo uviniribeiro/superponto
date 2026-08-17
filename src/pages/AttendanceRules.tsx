@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Loader2, Save, SlidersHorizontal, Moon, Clock, Scale, CalendarClock } from 'lucide-react';
 import {
+import { PageHeader } from '@/components/shared/PageHeader';
   AttendanceRules,
   DEFAULT_ATTENDANCE_RULES,
   calculateDay,
@@ -116,15 +117,11 @@ export default function AttendanceRulesPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold">
-            <SlidersHorizontal className="h-6 w-6" />
-            Regras de Apuração
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Parâmetros de tolerância, horas extras, adicional noturno, intrajornada e compensação.
-          </p>
-        </div>
+        <PageHeader
+          title="Regras de Apuração"
+          description="Parâmetros de tolerância, horas extras, adicional noturno, intrajornada e compensação." icon={SlidersHorizontal}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <div className="flex items-center gap-2">
 
           <Button onClick={handleSave} disabled={saving}>
