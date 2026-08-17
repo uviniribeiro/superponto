@@ -6,18 +6,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTheme } from 'next-themes';
 import { getVersionString } from '@/lib/version';
+import { cn } from '@/lib/utils';
+
+const navItems = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/super-admin', exact: true },
+  { label: 'Empresas', icon: Building2, path: '/super-admin/companies' },
+  { label: 'Prefeituras', icon: Landmark, path: '/super-admin/city-halls' },
+  { label: 'Licenças', icon: Key, path: '/super-admin/licenses' },
+  { label: 'Usuários', icon: Users, path: '/super-admin/users' },
+];
 
 export default function SuperAdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
 
-  const isActive = (path: string) => {
-    if (path === '/super-admin') {
-      return location.pathname === '/super-admin';
-    }
-    return location.pathname.startsWith(path);
-  };
+  const isActive = (path: string, exact?: boolean) =>
+    exact ? location.pathname === path : location.pathname.startsWith(path);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -28,142 +33,85 @@ export default function SuperAdminLayout() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+      <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
+        <div className="container flex h-[68px] items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Shield className="h-6 w-6 text-primary" />
+            <div className="brand-gradient flex h-11 w-11 items-center justify-center rounded-2xl shadow-brand">
+              <Shield className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold">Ponto Max</h1>
-              <p className="text-xs text-muted-foreground">Super Administrador • {getVersionString()}</p>
+            <div className="min-w-0">
+              <h1 className="font-heading text-base font-bold tracking-tight leading-none">Ponto Max</h1>
+              <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Super Admin • {getVersionString()}
+              </p>
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1">
-            <Button
-              variant={isActive('/super-admin') && location.pathname === '/super-admin' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => navigate('/super-admin')}
-              className="flex items-center gap-2"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </Button>
-            <Button
-              variant={isActive('/super-admin/companies') ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => navigate('/super-admin/companies')}
-              className="flex items-center gap-2"
-            >
-              <Building2 className="h-4 w-4" />
-              Empresas
-            </Button>
-            <Button
-              variant={isActive('/super-admin/city-halls') ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => navigate('/super-admin/city-halls')}
-              className="flex items-center gap-2"
-            >
-              <Landmark className="h-4 w-4" />
-              Prefeituras
-            </Button>
-            <Button
-              variant={isActive('/super-admin/licenses') ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => navigate('/super-admin/licenses')}
-              className="flex items-center gap-2"
-            >
-              <Key className="h-4 w-4" />
-              Licenças
-            </Button>
-            <Button
-              variant={isActive('/super-admin/users') ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => navigate('/super-admin/users')}
-              className="flex items-center gap-2"
-            >
-              <Users className="h-4 w-4" />
-              Usuários
-            </Button>
+          <nav className="hidden md:flex items-center gap-1 rounded-2xl border border-border/70 bg-muted/50 p-1">
+            {navItems.map(({ label, icon: Icon, path, exact }) => (
+              <button
+                key={path}
+                onClick={() => navigate(path)}
+                className={cn(
+                  'flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200',
+                  isActive(path, exact)
+                    ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
           </nav>
 
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
+              className="rounded-xl"
+              aria-label="Alternar tema"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
               <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Alternar tema</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={handleLogout} className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 rounded-xl">
               <LogOut className="h-4 w-4" />
-              Sair
+              <span className="hidden sm:inline">Sair</span>
             </Button>
           </div>
         </div>
       </header>
 
       {/* Mobile Navigation */}
-      <div className="md:hidden border-b bg-background">
-        <div className="container flex gap-1 py-2 overflow-x-auto">
-          <Button
-            variant={isActive('/super-admin') && location.pathname === '/super-admin' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/super-admin')}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            Dashboard
-          </Button>
-          <Button
-            variant={isActive('/super-admin/companies') ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/super-admin/companies')}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <Building2 className="h-4 w-4" />
-            Empresas
-          </Button>
-          <Button
-            variant={isActive('/super-admin/city-halls') ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/super-admin/city-halls')}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <Landmark className="h-4 w-4" />
-            Prefeituras
-          </Button>
-          <Button
-            variant={isActive('/super-admin/licenses') ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/super-admin/licenses')}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <Key className="h-4 w-4" />
-            Licenças
-          </Button>
-          <Button
-            variant={isActive('/super-admin/users') ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => navigate('/super-admin/users')}
-            className="flex items-center gap-2 whitespace-nowrap"
-          >
-            <Users className="h-4 w-4" />
-            Usuários
-          </Button>
+      <div className="md:hidden border-b border-border/60 bg-background/90 backdrop-blur">
+        <div className="container flex gap-1.5 overflow-x-auto py-2.5">
+          {navItems.map(({ label, icon: Icon, path, exact }) => (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              className={cn(
+                'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-colors',
+                isActive(path, exact)
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/60 text-muted-foreground'
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="container py-6">
+      <main className="container py-8">
         <Outlet />
       </main>
 
       {/* Footer with version */}
-      <footer className="border-t py-4">
+      <footer className="border-t border-border/60 py-5">
         <div className="container flex items-center justify-center text-xs text-muted-foreground">
           Ponto Max {getVersionString()} • Sistema de Registro de Ponto Eletrônico
         </div>

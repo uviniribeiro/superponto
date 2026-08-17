@@ -15,13 +15,13 @@ export default {
   	extend: {
   		fontFamily: {
   			heading: [
-  				'Urbanist',
+  				'Outfit',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif'
   			],
   			sans: [
-  				'Epilogue',
+  				'Figtree',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',

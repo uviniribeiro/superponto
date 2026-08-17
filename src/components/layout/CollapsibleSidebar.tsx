@@ -636,19 +636,21 @@ export default function CollapsibleSidebar() {
         position === 'left' ? "left-0 border-r" : "right-0 border-l"
       )}>
         {/* Logo/Brand */}
-        <div className="p-3 border-b border-sidebar-border">
+        <div className="p-3 border-b border-sidebar-border/60">
           <div className="flex items-center gap-3">
-            <img 
-              src={companySettings?.logo_url || superpontoLogo} 
-              alt={companySettings?.company_name || APP_NAME} 
-              className="h-10 w-10 rounded-lg object-contain shrink-0"
-            />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
+              <img 
+                src={companySettings?.logo_url || superpontoLogo} 
+                alt={companySettings?.company_name || APP_NAME} 
+                className="h-7 w-7 object-contain"
+              />
+            </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <h1 className="font-semibold text-sm text-white truncate">
+                <h1 className="font-heading font-semibold text-sm text-white truncate tracking-tight">
                   {companySettings?.company_name || APP_NAME}
                 </h1>
-                <p className="text-xs text-white/60">Gestão de Ponto</p>
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/50">Gestão de Ponto</p>
               </div>
             )}
           </div>
@@ -717,10 +719,10 @@ export default function CollapsibleSidebar() {
                       <button
                         onClick={() => toggleCategory(category.id)}
                         className={cn(
-                          "flex items-center justify-center w-full p-2.5 rounded-lg text-sm transition-colors",
+                          "flex items-center justify-center w-full p-2.5 rounded-xl text-sm transition-all duration-200",
                           hasActiveChild || isCategoryPage
-                            ? "bg-primary text-white"
-                            : "text-white/70 hover:bg-sidebar-accent/50 hover:text-white"
+                            ? "bg-sidebar-primary text-white shadow-md"
+                            : "text-white/70 hover:bg-white/10 hover:text-white"
                         )}
                       >
                         <category.icon className="w-5 h-5" />
@@ -758,34 +760,39 @@ export default function CollapsibleSidebar() {
                   <CollapsibleTrigger
                     onClick={() => toggleCategory(category.id)}
                     className={cn(
-                      "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      "group flex items-center justify-between w-full px-2.5 py-2 rounded-xl text-sm font-medium transition-all duration-200",
                       hasActiveChild || isCategoryPage
-                        ? "text-white"
-                        : "text-white/70 hover:bg-sidebar-accent/50 hover:text-white"
+                        ? "bg-white/10 text-white"
+                        : "text-white/70 hover:bg-white/[0.06] hover:text-white"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      <category.icon className="w-5 h-5 shrink-0" />
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                        hasActiveChild || isCategoryPage
+                          ? "bg-sidebar-primary text-white"
+                          : "bg-white/[0.07] text-white group-hover:bg-white/15"
+                      )}>
+                        <category.icon className="w-4 h-4" />
+                      </span>
                       <span className="truncate">{category.title}</span>
                     </div>
                     {isOpen ? (
-                      <ChevronUp className="w-4 h-4 shrink-0" />
+                      <ChevronUp className="w-4 h-4 shrink-0 text-white/50" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 shrink-0" />
+                      <ChevronDown className="w-4 h-4 shrink-0 text-white/50" />
                     )}
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-1 ml-4 space-y-0.5">
+                  <CollapsibleContent className="mt-1 ml-5 space-y-0.5 border-l border-white/10 pl-2">
                     {/* Central da Categoria */}
                     <Link
                       to={`/category/${category.id}`}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors",
-                        isCategoryPage
-                          ? "bg-primary text-white font-medium"
-                          : "text-white/80 hover:bg-sidebar-accent/50 hover:text-white"
+                        "nav-item py-1.5 text-[13px]",
+                        isCategoryPage && "nav-item-active"
                       )}
                     >
-                      <Grid3X3 className="w-4 h-4 shrink-0" />
+                      <Grid3X3 className="w-4 h-4 shrink-0 text-white" />
                       <span className="truncate">Central</span>
                     </Link>
                     {filteredItems.map((item) => (
@@ -793,13 +800,11 @@ export default function CollapsibleSidebar() {
                         key={item.href}
                         to={item.href}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors",
-                          isActiveLink(item.href)
-                            ? "bg-primary text-white font-medium"
-                            : "text-white/60 hover:bg-sidebar-accent/50 hover:text-white"
+                          "nav-item py-1.5 text-[13px]",
+                          isActiveLink(item.href) && "nav-item-active"
                         )}
                       >
-                        <item.icon className="w-4 h-4 shrink-0" />
+                        <item.icon className="w-4 h-4 shrink-0 text-white" />
                         <span className="truncate">{item.title}</span>
                       </Link>
                     ))}
