@@ -49,6 +49,77 @@ export default function EquipmentHelp() {
           Baixar Manual PDF
         </Button>
       </div>
+      {/* Agente Control iD */}
+      <Card className="border-2 border-primary/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <div className="p-2 rounded-lg bg-primary/20">
+              <Cpu className="h-6 w-6 text-primary" />
+            </div>
+            Agente Control iD + iD Cloud
+            <Badge className="bg-primary text-primary-foreground">NOVO</Badge>
+          </CardTitle>
+          <CardDescription className="text-base">
+            Comunicacao dedicada para iDClass, iDFace, iDAccess, iDFlex e REP iDX. Use a API local (REST) quando o
+            equipamento estiver na mesma rede, ou conecte a Control iD Cloud para receber as marcacoes pela internet.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert className="border-primary/30 bg-primary/5">
+            <Cloud className="h-4 w-4" />
+            <AlertTitle>Dois modos de conexão</AlertTitle>
+            <AlertDescription className="mt-2 text-sm">
+              <strong>iD Cloud:</strong> cadastre em <em>Servidores de Comunicação</em> um servidor Control iD no modo
+              "Control iD Cloud" e informe o token da organização — o Ponto Max busca as marcações direto da nuvem, sem
+              instalar nada. <strong>Rede local:</strong> instale o agente abaixo no servidor da empresa; ele encontra os
+              equipamentos, coleta as marcações e envia para o Ponto Max automaticamente.
+            </AlertDescription>
+          </Alert>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="bg-card hover:bg-accent/50 transition-colors cursor-pointer border-primary/30"
+              onClick={() => downloadFile('install-controlid-agent.bat')}>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="p-3 rounded-full bg-primary/10">
+                    <Download className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Instalador do Agente Control iD</h4>
+                    <p className="text-sm text-muted-foreground">install-controlid-agent.bat</p>
+                    <p className="text-xs text-muted-foreground mt-1">Execute como Administrador — instala como serviço do Windows</p>
+                  </div>
+                  <Button size="sm" className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Baixar Instalador
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card hover:bg-accent/50 transition-colors cursor-pointer"
+              onClick={() => downloadFile('controlid-agent.py')}>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="p-3 rounded-full bg-accent">
+                    <FileCode className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">Script do Agente Control iD</h4>
+                    <p className="text-sm text-muted-foreground">controlid-agent.py</p>
+                    <p className="text-xs text-muted-foreground mt-1">Descoberta de rede, AFD 671/1510 e espelho da iD Cloud</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Baixar Script
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Ponto Max Communicator - Destaque principal */}
       <Card className="border-2 border-primary bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
         <CardHeader>
