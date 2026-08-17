@@ -21,6 +21,8 @@ const roleLabels: Record<string, string> = {
 };
 
 const handler = async (req: Request): Promise<Response> => {
+  const corsHeaders = getCorsHeaders(req);
+
   console.log("Role change notification function called");
   
   if (req.method === "OPTIONS") {

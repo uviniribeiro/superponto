@@ -15,6 +15,8 @@ interface WhatsAppRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  const corsHeaders = getCorsHeaders(req);
+
   console.log("send-whatsapp-alert function called");
 
   if (req.method === "OPTIONS") {

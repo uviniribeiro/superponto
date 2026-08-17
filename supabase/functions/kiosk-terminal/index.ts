@@ -4,6 +4,9 @@ import { cleanCNPJ, validateCNPJ } from "../_shared/cnpj.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 
+
+let corsHeaders: Record<string, string> = getCorsHeaders(new Request("https://superponto.lovable.app"));
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -24,7 +27,7 @@ function activationCode() {
 }
 
 Deno.serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
+  corsHeaders = getCorsHeaders(req);
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

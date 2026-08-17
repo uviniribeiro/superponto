@@ -20,6 +20,8 @@ interface DepartmentSummary {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  const corsHeaders = getCorsHeaders(req);
+
   console.log("Weekly overtime report function called");
 
   if (req.method === "OPTIONS") {
