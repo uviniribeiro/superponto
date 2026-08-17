@@ -5,7 +5,7 @@ export interface EquipmentModel {
   value: string;
   label: string;
   port: number;
-  protocol: 'http' | 'https';
+  protocol: 'http' | 'https' | 'tcp';
   endpoint: string;
   portaria: 'portaria_671' | 'portaria_1510' | 'portaria_373';
   repType?: 'REP-P' | 'REP-A' | 'REP-C' | 'REP';
