@@ -168,8 +168,11 @@ const menuCategories: MenuCategory[] = [
     roles: ['admin'],
     items: [
       { title: 'Jornadas', icon: Clock, href: '/journeys', roles: ['admin'] },
+      { title: 'Horários de Trabalho', icon: Timer, href: '/work-schedules', roles: ['admin'] },
       { title: 'Escalas Fixas', icon: Calendar, href: '/fixed-scales', roles: ['admin'] },
       { title: 'Escalas Agendadas', icon: CalendarDays, href: '/scheduled-scales', roles: ['admin'] },
+      { title: 'Todas as Escalas', icon: Grid3X3, href: '/scales', roles: ['admin'] },
+      { title: 'Agenda de Escalas', icon: CalendarRange, href: '/schedules', roles: ['admin'] },
       { title: 'Sobre Aviso', icon: Bell, href: '/on-call-schedules', roles: ['admin'] },
       { title: 'Períodos de Competência', icon: CalendarClock, href: '/competency-periods', roles: ['admin'] },
     ]
