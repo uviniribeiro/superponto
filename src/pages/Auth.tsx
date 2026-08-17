@@ -461,17 +461,42 @@ export default function Auth() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="login-username" className="text-sm">
-                  {loginType === 'super_admin' ? 'Email' : 'Login'}
+                  {isSuperAdminLogin ? 'Email' : 'Login'}
                 </Label>
-                <Input
-                  id="login-username"
-                  type="text"
-                  placeholder={loginType === 'super_admin' ? 'admin@sistema.com' : 'seu.login'}
-                  value={loginData.username}
-                  onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                  required
-                  className="h-10"
-                />
+                <div className="relative">
+                  <Input
+                    id="login-username"
+                    type={isSuperAdminLogin ? 'email' : 'text'}
+                    inputMode={isSuperAdminLogin ? 'email' : 'text'}
+                    autoComplete="username"
+                    placeholder={isSuperAdminLogin ? 'admin@sistema.com' : 'seu.login'}
+                    value={loginData.username}
+                    onChange={(e) => {
+                      setAuthError(null);
+                      setLoginData({ ...loginData, username: e.target.value });
+                    }}
+                    onBlur={() => setTouched((t) => ({ ...t, username: true }))}
+                    aria-invalid={touched.username && !!usernameError}
+                    aria-describedby="login-username-feedback"
+                    className={cn(
+                      'h-10 pr-9',
+                      touched.username && usernameError && 'border-destructive focus-visible:ring-destructive',
+                      touched.username && !usernameError && 'border-success'
+                    )}
+                  />
+                  {touched.username && loginData.username.length > 0 && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {usernameError ? (
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 text-success" />
+                      )}
+                    </span>
+                  )}
+                </div>
+                <p id="login-username-feedback" aria-live="polite" className="min-h-[1rem] text-xs text-destructive">
+                  {touched.username && usernameError ? usernameError : ''}
+                </p>
               </div>
               
               <div className="space-y-1.5">
@@ -480,21 +505,36 @@ export default function Auth() {
                   <Input
                     id="login-password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     placeholder="••••••"
                     value={loginData.password}
-                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                    required
-                    className="h-10 pr-10"
+                    onChange={(e) => {
+                      setAuthError(null);
+                      setLoginData({ ...loginData, password: e.target.value });
+                    }}
+                    onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+                    aria-invalid={touched.password && !!passwordError}
+                    aria-describedby="login-password-feedback"
+                    className={cn(
+                      'h-10 pr-10',
+                      touched.password && passwordError && 'border-destructive focus-visible:ring-destructive',
+                      touched.password && !passwordError && 'border-success'
+                    )}
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                <p id="login-password-feedback" aria-live="polite" className="min-h-[1rem] text-xs text-destructive">
+                  {touched.password && passwordError ? passwordError : ''}
+                </p>
               </div>
+
             </CardContent>
             
             <CardFooter>
