@@ -380,20 +380,30 @@ export default function Auth() {
                 </Button>
               </div>
 
+              {authError && (
+                <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive" role="alert">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
               {loginType === 'company' && (
                 <div className="space-y-1.5">
                   <Label htmlFor="login-company" className="text-sm">CNPJ da Empresa</Label>
-                  <Input
+                  <CnpjInput
                     id="login-company"
-                    type="text"
-                    placeholder="00.000.000/0000-00"
                     value={loginData.companyCode}
-                    onChange={(e) => setLoginData({ ...loginData, companyCode: e.target.value })}
-                    required
+                    onChange={(value) => {
+                      setAuthError(null);
+                      setLoginData({ ...loginData, companyCode: value });
+                    }}
+                    onBlur={() => setTouched((t) => ({ ...t, companyCode: true }))}
+                    disabled={isLoading}
                     className="h-10"
                   />
                 </div>
               )}
+
 
               {loginType === 'city_hall' && (
                 <>
