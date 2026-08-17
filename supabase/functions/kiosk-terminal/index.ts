@@ -40,6 +40,35 @@ Deno.serve(async (req) => {
     const action = String(body?.action || '');
 
     // ---------------------------------------------------------------
+    // 0) Health-check: sempre responde, inclusive durante a manutenção.
+    //    O terminal usa esta rota para reconectar automaticamente.
+    // ---------------------------------------------------------------
+    if (action === 'health') {
+      let maintenance: Record<string, unknown> | null = null;
+      try {
+        const { data } = await supabase
+          .from('system_maintenance')
+          .select('job, reason, started_at, expected_end_at')
+          .eq('is_active', true)
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        maintenance = data ?? null;
+      } catch (_e) {
+        // health-check nunca falha por causa da consulta de manutenção
+      }
+      return json({
+        success: true,
+        status: 'online',
+        serverTime: new Date().toISOString(),
+        maintenance,
+        acceptsPunches: true,
+      });
+    }
+
+
+
+    // ---------------------------------------------------------------
     // 1) Solicitação de ativação do terminal (aguarda liberação do ADM)
     // ---------------------------------------------------------------
     if (action === 'activate') {
