@@ -82,6 +82,9 @@ import {
   AlertCircle,
   ArrowLeft,
   Grid3X3,
+  MonitorSmartphone,
+  Bug,
+  FileSearch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { categoryHubConfigMap } from '@/config/categoryHubConfigs';
