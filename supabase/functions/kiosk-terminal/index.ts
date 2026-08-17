@@ -428,11 +428,17 @@ Deno.serve(async (req) => {
         },
         { type: 'image_url', image_url: { url: selfie.startsWith('data:') ? selfie : `data:image/jpeg;base64,${selfie}` } },
       ];
+      const signedRoster: Array<{ id: string; url: string }> = [];
       for (const p of roster) {
         const signed = await signPhotoUrl(supabase, p.photo_url);
         if (!signed) continue;
+        signedRoster.push({ id: p.id, url: signed });
         content.push({ type: 'image_url', image_url: { url: signed } });
       }
+      if (signedRoster.length === 0) {
+        return json({ success: false, error: 'Nenhuma foto disponível para reconhecimento facial neste terminal.' }, 404);
+      }
+
 
       const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
