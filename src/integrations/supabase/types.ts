@@ -845,6 +845,74 @@ export type Database = {
           },
         ]
       }
+      communication_servers: {
+        Row: {
+          allow_private_network: boolean
+          command_map: Json | null
+          company_id: string | null
+          created_at: string
+          description: string | null
+          host: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          last_test_at: string | null
+          last_test_message: string | null
+          last_test_status: string | null
+          manufacturer: string
+          name: string
+          port: number
+          timeout_ms: number
+          updated_at: string
+        }
+        Insert: {
+          allow_private_network?: boolean
+          command_map?: Json | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          host: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_test_at?: string | null
+          last_test_message?: string | null
+          last_test_status?: string | null
+          manufacturer?: string
+          name: string
+          port?: number
+          timeout_ms?: number
+          updated_at?: string
+        }
+        Update: {
+          allow_private_network?: boolean
+          command_map?: Json | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          host?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_test_at?: string | null
+          last_test_message?: string | null
+          last_test_status?: string | null
+          manufacturer?: string
+          name?: string
+          port?: number
+          timeout_ms?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_servers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commute_time_configs: {
         Row: {
           company_id: string | null
@@ -6185,6 +6253,7 @@ export type Database = {
       time_clock_equipment: {
         Row: {
           api_endpoint: string | null
+          communication_server_id: string | null
           communication_type: string
           company_id: string | null
           created_at: string
@@ -6212,6 +6281,7 @@ export type Database = {
         }
         Insert: {
           api_endpoint?: string | null
+          communication_server_id?: string | null
           communication_type?: string
           company_id?: string | null
           created_at?: string
@@ -6239,6 +6309,7 @@ export type Database = {
         }
         Update: {
           api_endpoint?: string | null
+          communication_server_id?: string | null
           communication_type?: string
           company_id?: string | null
           created_at?: string
@@ -6265,6 +6336,13 @@ export type Database = {
           username?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "time_clock_equipment_communication_server_id_fkey"
+            columns: ["communication_server_id"]
+            isOneToOne: false
+            referencedRelation: "communication_servers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "time_clock_equipment_company_id_fkey"
             columns: ["company_id"]
