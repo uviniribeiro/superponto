@@ -15,13 +15,13 @@ export default {
   	extend: {
   		fontFamily: {
   			heading: [
-  				'Outfit',
+  				'Syne',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif'
   			],
   			sans: [
-  				'Figtree',
+  				'Plus Jakarta Sans',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
@@ -78,7 +78,8 @@ export default {
   			},
   			accent: {
   				DEFAULT: 'hsl(var(--accent))',
-  				foreground: 'hsl(var(--accent-foreground))'
+  				foreground: 'hsl(var(--accent-foreground))',
+  				soft: 'hsl(var(--accent-soft))'
   			},
   			success: {
   				DEFAULT: 'hsl(var(--success))',

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2, Fingerprint, MapPin, FileCheck2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2, Fingerprint, MapPin, FileCheck2, AlertCircle, CheckCircle2, MonitorSmartphone } from 'lucide-react';
 import { z } from 'zod';
 import { CnpjInput } from '@/components/shared/CnpjInput';
 import { getCNPJFeedback, cleanCNPJ } from '@/lib/validators';
@@ -268,137 +268,127 @@ export default function Auth() {
     );
   }
 
+  const roleTiles: { type: LoginType; label: string; icon: React.ElementType }[] = [
+    { type: 'company', label: 'Empresa', icon: Building2 },
+    { type: 'city_hall', label: 'Prefeitura', icon: Landmark },
+    { type: 'super_admin', label: 'Admin', icon: Shield },
+  ];
+
+  const selectRole = (type: LoginType) => {
+    setLoginType(type);
+    if (type !== 'super_admin') setLoginData({ ...loginData, companyCode: '' });
+    if (type === 'city_hall') setSelectedCityHall('');
+    setTouched({ username: false, password: false, companyCode: false });
+    setAuthError(null);
+  };
+
   return (
-    <div className="min-h-screen w-full lg:grid lg:grid-cols-[1.1fr_1fr]">
-      {/* Painel de marca */}
-      <aside className="brand-panel hidden lg:flex flex-col justify-between p-12 text-primary-foreground">
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm">
-            <img src={superpontoLogo} alt="Ponto Max" className="h-8 w-8" />
+    <div className="flex min-h-screen w-full items-center justify-center bg-background p-4 md:p-6">
+      <div className="grid w-full max-w-5xl animate-fade-in grid-cols-1 gap-4 md:grid-cols-12">
+        {/* Bento: marca e informações */}
+        <aside className="relative flex flex-col justify-between overflow-hidden rounded-3xl bg-primary p-8 text-primary-foreground md:col-span-5 lg:p-10">
+          <div className="relative z-10">
+            <div className="mb-10 flex items-center gap-3">
+              <span className="flex h-10 w-10 rotate-12 items-center justify-center rounded-xl bg-accent">
+                <img src={superpontoLogo} alt="Ponto Max" className="h-6 w-6 -rotate-12" />
+              </span>
+              <span className="font-heading text-xl font-extrabold uppercase tracking-tight">
+                Ponto Max
+              </span>
+            </div>
+
+            <h1 className="font-heading text-4xl font-extrabold leading-[1.05] lg:text-5xl">
+              Gestão de <span className="text-accent">tempo</span> levada a sério.
+            </h1>
+            <p className="mt-5 max-w-xs text-sm leading-relaxed text-primary-foreground/65">
+              Conformidade total com a Portaria 671 do MTE. Simples, seguro e escalável.
+            </p>
+
+            <ul className="mt-8 hidden space-y-3 md:block">
+              {[
+                { icon: Fingerprint, label: 'Biometria, facial e QR Code' },
+                { icon: MapPin, label: 'Geolocalização e postos monitorados' },
+                { icon: FileCheck2, label: 'AFD, AFDT e ACJEF homologados' },
+              ].map(({ icon: Icon, label }) => (
+                <li key={label} className="flex items-center gap-3 text-sm text-primary-foreground/80">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5">
+                    <Icon className="h-4 w-4 text-accent" />
+                  </span>
+                  {label}
+                </li>
+              ))}
+            </ul>
           </div>
-          <div>
-            <p className="font-heading text-xl font-bold leading-none">Ponto Max</p>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-primary-foreground/60">
-              Ponto eletrônico
+
+          <div className="relative z-10 mt-10">
+            <a
+              href="/terminal"
+              className="inline-flex items-center gap-3 text-sm font-medium transition-colors hover:text-accent"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                <MonitorSmartphone className="h-4 w-4 text-accent" />
+              </span>
+              Acessar Terminal de Ponto
+            </a>
+            <p className="mt-6 text-[11px] uppercase tracking-[0.2em] text-primary-foreground/40">
+              Ponto Max © 2026
             </p>
           </div>
-        </div>
 
-        <div className="relative z-10 max-w-md">
-          <h2 className="font-heading text-4xl font-bold leading-tight tracking-tight">
-            Controle de jornada com precisão institucional.
-          </h2>
-          <p className="mt-4 text-sm leading-relaxed text-primary-foreground/70">
-            Registro, apuração e conformidade legal em uma plataforma única — para empresas
-            e prefeituras.
-          </p>
+          <div className="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-brand opacity-60 blur-3xl" />
+        </aside>
 
-          <ul className="mt-10 space-y-4">
-            {[
-              { icon: Fingerprint, label: 'Identificação biométrica, facial e QR Code' },
-              { icon: MapPin, label: 'Geolocalização e postos de trabalho monitorados' },
-              { icon: FileCheck2, label: 'Conformidade com a Portaria 671 do MTE' },
-            ].map(({ icon: Icon, label }) => (
-              <li key={label} className="flex items-center gap-3 text-sm text-primary-foreground/85">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
-                  <Icon className="h-4 w-4 text-white" />
-                </span>
-                {label}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <p className="relative z-10 text-xs text-primary-foreground/50">
-          Ponto Max © 2026 — Todos os direitos reservados
-        </p>
-      </aside>
-
-      {/* Coluna do formulário */}
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <div className="w-full max-w-sm animate-fade-in">
-        {/* Logo (mobile) */}
-        <div className="mb-8 flex flex-col items-center text-center lg:hidden">
-          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl border border-border bg-card shadow-sm">
-            <img src={superpontoLogo} alt="Ponto Max" className="h-14 w-14" />
+        {/* Bento: formulário */}
+        <div className="flex flex-col rounded-3xl border border-border/60 bg-card p-2 shadow-xl md:col-span-7">
+          <div className="grid grid-cols-3 gap-2 p-2">
+            {roleTiles.map(({ type, label, icon: Icon }) => {
+              const active = loginType === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => selectRole(type)}
+                  aria-pressed={active}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-4 transition-all',
+                    active
+                      ? 'bg-primary text-primary-foreground ring-2 ring-accent ring-offset-2 ring-offset-card'
+                      : 'bg-secondary text-secondary-foreground hover:bg-muted',
+                  )}
+                >
+                  <Icon className={cn('h-4 w-4', active ? 'text-accent' : 'text-muted-foreground')} />
+                  <span className="text-sm font-semibold">{label}</span>
+                </button>
+              );
+            })}
           </div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">Ponto Max</h1>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">
-            Sistema de Ponto Eletrônico
-          </p>
-        </div>
 
-        <Card className="rounded-3xl border-border/70 shadow-xl">
-          <form onSubmit={handleLogin}>
-            <CardHeader className="pb-4">
-              <CardTitle className="font-heading text-2xl font-bold tracking-tight">Bem-vindo</CardTitle>
-              <CardDescription className="text-sm">
-                Entre com suas credenciais para acessar o sistema
-              </CardDescription>
-            </CardHeader>
-            
-            
-            <CardContent className="space-y-4">
-              {/* Login Type Selector */}
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  type="button"
-                  variant={loginType === 'company' ? 'default' : 'outline'}
-                  size="sm"
-                  className="flex flex-col h-auto py-2.5 gap-1"
-                  onClick={() => {
-                    setLoginType('company');
-                    setLoginData({ ...loginData, companyCode: '' });
-                    setTouched({ username: false, password: false, companyCode: false });
-                    setAuthError(null);
-                  }}
-                >
-                  <Building2 className="h-4 w-4" />
-                  <span className="text-xs">Empresa</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant={loginType === 'city_hall' ? 'default' : 'outline'}
-                  size="sm"
-                  className="flex flex-col h-auto py-2.5 gap-1"
-                  onClick={() => {
-                    setLoginType('city_hall');
-                    setLoginData({ ...loginData, companyCode: '' });
-                    setSelectedCityHall('');
-                    setTouched({ username: false, password: false, companyCode: false });
-                    setAuthError(null);
-                  }}
-                >
-                  <Landmark className="h-4 w-4" />
-                  <span className="text-xs">Prefeitura</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant={loginType === 'super_admin' ? 'default' : 'outline'}
-                  size="sm"
-                  className="flex flex-col h-auto py-2.5 gap-1"
-                  onClick={() => {
-                    setLoginType('super_admin');
-                    setTouched({ username: false, password: false, companyCode: false });
-                    setAuthError(null);
-                  }}
-                >
-                  <Shield className="h-4 w-4" />
-                  <span className="text-xs">Admin</span>
-                </Button>
+          <div className="flex-1 p-6 lg:p-10">
+            <form onSubmit={handleLogin} className="mx-auto w-full max-w-sm space-y-5">
+              <div className="space-y-1">
+                <h2 className="font-heading text-2xl font-bold text-foreground">Bem-vindo</h2>
+                <p className="text-sm text-muted-foreground">
+                  {isSuperAdminLogin
+                    ? 'Acesso restrito ao painel administrativo.'
+                    : 'Insira os dados da sua organização.'}
+                </p>
               </div>
 
-
               {authError && (
-                <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive" role="alert">
+                <div
+                  className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive"
+                  role="alert"
+                >
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>{authError}</span>
                 </div>
               )}
 
               {loginType === 'company' && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="login-company" className="text-sm">CNPJ da Empresa</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="login-company" className="text-xs font-bold uppercase tracking-wider text-brand">
+                    CNPJ da Organização
+                  </Label>
                   <CnpjInput
                     id="login-company"
                     value={loginData.companyCode}
@@ -408,16 +398,14 @@ export default function Auth() {
                     }}
                     onBlur={() => setTouched((t) => ({ ...t, companyCode: true }))}
                     disabled={isLoading}
-                    className="h-10"
                   />
                 </div>
               )}
 
-
               {loginType === 'city_hall' && (
                 <>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm">Prefeitura</Label>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-brand">Prefeitura</Label>
                     <Select
                       value={selectedCityHall}
                       onValueChange={(value) => {
@@ -425,7 +413,7 @@ export default function Auth() {
                         setLoginData({ ...loginData, companyCode: '' });
                       }}
                     >
-                      <SelectTrigger className="h-10">
+                      <SelectTrigger>
                         <SelectValue placeholder="Selecione a prefeitura" />
                       </SelectTrigger>
                       <SelectContent>
@@ -439,13 +427,13 @@ export default function Auth() {
                   </div>
 
                   {selectedCityHall && (
-                    <div className="space-y-1.5">
-                      <Label className="text-sm">Setor</Label>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-brand">Setor</Label>
                       <Select
                         value={loginData.companyCode}
                         onValueChange={(value) => setLoginData({ ...loginData, companyCode: value })}
                       >
-                        <SelectTrigger className="h-10">
+                        <SelectTrigger>
                           <SelectValue placeholder="Selecione o setor" />
                         </SelectTrigger>
                         <SelectContent>
@@ -468,9 +456,9 @@ export default function Auth() {
                 </>
               )}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="login-username" className="text-sm">
-                  {isSuperAdminLogin ? 'Email' : 'Login'}
+              <div className="space-y-2">
+                <Label htmlFor="login-username" className="text-xs font-bold uppercase tracking-wider text-brand">
+                  {isSuperAdminLogin ? 'E-mail de acesso' : 'Usuário'}
                 </Label>
                 <div className="relative">
                   <Input
@@ -478,7 +466,7 @@ export default function Auth() {
                     type={isSuperAdminLogin ? 'email' : 'text'}
                     inputMode={isSuperAdminLogin ? 'email' : 'text'}
                     autoComplete="username"
-                    placeholder={isSuperAdminLogin ? 'admin@sistema.com' : 'seu.login'}
+                    placeholder={isSuperAdminLogin ? 'admin@sistema.com' : 'nome.sobrenome'}
                     value={loginData.username}
                     onChange={(e) => {
                       setAuthError(null);
@@ -488,9 +476,9 @@ export default function Auth() {
                     aria-invalid={touched.username && !!usernameError}
                     aria-describedby="login-username-feedback"
                     className={cn(
-                      'h-10 pr-9',
+                      'pr-9',
                       touched.username && usernameError && 'border-destructive focus-visible:ring-destructive',
-                      touched.username && !usernameError && 'border-success'
+                      touched.username && !usernameError && 'border-success',
                     )}
                   />
                   {touched.username && loginData.username.length > 0 && (
@@ -507,15 +495,17 @@ export default function Auth() {
                   {touched.username && usernameError ? usernameError : ''}
                 </p>
               </div>
-              
-              <div className="space-y-1.5">
-                <Label htmlFor="login-password" className="text-sm">Senha</Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="login-password" className="text-xs font-bold uppercase tracking-wider text-brand">
+                  Senha de Acesso
+                </Label>
                 <div className="relative">
                   <Input
                     id="login-password"
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
-                    placeholder="••••••"
+                    placeholder="••••••••"
                     value={loginData.password}
                     onChange={(e) => {
                       setAuthError(null);
@@ -525,16 +515,16 @@ export default function Auth() {
                     aria-invalid={touched.password && !!passwordError}
                     aria-describedby="login-password-feedback"
                     className={cn(
-                      'h-10 pr-10',
+                      'pr-10',
                       touched.password && passwordError && 'border-destructive focus-visible:ring-destructive',
-                      touched.password && !passwordError && 'border-success'
+                      touched.password && !passwordError && 'border-success',
                     )}
                   />
                   <button
                     type="button"
                     aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -544,12 +534,11 @@ export default function Auth() {
                 </p>
               </div>
 
-            </CardContent>
-            
-            <CardFooter>
-              <Button 
-                type="submit" 
-                className="w-full h-10"
+              <Button
+                type="submit"
+                variant="accent"
+                size="lg"
+                className="w-full"
                 disabled={isLoading || !formIsValid}
               >
                 {isLoading ? (
@@ -558,24 +547,25 @@ export default function Auth() {
                     Entrando...
                   </>
                 ) : (
-                  'Entrar'
+                  'Entrar no Sistema'
                 )}
               </Button>
-            </CardFooter>
-          </form>
-        </Card>
 
-        <div className="mt-5 rounded-2xl border border-dashed border-border bg-muted/40 p-3 text-center">
-          <a href="/terminal" className="text-xs font-medium text-primary hover:underline underline-offset-4">
-            Usar este dispositivo como Terminal de Ponto (login por CNPJ)
-          </a>
-        </div>
+              <p className="pt-2 text-center text-xs text-muted-foreground">
+                Conexão protegida e registros com assinatura criptográfica.
+              </p>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Ponto Max © 2026
-        </p>
+              <a
+                href="/terminal"
+                className="block text-center text-xs font-semibold text-brand underline-offset-4 hover:underline md:hidden"
+              >
+                Usar este dispositivo como Terminal de Ponto
+              </a>
+            </form>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+

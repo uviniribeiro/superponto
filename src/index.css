@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -46,35 +46,37 @@
 
 @layer base {
   :root {
-    /* Ponto Max 4.0 — Bento Executivo (azul corporativo) */
-    --background: 212 30% 95%;
-    --foreground: 224 58% 15%;
+    /* Ponto Max 5.0 — Architectural Bento (Midnight & Coral) */
+    --background: 223 43% 97%;
+    --foreground: 224 60% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 58% 15%;
+    --card-foreground: 224 60% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 58% 15%;
+    --popover-foreground: 224 60% 12%;
 
-    /* Azul marinho institucional */
-    --primary: 224 58% 15%;
-    --primary-foreground: 212 30% 95%;
+    /* Azul meia-noite institucional */
+    --primary: 224 60% 12%;
+    --primary-foreground: 223 43% 97%;
 
-    /* Azul de apoio (#3b6fa0) */
-    --brand: 208 46% 43%;
+    /* Azul profundo de apoio */
+    --brand: 231 61% 22%;
     --brand-foreground: 0 0% 100%;
-    --brand-deep: 212 52% 25%;
+    --brand-deep: 224 60% 12%;
 
-    --secondary: 212 30% 93%;
-    --secondary-foreground: 224 58% 18%;
+    /* Coral (acento exclusivo) */
+    --accent: 6 100% 68%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 6 100% 96%;
 
-    --muted: 212 30% 93%;
-    --muted-foreground: 212 22% 42%;
+    --secondary: 223 38% 94%;
+    --secondary-foreground: 231 61% 22%;
 
-    --accent: 208 42% 91%;
-    --accent-foreground: 212 52% 25%;
+    --muted: 223 38% 94%;
+    --muted-foreground: 223 16% 46%;
 
-    --destructive: 0 72% 45%;
+    --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
 
     --success: 158 62% 34%;
@@ -83,52 +85,54 @@
     --warning: 38 92% 45%;
     --warning-foreground: 0 0% 10%;
 
-    --info: 208 46% 43%;
+    --info: 231 61% 22%;
     --info-foreground: 0 0% 100%;
 
-    --border: 212 26% 88%;
-    --input: 212 26% 88%;
-    --ring: 208 46% 43%;
+    --border: 223 28% 89%;
+    --input: 223 28% 89%;
+    --ring: 6 100% 68%;
 
-    --radius: 1.25rem;
+    --radius: 1rem;
 
-    /* Sidebar azul marinho */
-    --sidebar-background: 224 58% 15%;
-    --sidebar-foreground: 212 30% 93%;
-    --sidebar-primary: 208 46% 43%;
+    /* Sidebar meia-noite */
+    --sidebar-background: 224 60% 12%;
+    --sidebar-foreground: 223 38% 92%;
+    --sidebar-primary: 6 100% 68%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 212 52% 25%;
+    --sidebar-accent: 231 61% 22%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 212 40% 22%;
-    --sidebar-ring: 208 46% 43%;
+    --sidebar-border: 231 40% 24%;
+    --sidebar-ring: 6 100% 68%;
 
     /* Charts */
-    --chart-1: 208 46% 43%;
-    --chart-2: 212 52% 25%;
-    --chart-3: 224 58% 15%;
+    --chart-1: 6 100% 68%;
+    --chart-2: 231 61% 22%;
+    --chart-3: 224 60% 12%;
     --chart-4: 38 92% 45%;
     --chart-5: 158 62% 34%;
 
     /* Fonts */
-    --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif;
-    --font-heading: 'Outfit', 'Figtree', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Syne', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    /* Gradientes de marca (Navy Trust) */
-    --gradient-brand: linear-gradient(135deg, hsl(224 58% 15%) 0%, hsl(212 52% 25%) 55%, hsl(208 46% 43%) 100%);
-    --gradient-surface: linear-gradient(160deg, hsl(212 30% 97%) 0%, hsl(208 36% 93%) 100%);
-    --shadow-brand: 0 18px 40px -18px hsl(212 52% 25% / 0.45);
+    /* Gradientes de marca (Midnight & Coral) */
+    --gradient-brand: linear-gradient(140deg, hsl(224 60% 12%) 0%, hsl(231 61% 22%) 60%, hsl(231 55% 30%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(6 100% 68%) 0%, hsl(14 92% 62%) 100%);
+    --gradient-surface: linear-gradient(160deg, hsl(223 43% 98%) 0%, hsl(223 38% 94%) 100%);
+    --shadow-brand: 0 20px 44px -20px hsl(224 60% 12% / 0.45);
+    --shadow-accent: 0 16px 34px -16px hsl(6 100% 68% / 0.55);
 
     /* Sombras discretas */
-    --shadow-sm: 0 1px 2px 0 hsl(220 18% 11% / 0.04);
-    --shadow: 0 1px 3px 0 hsl(220 18% 11% / 0.05);
-    --shadow-md: 0 4px 10px -3px hsl(220 18% 11% / 0.07);
-    --shadow-lg: 0 10px 24px -8px hsl(220 18% 11% / 0.09);
-    --shadow-xl: 0 20px 40px -12px hsl(220 18% 11% / 0.1);
+    --shadow-sm: 0 1px 2px 0 hsl(224 40% 11% / 0.05);
+    --shadow: 0 2px 6px -1px hsl(224 40% 11% / 0.06);
+    --shadow-md: 0 6px 14px -4px hsl(224 40% 11% / 0.08);
+    --shadow-lg: 0 14px 30px -10px hsl(224 40% 11% / 0.1);
+    --shadow-xl: 0 26px 50px -16px hsl(224 40% 11% / 0.12);
 
     /* Glass discreto */
-    --glass-bg: hsl(0 0% 100% / 0.72);
-    --glass-border: hsl(216 18% 91% / 0.6);
+    --glass-bg: hsl(0 0% 100% / 0.74);
+    --glass-border: hsl(223 28% 90% / 0.7);
 
     /* Holiday Theme Variables (overridden by JS) */
     --holiday-primary: 158 72% 34%;
@@ -294,32 +298,33 @@
   }
 
   .dark {
-    --background: 224 48% 8%;
-    --foreground: 212 30% 93%;
+    --background: 224 55% 7%;
+    --foreground: 223 38% 94%;
 
-    --card: 224 45% 12%;
-    --card-foreground: 212 30% 93%;
+    --card: 224 52% 11%;
+    --card-foreground: 223 38% 94%;
 
-    --popover: 224 45% 12%;
-    --popover-foreground: 212 30% 93%;
+    --popover: 224 52% 11%;
+    --popover-foreground: 223 38% 94%;
 
-    --primary: 208 46% 52%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 6 100% 68%;
+    --primary-foreground: 224 60% 12%;
 
-    --brand: 208 46% 52%;
+    --brand: 231 55% 34%;
     --brand-foreground: 0 0% 100%;
-    --brand-deep: 212 46% 32%;
+    --brand-deep: 224 60% 12%;
 
-    --secondary: 214 36% 18%;
-    --secondary-foreground: 212 30% 93%;
+    --secondary: 228 34% 17%;
+    --secondary-foreground: 223 38% 94%;
 
-    --muted: 214 36% 18%;
-    --muted-foreground: 212 18% 66%;
+    --muted: 228 34% 17%;
+    --muted-foreground: 223 18% 66%;
 
-    --accent: 214 36% 18%;
-    --accent-foreground: 212 30% 93%;
+    --accent: 6 100% 68%;
+    --accent-foreground: 224 60% 12%;
+    --accent-soft: 6 60% 18%;
 
-    --destructive: 0 63% 35%;
+    --destructive: 0 63% 40%;
     --destructive-foreground: 0 0% 98%;
 
     --success: 158 66% 44%;
@@ -328,27 +333,31 @@
     --warning: 38 92% 55%;
     --warning-foreground: 0 0% 10%;
 
-    --info: 212 84% 56%;
+    --info: 231 70% 62%;
     --info-foreground: 0 0% 100%;
 
-    --border: 214 36% 18%;
-    --input: 214 36% 18%;
-    --ring: 208 46% 52%;
+    --border: 228 34% 18%;
+    --input: 228 34% 18%;
+    --ring: 6 100% 68%;
 
-    --sidebar-background: 224 52% 6%;
-    --sidebar-foreground: 212 30% 93%;
-    --sidebar-primary: 208 46% 52%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 214 40% 16%;
-    --sidebar-accent-foreground: 212 30% 93%;
-    --sidebar-border: 214 40% 16%;
-    --sidebar-ring: 208 46% 52%;
+    --sidebar-background: 224 60% 6%;
+    --sidebar-foreground: 223 38% 94%;
+    --sidebar-primary: 6 100% 68%;
+    --sidebar-primary-foreground: 224 60% 12%;
+    --sidebar-accent: 228 38% 15%;
+    --sidebar-accent-foreground: 223 38% 94%;
+    --sidebar-border: 228 38% 15%;
+    --sidebar-ring: 6 100% 68%;
 
-    --chart-1: 208 46% 52%;
-    --chart-2: 212 46% 38%;
-    --chart-3: 212 30% 80%;
+    --chart-1: 6 100% 68%;
+    --chart-2: 231 60% 50%;
+    --chart-3: 223 30% 82%;
     --chart-4: 38 92% 55%;
     --chart-5: 158 62% 44%;
+
+    --gradient-brand: linear-gradient(140deg, hsl(224 60% 8%) 0%, hsl(231 55% 20%) 100%);
+    --glass-bg: hsl(224 52% 11% / 0.72);
+    --glass-border: hsl(228 34% 22% / 0.7);
 
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
     --shadow: 0 2px 4px -1px hsl(0 0% 0% / 0.4), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
