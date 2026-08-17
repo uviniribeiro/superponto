@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { Server, Plus, Plug, Trash2, Pencil, Info, Clock, Download, CheckCircle2, XCircle } from 'lucide-react';
+import { Server, Plus, Plug, Trash2, Pencil, Info, Clock, Download, CheckCircle2, XCircle, Cloud } from 'lucide-react';
 import { useCommunicationServers, defaultServer, CommunicationServer } from '@/hooks/useCommunicationServers';
 
 export default function CommunicationServers() {
@@ -22,6 +22,7 @@ export default function CommunicationServers() {
     testMutation,
     readRecordsMutation,
     syncClockMutation,
+    cloudDevicesMutation,
   } = useCommunicationServers();
 
   const [open, setOpen] = useState(false);
@@ -37,7 +38,9 @@ export default function CommunicationServers() {
     setOpen(true);
   };
 
-  const canSave = !!form.name?.trim() && !!form.host?.trim();
+  const isControlId = form.manufacturer === 'control_id';
+  const isCloud = isControlId && form.connection_mode === 'cloud';
+  const canSave = !!form.name?.trim() && (isCloud || !!form.host?.trim());
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -45,7 +48,7 @@ export default function CommunicationServers() {
         <PageHeader
           icon={Server}
           title="Servidores de Comunicação"
-          description="Comunicação direta TCP/IP com os relógios Henry"
+          description="Comunicação direta com relógios Henry (TCP/IP) e Control iD (REST local ou iD Cloud)"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
         />
         <Button onClick={openNew}>
@@ -58,9 +61,11 @@ export default function CommunicationServers() {
         <Info className="h-4 w-4" />
         <AlertTitle>Como funciona</AlertTitle>
         <AlertDescription>
-          Cadastre o endereço do servidor Henry (ex.: <strong>191.252.125.30</strong>) e a porta TCP (padrão 3000).
-          O servidor marcado como <strong>padrão</strong> preenche automaticamente o IP e a porta ao cadastrar novos
-          equipamentos Henry. IPs privados (192.168.x.x) só funcionam com o agente local ou habilitando "rede privada".
+          <strong>Henry:</strong> informe o servidor TCP/IP (ex.: 191.252.125.30) e a porta (padrão 3000).{' '}
+          <strong>Control iD:</strong> escolha entre <em>API local</em> (endereço do equipamento, porta 80, usuário e
+          senha) ou <em>iD Cloud</em> (token da organização). O servidor marcado como <strong>padrão</strong> preenche
+          automaticamente IP e porta ao cadastrar novos equipamentos. IPs privados (192.168.x.x) só funcionam com o
+          agente local (robô Control iD) ou habilitando "rede privada".
         </AlertDescription>
       </Alert>
 
@@ -126,7 +131,7 @@ export default function CommunicationServers() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => testMutation.mutate({ serverId: server.id })}
+                            onClick={() => testMutation.mutate({ serverId: server.id, manufacturer: server.manufacturer })}
                             disabled={testMutation.isPending}
                           >
                             <Plug className="h-3.5 w-3.5 mr-1" /> Testar
@@ -134,7 +139,7 @@ export default function CommunicationServers() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => readRecordsMutation.mutate({ serverId: server.id })}
+                            onClick={() => readRecordsMutation.mutate({ serverId: server.id, manufacturer: server.manufacturer })}
                             disabled={readRecordsMutation.isPending}
                           >
                             <Download className="h-3.5 w-3.5 mr-1" /> Marcações
@@ -142,11 +147,21 @@ export default function CommunicationServers() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => syncClockMutation.mutate({ serverId: server.id })}
+                            onClick={() => syncClockMutation.mutate({ serverId: server.id, manufacturer: server.manufacturer })}
                             disabled={syncClockMutation.isPending}
                           >
                             <Clock className="h-3.5 w-3.5 mr-1" /> Relógio
                           </Button>
+                          {server.manufacturer === 'control_id' && server.connection_mode === 'cloud' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => cloudDevicesMutation.mutate({ serverId: server.id })}
+                              disabled={cloudDevicesMutation.isPending}
+                            >
+                              <Cloud className="h-3.5 w-3.5 mr-1" /> Dispositivos
+                            </Button>
+                          )}
                           <Button size="sm" variant="ghost" onClick={() => openEdit(server)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
@@ -193,18 +208,44 @@ export default function CommunicationServers() {
                 <Label htmlFor="srv-manufacturer">Fabricante</Label>
                 <Select
                   value={form.manufacturer ?? 'henry'}
-                  onValueChange={(value) => setForm({ ...form, manufacturer: value })}
+                  onValueChange={(value) =>
+                    setForm({
+                      ...form,
+                      manufacturer: value,
+                      connection_mode: value === 'control_id' ? 'device' : 'tcp',
+                      port: value === 'control_id' ? 80 : form.port ?? 3000,
+                    })
+                  }
                 >
                   <SelectTrigger id="srv-manufacturer">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="henry">Henry</SelectItem>
+                    <SelectItem value="control_id">Control iD</SelectItem>
                     <SelectItem value="generic">Genérico TCP/IP</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {isControlId && (
+              <div className="space-y-2">
+                <Label htmlFor="srv-mode">Modo de conexão</Label>
+                <Select
+                  value={form.connection_mode === 'cloud' ? 'cloud' : 'device'}
+                  onValueChange={(value) => setForm({ ...form, connection_mode: value })}
+                >
+                  <SelectTrigger id="srv-mode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="device">API local do equipamento (REST)</SelectItem>
+                    <SelectItem value="cloud">Control iD Cloud (iD Cloud)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2 sm:col-span-2">
@@ -227,6 +268,66 @@ export default function CommunicationServers() {
                 />
               </div>
             </div>
+
+            {isControlId && !isCloud && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="srv-user">Usuário do equipamento</Label>
+                  <Input
+                    id="srv-user"
+                    value={form.api_username ?? ''}
+                    onChange={(e) => setForm({ ...form, api_username: e.target.value })}
+                    placeholder="admin"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="srv-pass">Senha do equipamento</Label>
+                  <Input
+                    id="srv-pass"
+                    type="password"
+                    value={form.api_password ?? ''}
+                    onChange={(e) => setForm({ ...form, api_password: e.target.value })}
+                    placeholder={form.id ? 'Deixe em branco para manter' : 'admin'}
+                  />
+                </div>
+              </div>
+            )}
+
+            {isControlId && isCloud && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="srv-cloud-url">URL da API iD Cloud</Label>
+                  <Input
+                    id="srv-cloud-url"
+                    value={form.api_base_url ?? ''}
+                    onChange={(e) => setForm({ ...form, api_base_url: e.target.value })}
+                    placeholder="https://api.idcloud.controlid.com.br"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="srv-token">Token de acesso</Label>
+                    <Input
+                      id="srv-token"
+                      type="password"
+                      value={form.cloud_token ?? ''}
+                      onChange={(e) => setForm({ ...form, cloud_token: e.target.value })}
+                      placeholder={form.id ? 'Deixe em branco para manter' : 'Token da iD Cloud'}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="srv-org">Organização (opcional)</Label>
+                    <Input
+                      id="srv-org"
+                      value={form.cloud_organization_id ?? ''}
+                      onChange={(e) => setForm({ ...form, cloud_organization_id: e.target.value })}
+                      placeholder="ID da organização"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -266,6 +367,16 @@ export default function CommunicationServers() {
                   onCheckedChange={(checked) => setForm({ ...form, is_active: checked })}
                 />
               </div>
+              {isControlId && !isCloud && (
+                <div className="flex items-center justify-between rounded-xl border p-3">
+                  <Label htmlFor="srv-https" className="text-sm">Usar HTTPS</Label>
+                  <Switch
+                    id="srv-https"
+                    checked={!!form.use_https}
+                    onCheckedChange={(checked) => setForm({ ...form, use_https: checked })}
+                  />
+                </div>
+              )}
               <div className="flex items-center justify-between rounded-xl border p-3">
                 <Label htmlFor="srv-private" className="text-sm">Rede privada</Label>
                 <Switch
