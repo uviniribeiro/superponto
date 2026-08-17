@@ -28,7 +28,7 @@ async function sendEmail(payload: EmailPayload): Promise<boolean> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "SuperPonto Segurança <security@superponto.app>",
+        from: "Ponto Max Segurança <security@superponto.app>",
         to: [payload.to],
         subject: payload.subject,
         html: payload.html,
@@ -68,7 +68,7 @@ function generate2FABackupCodesEmail(name: string, codes: string[]): string {
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">🔐 SuperPonto</div>
+          <div class="logo">🔐 Ponto Max</div>
           <h1 class="title">Códigos de Backup 2FA</h1>
         </div>
         
@@ -87,7 +87,7 @@ function generate2FABackupCodesEmail(name: string, codes: string[]): string {
         <p>Se você não configurou o 2FA, entre em contato conosco imediatamente.</p>
         
         <div class="footer">
-          <p>SuperPonto - Sistema de Ponto Eletrônico</p>
+          <p>Ponto Max - Sistema de Ponto Eletrônico</p>
           <p>Este é um email automático, não responda.</p>
         </div>
       </div>
@@ -135,7 +135,7 @@ function generateSuspiciousLoginEmail(name: string, details: {
         
         <p>Olá ${name},</p>
         
-        <p>Uma atividade incomum foi detectada na sua conta SuperPonto:</p>
+        <p>Uma atividade incomum foi detectada na sua conta Ponto Max:</p>
         
         <div class="details">
           <div class="detail-row">
@@ -166,7 +166,7 @@ function generateSuspiciousLoginEmail(name: string, details: {
         </ul>
         
         <div class="footer">
-          <p>SuperPonto - Sistema de Ponto Eletrônico</p>
+          <p>Ponto Max - Sistema de Ponto Eletrônico</p>
           <p>Este é um email automático de segurança.</p>
         </div>
       </div>
@@ -203,7 +203,7 @@ function generateNewLoginEmail(name: string, details: {
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">🔐 SuperPonto</div>
+          <div class="logo">🔐 Ponto Max</div>
           <h1 class="title">Novo Login Detectado</h1>
         </div>
         
@@ -235,7 +235,7 @@ function generateNewLoginEmail(name: string, details: {
         <p>Se não foi você, altere sua senha imediatamente e ative o 2FA.</p>
         
         <div class="footer">
-          <p>SuperPonto - Sistema de Ponto Eletrônico</p>
+          <p>Ponto Max - Sistema de Ponto Eletrônico</p>
         </div>
       </div>
     </body>
@@ -276,7 +276,7 @@ serve(async (req) => {
         const html = generate2FABackupCodesEmail(profile.full_name || "Usuário", codes);
         const sent = await sendEmail({
           to: profile.email,
-          subject: "🔐 Seus Códigos de Backup 2FA - SuperPonto",
+          subject: "🔐 Seus Códigos de Backup 2FA - Ponto Max",
           html,
         });
 
@@ -340,7 +340,7 @@ serve(async (req) => {
         const html = generateNewLoginEmail(profile.full_name || "Usuário", details);
         const sent = await sendEmail({
           to: profile.email,
-          subject: "🔐 Novo Login na sua Conta - SuperPonto",
+          subject: "🔐 Novo Login na sua Conta - Ponto Max",
           html,
         });
 

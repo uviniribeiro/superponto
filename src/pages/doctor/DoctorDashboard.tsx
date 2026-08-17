@@ -53,7 +53,7 @@ interface ShiftRecord {
 
 export default function DoctorDashboard() {
   useSEO({
-    title: 'Dashboard Médico | SuperPonto',
+    title: 'Dashboard Médico | Ponto Max',
     description: 'Dashboard do módulo médico com visão geral de médicos e plantões.',
   });
 

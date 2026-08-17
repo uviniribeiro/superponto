@@ -30,7 +30,7 @@ interface Payroll {
 
 export default function PayrollDashboard() {
   useSEO({
-    title: 'Dashboard Folha de Pagamento | SuperPonto',
+    title: 'Dashboard Folha de Pagamento | Ponto Max',
     description: 'Dashboard da folha de pagamento com visão geral.',
   });
 

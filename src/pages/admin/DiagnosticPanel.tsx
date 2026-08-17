@@ -38,7 +38,7 @@ const SEVERITY: Record<string, { label: string; icon: typeof Info; className: st
 
 export default function DiagnosticPanel() {
   useSEO({
-    title: 'Painel de Diagnóstico | PontoMax',
+    title: 'Painel de Diagnóstico | Ponto Max',
     description: 'Erros detectados no sistema, detalhes técnicos e correção automática com um clique.',
   });
 

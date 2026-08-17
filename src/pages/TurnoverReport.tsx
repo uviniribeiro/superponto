@@ -33,7 +33,7 @@ interface MonthlyData {
 
 export default function TurnoverReport() {
   useSEO({
-    title: 'Relatório de Turnover | SuperPonto',
+    title: 'Relatório de Turnover | Ponto Max',
     description: 'Análise de rotatividade de funcionários.',
   });
 

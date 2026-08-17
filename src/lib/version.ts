@@ -1,7 +1,7 @@
 // Application version configuration
-export const APP_VERSION = '2.7.0';
-export const APP_BUILD_DATE = '2026-07-26';
-export const APP_NAME = 'PontoMax';
+export const APP_VERSION = '3.0.0';
+export const APP_BUILD_DATE = '2026-08-17';
+export const APP_NAME = 'Ponto Max';
 
 // Changelog entries
 export interface ChangelogEntry {
@@ -14,6 +14,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '3.0.0',
+    date: '2026-08-17',
+    title: 'Ponto Max — Nova Cara e Múltiplos CNPJs',
+    type: 'major',
+    changes: [
+      'Sistema agora se chama Ponto Max, com nova logo, novo ícone e novo nome do aplicativo',
+      'Interface renovada: visual mais limpo, leve e fácil de usar em qualquer tela',
+      'Cadastro de várias unidades na mesma base: uma matriz e quantas filiais precisar',
+      'Novo campo para indicar se a unidade é matriz ou filial, com CNPJ próprio para cada uma',
+      'Validações reforçadas em todo o sistema: CNPJ, CPF, PIS, e-mail, telefone, CEP e endereço completo',
+      'Mensagens de erro mais claras, mostrando o que está errado e como corrigir',
+      'Novo aplicativo exclusivo do Terminal, com download direto pelo sistema',
+    ],
+  },
+  {
+
     version: '2.7.0',
     date: '2026-07-26',
     title: 'CNPJ Alfanumérico e Exportações Mais Rápidas',
@@ -33,10 +49,10 @@ export const CHANGELOG: ChangelogEntry[] = [
 
     version: '2.6.0',
     date: '2026-07-19',
-    title: 'PontoMax — Nova Identidade e Sugestões',
+    title: 'Ponto Max — Nova Identidade e Sugestões',
     type: 'major',
     changes: [
-      'Sistema renomeado para PontoMax com nova identidade visual',
+      'Sistema renomeado para Ponto Max com nova identidade visual',
       'Novo canal de Sugestões: envie melhorias, funcionalidades e relatórios direto pelo sistema',
       'Painel administrativo de Sugestões com controle de status e notas internas',
       'Auditoria com paginação por página para grandes volumes de registros',
@@ -78,7 +94,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Nova Identidade Visual',
     type: 'minor',
     changes: [
-      'Nova logo PontoMax moderna',
+      'Nova logo Ponto Max moderna',
       'Interface renovada com visual futurista',
       'Separação de Jornadas, Escalas Fixas e Agendadas',
       'Sistema de escala individual e em lote',
@@ -112,10 +128,10 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '2.0.0',
     date: '2026-01-24',
-    title: 'Nova Identidade PontoMax',
+    title: 'Nova Identidade Ponto Max',
     type: 'major',
     changes: [
-      'Rebranding completo para PontoMax',
+      'Rebranding completo para Ponto Max',
       'Nova paleta de cores moderna',
       'Autenticação com verificação em duas etapas',
       'Login com biometria (digital/reconhecimento facial)',

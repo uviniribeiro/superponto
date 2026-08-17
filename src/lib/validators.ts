@@ -265,3 +265,179 @@ export function getCNPJFeedback(cnpj: string): CnpjFeedback {
 }
 
 
+
+/* ------------------------------------------------------------------
+ * Validações gerais do sistema (contato, endereço, datas, documentos)
+ * ------------------------------------------------------------------ */
+
+export interface ValidationResult { valid: boolean; message: string }
+
+const ok = (message = ''): ValidationResult => ({ valid: true, message });
+const fail = (message: string): ValidationResult => ({ valid: false, message });
+
+/** E-mail (RFC simplificado) */
+export function validateEmail(email: string): ValidationResult {
+  const value = (email || '').trim();
+  if (!value) return fail('Informe o e-mail');
+  if (value.length > 255) return fail('E-mail muito longo (máximo 255 caracteres)');
+  if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(value)) {
+    return fail('E-mail inválido — use o formato nome@dominio.com.br');
+  }
+  return ok('E-mail válido');
+}
+
+/** Telefone fixo ou celular brasileiro (10 ou 11 dígitos com DDD) */
+export function validatePhone(phone: string): ValidationResult {
+  const digits = (phone || '').replace(/\D/g, '');
+  if (!digits) return fail('Informe o telefone');
+  if (digits.length < 10 || digits.length > 11) {
+    return fail('Telefone inválido — informe DDD + número (10 ou 11 dígitos)');
+  }
+  const ddd = parseInt(digits.slice(0, 2), 10);
+  if (ddd < 11 || ddd > 99) return fail('DDD inválido');
+  if (digits.length === 11 && digits.charAt(2) !== '9') {
+    return fail('Celular inválido — o número deve começar com 9 após o DDD');
+  }
+  return ok('Telefone válido');
+}
+
+export function formatPhone(phone: string): string {
+  const d = (phone || '').replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 10) return d.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').replace(/[-\s()]*$/, '');
+  return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+}
+
+/** CEP brasileiro (8 dígitos) */
+export function validateCEP(cep: string): ValidationResult {
+  const digits = (cep || '').replace(/\D/g, '');
+  if (!digits) return fail('Informe o CEP');
+  if (digits.length !== 8) return fail('CEP inválido — deve conter 8 dígitos');
+  if (/^(\d)\1{7}$/.test(digits)) return fail('CEP inválido — dígitos repetidos');
+  return ok('CEP válido');
+}
+
+export function formatCEP(cep: string): string {
+  const d = (cep || '').replace(/\D/g, '').slice(0, 8);
+  return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+}
+
+export const BRAZILIAN_STATES = [
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR',
+  'PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+] as const;
+
+export function validateState(uf: string): ValidationResult {
+  const value = (uf || '').toUpperCase().trim();
+  if (!value) return fail('Selecione o estado (UF)');
+  return (BRAZILIAN_STATES as readonly string[]).includes(value)
+    ? ok('UF válida')
+    : fail('UF inválida — use a sigla de 2 letras do estado');
+}
+
+export interface AddressInput {
+  street?: string;
+  number?: string;
+  district?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  complement?: string;
+}
+
+/** Valida endereço completo, retornando erro por campo */
+export function validateAddress(address: AddressInput): { valid: boolean; errors: Record<string, string> } {
+  const errors: Record<string, string> = {};
+
+  if (!address.street || address.street.trim().length < 3) {
+    errors.street = 'Informe o logradouro (rua, avenida...) com pelo menos 3 caracteres';
+  }
+  if (!address.number || !address.number.trim()) {
+    errors.number = 'Informe o número ou "S/N" quando não houver';
+  }
+  if (!address.district || address.district.trim().length < 2) {
+    errors.district = 'Informe o bairro';
+  }
+  if (!address.city || address.city.trim().length < 2) {
+    errors.city = 'Informe a cidade';
+  }
+  const uf = validateState(address.state || '');
+  if (!uf.valid) errors.state = uf.message;
+
+  const cep = validateCEP(address.zipCode || '');
+  if (!cep.valid) errors.zipCode = cep.message;
+
+  return { valid: Object.keys(errors).length === 0, errors };
+}
+
+/** Data de nascimento: idade entre 14 e 120 anos, sem datas futuras */
+export function validateBirthDate(date: string | Date): ValidationResult {
+  if (!date) return fail('Informe a data de nascimento');
+  const value = new Date(date);
+  if (Number.isNaN(value.getTime())) return fail('Data inválida');
+  const today = new Date();
+  if (value > today) return fail('A data de nascimento não pode ser futura');
+  let age = today.getFullYear() - value.getFullYear();
+  const m = today.getMonth() - value.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < value.getDate())) age--;
+  if (age < 14) return fail('Idade mínima permitida para admissão é 14 anos (menor aprendiz)');
+  if (age > 120) return fail('Data de nascimento improvável — confira o ano informado');
+  return ok('Data válida');
+}
+
+/** Data de admissão: não pode ser futura além de 1 ano nem anterior a 1900 */
+export function validateAdmissionDate(date: string | Date): ValidationResult {
+  if (!date) return fail('Informe a data de admissão');
+  const value = new Date(date);
+  if (Number.isNaN(value.getTime())) return fail('Data inválida');
+  if (value.getFullYear() < 1900) return fail('Data de admissão improvável — confira o ano');
+  const limit = new Date();
+  limit.setFullYear(limit.getFullYear() + 1);
+  if (value > limit) return fail('A data de admissão não pode ser mais de 1 ano no futuro');
+  return ok('Data válida');
+}
+
+/** CTPS: número (5 a 8 dígitos) e série (3 a 5 dígitos) */
+export function validateCTPS(number: string, series?: string): ValidationResult {
+  const n = (number || '').replace(/\D/g, '');
+  if (!n) return fail('Informe o número da CTPS');
+  if (n.length < 5 || n.length > 8) return fail('Número da CTPS inválido — use de 5 a 8 dígitos');
+  if (series !== undefined && series !== '') {
+    const s = series.replace(/\D/g, '');
+    if (s.length < 3 || s.length > 5) return fail('Série da CTPS inválida — use de 3 a 5 dígitos');
+  }
+  return ok('CTPS válida');
+}
+
+/** RG: 5 a 14 caracteres alfanuméricos */
+export function validateRG(rg: string): ValidationResult {
+  const value = (rg || '').replace(/[^0-9A-Za-z]/g, '');
+  if (!value) return fail('Informe o RG');
+  if (value.length < 5 || value.length > 14) return fail('RG inválido — verifique o número informado');
+  return ok('RG válido');
+}
+
+/** Texto obrigatório com limites */
+export function validateRequiredText(value: string, label: string, min = 2, max = 255): ValidationResult {
+  const v = (value || '').trim();
+  if (!v) return fail(`Informe ${label}`);
+  if (v.length < min) return fail(`${label} deve ter pelo menos ${min} caracteres`);
+  if (v.length > max) return fail(`${label} deve ter no máximo ${max} caracteres`);
+  return ok();
+}
+
+/** Horário HH:MM */
+export function validateTime(time: string): ValidationResult {
+  if (!time) return fail('Informe o horário');
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return fail('Horário inválido — use o formato HH:MM');
+  return ok('Horário válido');
+}
+
+/** Latitude/longitude */
+export function validateCoordinates(lat: number | string, lng: number | string): ValidationResult {
+  const la = typeof lat === 'string' ? parseFloat(lat) : lat;
+  const lo = typeof lng === 'string' ? parseFloat(lng) : lng;
+  if (Number.isNaN(la) || Number.isNaN(lo)) return fail('Coordenadas inválidas');
+  if (la < -90 || la > 90) return fail('Latitude deve estar entre -90 e 90');
+  if (lo < -180 || lo > 180) return fail('Longitude deve estar entre -180 e 180');
+  return ok('Coordenadas válidas');
+}

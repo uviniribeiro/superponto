@@ -35,7 +35,7 @@ export default function SuperAdminLayout() {
               <Shield className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">PontoMax</h1>
+              <h1 className="text-lg font-bold">Ponto Max</h1>
               <p className="text-xs text-muted-foreground">Super Administrador • {getVersionString()}</p>
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function SuperAdminLayout() {
       {/* Footer with version */}
       <footer className="border-t py-4">
         <div className="container flex items-center justify-center text-xs text-muted-foreground">
-          PontoMax {getVersionString()} • Sistema de Registro de Ponto Eletrônico
+          Ponto Max {getVersionString()} • Sistema de Registro de Ponto Eletrônico
         </div>
       </footer>
     </div>

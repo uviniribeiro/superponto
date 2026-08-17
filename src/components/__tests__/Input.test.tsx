@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { Input } from '@/components/ui/input';
 
 describe('Input Component', () => {
@@ -11,13 +11,13 @@ describe('Input Component', () => {
   it('should handle value changes', () => {
     const handleChange = vi.fn();
     const { getByRole } = render(<Input onChange={handleChange} />);
-    
+
     const input = getByRole('textbox') as HTMLInputElement;
-    input.value = 'test value';
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-    
+    fireEvent.change(input, { target: { value: 'test value' } });
+
     expect(handleChange).toHaveBeenCalled();
   });
+
 
   it('should be disabled when disabled prop is true', () => {
     const { getByRole } = render(<Input disabled />);

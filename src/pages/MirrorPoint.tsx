@@ -412,7 +412,7 @@ export default function MirrorPoint() {
     // Footer
     doc.setFontSize(8);
     doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, 105, 290, { align: 'center' });
-    doc.text('Documento gerado eletronicamente - PontoMax', 105, 295, { align: 'center' });
+    doc.text('Documento gerado eletronicamente - Ponto Max', 105, 295, { align: 'center' });
 
     doc.save(`Espelho_Ponto_${selectedEmployeeData.full_name.replace(/\s/g, '_')}_${month}.pdf`);
     toast.success('Espelho de ponto gerado com sucesso!');

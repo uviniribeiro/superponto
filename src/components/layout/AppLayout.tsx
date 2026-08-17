@@ -399,7 +399,7 @@ export default function AppLayout() {
               )}
               <div className="flex-1 min-w-0">
                 <h1 className="font-semibold text-sm text-sidebar-foreground truncate">
-                  {companySettings?.company_name || 'PontoMax'}
+                  {companySettings?.company_name || 'Ponto Max'}
                 </h1>
                 <p className="text-xs text-sidebar-foreground/50">Controle de Ponto • {getVersionString()}</p>
               </div>

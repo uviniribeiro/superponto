@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2 } from 'lucide-react';
 import { z } from 'zod';
-import superpontoLogo from '@/assets/superponto-logo-new.png';
+import superpontoLogo from '@/assets/pontomax-logo.png';
 
 type LoginType = 'company' | 'city_hall' | 'super_admin';
 
@@ -181,14 +181,14 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
-        {/* Logo SuperPonto */}
+        {/* Logo Ponto Max */}
         <div className="flex flex-col items-center mb-8">
           <img 
             src={superpontoLogo} 
-            alt="SuperPonto" 
+            alt="Ponto Max" 
             className="h-20 w-20 mb-3"
           />
-          <h1 className="text-2xl font-bold text-foreground">SuperPonto</h1>
+          <h1 className="text-2xl font-bold text-foreground">Ponto Max</h1>
           <p className="text-sm text-muted-foreground">Sistema de Ponto Eletrônico</p>
         </div>
 
@@ -376,7 +376,7 @@ export default function Auth() {
         </div>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          SuperPonto v2.0.0 © 2026
+          Ponto Max v2.0.0 © 2026
         </p>
       </div>
     </div>

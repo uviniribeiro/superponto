@@ -116,7 +116,7 @@ export default function NewTeacherModule({ defaultTab = 'overview' }: NewTeacher
   const { profile } = useAuth();
   
   useSEO({
-    title: 'Módulo Professor | PontoMax',
+    title: 'Módulo Professor | Ponto Max',
     description: 'Gestão completa de professores: hora aula, hora atividade, quadro de horários e espelho de ponto.',
   });
 

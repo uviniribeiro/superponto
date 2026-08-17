@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title SuperPonto Communicator - Instalador
+title Ponto Max Communicator - Instalador
 
 echo.
 echo ╔══════════════════════════════════════════════════════════════╗
@@ -54,7 +54,7 @@ echo ✓ Dependências instaladas!
 echo.
 
 REM Cria diretório de instalação
-set INSTALL_DIR=%ProgramData%\SuperPontoCommunicator
+set INSTALL_DIR=%ProgramData%\Ponto MaxCommunicator
 echo Criando diretório de instalação...
 mkdir "%INSTALL_DIR%" 2>nul
 echo ✓ Diretório: %INSTALL_DIR%
@@ -88,7 +88,7 @@ echo.
 
 REM Cria atalho no desktop
 echo Criando atalhos...
-powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\SuperPonto Communicator.lnk'); $s.TargetPath = 'http://localhost:8899'; $s.IconLocation = 'shell32.dll,14'; $s.Save()" >nul 2>&1
+powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\Ponto Max Communicator.lnk'); $s.TargetPath = 'http://localhost:8899'; $s.IconLocation = 'shell32.dll,14'; $s.Save()" >nul 2>&1
 echo ✓ Atalho criado no Desktop!
 echo.
 
@@ -102,7 +102,7 @@ echo ║                                                              ║
 echo ║   📊 Dashboard de monitoramento:                             ║
 echo ║   http://localhost:8899                                      ║
 echo ║                                                              ║
-echo ║   📁 Arquivos: %ProgramData%\SuperPontoCommunicator          ║
+echo ║   📁 Arquivos: %ProgramData%\Ponto MaxCommunicator          ║
 echo ║                                                              ║
 echo ║   Comandos úteis (executar como Admin):                      ║
 echo ║   - Parar:     python superponto-communicator.py stop        ║

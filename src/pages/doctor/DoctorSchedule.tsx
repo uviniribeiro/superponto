@@ -26,7 +26,7 @@ interface DoctorAssignment {
 
 export default function DoctorSchedule() {
   useSEO({
-    title: 'Quadro de Horários Médico | SuperPonto',
+    title: 'Quadro de Horários Médico | Ponto Max',
     description: 'Quadro de horários dos médicos e plantões.',
   });
 

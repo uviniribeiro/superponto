@@ -1,6 +1,6 @@
 {
-  "name": "PontoMax",
-  "short_name": "PontoMax",
+  "name": "Ponto Max",
+  "short_name": "Ponto Max",
   "description": "Sistema de Ponto Eletrônico para Prefeituras e Empresas",
   "start_url": "/",
   "display": "standalone",

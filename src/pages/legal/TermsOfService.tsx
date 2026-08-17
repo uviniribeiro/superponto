@@ -31,7 +31,7 @@ export default function TermsOfService() {
             <section>
               <h2 className="text-lg font-semibold">1. Aceitação dos Termos</h2>
               <p>
-                Ao acessar ou utilizar o sistema PontoMax ("Serviço"), você concorda em cumprir 
+                Ao acessar ou utilizar o sistema Ponto Max ("Serviço"), você concorda em cumprir 
                 estes Termos de Uso. Se você não concordar com qualquer parte destes termos, 
                 não poderá utilizar o Serviço.
               </p>
@@ -40,7 +40,7 @@ export default function TermsOfService() {
             <section>
               <h2 className="text-lg font-semibold">2. Descrição do Serviço</h2>
               <p>
-                O PontoMax é um sistema de controle de ponto eletrônico que permite:
+                O Ponto Max é um sistema de controle de ponto eletrônico que permite:
               </p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>Registro de entrada, saída e intervalos de trabalho</li>
@@ -90,7 +90,7 @@ export default function TermsOfService() {
               <h2 className="text-lg font-semibold">6. Propriedade Intelectual</h2>
               <p>
                 Todo o conteúdo do sistema, incluindo software, design, textos, gráficos, 
-                logotipos e marcas são de propriedade da PontoMax ou de seus licenciadores 
+                logotipos e marcas são de propriedade da Ponto Max ou de seus licenciadores 
                 e estão protegidos por leis de propriedade intelectual.
               </p>
             </section>

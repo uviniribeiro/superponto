@@ -33,7 +33,7 @@ interface Profile { id: string; full_name: string; registration_number: string |
 
 export default function KioskTerminals() {
   useSEO({
-    title: 'Terminais de Ponto | PontoMax',
+    title: 'Terminais de Ponto | Ponto Max',
     description: 'Autorize terminais de ponto, veja a localização de cada um e defina quais funcionários podem usá-los.',
   });
 

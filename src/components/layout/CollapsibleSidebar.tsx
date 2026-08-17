@@ -12,7 +12,7 @@ import { WhatsNewPopup } from '@/components/WhatsNewPopup';
 import { MenuPositionSelector } from '@/components/MenuPositionSelector';
 import { useMenuPosition, MenuPosition } from '@/hooks/useMenuPosition';
 import { getVersionString, APP_NAME } from '@/lib/version';
-import superpontoLogo from '@/assets/superponto-logo-new.png';
+import superpontoLogo from '@/assets/pontomax-logo.png';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -312,6 +312,8 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'Empresa', icon: Building2, href: '/company-settings', roles: ['admin'] },
       { title: 'Dados da Empresa', icon: FileCheck, href: '/company', roles: ['admin'] },
+      { title: 'Unidades (Matriz/Filiais)', icon: Building2, href: '/company-units', roles: ['admin'] },
+      { title: 'App do Terminal', icon: Smartphone, href: '/terminal-app', roles: ['admin'] },
       { title: 'Usuários', icon: Users, href: '/users', roles: ['admin'] },
       { title: 'Segurança', icon: Shield, href: '/security', roles: ['admin'] },
       { title: 'Terminais de Ponto', icon: MonitorSmartphone, href: '/kiosk-terminals', roles: ['admin'] },

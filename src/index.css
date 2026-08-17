@@ -46,84 +46,84 @@
 
 @layer base {
   :root {
-    /* SuperPonto 2.3 - Paleta Moderna Futurista */
-    --background: 220 14% 96%;
-    --foreground: 220 14% 10%;
+    /* Ponto Max 3.0 — Minimalista */
+    --background: 210 20% 99%;
+    --foreground: 220 18% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 14% 10%;
+    --card-foreground: 220 18% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 14% 10%;
+    --popover-foreground: 220 18% 11%;
 
-    /* Verde Esmeralda Vibrante */
-    --primary: 152 76% 42%;
+    /* Verde esmeralda sóbrio */
+    --primary: 158 72% 34%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 92%;
-    --secondary-foreground: 220 14% 20%;
+    --secondary: 215 20% 96%;
+    --secondary-foreground: 220 18% 22%;
 
-    --muted: 220 14% 92%;
-    --muted-foreground: 220 14% 46%;
+    --muted: 215 20% 96%;
+    --muted-foreground: 218 12% 47%;
 
-    --accent: 152 76% 94%;
-    --accent-foreground: 152 76% 30%;
+    --accent: 158 45% 95%;
+    --accent-foreground: 158 72% 24%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 76% 42%;
+    --success: 158 72% 34%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 43 96% 56%;
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 10%;
 
-    --info: 210 100% 50%;
+    --info: 212 92% 45%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 14% 86%;
-    --input: 220 14% 86%;
-    --ring: 152 76% 42%;
+    --border: 216 18% 91%;
+    --input: 216 18% 91%;
+    --ring: 158 72% 34%;
 
-    --radius: 0.625rem;
+    --radius: 0.875rem;
 
-    /* Sidebar - Escuro Moderno */
-    --sidebar-background: 220 20% 10%;
-    --sidebar-foreground: 220 14% 96%;
-    --sidebar-primary: 152 76% 45%;
+    /* Sidebar minimalista escuro */
+    --sidebar-background: 220 22% 9%;
+    --sidebar-foreground: 215 18% 92%;
+    --sidebar-primary: 158 66% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 16%;
-    --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 220 20% 16%;
-    --sidebar-ring: 152 76% 45%;
+    --sidebar-accent: 220 20% 14%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 20% 15%;
+    --sidebar-ring: 158 66% 42%;
 
-    /* Charts Futuristas */
-    --chart-1: 152 76% 42%;
-    --chart-2: 173 80% 40%;
-    --chart-3: 210 100% 50%;
-    --chart-4: 43 96% 56%;
-    --chart-5: 0 84% 60%;
+    /* Charts */
+    --chart-1: 158 72% 34%;
+    --chart-2: 188 68% 38%;
+    --chart-3: 212 82% 48%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 72% 51%;
 
     /* Fonts */
     --font-sans: 'Geist', 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    /* Shadows - Mais suaves */
-    --shadow-sm: 0 1px 2px 0 hsl(220 14% 10% / 0.04);
-    --shadow: 0 2px 4px -1px hsl(220 14% 10% / 0.06), 0 1px 2px -1px hsl(220 14% 10% / 0.04);
-    --shadow-md: 0 6px 12px -2px hsl(220 14% 10% / 0.08), 0 3px 6px -2px hsl(220 14% 10% / 0.04);
-    --shadow-lg: 0 12px 24px -4px hsl(220 14% 10% / 0.1), 0 6px 12px -4px hsl(220 14% 10% / 0.04);
-    --shadow-xl: 0 24px 48px -8px hsl(220 14% 10% / 0.12), 0 12px 24px -8px hsl(220 14% 10% / 0.04);
+    /* Sombras discretas */
+    --shadow-sm: 0 1px 2px 0 hsl(220 18% 11% / 0.04);
+    --shadow: 0 1px 3px 0 hsl(220 18% 11% / 0.05);
+    --shadow-md: 0 4px 10px -3px hsl(220 18% 11% / 0.07);
+    --shadow-lg: 0 10px 24px -8px hsl(220 18% 11% / 0.09);
+    --shadow-xl: 0 20px 40px -12px hsl(220 18% 11% / 0.1);
 
-    /* Glass Effect */
-    --glass-bg: hsl(0 0% 100% / 0.7);
-    --glass-border: hsl(220 14% 86% / 0.5);
-    
+    /* Glass discreto */
+    --glass-bg: hsl(0 0% 100% / 0.72);
+    --glass-border: hsl(216 18% 91% / 0.6);
+
     /* Holiday Theme Variables (overridden by JS) */
-    --holiday-primary: 152 76% 42%;
-    --holiday-secondary: 220 14% 92%;
-    --holiday-accent: 152 76% 94%;
-    --holiday-gradient: linear-gradient(135deg, hsl(152, 76%, 42%), hsl(173, 80%, 40%));
+    --holiday-primary: 158 72% 34%;
+    --holiday-secondary: 215 20% 96%;
+    --holiday-accent: 158 45% 95%;
+    --holiday-gradient: linear-gradient(135deg, hsl(158, 72%, 34%), hsl(188, 68%, 38%));
   }
 
   /* ===== HOLIDAY THEMES - Full Interface Customization ===== */
@@ -283,56 +283,56 @@
   }
 
   .dark {
-    --background: 220 20% 6%;
-    --foreground: 220 14% 96%;
+    --background: 222 22% 7%;
+    --foreground: 214 18% 94%;
 
-    --card: 220 20% 10%;
-    --card-foreground: 220 14% 96%;
+    --card: 222 20% 10%;
+    --card-foreground: 214 18% 94%;
 
-    --popover: 220 20% 10%;
-    --popover-foreground: 220 14% 96%;
+    --popover: 222 20% 10%;
+    --popover-foreground: 214 18% 94%;
 
-    --primary: 152 76% 45%;
+    --primary: 158 66% 44%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 20% 16%;
-    --secondary-foreground: 220 14% 96%;
+    --secondary: 222 18% 16%;
+    --secondary-foreground: 214 18% 94%;
 
-    --muted: 220 20% 16%;
-    --muted-foreground: 220 14% 60%;
+    --muted: 222 18% 16%;
+    --muted-foreground: 217 12% 62%;
 
-    --accent: 220 20% 16%;
-    --accent-foreground: 220 14% 96%;
+    --accent: 222 18% 16%;
+    --accent-foreground: 214 18% 94%;
 
     --destructive: 0 63% 35%;
     --destructive-foreground: 0 0% 98%;
 
-    --success: 152 76% 45%;
+    --success: 158 66% 44%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 43 96% 56%;
+    --warning: 38 92% 55%;
     --warning-foreground: 0 0% 10%;
 
-    --info: 210 100% 55%;
+    --info: 212 84% 56%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 20% 16%;
-    --input: 220 20% 16%;
-    --ring: 152 76% 45%;
+    --border: 222 18% 16%;
+    --input: 222 18% 16%;
+    --ring: 158 66% 44%;
 
     --sidebar-background: 220 20% 4%;
-    --sidebar-foreground: 220 14% 96%;
-    --sidebar-primary: 152 76% 45%;
+    --sidebar-foreground: 214 18% 94%;
+    --sidebar-primary: 158 66% 44%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 20% 12%;
-    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-accent-foreground: 214 18% 94%;
     --sidebar-border: 220 20% 12%;
-    --sidebar-ring: 152 76% 45%;
+    --sidebar-ring: 158 66% 44%;
 
-    --chart-1: 152 76% 45%;
-    --chart-2: 173 80% 45%;
-    --chart-3: 210 100% 55%;
-    --chart-4: 43 96% 56%;
+    --chart-1: 158 66% 44%;
+    --chart-2: 188 66% 46%;
+    --chart-3: 212 84% 56%;
+    --chart-4: 38 92% 55%;
     --chart-5: 0 84% 60%;
 
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
@@ -341,7 +341,7 @@
     --shadow-lg: 0 12px 24px -4px hsl(0 0% 0% / 0.5), 0 6px 12px -4px hsl(0 0% 0% / 0.3);
     --shadow-xl: 0 24px 48px -8px hsl(0 0% 0% / 0.5), 0 12px 24px -8px hsl(0 0% 0% / 0.3);
 
-    --glass-bg: hsl(220 20% 10% / 0.7);
+    --glass-bg: hsl(222 20% 10% / 0.7);
     --glass-border: hsl(220 20% 20% / 0.5);
   }
 }

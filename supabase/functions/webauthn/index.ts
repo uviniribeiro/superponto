@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 // Configurações WebAuthn
-const RP_NAME = "SuperPonto";
+const RP_NAME = "Ponto Max";
 const RP_ID = Deno.env.get("WEBAUTHN_RP_ID") || "superponto.app";
 const ORIGIN = Deno.env.get("WEBAUTHN_ORIGIN") || `https://${RP_ID}`;
 const CHALLENGE_TIMEOUT = 5 * 60 * 1000; // 5 minutos
