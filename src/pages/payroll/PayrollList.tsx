@@ -30,6 +30,21 @@ interface PayrollListProps {
 }
 
 export default function PayrollList({ payrolls, onRefresh }: PayrollListProps) {
+  const navigate = useNavigate();
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  const updateStatus = async (id: string, status: string, successMsg: string) => {
+    setBusyId(id);
+    const { error } = await supabase.from('payrolls').update({ status }).eq('id', id);
+    setBusyId(null);
+    if (error) {
+      toast.error('Não foi possível atualizar a folha: ' + error.message);
+      return;
+    }
+    toast.success(successMsg);
+    onRefresh();
+  };
+
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
       'draft': { label: 'Rascunho', variant: 'secondary' },
