@@ -8,11 +8,8 @@ export default defineConfig({
     testTimeout: 60000,
     hookTimeout: 60000,
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true, // Executar em sequência para evitar conflitos de banco
-      },
-    },
+    // Executar em sequência para evitar conflitos de banco
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

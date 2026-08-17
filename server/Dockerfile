@@ -14,7 +14,7 @@ RUN apk add --no-cache python3 make g++
 FROM base AS deps
 
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
 # ===========================================
 # Estágio de build
@@ -22,7 +22,7 @@ RUN npm ci --only=production
 FROM base AS builder
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 COPY . .
 RUN npm run build
