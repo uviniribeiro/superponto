@@ -14,7 +14,14 @@ export default {
   	},
   	extend: {
   		fontFamily: {
+  			heading: [
+  				'Urbanist',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'sans-serif'
+  			],
   			sans: [
+  				'Epilogue',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
@@ -43,6 +50,11 @@ export default {
   			]
   		},
   		colors: {
+  			brand: {
+  				DEFAULT: 'hsl(var(--brand))',
+  				foreground: 'hsl(var(--brand-foreground))',
+  				deep: 'hsl(var(--brand-deep))'
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
@@ -100,6 +112,9 @@ export default {
   			}
   		},
   		borderRadius: {
+  			'3xl': 'calc(var(--radius) + 0.5rem)',
+  			'2xl': 'calc(var(--radius) + 0.25rem)',
+  			xl: 'var(--radius)',
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
