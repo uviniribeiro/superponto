@@ -75,6 +75,7 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
   const [activeTab, setActiveTab] = useState('credentials');
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [companyUnits, setCompanyUnits] = useState<Array<{ id: string; unit_name: string; unit_type: 'matriz' | 'filial' }>>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
   const [jobFunctions, setJobFunctions] = useState<JobFunction[]>([]);
@@ -109,6 +110,7 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
     department: '',
     position: '',
     department_id: '',
+    company_unit_id: '',
     position_id: '',
     jobFunctionId: '',
     hire_date: '',
@@ -130,18 +132,20 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
   }, []);
 
   const fetchData = async () => {
-    const [schedulesRes, deptsRes, posRes, maritalRes, functionsRes] = await Promise.all([
+    const [schedulesRes, deptsRes, posRes, maritalRes, functionsRes, unitsRes] = await Promise.all([
       supabase.from('work_schedules').select('id, name'),
       supabase.from('departments').select('id, name').eq('is_active', true).order('name'),
       supabase.from('positions').select('id, name, department_id').eq('is_active', true).order('name'),
       supabase.from('marital_statuses').select('id, description').eq('is_active', true).order('description'),
       supabase.from('job_functions').select('id, description').eq('is_active', true).order('description'),
+      supabase.from('company_units').select('id, unit_name, unit_type').eq('is_active', true).order('unit_type').order('unit_name'),
     ]);
     setSchedules(schedulesRes.data || []);
     setDepartments(deptsRes.data || []);
     setPositions(posRes.data || []);
     setMaritalStatuses(maritalRes.data || []);
     setJobFunctions(functionsRes.data || []);
+    setCompanyUnits((unitsRes.data || []) as Array<{ id: string; unit_name: string; unit_type: 'matriz' | 'filial' }>);
   };
 
   // CEP auto-completion using ViaCEP API
@@ -325,6 +329,7 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
               job_function_id: formData.jobFunctionId || null,
               address_details: addressDetails,
               email: formData.email || null,
+              company_unit_id: formData.company_unit_id || null,
             })
             .eq('id', newProfile.id);
 
@@ -682,6 +687,26 @@ export function EmployeeRegistrationForm({ onSuccess, onCancel }: EmployeeRegist
                   />
                 </div>
                 
+                <div className="space-y-2">
+                  <Label htmlFor="company_unit_id">Unidade (Matriz/Filial)</Label>
+                  <Select
+                    value={formData.company_unit_id || 'none'}
+                    onValueChange={(value) => setFormData({ ...formData, company_unit_id: value === 'none' ? '' : value })}
+                  >
+                    <SelectTrigger id="company_unit_id">
+                      <SelectValue placeholder="Selecione a unidade" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border shadow-lg z-50">
+                      <SelectItem value="none">Nenhuma</SelectItem>
+                      {companyUnits.map((unit) => (
+                        <SelectItem key={unit.id} value={unit.id}>
+                          {unit.unit_name} ({unit.unit_type === 'matriz' ? 'Matriz' : 'Filial'})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="department">Departamento</Label>
                   <Select
