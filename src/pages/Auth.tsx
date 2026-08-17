@@ -52,6 +52,39 @@ export default function Auth() {
     password: '', 
     companyCode: '' 
   });
+  const [touched, setTouched] = useState({ username: false, password: false, companyCode: false });
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const isSuperAdminLogin = loginType === 'super_admin';
+  const cnpjFeedback = getCNPJFeedback(loginData.companyCode);
+
+  const usernameError = (() => {
+    const v = loginData.username.trim();
+    if (!v) return 'Informe seu login';
+    if (isSuperAdminLogin) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : 'E-mail inválido';
+    }
+    return v.length < 3 ? 'Login deve ter pelo menos 3 caracteres' : null;
+  })();
+
+  const passwordError = (() => {
+    if (!loginData.password) return 'Informe sua senha';
+    return loginData.password.length < 6 ? 'Senha deve ter pelo menos 6 caracteres' : null;
+  })();
+
+  const companyCodeError =
+    loginType === 'company'
+      ? cnpjFeedback.status === 'valid'
+        ? null
+        : cnpjFeedback.status === 'empty'
+          ? 'Informe o CNPJ da empresa'
+          : 'CNPJ inválido'
+      : loginType === 'city_hall' && !loginData.companyCode
+        ? 'Selecione o setor'
+        : null;
+
+  const formIsValid = !usernameError && !passwordError && !companyCodeError;
+
 
   useEffect(() => {
     if (!loading && user) {
