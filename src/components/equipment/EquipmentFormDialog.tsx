@@ -9,7 +9,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Info, Shield, FileText, Wifi, Fingerprint, ScanFace, CreditCard, QrCode } from 'lucide-react';
+import { Info, Shield, FileText, Wifi, Fingerprint, ScanFace, CreditCard, QrCode, Server, Plug } from 'lucide-react';
+import { useCommunicationServers } from '@/hooks/useCommunicationServers';
 import { useEquipmentData, Equipment, defaultEquipment, PORTARIA_OPTIONS } from '@/hooks/useEquipmentData';
 import { EQUIPMENT_CATALOG_FULL, PORTARIA_OPTIONS as CATALOG_PORTARIA_OPTIONS, REP_TYPES, getModelDetails, EquipmentModel } from '@/hooks/useEquipmentCatalog';
 
@@ -22,6 +23,7 @@ interface EquipmentFormDialogProps {
 
 export default function EquipmentFormDialog({ open, onOpenChange, equipment, onClose }: EquipmentFormDialogProps) {
   const { saveMutation } = useEquipmentData();
+  const { servers, defaultServer: defaultCommServer, testMutation } = useCommunicationServers();
   const [formData, setFormData] = useState<Partial<Equipment>>(defaultEquipment);
   const [is671Compliant, setIs671Compliant] = useState(false);
 
@@ -34,6 +36,40 @@ export default function EquipmentFormDialog({ open, onOpenChange, equipment, onC
       setIs671Compliant(true);
     }
   }, [equipment, open]);
+
+  // Puxa automaticamente o IP/porta do servidor de comunicação configurado (padrão)
+  useEffect(() => {
+    if (!open || equipment?.id) return;
+    if (!defaultCommServer) return;
+    setFormData((prev) => {
+      if (prev.communication_server_id || prev.ip_address) return prev;
+      return {
+        ...prev,
+        communication_server_id: defaultCommServer.id,
+        ip_address: defaultCommServer.host,
+        port: defaultCommServer.port,
+        protocol: 'tcp',
+        communication_type: 'tcp',
+      };
+    });
+  }, [open, equipment?.id, defaultCommServer]);
+
+  const handleServerChange = (value: string) => {
+    if (value === 'none') {
+      setFormData((prev) => ({ ...prev, communication_server_id: null }));
+      return;
+    }
+    const server = servers.find((s) => s.id === value);
+    if (!server) return;
+    setFormData((prev) => ({
+      ...prev,
+      communication_server_id: server.id,
+      ip_address: server.host,
+      port: server.port,
+      protocol: 'tcp',
+      communication_type: 'tcp',
+    }));
+  };
 
   const selectedManufacturer = EQUIPMENT_CATALOG_FULL.find(m => m.manufacturer === formData.manufacturer);
   const selectedModel = selectedManufacturer?.models.find(m => m.value === formData.model);
@@ -253,6 +289,31 @@ export default function EquipmentFormDialog({ open, onOpenChange, equipment, onC
           </TabsContent>
 
           <TabsContent value="connection" className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="communication_server" className="flex items-center gap-2">
+                <Server className="h-4 w-4" /> Servidor de Comunicação (TCP/IP)
+              </Label>
+              <Select
+                value={formData.communication_server_id ?? 'none'}
+                onValueChange={handleServerChange}
+              >
+                <SelectTrigger id="communication_server">
+                  <SelectValue placeholder="Nenhum (conexão direta)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum (conexão direta)</SelectItem>
+                  {servers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} — {s.host}:{s.port}{s.is_default ? ' (padrão)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Ao selecionar um servidor, o IP e a porta são preenchidos automaticamente.
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="ip_address">Endereço IP *</Label>
@@ -287,6 +348,7 @@ export default function EquipmentFormDialog({ open, onOpenChange, equipment, onC
                   <SelectContent>
                     <SelectItem value="http">HTTP</SelectItem>
                     <SelectItem value="https">HTTPS</SelectItem>
+                    <SelectItem value="tcp">TCP/IP direto (Henry)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -320,6 +382,27 @@ export default function EquipmentFormDialog({ open, onOpenChange, equipment, onC
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={testMutation.isPending || (!formData.ip_address && !formData.communication_server_id)}
+                onClick={() =>
+                  testMutation.mutate({
+                    serverId: formData.communication_server_id ?? undefined,
+                    host: formData.ip_address || undefined,
+                    port: formData.port || undefined,
+                  })
+                }
+              >
+                <Plug className="h-4 w-4 mr-2" />
+                {testMutation.isPending ? 'Testando...' : 'Testar conexão TCP/IP'}
+              </Button>
+              {formData.protocol === 'tcp' && (
+                <Badge variant="secondary">Protocolo Henry TCP/IP</Badge>
+              )}
             </div>
 
             {selectedModel && (
