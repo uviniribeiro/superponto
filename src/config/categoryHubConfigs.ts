@@ -18,6 +18,7 @@ import {
   Home,
   Bell,
   Smartphone,
+  MonitorSmartphone,
   BarChart3,
   Cog,
   FileBarChart,
