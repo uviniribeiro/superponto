@@ -85,6 +85,11 @@ import {
   MonitorSmartphone,
   Bug,
   FileSearch,
+  UserPlus,
+  CalendarRange,
+  Stethoscope,
+  Banknote,
+  LayoutList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { categoryHubConfigMap } from '@/config/categoryHubConfigs';
