@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipmentData, useAllEquipmentLogs } from '@/hooks/useEquipmentData';
-import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ScrollText, XCircle } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function EquipmentLogs() {
@@ -30,8 +30,9 @@ export default function EquipmentLogs() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <PageHeader
+          icon={ScrollText}
           title="Logs de Comunicação"
           description="Histórico de comunicação com os relógios de ponto"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

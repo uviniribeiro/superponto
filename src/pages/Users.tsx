@@ -394,6 +394,7 @@ export default function Users() {
           <UserCog className="h-6 w-6 text-primary" />
         </div>
         <PageHeader
+          icon={UserCog}
           title="Gerenciamento de Usuários"
           description="Gerencie funções e permissões dos usuários do sistema"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

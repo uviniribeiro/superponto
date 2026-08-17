@@ -311,6 +311,7 @@ const Holidays = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <PageHeader
+          icon={CalendarDays}
           title="Feriados"
           description="Gerencie os feriados e dias não úteis"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

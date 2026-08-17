@@ -211,9 +211,10 @@ export default function CustomNotifications() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <PageHeader
+          icon={Bell}
           title="Notificações Customizáveis"
           description="Configure alertas personalizados por e-mail ou aplicativo"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

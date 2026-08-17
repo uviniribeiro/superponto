@@ -36,9 +36,10 @@ export default function EquipmentHelp() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <PageHeader
+          icon={HelpCircle}
           title="Ajuda na Configuração"
           description="Como configurar os relógios de ponto"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

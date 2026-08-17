@@ -12,6 +12,7 @@ import { format, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
 import { PageHeader } from '@/components/shared/PageHeader';
+import { Activity } from 'lucide-react';
   MapPin, 
   Users, 
   UserCheck, 
@@ -139,9 +140,10 @@ export default function PresenceMonitoring() {
   const absentCount = employees.filter(e => !e.is_present).length;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <PageHeader
+          icon={Activity}
           title="Central de Monitoramento"
           description="Acompanhamento em tempo real da presença dos servidores"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

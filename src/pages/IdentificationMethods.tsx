@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
-import { Plus, Trash2, Edit, Fingerprint, QrCode, CreditCard, KeyRound, Scan, Camera, Download } from 'lucide-react';
+import { Camera, CreditCard, Download, Edit, Fingerprint, IdCard, KeyRound, Plus, QrCode, Scan, Trash2 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { PageHeader } from '@/components/shared/PageHeader';
 
@@ -287,6 +287,7 @@ export default function IdentificationMethods() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <PageHeader
+          icon={IdCard}
           title="Métodos de Identificação"
           description="Gerencie formas de identificação dos funcionários para registro de ponto"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

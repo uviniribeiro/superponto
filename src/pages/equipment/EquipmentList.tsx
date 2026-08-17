@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Wifi, WifiOff, RefreshCw, Trash2, Edit, Activity, Shield } from 'lucide-react';
+import { Activity, Edit, RefreshCw, Server, Shield, Trash2, Wifi, WifiOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipmentData, getManufacturerLabel, getModelLabel, PORTARIA_OPTIONS } from '@/hooks/useEquipmentData';
@@ -36,9 +36,10 @@ export default function EquipmentList() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <PageHeader
+          icon={Server}
           title="Lista de Equipamentos"
           description="Relógios de ponto cadastrados conforme Portarias MTE"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

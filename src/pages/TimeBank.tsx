@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, getDay, startOfWeek, endOfWeek, eachWeekOfInterval, isSameWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Download, Clock, TrendingUp, TrendingDown, Minus, CalendarCheck, Plus, Edit } from 'lucide-react';
+import { CalendarCheck, Clock, Download, Edit, Minus, Plus, Timer, TrendingDown, TrendingUp } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 import { TimeBankAdjustmentDialog } from '@/components/timebank/TimeBankAdjustmentDialog';
@@ -291,6 +291,7 @@ const TimeBank = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-4">
         <PageHeader
+          icon={Timer}
           title="Banco de Horas"
           description="Relatório de horas extras e débitos"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

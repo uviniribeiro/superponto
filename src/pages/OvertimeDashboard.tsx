@@ -484,6 +484,7 @@ export default function OvertimeDashboard() {
             <TrendingUp className="h-6 w-6 text-primary" />
           </div>
           <PageHeader
+          icon={TrendingUp}
           title="Dashboard de Horas Extras"
           description="Análise de horas extras por departamento e funcionário"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

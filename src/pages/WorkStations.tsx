@@ -206,9 +206,10 @@ export default function WorkStations() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <PageHeader
+          icon={MapPin}
           title="Postos de Trabalho"
           description="Gerencie as áreas georreferenciadas para registro de ponto"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"

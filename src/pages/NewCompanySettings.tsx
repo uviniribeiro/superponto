@@ -162,6 +162,7 @@ export default function NewCompanySettings() {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
+          icon={Building2}
           title="Configurações"
           description="Configurações gerais do sistema"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
