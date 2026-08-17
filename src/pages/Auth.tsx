@@ -210,7 +210,7 @@ export default function Auth() {
       <div className="w-full max-w-sm">
         {/* Logo Ponto Max */}
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-primary">
+          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl border border-border bg-card shadow-sm">
             <img src={superpontoLogo} alt="Ponto Max" className="h-14 w-14" />
           </div>
           <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">Ponto Max</h1>
