@@ -174,6 +174,7 @@ export interface Equipment {
   // Portaria compliance fields
   portaria_compliance?: 'portaria_671' | 'portaria_1510' | 'portaria_373' | null;
   rep_number?: string | null;
+  communication_server_id?: string | null;
 }
 
 export interface CommunicationLog {
@@ -231,6 +232,7 @@ export const defaultEquipment: Partial<Equipment> = {
   notes: '',
   portaria_compliance: 'portaria_671',
   rep_number: '',
+  communication_server_id: null,
 };
 
 // Portaria compliance options
@@ -370,6 +372,7 @@ export function useEquipmentData() {
             sync_interval_seconds: equipmentData.sync_interval_seconds || 60,
             location: equipmentData.location,
             notes: equipmentData.notes,
+            communication_server_id: equipmentData.communication_server_id ?? null,
             company_id: profile?.company_id,
           }]);
         if (error) throw error;
