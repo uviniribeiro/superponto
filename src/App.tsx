@@ -147,6 +147,7 @@ const EquipmentLogs = React.lazy(() => import("@/pages/equipment/EquipmentLogs")
 const EquipmentStatus = React.lazy(() => import("@/pages/equipment/EquipmentStatus"));
 const EquipmentSync = React.lazy(() => import("@/pages/equipment/EquipmentSync"));
 const EquipmentHelp = React.lazy(() => import("@/pages/equipment/EquipmentHelp"));
+const CommunicationServers = React.lazy(() => import("@/pages/equipment/CommunicationServers"));
 const MTECompliancePanel = React.lazy(() => import("@/pages/equipment/MTECompliancePanel"));
 
 // Security & Help
@@ -340,6 +341,7 @@ const App = () => (
                   <Route path="equipment/sync" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentSync /></ProtectedRoute>} />
                   <Route path="equipment/compliance" element={<ProtectedRoute requiredRoles={['admin']}><MTECompliancePanel /></ProtectedRoute>} />
                   <Route path="equipment/help" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentHelp /></ProtectedRoute>} />
+                  <Route path="equipment/servers" element={<ProtectedRoute requiredRoles={['admin']}><CommunicationServers /></ProtectedRoute>} />
                 </Route>
                 
                   <Route path="*" element={<NotFound />} />

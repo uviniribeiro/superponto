@@ -4,6 +4,13 @@ import { z } from "https://esm.sh/zod@3.23.8";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import {
+  assertPublicHost,
+  DEFAULT_HENRY_PORT,
+  henryCommand,
+  parseHenryRecords,
+} from "../_shared/henry-tcp.ts";
+
 
 // Helper to safely get error message
 const getErrorMessage = (error: unknown): string => {
@@ -233,7 +240,37 @@ const parseRecords = (manufacturer: string, data: any): Array<{ identifier: stri
 const manufacturerHandlers: Record<string, (equipment: any) => Promise<any>> = {
   // Henry (REP-C Protocol)
   henry: async (equipment) => {
+    // Direct TCP/IP communication (Henry ASCII protocol) when configured as TCP.
+    const usesTcp =
+      String(equipment.protocol || '').toLowerCase() === 'tcp' ||
+      String(equipment.communication_type || '').toLowerCase() === 'tcp';
+
+    if (usesTcp) {
+      const host = equipment.ip_address;
+      const port = Number(equipment.port) || DEFAULT_HENRY_PORT;
+      try {
+        assertPublicHost(host, true);
+        const result = await henryCommand(
+          { host, port, timeoutMs: 8000 },
+          'read_records',
+          { start: '1', end: '999999999' },
+        );
+        if (!result.online) {
+          return { online: false, error: result.error, records: [] };
+        }
+        const parsed = parseHenryRecords(result.payload || '');
+        return {
+          online: true,
+          data: (result.payload || '').substring(0, 1000),
+          records: sanitizeRecords('henry', parsed),
+        };
+      } catch (error) {
+        return { online: false, error: getErrorMessage(error), records: [] };
+      }
+    }
+
     const url = `${equipment.protocol}://${equipment.ip_address}:${equipment.port}${equipment.api_endpoint || '/iDClass/SyncDataService.svc'}`;
+
     try {
       const response = await fetch(url, {
         method: 'POST',
