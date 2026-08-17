@@ -348,6 +348,8 @@ Deno.serve(async (req) => {
     );
 
   } catch (error: unknown) {
+    const authResponse = authErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in create-company-users:', errorMessage);
     return new Response(

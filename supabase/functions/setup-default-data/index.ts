@@ -351,6 +351,8 @@ serve(async (req) => {
     );
 
   } catch (error: unknown) {
+    const authResponse = authErrorResponse(error, corsHeaders);
+    if (authResponse) return authResponse;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in setup-default-data:', errorMessage);
     return new Response(
