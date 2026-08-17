@@ -630,36 +630,46 @@ export default function AppLayout() {
           </SidebarFooter>
         </Sidebar>
 
-        <main className="flex-1 overflow-auto">
-          <header className="sticky top-0 z-10 glass px-6 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+        <main className="flex-1 overflow-auto bg-[radial-gradient(1200px_600px_at_100%_-10%,hsl(var(--accent)/0.6),transparent_60%),radial-gradient(900px_500px_at_-10%_0%,hsl(var(--brand)/0.08),transparent_55%)]">
+          <header className="sticky top-0 z-20 border-b border-border/60 bg-background/75 px-4 py-2.5 backdrop-blur-xl sm:px-6">
+            <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-1.5">
                 <SidebarTrigger />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8"
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9"
                   onClick={handleBack}
+                  aria-label="Voltar"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <Link to="/home">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Link to="/home" aria-label="Início">
+                  <Button variant="ghost" size="icon" className="h-9 w-9">
                     <Home className="h-4 w-4" />
                   </Button>
                 </Link>
-                <h2 className="text-sm font-medium">
-                  {getCurrentPageTitle()}
-                </h2>
+                <div className="ml-1 min-w-0">
+                  {getCurrentCategory() && (
+                    <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {getCurrentCategory()?.title}
+                    </p>
+                  )}
+                  <h2 className="truncate font-heading text-base font-semibold leading-tight">
+                    {getCurrentPageTitle()}
+                  </h2>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <NotificationCenter />
                 <ThemeToggle />
               </div>
             </div>
           </header>
-          <div className="p-6">
-            <Outlet />
+          <div className="mx-auto w-full max-w-[1600px] p-4 pb-24 sm:p-6 lg:p-8">
+            <div className="animate-in fade-in-50 slide-in-from-bottom-2 duration-300">
+              <Outlet />
+            </div>
           </div>
         </main>
         <SupportChat />

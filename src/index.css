@@ -438,6 +438,19 @@
     @apply shadow-lg -translate-y-0.5;
   }
 
+  /* Superfícies de conteúdo modernas */
+  .surface-panel {
+    @apply rounded-2xl border border-border/60 bg-card/80 backdrop-blur;
+  }
+
+  .stat-tile {
+    @apply rounded-2xl border border-border/60 bg-card p-5 transition-all duration-300;
+  }
+  .stat-tile:hover {
+    @apply -translate-y-0.5 border-ring/40 shadow-md;
+  }
+
+
   .bento-hero {
     @apply rounded-3xl bg-primary text-primary-foreground p-8 transition-colors duration-200;
   }
