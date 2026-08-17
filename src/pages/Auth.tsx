@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2, Fingerprint, MapPin, FileCheck2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2, Fingerprint, MapPin, FileCheck2, AlertCircle, CheckCircle2, MonitorSmartphone } from 'lucide-react';
 import { z } from 'zod';
 import { CnpjInput } from '@/components/shared/CnpjInput';
 import { getCNPJFeedback, cleanCNPJ } from '@/lib/validators';
