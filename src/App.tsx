@@ -106,6 +106,7 @@ const TurnoverReport = React.lazy(() => import("@/pages/TurnoverReport"));
 
 // Import/Export
 const ImportExport = React.lazy(() => import("@/pages/ImportExport"));
+const DataImport = React.lazy(() => import("@/pages/DataImport"));
 const PayrollExports = React.lazy(() => import("@/pages/PayrollExports"));
 const CategoryPage = React.lazy(() => import("@/pages/CategoryPage"));
 
@@ -254,6 +255,7 @@ const App = () => (
                   <Route path="overtime-dashboard" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OvertimeDashboard /></ProtectedRoute>} />
                   <Route path="timesheet" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Timesheet /></ProtectedRoute>} />
                   <Route path="import-export" element={<ProtectedRoute requiredRoles={['admin']}><ImportExport /></ProtectedRoute>} />
+                  <Route path="data-import" element={<ProtectedRoute requiredRoles={['admin']}><DataImport /></ProtectedRoute>} />
                   {/* Teacher Module */}
                   <Route path="teacher-module" element={<ProtectedRoute requiredRoles={['admin']}><TeacherDashboard /></ProtectedRoute>} />
                   <Route path="teacher/dashboard" element={<ProtectedRoute requiredRoles={['admin']}><TeacherDashboard /></ProtectedRoute>} />

@@ -117,7 +117,7 @@ export const cadastrosHubConfig: CategoryHubConfig = {
 
 // Escalas e Jornadas category
 export const escalasHubConfig: CategoryHubConfig = {
-  title: 'Escalas e Jornadas',
+  title: 'Jornadas e Escalas',
   description: 'Configure horários de trabalho, escalas fixas e agendadas',
   groups: [
     {
@@ -148,8 +148,8 @@ export const escalasHubConfig: CategoryHubConfig = {
 
 // Ponto category
 export const pontoHubConfig: CategoryHubConfig = {
-  title: 'Ponto',
-  description: 'Controle de ponto e gestão de marcações',
+  title: 'Registro de Ponto',
+  description: 'Marcações, espelhos e folhas de ponto',
   groups: [
     {
       title: 'Registro de Ponto',
@@ -182,7 +182,7 @@ export const pontoHubConfig: CategoryHubConfig = {
 
 // Afastamentos e Férias category
 export const afastamentosHubConfig: CategoryHubConfig = {
-  title: 'Afastamentos e Férias',
+  title: 'Ausências e Férias',
   description: 'Gestão de ausências, licenças e período de férias',
   groups: [
     {
@@ -228,8 +228,8 @@ export const monitoramentoHubConfig: CategoryHubConfig = {
 
 // Banco de Horas category
 export const bancoHorasHubConfig: CategoryHubConfig = {
-  title: 'Banco de Horas',
-  description: 'Gestão de horas extras e banco de horas',
+  title: 'Banco de Horas e Horas Extras',
+  description: 'Saldos, compensações e regras de horas extras',
   groups: [
     {
       title: 'Saldo e Movimentação',
@@ -484,8 +484,8 @@ export const relatoriosHubConfig: CategoryHubConfig = {
 
 // Exportação category
 export const exportacaoHubConfig: CategoryHubConfig = {
-  title: 'Exportação',
-  description: 'Exportação e importação de dados',
+  title: 'Integrações e Exportações',
+  description: 'Importação de cadastros e exportação de arquivos',
   groups: [
     {
       title: 'Exportação para Folha',
@@ -542,6 +542,161 @@ export const configuracoesHubConfig: CategoryHubConfig = {
   ],
 };
 
+
+// Meu Ponto (Portal do Colaborador)
+export const meuPontoHubConfig: CategoryHubConfig = {
+  title: 'Meu Ponto',
+  description: 'Portal do colaborador: registre e acompanhe seu ponto',
+  groups: [
+    {
+      title: 'Registro',
+      subtitle: 'Marque e consulte seu ponto',
+      items: [
+        { title: 'Registrar Ponto', description: 'Entrada, intervalo e saída', icon: Clock, href: '/time-clock', color: 'text-emerald-600' },
+        { title: 'Meus Registros', description: 'Histórico das suas marcações', icon: ListChecks, href: '/my-records', color: 'text-blue-600' },
+      ],
+    },
+    {
+      title: 'Minhas Solicitações',
+      subtitle: 'Acompanhe pedidos e pendências',
+      items: [
+        { title: 'Minhas Ocorrências', description: 'Inconsistências do seu ponto', icon: AlertCircle, href: '/point-occurrences', color: 'text-orange-600' },
+        { title: 'Minhas Férias', description: 'Solicitação e saldo de férias', icon: CalendarDays, href: '/vacations', color: 'text-violet-600' },
+        { title: 'Sugestões', description: 'Envie sugestões e melhorias', icon: Bell, href: '/suggestions', color: 'text-amber-600' },
+      ],
+    },
+    {
+      title: 'Minha Conta',
+      subtitle: 'Dados pessoais e segurança',
+      items: [
+        { title: 'Minha Conta', description: 'Senha, 2FA e preferências', icon: UserCog, href: '/account-settings', color: 'text-slate-600' },
+      ],
+    },
+  ],
+};
+
+// Tratamento de Ponto (apuração)
+export const tratamentoHubConfig: CategoryHubConfig = {
+  title: 'Tratamento de Ponto',
+  description: 'Apuração, ajustes, abonos e fechamento do período',
+  groups: [
+    {
+      title: 'Tratamento Diário',
+      subtitle: 'Correções e ocorrências',
+      items: [
+        { title: 'Ajustes de Ponto', description: 'Solicitações e aprovações de correção', icon: ClipboardCheck, href: '/adjustments', color: 'text-orange-600' },
+        { title: 'Ocorrências', description: 'Atrasos, faltas e inconsistências', icon: AlertCircle, href: '/point-occurrences', color: 'text-red-600' },
+        { title: 'Abono em Lote', description: 'Abonar ausências de vários funcionários', icon: ListChecks, href: '/batch-absolutions', color: 'text-teal-600' },
+      ],
+    },
+    {
+      title: 'Fechamento',
+      subtitle: 'Homologação e bloqueio do período',
+      items: [
+        { title: 'Homologação do Ponto', description: 'Aprovação mensal do espelho', icon: FileCheck, href: '/point-homologation', color: 'text-emerald-600' },
+        { title: 'Períodos de Competência', description: 'Datas de corte e fechamento', icon: CalendarClock, href: '/competency-periods', color: 'text-amber-600' },
+      ],
+    },
+    {
+      title: 'Regras de Cálculo',
+      subtitle: 'Parâmetros da apuração',
+      items: [
+        { title: 'Regras de Apuração', description: 'Tolerâncias, noturno, intrajornada', icon: SlidersHorizontal, href: '/attendance-rules', color: 'text-sky-600' },
+        { title: 'Calculadora de Horas', description: 'Simulação de jornada e adicionais', icon: Clock, href: '/hours-calculator', color: 'text-violet-600' },
+      ],
+    },
+  ],
+};
+
+// Dispositivos e REP
+export const dispositivosHubConfig: CategoryHubConfig = {
+  title: 'Dispositivos e REP',
+  description: 'Relógios de ponto, terminais e identificação mobile',
+  groups: [
+    {
+      title: 'Equipamentos REP',
+      subtitle: 'Cadastro, status e sincronização',
+      items: [
+        { title: 'Lista de REP', description: 'Equipamentos cadastrados', icon: Server, href: '/equipment/list', color: 'text-blue-600' },
+        { title: 'Adicionar REP', description: 'Cadastrar novo equipamento', icon: HardDrive, href: '/equipment/add', color: 'text-emerald-600' },
+        { title: 'Status Online', description: 'Conectividade dos relógios', icon: Activity, href: '/equipment/status', color: 'text-amber-600' },
+        { title: 'Sincronização', description: 'Coleta de marcações', icon: RefreshCw, href: '/equipment/sync', color: 'text-violet-600' },
+        { title: 'Registros Pendentes', description: 'Marcações a processar', icon: ClipboardList, href: '/equipment/pending', color: 'text-orange-600' },
+        { title: 'Funcionários no REP', description: 'Envio de cadastros ao equipamento', icon: Users, href: '/equipment/employees', color: 'text-teal-600' },
+      ],
+    },
+    {
+      title: 'Terminais e Mobile',
+      subtitle: 'Ponto por app, quiosque e biometria',
+      items: [
+        { title: 'Terminais de Ponto', description: 'Quiosques por CNPJ', icon: MonitorSmartphone, href: '/kiosk-terminals', color: 'text-blue-600' },
+        { title: 'App do Terminal', description: 'Download do APK do terminal', icon: Smartphone, href: '/terminal-app', color: 'text-emerald-600' },
+        { title: 'Métodos de Identificação', description: 'Facial, QR Code, PIN e RFID', icon: Smartphone, href: '/identification-methods', color: 'text-violet-600' },
+        { title: 'Locais Georreferenciados', description: 'Cercas eletrônicas permitidas', icon: MapPin, href: '/georeferenced-locations', color: 'text-amber-600' },
+      ],
+    },
+    {
+      title: 'Conformidade e Suporte',
+      subtitle: 'Legislação e diagnósticos',
+      items: [
+        { title: 'Conformidade MTE', description: 'Portarias 1510, 373 e 671', icon: Shield, href: '/equipment/compliance', color: 'text-red-600', badges: ['Portaria 671'] },
+        { title: 'Logs de Comunicação', description: 'Histórico de comunicação', icon: FileText, href: '/equipment/logs', color: 'text-slate-600' },
+        { title: 'Ajuda REP', description: 'Guia de instalação e configuração', icon: HelpCircle, href: '/equipment/help', color: 'text-blue-600' },
+      ],
+    },
+  ],
+};
+
+// Integrações e Exportações
+export const integracoesHubConfig: CategoryHubConfig = {
+  title: 'Integrações e Exportações',
+  description: 'Importe cadastros, exporte para folha e gere arquivos legais',
+  groups: [
+    {
+      title: 'Importação',
+      subtitle: 'Migração de dados de outros sistemas',
+      items: [
+        { title: 'Importação de Dados', description: 'CSV e TXT posicional de todos os cadastros', icon: Import, href: '/data-import', color: 'text-emerald-600', badges: ['Novo'] },
+        { title: 'Importação de AFD', description: 'Marcações do arquivo fiscal do REP', icon: FileDown, href: '/import-export', color: 'text-blue-600' },
+      ],
+    },
+    {
+      title: 'Exportação',
+      subtitle: 'Arquivos para folha e fiscalização',
+      items: [
+        { title: 'Exportação para Folha', description: 'Layouts CSV, eSocial, TOTVS e Senior', icon: Wallet, href: '/payroll-exports', color: 'text-violet-600' },
+        { title: 'Exportação MTE', description: 'AFD, AFDT e ACJEF', icon: Download, href: '/reports/mte', color: 'text-amber-600', badges: ['Portaria 671'] },
+        { title: 'Layouts Personalizados', description: 'Monte layouts de exportação', icon: Cog, href: '/import-export', color: 'text-slate-600' },
+      ],
+    },
+  ],
+};
+
+// Segurança e Auditoria
+export const segurancaHubConfig: CategoryHubConfig = {
+  title: 'Segurança e Auditoria',
+  description: 'Controle de acesso, trilhas de auditoria e diagnósticos',
+  groups: [
+    {
+      title: 'Segurança',
+      subtitle: 'Monitoramento de acessos',
+      items: [
+        { title: 'Painel de Segurança', description: 'Eventos, alertas e bloqueios', icon: Shield, href: '/security', color: 'text-red-600' },
+        { title: 'Usuários', description: 'Perfis, papéis e permissões', icon: UserCog, href: '/users', color: 'text-violet-600' },
+      ],
+    },
+    {
+      title: 'Auditoria',
+      subtitle: 'Trilhas e rastreabilidade',
+      items: [
+        { title: 'Auditoria de Validações', description: 'Tentativas de facial, QR e PIN', icon: FileCheck, href: '/validation-audit', color: 'text-emerald-600' },
+        { title: 'Auditoria de CNPJ', description: 'Alterações e revalidações', icon: FileText, href: '/cnpj-audit', color: 'text-amber-600' },
+        { title: 'Painel de Diagnóstico', description: 'Saúde e autocorreção do sistema', icon: Activity, href: '/diagnostics', color: 'text-blue-600' },
+      ],
+    },
+  ],
+};
+
 // Map of category IDs to configs
 export const categoryHubConfigMap: Record<string, CategoryHubConfig> = {
   'home': homeHubConfig,
@@ -553,6 +708,11 @@ export const categoryHubConfigMap: Record<string, CategoryHubConfig> = {
   'banco-horas': bancoHorasHubConfig,
   'equipamentos': equipamentosHubConfig,
   'ponto-mobile': pontoMobileHubConfig,
+  'meu-ponto': meuPontoHubConfig,
+  'tratamento': tratamentoHubConfig,
+  'dispositivos': dispositivosHubConfig,
+  'integracoes': integracoesHubConfig,
+  'seguranca': segurancaHubConfig,
   'professor': professorHubConfig,
   'medico': medicoHubConfig,
   'folha': folhaHubConfig,

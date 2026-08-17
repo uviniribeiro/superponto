@@ -119,6 +119,21 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'Início', icon: Home, href: '/home', roles: ['admin', 'manager', 'employee'] },
       { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Central de Presença', icon: Activity, href: '/presence-monitoring', roles: ['admin', 'manager'] },
+    ]
+  },
+  {
+    id: 'meu-ponto',
+    title: 'Meu Ponto',
+    icon: Smartphone,
+    roles: ['admin', 'manager', 'employee'],
+    items: [
+      { title: 'Registrar Ponto', icon: Clock, href: '/time-clock', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Meus Registros', icon: ListChecks, href: '/my-records', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Minhas Ocorrências', icon: AlertCircle, href: '/point-occurrences', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Minhas Férias', icon: CalendarDays, href: '/vacations', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Sugestões', icon: Bell, href: '/suggestions', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Minha Conta', icon: UserCog, href: '/account-settings', roles: ['admin', 'manager', 'employee'] },
     ]
   },
   {
@@ -130,84 +145,82 @@ const menuCategories: MenuCategory[] = [
       { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
       { title: 'Cargos e Departamentos', icon: Building2, href: '/positions-departments', roles: ['admin'] },
       { title: 'Departamentos', icon: Network, href: '/departments', roles: ['admin'] },
-      { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
+      { title: 'Unidades (Matriz/Filiais)', icon: Building2, href: '/company-units', roles: ['admin'] },
+      { title: 'Postos de Trabalho', icon: MapPin, href: '/work-stations', roles: ['admin'] },
       { title: 'Sindicatos', icon: Briefcase, href: '/unions', roles: ['admin'] },
+      { title: 'Feriados', icon: CalendarDays, href: '/holidays', roles: ['admin'] },
       { title: 'Justificativas', icon: ClipboardCheck, href: '/justifications', roles: ['admin'] },
+      { title: 'Cadastros Básicos', icon: UserCog, href: '/basic-registrations', roles: ['admin'] },
       { title: 'Estados Civis', icon: Users, href: '/marital-statuses', roles: ['admin'] },
       { title: 'Cidades', icon: MapPin, href: '/cities', roles: ['admin'] },
-      { title: 'Cadastros Básicos', icon: UserCog, href: '/basic-registrations', roles: ['admin'] },
     ]
   },
   {
     id: 'escalas',
-    title: 'Escalas e Jornadas',
-    icon: Scale,
+    title: 'Jornadas e Escalas',
+    icon: CalendarClock,
     roles: ['admin'],
     items: [
       { title: 'Jornadas', icon: Clock, href: '/journeys', roles: ['admin'] },
       { title: 'Escalas Fixas', icon: Calendar, href: '/fixed-scales', roles: ['admin'] },
       { title: 'Escalas Agendadas', icon: CalendarDays, href: '/scheduled-scales', roles: ['admin'] },
+      { title: 'Sobre Aviso', icon: Bell, href: '/on-call-schedules', roles: ['admin'] },
       { title: 'Períodos de Competência', icon: CalendarClock, href: '/competency-periods', roles: ['admin'] },
     ]
   },
   {
     id: 'ponto',
-    title: 'Ponto',
+    title: 'Registro de Ponto',
     icon: Clock,
-    roles: ['admin', 'manager', 'employee'],
+    roles: ['admin', 'manager'],
     items: [
-      { title: 'Registrar Ponto', icon: Clock, href: '/time-clock', roles: ['admin', 'manager', 'employee'] },
-      { title: 'Meus Registros', icon: ListChecks, href: '/my-records', roles: ['admin', 'manager', 'employee'] },
       { title: 'Espelho de Ponto', icon: ClipboardList, href: '/mirror-point', roles: ['admin', 'manager'] },
-      { title: 'Ajustes de Ponto', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
       { title: 'Folha de Ponto', icon: FileText, href: '/timesheet', roles: ['admin', 'manager'] },
-      { title: 'Homologação', icon: FileCheck, href: '/point-homologation', roles: ['admin', 'manager'] },
-      { title: 'Ocorrências', icon: AlertCircle, href: '/point-occurrences', roles: ['admin', 'manager', 'employee'] },
       { title: 'Cartões de Ponto', icon: FileText, href: '/point-cards', roles: ['admin', 'manager'] },
+      { title: 'Registrar Ponto', icon: Clock, href: '/time-clock', roles: ['admin', 'manager'] },
+    ]
+  },
+  {
+    id: 'tratamento',
+    title: 'Tratamento de Ponto',
+    icon: ClipboardCheck,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Ajustes de Ponto', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
+      { title: 'Ocorrências', icon: AlertCircle, href: '/point-occurrences', roles: ['admin', 'manager'] },
+      { title: 'Abono em Lote', icon: ListChecks, href: '/batch-absolutions', roles: ['admin'] },
+      { title: 'Homologação do Ponto', icon: FileCheck, href: '/point-homologation', roles: ['admin', 'manager'] },
+      { title: 'Regras de Apuração', icon: SlidersHorizontal, href: '/attendance-rules', roles: ['admin', 'manager'] },
+      { title: 'Calculadora de Horas', icon: Clock, href: '/hours-calculator', roles: ['admin', 'manager'] },
     ]
   },
   {
     id: 'afastamentos',
-    title: 'Afastamentos e Férias',
+    title: 'Ausências e Férias',
     icon: UserX,
-    roles: ['admin', 'manager', 'employee'],
+    roles: ['admin', 'manager'],
     items: [
       { title: 'Gestão de Afastamentos', icon: UserX, href: '/leave-management', roles: ['admin', 'manager'] },
       { title: 'Faltas e Ausências', icon: Calendar, href: '/absences', roles: ['admin', 'manager'] },
-      { title: 'Férias', icon: CalendarDays, href: '/vacations', roles: ['admin', 'manager', 'employee'] },
-    ]
-  },
-  {
-    id: 'monitoramento',
-    title: 'Monitoramento',
-    icon: Activity,
-    roles: ['admin', 'manager'],
-    items: [
-      { title: 'Central de Presença', icon: Users, href: '/presence-monitoring', roles: ['admin', 'manager'] },
-      { title: 'Postos de Trabalho', icon: MapPin, href: '/work-stations', roles: ['admin'] },
-      { title: 'In Itinere', icon: Clock, href: '/commute-time', roles: ['admin'] },
-      { title: 'Sobre Aviso', icon: Bell, href: '/on-call-schedules', roles: ['admin'] },
-      { title: 'Abono em Lote', icon: ListChecks, href: '/batch-absolutions', roles: ['admin'] },
-      { title: 'Notificações', icon: Bell, href: '/custom-notifications', roles: ['admin'] },
-      { title: 'Sugestões', icon: Bell, href: '/suggestions', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Férias', icon: CalendarDays, href: '/vacations', roles: ['admin', 'manager'] },
     ]
   },
   {
     id: 'banco-horas',
-    title: 'Banco de Horas',
+    title: 'Banco de Horas e HE',
     icon: Timer,
     roles: ['admin', 'manager', 'employee'],
     items: [
       { title: 'Banco de Horas', icon: Timer, href: '/time-bank', roles: ['admin', 'manager', 'employee'] },
       { title: 'Compensação', icon: ArrowUpDown, href: '/compensation-bank', roles: ['admin'] },
+      { title: 'Dashboard de HE', icon: BarChart3, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
       { title: 'Regras de HE', icon: TrendingUp, href: '/overtime-percentages', roles: ['admin'] },
-      { title: 'Regras de Apuração', icon: SlidersHorizontal, href: '/attendance-rules', roles: ['admin', 'manager'] },
-      { title: 'Dashboard HE', icon: BarChart3, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
+      { title: 'Hora In Itinere', icon: Clock, href: '/commute-time', roles: ['admin'] },
     ]
   },
   {
-    id: 'equipamentos',
-    title: 'Equipamentos REP',
+    id: 'dispositivos',
+    title: 'Dispositivos e REP',
     icon: Server,
     roles: ['admin'],
     items: [
@@ -219,17 +232,50 @@ const menuCategories: MenuCategory[] = [
       { title: 'Funcionários no REP', icon: Users, href: '/equipment/employees', roles: ['admin'] },
       { title: 'Logs de Comunicação', icon: FileText, href: '/equipment/logs', roles: ['admin'] },
       { title: 'Conformidade MTE', icon: Shield, href: '/equipment/compliance', roles: ['admin'] },
+      { title: 'Terminais de Ponto', icon: MonitorSmartphone, href: '/kiosk-terminals', roles: ['admin'] },
+      { title: 'App do Terminal', icon: Smartphone, href: '/terminal-app', roles: ['admin'] },
+      { title: 'Métodos de Identificação', icon: Smartphone, href: '/identification-methods', roles: ['admin'] },
+      { title: 'Locais Georreferenciados', icon: MapPin, href: '/georeferenced-locations', roles: ['admin'] },
       { title: 'Ajuda REP', icon: HelpCircle, href: '/equipment/help', roles: ['admin'] },
     ]
   },
   {
-    id: 'ponto-mobile',
-    title: 'Ponto Mobile',
-    icon: Smartphone,
+    id: 'monitoramento',
+    title: 'Monitoramento',
+    icon: Activity,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Central de Presença', icon: Users, href: '/presence-monitoring', roles: ['admin', 'manager'] },
+      { title: 'Notificações', icon: Bell, href: '/custom-notifications', roles: ['admin'] },
+      { title: 'Textos Customizados', icon: FileText, href: '/custom-texts', roles: ['admin'] },
+    ]
+  },
+  {
+    id: 'relatorios',
+    title: 'Relatórios',
+    icon: FileBarChart,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Espelho de Ponto', icon: FileText, href: '/reports/mirror-point', roles: ['admin', 'manager'] },
+      { title: 'Horas Trabalhadas', icon: Clock, href: '/reports/worked-hours', roles: ['admin', 'manager'] },
+      { title: 'Horas Extras', icon: TrendingUp, href: '/reports/overtime', roles: ['admin', 'manager'] },
+      { title: 'Faltas e Atrasos', icon: UserX, href: '/reports/absences', roles: ['admin', 'manager'] },
+      { title: 'Banco de Horas', icon: Timer, href: '/reports/time-bank', roles: ['admin', 'manager'] },
+      { title: 'Presença', icon: ListChecks, href: '/reports/attendance', roles: ['admin', 'manager'] },
+      { title: 'Turnover', icon: BarChart3, href: '/reports/turnover', roles: ['admin', 'manager'] },
+      { title: 'Exportação MTE', icon: Download, href: '/reports/mte', roles: ['admin'] },
+    ]
+  },
+  {
+    id: 'integracoes',
+    title: 'Integrações e Exportações',
+    icon: Import,
     roles: ['admin'],
     items: [
-      { title: 'Métodos de Identificação', icon: Smartphone, href: '/identification-methods', roles: ['admin'] },
-      { title: 'Locais Georreferenciados', icon: MapPin, href: '/georeferenced-locations', roles: ['admin'] },
+      { title: 'Importação de Dados', icon: Import, href: '/data-import', roles: ['admin'] },
+      { title: 'Importação/Exportação AFD', icon: ArrowUpDown, href: '/import-export', roles: ['admin'] },
+      { title: 'Exportação para Folha', icon: Wallet, href: '/payroll-exports', roles: ['admin'] },
+      { title: 'Exportação MTE', icon: Download, href: '/reports/mte', roles: ['admin'] },
     ]
   },
   {
@@ -252,7 +298,7 @@ const menuCategories: MenuCategory[] = [
   {
     id: 'medico',
     title: 'Módulo Médico',
-    icon: Activity,
+    icon: Hospital,
     roles: ['admin', 'manager'],
     items: [
       { title: 'Dashboard', icon: LayoutDashboard, href: '/doctor/dashboard', roles: ['admin', 'manager'] },
@@ -279,29 +325,15 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
-    id: 'relatorios',
-    title: 'Relatórios',
-    icon: FileBarChart,
-    roles: ['admin', 'manager'],
-    items: [
-      { title: 'Espelho de Ponto', icon: FileText, href: '/reports/mirror-point', roles: ['admin', 'manager'] },
-      { title: 'Horas Trabalhadas', icon: Clock, href: '/reports/worked-hours', roles: ['admin', 'manager'] },
-      { title: 'Horas Extras', icon: TrendingUp, href: '/reports/overtime', roles: ['admin', 'manager'] },
-      { title: 'Faltas e Atrasos', icon: UserX, href: '/reports/absences', roles: ['admin', 'manager'] },
-      { title: 'Banco de Horas', icon: Timer, href: '/reports/time-bank', roles: ['admin', 'manager'] },
-      { title: 'Presença', icon: ListChecks, href: '/reports/attendance', roles: ['admin', 'manager'] },
-      { title: 'Turnover', icon: BarChart3, href: '/reports/turnover', roles: ['admin', 'manager'] },
-      { title: 'Exportação MTE', icon: Download, href: '/reports/mte', roles: ['admin'] },
-    ]
-  },
-  {
-    id: 'exportacao',
-    title: 'Exportação',
-    icon: Download,
+    id: 'seguranca',
+    title: 'Segurança e Auditoria',
+    icon: Shield,
     roles: ['admin'],
     items: [
-      { title: 'Exportação Folha', icon: Wallet, href: '/payroll-exports', roles: ['admin'] },
-      { title: 'Importação/Exportação', icon: Import, href: '/import-export', roles: ['admin'] },
+      { title: 'Painel de Segurança', icon: Shield, href: '/security', roles: ['admin'] },
+      { title: 'Auditoria de Validações', icon: FileSearch, href: '/validation-audit', roles: ['admin'] },
+      { title: 'Auditoria de CNPJ', icon: FileSearch, href: '/cnpj-audit', roles: ['admin'] },
+      { title: 'Painel de Diagnóstico', icon: Bug, href: '/diagnostics', roles: ['admin'] },
     ]
   },
   {
@@ -313,15 +345,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Empresa', icon: Building2, href: '/company-settings', roles: ['admin'] },
       { title: 'Dados da Empresa', icon: FileCheck, href: '/company', roles: ['admin'] },
       { title: 'Unidades (Matriz/Filiais)', icon: Building2, href: '/company-units', roles: ['admin'] },
-      { title: 'App do Terminal', icon: Smartphone, href: '/terminal-app', roles: ['admin'] },
       { title: 'Usuários', icon: Users, href: '/users', roles: ['admin'] },
-      { title: 'Segurança', icon: Shield, href: '/security', roles: ['admin'] },
-      { title: 'Terminais de Ponto', icon: MonitorSmartphone, href: '/kiosk-terminals', roles: ['admin'] },
-      { title: 'Painel de Diagnóstico', icon: Bug, href: '/diagnostics', roles: ['admin'] },
-      { title: 'Auditoria de CNPJ', icon: FileSearch, href: '/cnpj-audit', roles: ['admin'] },
-
-      { title: 'Calculadora de Horas', icon: Clock, href: '/hours-calculator', roles: ['admin', 'manager'] },
-      { title: 'Textos Customizados', icon: FileText, href: '/custom-texts', roles: ['admin'] },
       { title: 'Manual do Sistema', icon: BookOpen, href: '/system-manual', roles: ['admin', 'manager', 'employee'] },
     ]
   },
