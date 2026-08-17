@@ -82,6 +82,9 @@ import {
   AlertCircle,
   ArrowLeft,
   Grid3X3,
+  MonitorSmartphone,
+  Bug,
+  FileSearch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { categoryHubConfigMap } from '@/config/categoryHubConfigs';
@@ -311,6 +314,10 @@ const menuCategories: MenuCategory[] = [
       { title: 'Dados da Empresa', icon: FileCheck, href: '/company', roles: ['admin'] },
       { title: 'Usuários', icon: Users, href: '/users', roles: ['admin'] },
       { title: 'Segurança', icon: Shield, href: '/security', roles: ['admin'] },
+      { title: 'Terminais de Ponto', icon: MonitorSmartphone, href: '/kiosk-terminals', roles: ['admin'] },
+      { title: 'Painel de Diagnóstico', icon: Bug, href: '/diagnostics', roles: ['admin'] },
+      { title: 'Auditoria de CNPJ', icon: FileSearch, href: '/cnpj-audit', roles: ['admin'] },
+
       { title: 'Calculadora de Horas', icon: Clock, href: '/hours-calculator', roles: ['admin', 'manager'] },
       { title: 'Textos Customizados', icon: FileText, href: '/custom-texts', roles: ['admin'] },
       { title: 'Manual do Sistema', icon: BookOpen, href: '/system-manual', roles: ['admin', 'manager', 'employee'] },

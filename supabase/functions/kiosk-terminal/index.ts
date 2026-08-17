@@ -40,6 +40,35 @@ Deno.serve(async (req) => {
     const action = String(body?.action || '');
 
     // ---------------------------------------------------------------
+    // 0) Health-check: sempre responde, inclusive durante a manutenção.
+    //    O terminal usa esta rota para reconectar automaticamente.
+    // ---------------------------------------------------------------
+    if (action === 'health') {
+      let maintenance: Record<string, unknown> | null = null;
+      try {
+        const { data } = await supabase
+          .from('system_maintenance')
+          .select('job, reason, started_at, expected_end_at')
+          .eq('is_active', true)
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        maintenance = data ?? null;
+      } catch (_e) {
+        // health-check nunca falha por causa da consulta de manutenção
+      }
+      return json({
+        success: true,
+        status: 'online',
+        serverTime: new Date().toISOString(),
+        maintenance,
+        acceptsPunches: true,
+      });
+    }
+
+
+
+    // ---------------------------------------------------------------
     // 1) Solicitação de ativação do terminal (aguarda liberação do ADM)
     // ---------------------------------------------------------------
     if (action === 'activate') {
@@ -152,6 +181,33 @@ Deno.serve(async (req) => {
         company: { id: terminal.company_id, name: companyInfo?.name ?? '' },
       });
     }
+
+    // ---------------------------------------------------------------
+    // 2b) Terminal relata queda de conexão assim que volta ao ar.
+    //     Gera diagnóstico com correção automática para o ADM.
+    // ---------------------------------------------------------------
+    if (action === 'report-issue') {
+      const detail = String(body?.detail || 'Terminal ficou sem comunicação com o servidor.').slice(0, 1000);
+      const offlineSeconds = Number(body?.offlineSeconds || 0);
+      const pending = Number(body?.pendingPunches || 0);
+
+      await supabase.from('system_diagnostics').insert({
+        code: 'terminal_sem_conexao',
+        severity: offlineSeconds > 600 ? 'error' : 'warning',
+        title: `Terminal "${terminal.name}" ficou sem comunicação com o servidor`,
+        user_message: 'Ocorreu um erro. Já registramos o problema e a equipe foi avisada.',
+        technical_detail: `${detail}\nTempo offline: ${offlineSeconds}s\nRegistros na fila: ${pending}\nTerminal: ${terminal.id}`,
+        entity_table: 'kiosk_terminals',
+        entity_id: terminal.id,
+        auto_fixable: true,
+        fix_action: 'reconnect_kiosk_terminal',
+        status: 'open',
+      });
+
+      return json({ success: true });
+    }
+
+
 
     if (terminal.status === 'rejected') {
       return json({ success: false, error: 'Este terminal foi recusado pelo administrador.', code: 'terminal_rejected' }, 403);
@@ -425,10 +481,26 @@ Deno.serve(async (req) => {
         return json({ success: false, error: 'Funcionário inválido para este terminal.' }, 403);
       }
 
-      const recordedAt = new Date();
+      // Registro offline enfileirado no terminal: preserva a hora real da marcação
+      const clientRecordedAt = body?.clientRecordedAt ? new Date(String(body.clientRecordedAt)) : null;
+      const queued = !!clientRecordedAt && !isNaN(clientRecordedAt.getTime());
+      const recordedAt = queued ? clientRecordedAt! : new Date();
+
+      // Idempotência da fila: o mesmo registro reenviado não duplica
+      const punchId = String(body?.clientPunchId || '');
       const transactionHash = await sha256(
-        [profile.id, recordType, recordedAt.toISOString(), body?.latitude ?? '', body?.longitude ?? ''].join('|')
+        [profile.id, recordType, recordedAt.toISOString(), body?.latitude ?? '', body?.longitude ?? '', punchId].join('|')
       );
+
+      const { data: existing } = await supabase
+        .from('time_records')
+        .select('id, nsr, recorded_at, record_type, transaction_hash')
+        .eq('transaction_hash', transactionHash)
+        .maybeSingle();
+
+      if (existing) {
+        return json({ success: true, record: existing, employeeName: profile.full_name, duplicated: true });
+      }
 
       const { data: record, error } = await supabase
         .from('time_records')
@@ -440,11 +512,12 @@ Deno.serve(async (req) => {
           latitude: body?.latitude ?? terminal.latitude ?? null,
           longitude: body?.longitude ?? terminal.longitude ?? null,
           address: body?.address ?? terminal.address ?? null,
-          device_info: `Terminal CNPJ | ${terminal.name} | ${String(body?.userAgent || '').slice(0, 300)}`,
+          device_info: `Terminal CNPJ | ${terminal.name}${queued ? ' | fila offline' : ''} | ${String(body?.userAgent || '').slice(0, 300)}`,
           transaction_hash: transactionHash,
         })
         .select('id, nsr, recorded_at, record_type, transaction_hash')
         .single();
+
 
       if (error) {
         console.error('Erro ao inserir registro do terminal:', error);

@@ -77,6 +77,8 @@ const IdentificationMethods = React.lazy(() => import("@/pages/IdentificationMet
 const ValidationAudit = React.lazy(() => import("@/pages/ValidationAudit"));
 const KioskTerminals = React.lazy(() => import("@/pages/KioskTerminals"));
 const DiagnosticPanel = React.lazy(() => import("@/pages/admin/DiagnosticPanel"));
+const CnpjAudit = React.lazy(() => import("@/pages/admin/CnpjAudit"));
+
 const Suggestions = React.lazy(() => import("@/pages/Suggestions"));
 const Vacations = React.lazy(() => import("@/pages/Vacations"));
 const PresenceMonitoring = React.lazy(() => import("@/pages/PresenceMonitoring"));
@@ -283,6 +285,8 @@ const App = () => (
                   <Route path="validation-audit" element={<ProtectedRoute><ValidationAudit /></ProtectedRoute>} />
                   <Route path="kiosk-terminals" element={<ProtectedRoute requiredRoles={['admin']}><KioskTerminals /></ProtectedRoute>} />
                   <Route path="diagnostics" element={<ProtectedRoute requiredRoles={['admin']}><DiagnosticPanel /></ProtectedRoute>} />
+                  <Route path="cnpj-audit" element={<ProtectedRoute requiredRoles={['admin']}><CnpjAudit /></ProtectedRoute>} />
+
                   <Route path="suggestions" element={<ProtectedRoute><Suggestions /></ProtectedRoute>} />
                   <Route path="basic-registrations" element={<ProtectedRoute requiredRoles={['admin']}><BasicRegistrations /></ProtectedRoute>} />
                   <Route path="unions" element={<ProtectedRoute requiredRoles={['admin']}><Unions /></ProtectedRoute>} />
