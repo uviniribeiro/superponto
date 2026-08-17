@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const SYSTEM_PROMPT = `Você é o assistente de suporte técnico 24/7 do Sistema de Ponto Eletrônico. Você tem conhecimento completo sobre todas as funcionalidades do sistema.
 
