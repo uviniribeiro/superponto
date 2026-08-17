@@ -168,12 +168,16 @@ export default function Company() {
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${company?.id || 'company'}-${Date.now()}.${fileExt}`;
-      const filePath = `logos/${fileName}`;
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      // Files must live under the company's own folder (enforced by storage policies)
+      const companyFolder = company?.id || profile?.company_id;
+      if (!companyFolder) throw new Error('Empresa não identificada');
+      const filePath = `${companyFolder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('company-logos')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: true });
+
 
       if (uploadError) throw uploadError;
 
