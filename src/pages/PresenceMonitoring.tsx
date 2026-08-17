@@ -10,8 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { format, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-import { Activity } from 'lucide-react';
+import {
+  Activity,
   MapPin, 
   Users, 
   UserCheck, 
