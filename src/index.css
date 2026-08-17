@@ -368,6 +368,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
+    font-family: var(--font-heading);
   }
 
   code, pre {
@@ -413,11 +414,30 @@
 
   /* Gradient utilities */
   .gradient-primary {
-    @apply bg-gradient-to-r from-primary to-[hsl(173,80%,40%)];
+    @apply bg-gradient-to-r from-primary to-[hsl(var(--brand))];
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-primary to-[hsl(173,80%,40%)] bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary to-[hsl(var(--brand))] bg-clip-text text-transparent;
+  }
+
+  /* Bento surfaces */
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  .bento-card {
+    @apply rounded-3xl border border-border bg-card p-6 transition-all duration-200;
+  }
+  .bento-card:hover {
+    @apply shadow-lg -translate-y-0.5;
+  }
+
+  .bento-hero {
+    @apply rounded-3xl bg-primary text-primary-foreground p-8 transition-colors duration-200;
+  }
+  .bento-hero:hover {
+    background: hsl(var(--brand-deep));
   }
 
   /* Glow effect */
