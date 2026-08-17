@@ -170,7 +170,7 @@ export default function Company() {
       const fileExt = file.name.split('.').pop();
       const fileName = `logo-${Date.now()}.${fileExt}`;
       // Files must live under the company's own folder (enforced by storage policies)
-      const companyFolder = company?.id || profile?.company_id;
+      const companyFolder = company?.id;
       if (!companyFolder) throw new Error('Empresa não identificada');
       const filePath = `${companyFolder}/${fileName}`;
 
