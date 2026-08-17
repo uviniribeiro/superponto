@@ -8,9 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2, Fingerprint, MapPin, FileCheck2 } from 'lucide-react';
+import { Building2, Landmark, Shield, Eye, EyeOff, GraduationCap, Heart, Palette, Bus, Settings2, Users, Loader2, Fingerprint, MapPin, FileCheck2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
+import { CnpjInput } from '@/components/shared/CnpjInput';
+import { getCNPJFeedback, cleanCNPJ } from '@/lib/validators';
+import { cn } from '@/lib/utils';
 import superpontoLogo from '@/assets/pontomax-logo.png';
+
 
 type LoginType = 'company' | 'city_hall' | 'super_admin';
 
@@ -48,6 +52,39 @@ export default function Auth() {
     password: '', 
     companyCode: '' 
   });
+  const [touched, setTouched] = useState({ username: false, password: false, companyCode: false });
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const isSuperAdminLogin = loginType === 'super_admin';
+  const cnpjFeedback = getCNPJFeedback(loginData.companyCode);
+
+  const usernameError = (() => {
+    const v = loginData.username.trim();
+    if (!v) return 'Informe seu login';
+    if (isSuperAdminLogin) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : 'E-mail inválido';
+    }
+    return v.length < 3 ? 'Login deve ter pelo menos 3 caracteres' : null;
+  })();
+
+  const passwordError = (() => {
+    if (!loginData.password) return 'Informe sua senha';
+    return loginData.password.length < 6 ? 'Senha deve ter pelo menos 6 caracteres' : null;
+  })();
+
+  const companyCodeError =
+    loginType === 'company'
+      ? cnpjFeedback.status === 'valid'
+        ? null
+        : cnpjFeedback.status === 'empty'
+          ? 'Informe o CNPJ da empresa'
+          : 'CNPJ inválido'
+      : loginType === 'city_hall' && !loginData.companyCode
+        ? 'Selecione o setor'
+        : null;
+
+  const formIsValid = !usernameError && !passwordError && !companyCodeError;
+
 
   useEffect(() => {
     if (!loading && user) {
@@ -132,19 +169,33 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ username: true, password: true, companyCode: true });
+    setAuthError(null);
+
+    if (!formIsValid) {
+      const first = companyCodeError || usernameError || passwordError;
+      if (first) {
+        setAuthError(first);
+        toast.error(first);
+      }
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       if (loginType === 'super_admin') {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: loginData.username,
+        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: loginData.username.trim(),
           password: loginData.password
         });
 
-        if (authError) {
-          toast.error(
-            isConnectionError(authError.message) ? CONNECTION_MESSAGE : 'Credenciais inválidas'
-          );
+        if (signInError) {
+          const msg = isConnectionError(signInError.message)
+            ? CONNECTION_MESSAGE
+            : 'E-mail ou senha incorretos';
+          setAuthError(msg);
+          toast.error(msg);
           setIsLoading(false);
           return;
         }
@@ -159,7 +210,9 @@ export default function Auth() {
 
           if (!roleData) {
             await supabase.auth.signOut();
-            toast.error('Acesso negado. Você não é um Super Administrador.');
+            const msg = 'Acesso negado. Você não é um Super Administrador.';
+            setAuthError(msg);
+            toast.error(msg);
             setIsLoading(false);
             return;
           }
@@ -168,33 +221,43 @@ export default function Auth() {
           navigate('/super-admin');
         }
       } else {
-        const validData = loginSchema.parse(loginData);
+        const payload = {
+          username: loginData.username.trim(),
+          password: loginData.password,
+          companyCode:
+            loginType === 'company' ? cleanCNPJ(loginData.companyCode) : loginData.companyCode,
+        };
+        const validData = loginSchema.parse(payload);
         const { error } = await signIn(validData.username, validData.password, validData.companyCode);
         
         if (error) {
-          if (isConnectionError(error.message)) {
-            toast.error(CONNECTION_MESSAGE);
-          } else if (error.message.includes('Login ou senha incorretos')) {
-            toast.error('Login ou senha incorretos');
-          } else {
-            toast.error(error.message);
-          }
+          const msg = isConnectionError(error.message)
+            ? CONNECTION_MESSAGE
+            : error.message.includes('Login ou senha incorretos')
+              ? 'Login ou senha incorretos'
+              : error.message;
+          setAuthError(msg);
+          toast.error(msg);
         } else {
           toast.success('Login realizado com sucesso!');
         }
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
+        setAuthError(error.errors[0].message);
         toast.error(error.errors[0].message);
       } else {
         const message = error instanceof Error ? error.message : String(error);
         console.error('Login error:', error);
-        toast.error(isConnectionError(message) ? CONNECTION_MESSAGE : `Erro ao entrar: ${message}`);
+        const msg = isConnectionError(message) ? CONNECTION_MESSAGE : `Erro ao entrar: ${message}`;
+        setAuthError(msg);
+        toast.error(msg);
       }
     } finally {
       setIsLoading(false);
     }
   };
+
 
 
   if (loading) {
@@ -286,6 +349,8 @@ export default function Auth() {
                   onClick={() => {
                     setLoginType('company');
                     setLoginData({ ...loginData, companyCode: '' });
+                    setTouched({ username: false, password: false, companyCode: false });
+                    setAuthError(null);
                   }}
                 >
                   <Building2 className="h-4 w-4" />
@@ -300,6 +365,8 @@ export default function Auth() {
                     setLoginType('city_hall');
                     setLoginData({ ...loginData, companyCode: '' });
                     setSelectedCityHall('');
+                    setTouched({ username: false, password: false, companyCode: false });
+                    setAuthError(null);
                   }}
                 >
                   <Landmark className="h-4 w-4" />
@@ -310,27 +377,42 @@ export default function Auth() {
                   variant={loginType === 'super_admin' ? 'default' : 'outline'}
                   size="sm"
                   className="flex flex-col h-auto py-2.5 gap-1"
-                  onClick={() => setLoginType('super_admin')}
+                  onClick={() => {
+                    setLoginType('super_admin');
+                    setTouched({ username: false, password: false, companyCode: false });
+                    setAuthError(null);
+                  }}
                 >
                   <Shield className="h-4 w-4" />
                   <span className="text-xs">Admin</span>
                 </Button>
               </div>
 
+
+              {authError && (
+                <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2.5 text-xs text-destructive" role="alert">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
               {loginType === 'company' && (
                 <div className="space-y-1.5">
                   <Label htmlFor="login-company" className="text-sm">CNPJ da Empresa</Label>
-                  <Input
+                  <CnpjInput
                     id="login-company"
-                    type="text"
-                    placeholder="00.000.000/0000-00"
                     value={loginData.companyCode}
-                    onChange={(e) => setLoginData({ ...loginData, companyCode: e.target.value })}
-                    required
+                    onChange={(value) => {
+                      setAuthError(null);
+                      setLoginData({ ...loginData, companyCode: value });
+                    }}
+                    onBlur={() => setTouched((t) => ({ ...t, companyCode: true }))}
+                    disabled={isLoading}
                     className="h-10"
                   />
                 </div>
               )}
+
 
               {loginType === 'city_hall' && (
                 <>
@@ -388,17 +470,42 @@ export default function Auth() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="login-username" className="text-sm">
-                  {loginType === 'super_admin' ? 'Email' : 'Login'}
+                  {isSuperAdminLogin ? 'Email' : 'Login'}
                 </Label>
-                <Input
-                  id="login-username"
-                  type="text"
-                  placeholder={loginType === 'super_admin' ? 'admin@sistema.com' : 'seu.login'}
-                  value={loginData.username}
-                  onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                  required
-                  className="h-10"
-                />
+                <div className="relative">
+                  <Input
+                    id="login-username"
+                    type={isSuperAdminLogin ? 'email' : 'text'}
+                    inputMode={isSuperAdminLogin ? 'email' : 'text'}
+                    autoComplete="username"
+                    placeholder={isSuperAdminLogin ? 'admin@sistema.com' : 'seu.login'}
+                    value={loginData.username}
+                    onChange={(e) => {
+                      setAuthError(null);
+                      setLoginData({ ...loginData, username: e.target.value });
+                    }}
+                    onBlur={() => setTouched((t) => ({ ...t, username: true }))}
+                    aria-invalid={touched.username && !!usernameError}
+                    aria-describedby="login-username-feedback"
+                    className={cn(
+                      'h-10 pr-9',
+                      touched.username && usernameError && 'border-destructive focus-visible:ring-destructive',
+                      touched.username && !usernameError && 'border-success'
+                    )}
+                  />
+                  {touched.username && loginData.username.length > 0 && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {usernameError ? (
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4 text-success" />
+                      )}
+                    </span>
+                  )}
+                </div>
+                <p id="login-username-feedback" aria-live="polite" className="min-h-[1rem] text-xs text-destructive">
+                  {touched.username && usernameError ? usernameError : ''}
+                </p>
               </div>
               
               <div className="space-y-1.5">
@@ -407,28 +514,43 @@ export default function Auth() {
                   <Input
                     id="login-password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     placeholder="••••••"
                     value={loginData.password}
-                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                    required
-                    className="h-10 pr-10"
+                    onChange={(e) => {
+                      setAuthError(null);
+                      setLoginData({ ...loginData, password: e.target.value });
+                    }}
+                    onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+                    aria-invalid={touched.password && !!passwordError}
+                    aria-describedby="login-password-feedback"
+                    className={cn(
+                      'h-10 pr-10',
+                      touched.password && passwordError && 'border-destructive focus-visible:ring-destructive',
+                      touched.password && !passwordError && 'border-success'
+                    )}
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                <p id="login-password-feedback" aria-live="polite" className="min-h-[1rem] text-xs text-destructive">
+                  {touched.password && passwordError ? passwordError : ''}
+                </p>
               </div>
+
             </CardContent>
             
             <CardFooter>
               <Button 
                 type="submit" 
                 className="w-full h-10"
-                disabled={isLoading || (loginType === 'city_hall' && !loginData.companyCode)}
+                disabled={isLoading || !formIsValid}
               >
                 {isLoading ? (
                   <>
