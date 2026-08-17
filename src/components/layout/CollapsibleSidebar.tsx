@@ -148,6 +148,7 @@ const menuCategories: MenuCategory[] = [
     roles: ['admin', 'manager'],
     items: [
       { title: 'Funcionários', icon: Users, href: '/employees', roles: ['admin', 'manager'] },
+      { title: 'Novo Funcionário', icon: UserPlus, href: '/employees/register', roles: ['admin', 'manager'] },
       { title: 'Cargos e Departamentos', icon: Building2, href: '/positions-departments', roles: ['admin'] },
       { title: 'Departamentos', icon: Network, href: '/departments', roles: ['admin'] },
       { title: 'Unidades (Matriz/Filiais)', icon: Building2, href: '/company-units', roles: ['admin'] },
