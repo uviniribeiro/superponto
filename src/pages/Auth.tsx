@@ -206,10 +206,56 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm">
-        {/* Logo Ponto Max */}
-        <div className="mb-8 flex flex-col items-center text-center">
+    <div className="min-h-screen w-full lg:grid lg:grid-cols-[1.1fr_1fr]">
+      {/* Painel de marca */}
+      <aside className="brand-panel hidden lg:flex flex-col justify-between p-12 text-primary-foreground">
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm">
+            <img src={superpontoLogo} alt="Ponto Max" className="h-8 w-8" />
+          </div>
+          <div>
+            <p className="font-heading text-xl font-bold leading-none">Ponto Max</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-primary-foreground/60">
+              Ponto eletrônico
+            </p>
+          </div>
+        </div>
+
+        <div className="relative z-10 max-w-md">
+          <h2 className="font-heading text-4xl font-bold leading-tight tracking-tight">
+            Controle de jornada com precisão institucional.
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-primary-foreground/70">
+            Registro, apuração e conformidade legal em uma plataforma única — para empresas
+            e prefeituras.
+          </p>
+
+          <ul className="mt-10 space-y-4">
+            {[
+              { icon: Fingerprint, label: 'Identificação biométrica, facial e QR Code' },
+              { icon: MapPin, label: 'Geolocalização e postos de trabalho monitorados' },
+              { icon: FileCheck2, label: 'Conformidade com a Portaria 671 do MTE' },
+            ].map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-3 text-sm text-primary-foreground/85">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
+                  <Icon className="h-4 w-4 text-white" />
+                </span>
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="relative z-10 text-xs text-primary-foreground/50">
+          Ponto Max © 2026 — Todos os direitos reservados
+        </p>
+      </aside>
+
+      {/* Coluna do formulário */}
+      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="w-full max-w-sm animate-fade-in">
+        {/* Logo (mobile) */}
+        <div className="mb-8 flex flex-col items-center text-center lg:hidden">
           <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl border border-border bg-card shadow-sm">
             <img src={superpontoLogo} alt="Ponto Max" className="h-14 w-14" />
           </div>
@@ -219,14 +265,15 @@ export default function Auth() {
           </p>
         </div>
 
-        <Card className="rounded-3xl border-border shadow-lg">
+        <Card className="rounded-3xl border-border/70 shadow-xl">
           <form onSubmit={handleLogin}>
-            <CardHeader className="pb-4 text-center">
-              <CardTitle className="font-heading text-lg">Bem-vindo</CardTitle>
+            <CardHeader className="pb-4">
+              <CardTitle className="font-heading text-2xl font-bold tracking-tight">Bem-vindo</CardTitle>
               <CardDescription className="text-sm">
-                Entre com suas credenciais
+                Entre com suas credenciais para acessar o sistema
               </CardDescription>
             </CardHeader>
+            
             
             <CardContent className="space-y-4">
               {/* Login Type Selector */}
