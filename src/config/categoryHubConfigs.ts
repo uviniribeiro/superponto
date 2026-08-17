@@ -58,6 +58,24 @@ export const homeHubConfig: CategoryHubConfig = {
         { title: 'Dashboard', description: 'Visão geral e estatísticas', icon: LayoutDashboard, href: '/dashboard', color: 'text-emerald-600' },
       ],
     },
+    {
+      title: 'Atalhos Rápidos',
+      subtitle: 'Ferramentas mais utilizadas',
+      items: [
+        { title: 'Registrar Ponto', description: 'Marque entrada, intervalo e saída', icon: Clock, href: '/time-clock' },
+        { title: 'Meus Registros', description: 'Consulte suas marcações', icon: FileText, href: '/my-records' },
+        { title: 'Espelho de Ponto', description: 'Folha de ponto dos funcionários', icon: ClipboardList, href: '/timesheet' },
+        { title: 'Funcionários', description: 'Cadastro e gestão de pessoas', icon: Users, href: '/employees' },
+        { title: 'Ajustes de Ponto', description: 'Solicitações e aprovações', icon: ClipboardCheck, href: '/adjustments' },
+        { title: 'Banco de Horas', description: 'Saldo e compensações', icon: Timer, href: '/time-bank' },
+        { title: 'Faltas e Afastamentos', description: 'Ausências e justificativas', icon: UserX, href: '/absences' },
+        { title: 'Relatórios', description: 'Relatórios legais e gerenciais', icon: FileBarChart, href: '/reports' },
+        { title: 'Jornadas e Escalas', description: 'Horários e escalas de trabalho', icon: CalendarClock, href: '/schedules' },
+        { title: 'Feriados', description: 'Calendário anual de feriados', icon: CalendarDays, href: '/holidays' },
+        { title: 'Equipamentos REP', description: 'Relógios de ponto e coletas', icon: Server, href: '/equipment' },
+        { title: 'Empresa', description: 'Dados, unidades e configurações', icon: Building2, href: '/company' },
+      ],
+    },
   ],
 };
 
