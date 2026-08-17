@@ -7393,6 +7393,7 @@ export type Database = {
         }
         Returns: string
       }
+      purge_old_location_data: { Args: never; Returns: number }
       record_failed_login: { Args: { _user_id: string }; Returns: Json }
       reset_failed_login: { Args: { _user_id: string }; Returns: undefined }
       validate_qrcode_identifier: {
