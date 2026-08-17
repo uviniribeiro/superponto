@@ -36,17 +36,46 @@ function bufferToBase64url(buffer: Uint8Array): string {
     .replace(/=/g, "");
 }
 
-// Verificar assinatura (simplificado - em produção usar biblioteca completa)
+// Converte assinatura ECDSA DER (r,s) para o formato raw exigido pelo WebCrypto
+function derToRawEcdsaSignature(der: Uint8Array): Uint8Array {
+  if (der[0] !== 0x30) return der; // já está em formato raw
+  let offset = 2;
+  if (der[1] & 0x80) offset = 2 + (der[1] & 0x7f);
+
+  const readInt = (): Uint8Array => {
+    if (der[offset] !== 0x02) throw new Error("Assinatura DER inválida");
+    const len = der[offset + 1];
+    let value = der.slice(offset + 2, offset + 2 + len);
+    offset += 2 + len;
+    while (value.length > 32 && value[0] === 0x00) value = value.slice(1);
+    const padded = new Uint8Array(32);
+    padded.set(value, 32 - value.length);
+    return padded;
+  };
+
+  const r = readInt();
+  const s = readInt();
+  const raw = new Uint8Array(64);
+  raw.set(r, 0);
+  raw.set(s, 32);
+  return raw;
+}
+
+function toArrayBuffer(view: Uint8Array): ArrayBuffer {
+  return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength) as ArrayBuffer;
+}
+
+// Verifica a assinatura da asserção WebAuthn com a chave pública armazenada
 async function verifySignature(
   publicKey: Uint8Array,
   signature: Uint8Array,
   data: Uint8Array
 ): Promise<boolean> {
+  const keyBuffer = toArrayBuffer(publicKey);
+  const dataBuffer = toArrayBuffer(data);
+
+  // ECDSA P-256 (algoritmo padrão dos autenticadores)
   try {
-    const keyBuffer = publicKey.buffer.slice(publicKey.byteOffset, publicKey.byteOffset + publicKey.byteLength) as ArrayBuffer;
-    const sigBuffer = signature.buffer.slice(signature.byteOffset, signature.byteOffset + signature.byteLength) as ArrayBuffer;
-    const dataBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
-    
     const key = await crypto.subtle.importKey(
       "spki",
       keyBuffer,
@@ -54,18 +83,44 @@ async function verifySignature(
       false,
       ["verify"]
     );
-
-    return await crypto.subtle.verify(
+    const raw = derToRawEcdsaSignature(signature);
+    const ok = await crypto.subtle.verify(
       { name: "ECDSA", hash: "SHA-256" },
       key,
-      sigBuffer,
+      toArrayBuffer(raw),
+      dataBuffer
+    );
+    if (ok) return true;
+  } catch (error) {
+    console.error("Falha na verificação ECDSA:", error);
+  }
+
+  // RSA (RS256) como alternativa
+  try {
+    const key = await crypto.subtle.importKey(
+      "spki",
+      keyBuffer,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+    return await crypto.subtle.verify(
+      "RSASSA-PKCS1-v1_5",
+      key,
+      toArrayBuffer(signature),
       dataBuffer
     );
   } catch (error) {
-    console.error("Erro ao verificar assinatura:", error);
+    console.error("Falha na verificação RSA:", error);
     return false;
   }
 }
+
+async function sha256(data: Uint8Array): Promise<Uint8Array> {
+  const digest = await crypto.subtle.digest("SHA-256", toArrayBuffer(data));
+  return new Uint8Array(digest);
+}
+
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
