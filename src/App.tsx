@@ -77,6 +77,8 @@ const IdentificationMethods = React.lazy(() => import("@/pages/IdentificationMet
 const ValidationAudit = React.lazy(() => import("@/pages/ValidationAudit"));
 const KioskTerminals = React.lazy(() => import("@/pages/KioskTerminals"));
 const DiagnosticPanel = React.lazy(() => import("@/pages/admin/DiagnosticPanel"));
+const CnpjAudit = React.lazy(() => import("@/pages/admin/CnpjAudit"));
+
 const Suggestions = React.lazy(() => import("@/pages/Suggestions"));
 const Vacations = React.lazy(() => import("@/pages/Vacations"));
 const PresenceMonitoring = React.lazy(() => import("@/pages/PresenceMonitoring"));
