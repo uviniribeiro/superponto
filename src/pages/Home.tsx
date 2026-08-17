@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useDefaultDataSeeder } from '@/hooks/useDefaultDataSeeder';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
 import { 
   Star, 
@@ -123,132 +123,165 @@ export default function Home() {
 
   const quickAccessItems = favoriteItems.length > 0 ? favoriteItems : defaultQuickAccess;
 
+  const [heroItem, ...restItems] = quickAccessItems;
+
   return (
     <div className="relative min-h-[calc(100vh-8rem)]">
       {/* Content */}
-      <div className="relative z-10 space-y-6">
+      <div className="relative z-10 space-y-10">
         {/* Welcome Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold mb-2">
-            Bem-vindo ao {companySettings?.company_name || 'Ponto Max'}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Acesse rapidamente as funções que você mais utiliza
-          </p>
-        </div>
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-heading text-3xl font-bold tracking-tight">
+              Bem-vindo ao {companySettings?.company_name || 'Ponto Max'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Gestão de ponto eletrônico — acesse suas funções mais usadas
+            </p>
+          </div>
+          <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Painel principal
+          </span>
+        </header>
 
-        {/* Quick Access Section */}
-        <div className="space-y-4">
+        {/* Quick Access Bento */}
+        <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Star className="w-5 h-5 text-amber-500" />
+            <h2 className="font-heading text-lg font-bold flex items-center gap-2">
+              <Star className="w-4 h-4 text-brand" />
               Acesso Rápido
             </h2>
             {favoriteItems.length === 0 && (
               <p className="text-xs text-muted-foreground">
-                Clique na ★ nos menus para adicionar favoritos
+                Clique na ★ nos cards para fixar favoritos
               </p>
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {quickAccessItems.map((item) => (
-              <Link to={item.href} key={item.href}>
-                <Card className="h-full transition-all hover:shadow-lg hover:border-primary/50 cursor-pointer group hover:scale-[1.02]">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                        <item.icon className="w-6 h-6" />
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleFavorite(item.href);
-                        }}
-                        className="p-1 hover:bg-muted rounded transition-colors"
-                      >
-                        <Star className={`w-4 h-4 ${isFavorite(item.href) ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground hover:text-amber-500'}`} />
-                      </button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <CardTitle className="text-base mb-1">{item.title}</CardTitle>
-                    <p className="text-xs text-muted-foreground">{item.description}</p>
-                  </CardContent>
-                </Card>
+          <div className="grid gap-4 md:grid-cols-3 md:auto-rows-[minmax(150px,auto)]">
+            {heroItem && (
+              <Link
+                to={heroItem.href}
+                className="bento-hero group flex flex-col justify-between md:col-span-2 md:row-span-2"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
+                    <heroItem.icon className="h-8 w-8" />
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleFavorite(heroItem.href);
+                    }}
+                    aria-label="Fixar como favorito"
+                    className="rounded-xl p-2 transition-colors hover:bg-brand/30"
+                  >
+                    <Star className={`w-4 h-4 ${isFavorite(heroItem.href) ? 'fill-brand text-brand' : 'text-primary-foreground/60'}`} />
+                  </button>
+                </div>
+                <div>
+                  <h3 className="font-heading text-4xl font-bold">{heroItem.title}</h3>
+                  <p className="mt-2 max-w-sm text-primary-foreground/70">{heroItem.description}</p>
+                </div>
+              </Link>
+            )}
+
+            {restItems.map((item) => (
+              <Link to={item.href} key={item.href} className="bento-card group flex flex-col justify-between gap-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-brand-deep transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleFavorite(item.href);
+                    }}
+                    aria-label="Fixar como favorito"
+                    className="rounded-xl p-2 transition-colors hover:bg-muted"
+                  >
+                    <Star className={`w-4 h-4 ${isFavorite(item.href) ? 'fill-brand text-brand' : 'text-muted-foreground'}`} />
+                  </button>
+                </div>
+                <div>
+                  <h3 className="font-heading text-lg font-bold">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                </div>
               </Link>
             ))}
           </div>
-        </div>
+        </section>
 
         {/* Recent Section */}
         {recentItems.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <History className="w-5 h-5 text-muted-foreground" />
+          <section className="space-y-4">
+            <h2 className="font-heading text-lg font-bold flex items-center gap-2">
+              <History className="w-4 h-4 text-muted-foreground" />
               Acessados Recentemente
             </h2>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {recentItems.map((item) => (
-                <Link to={item.href} key={`recent-${item.href}`}>
-                  <Card className="transition-all hover:shadow-md hover:border-primary/30 cursor-pointer group">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                        <item.icon className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleFavorite(item.href);
-                        }}
-                        className="p-1 hover:bg-muted rounded transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <Plus className="w-4 h-4 text-muted-foreground hover:text-amber-500" />
-                      </button>
-                    </CardContent>
-                  </Card>
+                <Link
+                  to={item.href}
+                  key={`recent-${item.href}`}
+                  className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-brand-deep transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <item.icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-heading text-sm font-semibold truncate">{item.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleFavorite(item.href);
+                    }}
+                    aria-label="Fixar como favorito"
+                    className="rounded-lg p-1 opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+                  >
+                    <Plus className="w-4 h-4 text-muted-foreground" />
+                  </button>
                 </Link>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
         {/* Quick Actions for Admin */}
         {isAdmin && (
-          <div className="space-y-4 pt-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Settings className="w-5 h-5 text-muted-foreground" />
+          <section className="space-y-4">
+            <h2 className="font-heading text-lg font-bold flex items-center gap-2">
+              <Settings className="w-4 h-4 text-muted-foreground" />
               Ações Administrativas
             </h2>
 
             <div className="flex flex-wrap gap-3">
               <Link to="/employees/register">
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 rounded-2xl">
                   <Users className="w-4 h-4" />
                   Novo Funcionário
                 </Button>
               </Link>
               <Link to="/equipment">
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 rounded-2xl">
                   <Server className="w-4 h-4" />
                   Equipamentos REP
                 </Button>
               </Link>
               <Link to="/company">
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 rounded-2xl">
                   <Building2 className="w-4 h-4" />
                   Configurar Empresa
                 </Button>
               </Link>
             </div>
-          </div>
+          </section>
         )}
 
         {/* No favorites hint */}

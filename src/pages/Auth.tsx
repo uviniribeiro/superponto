@@ -209,20 +209,20 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         {/* Logo Ponto Max */}
-        <div className="flex flex-col items-center mb-8">
-          <img 
-            src={superpontoLogo} 
-            alt="Ponto Max" 
-            className="h-20 w-20 mb-3"
-          />
-          <h1 className="text-2xl font-bold text-foreground">Ponto Max</h1>
-          <p className="text-sm text-muted-foreground">Sistema de Ponto Eletrônico</p>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl border border-border bg-card shadow-sm">
+            <img src={superpontoLogo} alt="Ponto Max" className="h-14 w-14" />
+          </div>
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">Ponto Max</h1>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">
+            Sistema de Ponto Eletrônico
+          </p>
         </div>
 
-        <Card className="border shadow-lg">
+        <Card className="rounded-3xl border-border shadow-lg">
           <form onSubmit={handleLogin}>
             <CardHeader className="pb-4 text-center">
-              <CardTitle className="text-lg">Bem-vindo</CardTitle>
+              <CardTitle className="font-heading text-lg">Bem-vindo</CardTitle>
               <CardDescription className="text-sm">
                 Entre com suas credenciais
               </CardDescription>
