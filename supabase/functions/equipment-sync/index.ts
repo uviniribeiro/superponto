@@ -226,7 +226,7 @@ const parseRecords = (manufacturer: string, data: any): Array<{ identifier: stri
     console.error('Error parsing records:', getErrorMessage(e));
   }
   
-  return records;
+  return sanitizeRecords(manufacturer, records);
 };
 
 // Manufacturer-specific communication handlers
