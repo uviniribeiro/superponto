@@ -18,6 +18,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import jsQR from 'jsqr';
 
+import { resolveStorageUrl } from "@/lib/storageUrl";
 export interface IdentificationMethod {
   id: string;
   method_type: string;
