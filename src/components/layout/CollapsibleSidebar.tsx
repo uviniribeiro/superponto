@@ -247,7 +247,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'App do Terminal', icon: Smartphone, href: '/terminal-app', roles: ['admin'] },
       { title: 'Métodos de Identificação', icon: Smartphone, href: '/identification-methods', roles: ['admin'] },
       { title: 'Locais Georreferenciados', icon: MapPin, href: '/georeferenced-locations', roles: ['admin'] },
-      { title: 'Servidores TCP/IP', icon: Server, href: '/equipment/servers', roles: ['admin'] },
+      { title: 'Servidores de Comunicação', icon: Server, href: '/equipment/servers', roles: ['admin'] },
       { title: 'Ajuda REP', icon: HelpCircle, href: '/equipment/help', roles: ['admin'] },
     ]
   },

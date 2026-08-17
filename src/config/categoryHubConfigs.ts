@@ -298,7 +298,7 @@ export const equipamentosHubConfig: CategoryHubConfig = {
       items: [
         { title: 'Logs de Comunicação', description: 'Histórico de comunicação com REPs', icon: FileText, href: '/equipment/logs', color: 'text-slate-600' },
         { title: 'Conformidade MTE', description: 'Verificar conformidade com a legislação', icon: Shield, href: '/equipment/compliance', color: 'text-red-600', badges: ['Portaria 671'] },
-        { title: 'Servidores TCP/IP', description: 'Comunicação direta com relógios Henry', icon: Server, href: '/equipment/servers', color: 'text-cyan-600' },
+        { title: 'Servidores de Comunicação', description: 'Henry via TCP/IP e Control iD (local ou iD Cloud)', icon: Server, href: '/equipment/servers', color: 'text-cyan-600' },
         { title: 'Ajuda REP', description: 'Guia de configuração e suporte', icon: HelpCircle, href: '/equipment/help', color: 'text-blue-600' },
       ],
     },
@@ -654,7 +654,7 @@ export const dispositivosHubConfig: CategoryHubConfig = {
       items: [
         { title: 'Conformidade MTE', description: 'Portarias 1510, 373 e 671', icon: Shield, href: '/equipment/compliance', color: 'text-red-600', badges: ['Portaria 671'] },
         { title: 'Logs de Comunicação', description: 'Histórico de comunicação', icon: FileText, href: '/equipment/logs', color: 'text-slate-600' },
-        { title: 'Servidores TCP/IP', description: 'Comunicação direta com relógios Henry', icon: Server, href: '/equipment/servers', color: 'text-cyan-600' },
+        { title: 'Servidores de Comunicação', description: 'Henry via TCP/IP e Control iD (local ou iD Cloud)', icon: Server, href: '/equipment/servers', color: 'text-cyan-600' },
         { title: 'Ajuda REP', description: 'Guia de instalação e configuração', icon: HelpCircle, href: '/equipment/help', color: 'text-blue-600' },
       ],
     },
