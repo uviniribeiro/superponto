@@ -223,7 +223,7 @@ export default function NewScales() {
         <PageHeader
           title="Escalas de Trabalho"
           description={`${schedules.length} escalas cadastradas`}
-          icon={CalendarDays}
+          icon={Calendar}
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
         />
         <Button onClick={() => openDialog()}>
