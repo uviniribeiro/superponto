@@ -256,13 +256,16 @@ export default function SuperAdminCompanies() {
           const creds = usersData.credentials;
           const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
           if (creds?.support?.password || creds?.admin?.password) {
-            toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. Suporte: suporte/Super@26 | Admin: admin/Admin@26`, { duration: 15000 });
+            toast.success(
+              `Empresa cadastrada! Licença válida até ${validUntilFormatted}. Suporte: suporte / ${creds.support?.password ?? '(senha já definida)'} | Admin: admin / ${creds.admin?.password ?? '(senha já definida)'} — anote agora, as senhas não serão exibidas novamente.`,
+              { duration: 30000 }
+            );
           } else {
-            toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. Usuários: suporte/Super@26 e admin/Admin@26`);
+            toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. Usuários suporte e admin já existiam — use a redefinição de senha se necessário.`);
           }
         } else {
           const validUntilFormatted = format(validUntil, 'dd/MM/yyyy', { locale: ptBR });
-          toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. Usuários: suporte/Super@26 e admin/Admin@26`);
+          toast.success(`Empresa cadastrada! Licença válida até ${validUntilFormatted}. Configure os usuários de acesso na área de usuários.`);
         }
       } catch (err) {
         console.error('Error calling create-company-users:', err);
