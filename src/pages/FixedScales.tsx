@@ -168,25 +168,19 @@ export default function FixedScales() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <RotateCcw className="h-6 w-6 lg:h-7 lg:w-7 text-primary" />
-            </div>
-            Escalas Fixas
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure escalas cíclicas de trabalho e folga (12x36, 5x1, 6x1, etc.)
-          </p>
-        </div>
-
+      <div className="mb-0 flex flex-col gap-4 rounded-2xl border border-border/60 bg-card/80 p-5 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <PageHeader
+          title="Escalas Fixas"
+          description="Configure escalas cíclicas de trabalho e folga (12x36, 5x1, 6x1, etc.)"
+          icon={RotateCcw}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" />
           Nova Escala Fixa
         </Button>
       </div>
+
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
