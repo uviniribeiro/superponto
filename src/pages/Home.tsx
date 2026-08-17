@@ -123,64 +123,96 @@ export default function Home() {
 
   const quickAccessItems = favoriteItems.length > 0 ? favoriteItems : defaultQuickAccess;
 
+  const [heroItem, ...restItems] = quickAccessItems;
+
   return (
     <div className="relative min-h-[calc(100vh-8rem)]">
       {/* Content */}
-      <div className="relative z-10 space-y-6">
+      <div className="relative z-10 space-y-10">
         {/* Welcome Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold mb-2">
-            Bem-vindo ao {companySettings?.company_name || 'Ponto Max'}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Acesse rapidamente as funções que você mais utiliza
-          </p>
-        </div>
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-heading text-3xl font-bold tracking-tight">
+              Bem-vindo ao {companySettings?.company_name || 'Ponto Max'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Gestão de ponto eletrônico — acesse suas funções mais usadas
+            </p>
+          </div>
+          <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Painel principal
+          </span>
+        </header>
 
-        {/* Quick Access Section */}
-        <div className="space-y-4">
+        {/* Quick Access Bento */}
+        <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Star className="w-5 h-5 text-amber-500" />
+            <h2 className="font-heading text-lg font-bold flex items-center gap-2">
+              <Star className="w-4 h-4 text-brand" />
               Acesso Rápido
             </h2>
             {favoriteItems.length === 0 && (
               <p className="text-xs text-muted-foreground">
-                Clique na ★ nos menus para adicionar favoritos
+                Clique na ★ nos cards para fixar favoritos
               </p>
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {quickAccessItems.map((item) => (
-              <Link to={item.href} key={item.href}>
-                <Card className="h-full transition-all hover:shadow-lg hover:border-primary/50 cursor-pointer group hover:scale-[1.02]">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                        <item.icon className="w-6 h-6" />
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          toggleFavorite(item.href);
-                        }}
-                        className="p-1 hover:bg-muted rounded transition-colors"
-                      >
-                        <Star className={`w-4 h-4 ${isFavorite(item.href) ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground hover:text-amber-500'}`} />
-                      </button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <CardTitle className="text-base mb-1">{item.title}</CardTitle>
-                    <p className="text-xs text-muted-foreground">{item.description}</p>
-                  </CardContent>
-                </Card>
+          <div className="grid gap-4 md:grid-cols-3 md:auto-rows-[minmax(150px,auto)]">
+            {heroItem && (
+              <Link
+                to={heroItem.href}
+                className="bento-hero group flex flex-col justify-between md:col-span-2 md:row-span-2"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
+                    <heroItem.icon className="h-8 w-8" />
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleFavorite(heroItem.href);
+                    }}
+                    aria-label="Fixar como favorito"
+                    className="rounded-xl p-2 transition-colors hover:bg-brand/30"
+                  >
+                    <Star className={`w-4 h-4 ${isFavorite(heroItem.href) ? 'fill-brand text-brand' : 'text-primary-foreground/60'}`} />
+                  </button>
+                </div>
+                <div>
+                  <h3 className="font-heading text-4xl font-bold">{heroItem.title}</h3>
+                  <p className="mt-2 max-w-sm text-primary-foreground/70">{heroItem.description}</p>
+                </div>
+              </Link>
+            )}
+
+            {restItems.map((item) => (
+              <Link to={item.href} key={item.href} className="bento-card group flex flex-col justify-between gap-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-brand-deep transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <item.icon className="w-5 h-5" />
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleFavorite(item.href);
+                    }}
+                    aria-label="Fixar como favorito"
+                    className="rounded-xl p-2 transition-colors hover:bg-muted"
+                  >
+                    <Star className={`w-4 h-4 ${isFavorite(item.href) ? 'fill-brand text-brand' : 'text-muted-foreground'}`} />
+                  </button>
+                </div>
+                <div>
+                  <h3 className="font-heading text-lg font-bold">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                </div>
               </Link>
             ))}
           </div>
-        </div>
+        </section>
 
         {/* Recent Section */}
         {recentItems.length > 0 && (
