@@ -169,19 +169,33 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched({ username: true, password: true, companyCode: true });
+    setAuthError(null);
+
+    if (!formIsValid) {
+      const first = companyCodeError || usernameError || passwordError;
+      if (first) {
+        setAuthError(first);
+        toast.error(first);
+      }
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       if (loginType === 'super_admin') {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: loginData.username,
+        const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: loginData.username.trim(),
           password: loginData.password
         });
 
-        if (authError) {
-          toast.error(
-            isConnectionError(authError.message) ? CONNECTION_MESSAGE : 'Credenciais inválidas'
-          );
+        if (signInError) {
+          const msg = isConnectionError(signInError.message)
+            ? CONNECTION_MESSAGE
+            : 'E-mail ou senha incorretos';
+          setAuthError(msg);
+          toast.error(msg);
           setIsLoading(false);
           return;
         }
@@ -196,7 +210,9 @@ export default function Auth() {
 
           if (!roleData) {
             await supabase.auth.signOut();
-            toast.error('Acesso negado. Você não é um Super Administrador.');
+            const msg = 'Acesso negado. Você não é um Super Administrador.';
+            setAuthError(msg);
+            toast.error(msg);
             setIsLoading(false);
             return;
           }
@@ -205,33 +221,43 @@ export default function Auth() {
           navigate('/super-admin');
         }
       } else {
-        const validData = loginSchema.parse(loginData);
+        const payload = {
+          username: loginData.username.trim(),
+          password: loginData.password,
+          companyCode:
+            loginType === 'company' ? cleanCNPJ(loginData.companyCode) : loginData.companyCode,
+        };
+        const validData = loginSchema.parse(payload);
         const { error } = await signIn(validData.username, validData.password, validData.companyCode);
         
         if (error) {
-          if (isConnectionError(error.message)) {
-            toast.error(CONNECTION_MESSAGE);
-          } else if (error.message.includes('Login ou senha incorretos')) {
-            toast.error('Login ou senha incorretos');
-          } else {
-            toast.error(error.message);
-          }
+          const msg = isConnectionError(error.message)
+            ? CONNECTION_MESSAGE
+            : error.message.includes('Login ou senha incorretos')
+              ? 'Login ou senha incorretos'
+              : error.message;
+          setAuthError(msg);
+          toast.error(msg);
         } else {
           toast.success('Login realizado com sucesso!');
         }
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
+        setAuthError(error.errors[0].message);
         toast.error(error.errors[0].message);
       } else {
         const message = error instanceof Error ? error.message : String(error);
         console.error('Login error:', error);
-        toast.error(isConnectionError(message) ? CONNECTION_MESSAGE : `Erro ao entrar: ${message}`);
+        const msg = isConnectionError(message) ? CONNECTION_MESSAGE : `Erro ao entrar: ${message}`;
+        setAuthError(msg);
+        toast.error(msg);
       }
     } finally {
       setIsLoading(false);
     }
   };
+
 
 
   if (loading) {
