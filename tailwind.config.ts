@@ -78,7 +78,8 @@ export default {
   			},
   			accent: {
   				DEFAULT: 'hsl(var(--accent))',
-  				foreground: 'hsl(var(--accent-foreground))'
+  				foreground: 'hsl(var(--accent-foreground))',
+  				soft: 'hsl(var(--accent-soft))'
   			},
   			success: {
   				DEFAULT: 'hsl(var(--success))',
