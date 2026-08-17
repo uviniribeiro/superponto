@@ -65,7 +65,7 @@ export default function PayrollList({ payrolls, onRefresh }: PayrollListProps) {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button className="gradient-primary" onClick={() => toast.info('Funcionalidade em desenvolvimento')}>
+        <Button className="gradient-primary" onClick={() => navigate('/payroll/create')}>
           <Plus className="h-4 w-4 mr-2" />
           Nova Folha
         </Button>
