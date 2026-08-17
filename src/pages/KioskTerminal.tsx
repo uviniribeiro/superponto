@@ -483,8 +483,9 @@ export default function KioskTerminal() {
       recordType: nextRecordType,
       clientRecordedAt: new Date().toISOString(),
       employeeName: employee.full_name,
-      latitude: coords?.coords.latitude ?? null,
-      longitude: coords?.coords.longitude ?? null,
+      latitude: coarseCoordinate(coords?.coords.latitude),
+      longitude: coarseCoordinate(coords?.coords.longitude),
+
     };
 
     try {

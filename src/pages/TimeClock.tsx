@@ -343,8 +343,9 @@ export default function TimeClock() {
         company_id: profile.company_id,
         record_type: nextRecordType,
         recorded_at: recordedAt.toISOString(),
-        latitude: geo.latitude,
-        longitude: geo.longitude,
+        latitude: coarseCoordinate(geo.latitude),
+        longitude: coarseCoordinate(geo.longitude),
+
         address: geo.address,
         device_info: deviceParts.join(' | '),
         transaction_hash: transactionHash,
