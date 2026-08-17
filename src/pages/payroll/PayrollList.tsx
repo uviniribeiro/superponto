@@ -108,16 +108,39 @@ export default function PayrollList({ payrolls, onRefresh }: PayrollListProps) {
                   <TableCell>{getStatusBadge(payroll.status)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" title="Visualizar">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Visualizar holerites"
+                        onClick={() => navigate('/payroll/payslips')}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" title="Calcular">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Calcular"
+                        disabled={busyId === payroll.id || ['approved', 'paid', 'cancelled'].includes(payroll.status)}
+                        onClick={() => updateStatus(payroll.id, 'calculated', 'Folha marcada como calculada')}
+                      >
                         <Calculator className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" title="Aprovar">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Aprovar"
+                        disabled={busyId === payroll.id || payroll.status !== 'calculated'}
+                        onClick={() => updateStatus(payroll.id, 'approved', 'Folha aprovada')}
+                      >
                         <CheckCircle className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" title="Enviar Holerites">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Enviar Holerites"
+                        disabled={busyId === payroll.id || payroll.status !== 'approved'}
+                        onClick={() => updateStatus(payroll.id, 'paid', 'Holerites liberados aos funcionários')}
+                      >
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
