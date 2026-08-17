@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.lovable.9f2c6ddd9bf94120ad7ba24fa1296093',
-  appName: 'superponto',
+  appName: 'Ponto Max',
   webDir: 'dist',
   server: {
     url: 'https://9f2c6ddd-9bf9-4120-ad7b-a24fa1296093.lovableproject.com?forceHideBadge=true',
