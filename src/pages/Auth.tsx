@@ -541,7 +541,7 @@ export default function Auth() {
               <Button 
                 type="submit" 
                 className="w-full h-10"
-                disabled={isLoading || (loginType === 'city_hall' && !loginData.companyCode)}
+                disabled={isLoading || !formIsValid}
               >
                 {isLoading ? (
                   <>
