@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Urbanist:wght@500;600;700;800&family=Epilogue:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -110,9 +110,14 @@
     --chart-5: 158 62% 34%;
 
     /* Fonts */
-    --font-sans: 'Epilogue', ui-sans-serif, system-ui, sans-serif;
-    --font-heading: 'Urbanist', 'Epilogue', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Outfit', 'Figtree', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Gradientes de marca (Navy Trust) */
+    --gradient-brand: linear-gradient(135deg, hsl(224 58% 15%) 0%, hsl(212 52% 25%) 55%, hsl(208 46% 43%) 100%);
+    --gradient-surface: linear-gradient(160deg, hsl(212 30% 97%) 0%, hsl(208 36% 93%) 100%);
+    --shadow-brand: 0 18px 40px -18px hsl(212 52% 25% / 0.45);
 
     /* Sombras discretas */
     --shadow-sm: 0 1px 2px 0 hsl(220 18% 11% / 0.04);
