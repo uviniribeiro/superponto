@@ -182,6 +182,33 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ---------------------------------------------------------------
+    // 2b) Terminal relata queda de conexão assim que volta ao ar.
+    //     Gera diagnóstico com correção automática para o ADM.
+    // ---------------------------------------------------------------
+    if (action === 'report-issue') {
+      const detail = String(body?.detail || 'Terminal ficou sem comunicação com o servidor.').slice(0, 1000);
+      const offlineSeconds = Number(body?.offlineSeconds || 0);
+      const pending = Number(body?.pendingPunches || 0);
+
+      await supabase.from('system_diagnostics').insert({
+        code: 'terminal_sem_conexao',
+        severity: offlineSeconds > 600 ? 'error' : 'warning',
+        title: `Terminal "${terminal.name}" ficou sem comunicação com o servidor`,
+        user_message: 'Ocorreu um erro. Já registramos o problema e a equipe foi avisada.',
+        technical_detail: `${detail}\nTempo offline: ${offlineSeconds}s\nRegistros na fila: ${pending}\nTerminal: ${terminal.id}`,
+        entity_table: 'kiosk_terminals',
+        entity_id: terminal.id,
+        auto_fixable: true,
+        fix_action: 'reconnect_kiosk_terminal',
+        status: 'open',
+      });
+
+      return json({ success: true });
+    }
+
+
+
     if (terminal.status === 'rejected') {
       return json({ success: false, error: 'Este terminal foi recusado pelo administrador.', code: 'terminal_rejected' }, 403);
     }
