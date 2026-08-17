@@ -69,7 +69,7 @@ export function buildFrame(payload: string): Uint8Array {
 /** Extract the ASCII payload from a Henry response frame (tolerant parser). */
 export function parseFrame(data: Uint8Array): string {
   if (data.length === 0) return "";
-  const decoder = new TextDecoder("latin1" as string, { fatal: false });
+  const decoder = new TextDecoder("latin1", { fatal: false });
   let start = 0;
   let end = data.length;
   if (data[0] === STX) start = 3; // STX + 2 size bytes
