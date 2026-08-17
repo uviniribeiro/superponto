@@ -461,7 +461,7 @@ Deno.serve(async (req) => {
       const idx = Number(parsed.index || 0);
       const confidence = Number(parsed.confidence || 0);
 
-      if (!idx || idx > roster.length || confidence < 70) {
+      if (!idx || idx > signedRoster.length || confidence < 70) {
         await supabase.from('identification_validation_attempts').insert({
           company_id: terminal.company_id,
           method_type: 'facial',
@@ -472,7 +472,7 @@ Deno.serve(async (req) => {
         return json({ success: false, error: 'Rosto não reconhecido. Aproxime-se, melhore a iluminação e tente de novo, ou use o QR Code.' }, 404);
       }
 
-      return await buildIdentifyResponse(roster[idx - 1].id, 'facial');
+      return await buildIdentifyResponse(signedRoster[idx - 1].id, 'facial');
     }
 
     // ---------------------------------------------------------------
