@@ -21,7 +21,7 @@ export default function EquipmentPendingRecords() {
   } = useEquipmentData();
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <PageHeader
           title="Registros Pendentes"
           description="Registros importados dos relógios de ponto - Portaria 671" icon={Shield}
