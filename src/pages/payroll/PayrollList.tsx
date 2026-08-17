@@ -1,4 +1,6 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +30,21 @@ interface PayrollListProps {
 }
 
 export default function PayrollList({ payrolls, onRefresh }: PayrollListProps) {
+  const navigate = useNavigate();
+  const [busyId, setBusyId] = React.useState<string | null>(null);
+
+  const updateStatus = async (id: string, status: string, successMsg: string) => {
+    setBusyId(id);
+    const { error } = await supabase.from('payrolls').update({ status }).eq('id', id);
+    setBusyId(null);
+    if (error) {
+      toast.error('Não foi possível atualizar a folha: ' + error.message);
+      return;
+    }
+    toast.success(successMsg);
+    onRefresh();
+  };
+
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
       'draft': { label: 'Rascunho', variant: 'secondary' },
@@ -48,7 +65,7 @@ export default function PayrollList({ payrolls, onRefresh }: PayrollListProps) {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button className="gradient-primary" onClick={() => toast.info('Funcionalidade em desenvolvimento')}>
+        <Button className="gradient-primary" onClick={() => navigate('/payroll/create')}>
           <Plus className="h-4 w-4 mr-2" />
           Nova Folha
         </Button>
@@ -91,16 +108,39 @@ export default function PayrollList({ payrolls, onRefresh }: PayrollListProps) {
                   <TableCell>{getStatusBadge(payroll.status)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" title="Visualizar">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Visualizar holerites"
+                        onClick={() => navigate('/payroll/payslips')}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" title="Calcular">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Calcular"
+                        disabled={busyId === payroll.id || ['approved', 'paid', 'cancelled'].includes(payroll.status)}
+                        onClick={() => updateStatus(payroll.id, 'calculated', 'Folha marcada como calculada')}
+                      >
                         <Calculator className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" title="Aprovar">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Aprovar"
+                        disabled={busyId === payroll.id || payroll.status !== 'calculated'}
+                        onClick={() => updateStatus(payroll.id, 'approved', 'Folha aprovada')}
+                      >
                         <CheckCircle className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" title="Enviar Holerites">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Enviar Holerites"
+                        disabled={busyId === payroll.id || payroll.status !== 'approved'}
+                        onClick={() => updateStatus(payroll.id, 'paid', 'Holerites liberados aos funcionários')}
+                      >
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
