@@ -636,19 +636,21 @@ export default function CollapsibleSidebar() {
         position === 'left' ? "left-0 border-r" : "right-0 border-l"
       )}>
         {/* Logo/Brand */}
-        <div className="p-3 border-b border-sidebar-border">
+        <div className="p-3 border-b border-sidebar-border/60">
           <div className="flex items-center gap-3">
-            <img 
-              src={companySettings?.logo_url || superpontoLogo} 
-              alt={companySettings?.company_name || APP_NAME} 
-              className="h-10 w-10 rounded-lg object-contain shrink-0"
-            />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
+              <img 
+                src={companySettings?.logo_url || superpontoLogo} 
+                alt={companySettings?.company_name || APP_NAME} 
+                className="h-7 w-7 object-contain"
+              />
+            </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <h1 className="font-semibold text-sm text-white truncate">
+                <h1 className="font-heading font-semibold text-sm text-white truncate tracking-tight">
                   {companySettings?.company_name || APP_NAME}
                 </h1>
-                <p className="text-xs text-white/60">Gestão de Ponto</p>
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/50">Gestão de Ponto</p>
               </div>
             )}
           </div>
