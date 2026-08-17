@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { cleanCNPJ, validateCNPJ } from "../_shared/cnpj.ts";
 
 
+import { getCorsHeaders } from "../_shared/cors.ts";
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -22,6 +24,8 @@ function activationCode() {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

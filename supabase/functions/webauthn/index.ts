@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 
+import { getCorsHeaders } from "../_shared/cors.ts";
+
 // Configurações WebAuthn
 const RP_NAME = "Ponto Max";
 const RP_ID = Deno.env.get("WEBAUTHN_RP_ID") || "superponto.app";
@@ -66,6 +68,8 @@ async function verifySignature(
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

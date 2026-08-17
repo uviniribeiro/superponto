@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 
+import { getCorsHeaders } from "../_shared/cors.ts";
+
 interface CreateUsersRequest {
   action: 'create-for-company' | 'create-for-all' | 'list-company-users' | 'reset-passwords';
   companyId?: string;
@@ -13,6 +15,8 @@ const FIXED_PASSWORDS = {
 };
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

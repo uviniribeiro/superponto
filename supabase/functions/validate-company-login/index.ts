@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { cleanCNPJ } from "../_shared/cnpj.ts";
 
 
+import { getCorsHeaders } from "../_shared/cors.ts";
+
 interface CityHall {
   id: string;
   name: string;
@@ -16,6 +18,8 @@ interface Sector {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

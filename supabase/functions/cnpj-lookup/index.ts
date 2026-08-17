@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { cleanCNPJ, validateCNPJ, isAlphanumericCNPJ } from "../_shared/cnpj.ts";
 
 
+import { getCorsHeaders } from "../_shared/cors.ts";
+
 interface CNPJData {
   razao_social: string;
   nome_fantasia: string;
@@ -17,6 +19,8 @@ interface CNPJData {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

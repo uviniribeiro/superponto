@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 
+import { getCorsHeaders } from "../_shared/cors.ts";
+
 // Brazilian national holidays - fixed dates
 const getFixedHolidays = (year: number) => [
   { name: 'Confraternização Universal', date: `${year}-01-01`, is_recurring: true, holiday_type: 'full', is_partial: false },
@@ -97,6 +99,8 @@ const getMobileHolidays = (year: number) => {
 };
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
