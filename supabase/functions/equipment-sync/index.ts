@@ -4,6 +4,13 @@ import { z } from "https://esm.sh/zod@3.23.8";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import {
+  assertPublicHost,
+  DEFAULT_HENRY_PORT,
+  henryCommand,
+  parseHenryRecords,
+} from "../_shared/henry-tcp.ts";
+
 
 // Helper to safely get error message
 const getErrorMessage = (error: unknown): string => {
