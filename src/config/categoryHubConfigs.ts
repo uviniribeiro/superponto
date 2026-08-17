@@ -1,5 +1,10 @@
 import {
   Clock,
+  UserPlus,
+  CalendarRange,
+  Stethoscope,
+  Banknote,
+  LayoutList,
   LayoutDashboard,
   Users,
   FileText,
@@ -90,6 +95,7 @@ export const cadastrosHubConfig: CategoryHubConfig = {
       subtitle: 'Cadastro e controle de funcionários',
       items: [
         { title: 'Funcionários', description: 'Cadastro completo de funcionários', icon: Users, href: '/employees', color: 'text-blue-600' },
+        { title: 'Novo Funcionário', description: 'Abrir formulário de cadastro', icon: UserPlus, href: '/employees/register', color: 'text-emerald-600' },
         { title: 'Usuários', description: 'Gestão de acessos ao sistema', icon: UserCog, href: '/users', color: 'text-violet-600' },
       ],
     },
@@ -126,6 +132,8 @@ export const escalasHubConfig: CategoryHubConfig = {
       subtitle: 'Defina os horários e regras de trabalho',
       items: [
         { title: 'Jornadas', description: 'Configurar horários de entrada, saída e intervalos', icon: Clock, href: '/journeys', color: 'text-blue-600' },
+        { title: 'Horários de Trabalho', description: 'Grade de horários por funcionário', icon: Timer, href: '/work-schedules', color: 'text-cyan-600' },
+        { title: 'Agenda de Escalas', description: 'Calendário geral das escalas', icon: CalendarRange, href: '/schedules', color: 'text-violet-600' },
         { title: 'Períodos de Competência', description: 'Períodos de fechamento da folha', icon: CalendarClock, href: '/competency-periods', color: 'text-amber-600' },
       ],
     },
@@ -328,6 +336,7 @@ export const professorHubConfig: CategoryHubConfig = {
       title: 'Visão Geral',
       subtitle: 'Dashboard e resumos',
       items: [
+        { title: 'Módulo Professor', description: 'Página inicial do módulo', icon: LayoutList, href: '/teacher-module', color: 'text-blue-600' },
         { title: 'Dashboard', description: 'Visão geral do módulo professor', icon: LayoutDashboard, href: '/teacher/dashboard', color: 'text-emerald-600' },
         { title: 'Consolidado', description: 'Resumo de horas-aula do período', icon: FileBarChart, href: '/teacher/summary', color: 'text-violet-600' },
       ],
@@ -369,6 +378,7 @@ export const medicoHubConfig: CategoryHubConfig = {
       title: 'Visão Geral',
       subtitle: 'Dashboard e resumos',
       items: [
+        { title: 'Módulo Médico', description: 'Página inicial do módulo', icon: Stethoscope, href: '/doctor-module', color: 'text-blue-600' },
         { title: 'Dashboard', description: 'Visão geral do módulo médico', icon: LayoutDashboard, href: '/doctor/dashboard', color: 'text-emerald-600' },
         { title: 'Consolidado', description: 'Resumo de plantões do período', icon: FileBarChart, href: '/doctor/summary', color: 'text-violet-600' },
       ],
@@ -409,6 +419,7 @@ export const folhaHubConfig: CategoryHubConfig = {
       title: 'Visão Geral',
       subtitle: 'Dashboard e controle de folhas',
       items: [
+        { title: 'Folha de Pagamento', description: 'Página inicial do módulo', icon: Banknote, href: '/payroll-module', color: 'text-blue-600' },
         { title: 'Dashboard', description: 'Visão geral da folha de pagamento', icon: LayoutDashboard, href: '/payroll/dashboard', color: 'text-emerald-600' },
         { title: 'Folhas', description: 'Lista de folhas processadas', icon: FileText, href: '/payroll/list', color: 'text-blue-600' },
       ],

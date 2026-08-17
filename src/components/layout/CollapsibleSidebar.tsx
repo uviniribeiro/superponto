@@ -293,6 +293,7 @@ const menuCategories: MenuCategory[] = [
     icon: GraduationCap,
     roles: ['admin', 'manager'],
     items: [
+      { title: 'Visão Geral do Módulo', icon: LayoutList, href: '/teacher-module', roles: ['admin', 'manager'] },
       { title: 'Dashboard', icon: LayoutDashboard, href: '/teacher/dashboard', roles: ['admin', 'manager'] },
       { title: 'Professores', icon: Users, href: '/teacher/professors', roles: ['admin', 'manager'] },
       { title: 'Escolas', icon: School, href: '/teacher/schools', roles: ['admin', 'manager'] },
@@ -310,6 +311,7 @@ const menuCategories: MenuCategory[] = [
     icon: Hospital,
     roles: ['admin', 'manager'],
     items: [
+      { title: 'Visão Geral do Módulo', icon: Stethoscope, href: '/doctor-module', roles: ['admin', 'manager'] },
       { title: 'Dashboard', icon: LayoutDashboard, href: '/doctor/dashboard', roles: ['admin', 'manager'] },
       { title: 'Médicos', icon: Users, href: '/doctor/doctors', roles: ['admin', 'manager'] },
       { title: 'Unidades de Saúde', icon: Hospital, href: '/doctor/health-units', roles: ['admin', 'manager'] },
@@ -326,6 +328,7 @@ const menuCategories: MenuCategory[] = [
     icon: Wallet,
     roles: ['admin'],
     items: [
+      { title: 'Visão Geral do Módulo', icon: Banknote, href: '/payroll-module', roles: ['admin'] },
       { title: 'Dashboard', icon: LayoutDashboard, href: '/payroll/dashboard', roles: ['admin'] },
       { title: 'Folhas', icon: FileText, href: '/payroll/list', roles: ['admin'] },
       { title: 'Nova Folha', icon: ListChecks, href: '/payroll/create', roles: ['admin'] },
