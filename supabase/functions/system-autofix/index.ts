@@ -100,6 +100,30 @@ Deno.serve(async (req) => {
             message = ok ? 'Regras de apuração padrão criadas.' : `Não foi possível criar as regras: ${error?.message}`;
             break;
           }
+          case 'reconnect_kiosk_terminal': {
+            const { data: term } = await admin.from('kiosk_terminals')
+              .select('id, name, status, is_active').eq('id', d.entity_id).maybeSingle();
+            if (!term) { message = 'Terminal não encontrado.'; break; }
+            await admin.from('kiosk_terminals').update({
+              is_active: true,
+              status: term.status === 'rejected' ? 'rejected' : 'approved',
+              last_used_at: new Date().toISOString(),
+            }).eq('id', term.id);
+            // Confirma que o backend do terminal está respondendo
+            const { error: healthError } = await admin.functions.invoke('kiosk-terminal', { body: { action: 'health' } });
+            ok = !healthError;
+            message = ok
+              ? `Conexão do terminal "${term.name}" restabelecida e liberada para registrar ponto.`
+              : 'O serviço do terminal ainda não respondeu — tente novamente em alguns instantes.';
+            break;
+          }
+          case 'revalidate_cnpj': {
+            const { error } = await admin.functions.invoke('cnpj-revalidator', { body: { dryRun: false } });
+            ok = !error;
+            message = ok ? 'Revalidação de CNPJ executada.' : 'Não foi possível executar a revalidação agora.';
+            break;
+          }
+
           default:
             message = 'Este erro precisa de análise manual.';
         }
