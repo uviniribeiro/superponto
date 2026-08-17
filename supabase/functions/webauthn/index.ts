@@ -486,7 +486,7 @@ serve(async (req) => {
         await supabase
           .from("webauthn_credentials")
           .update({
-            counter: credential.counter,
+            counter: Math.max(assertionCounter, storedCounter),
             last_used_at: new Date().toISOString(),
           })
           .eq("id", storedCredential.id);
