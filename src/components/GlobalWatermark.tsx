@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import superpontoLogo from '@/assets/superponto-logo-modern.png';
+import superpontoLogo from '@/assets/pontomax-logo.png';
 
 export function GlobalWatermark() {
   const { user } = useAuth();

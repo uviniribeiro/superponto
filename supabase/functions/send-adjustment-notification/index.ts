@@ -46,7 +46,7 @@ const handler = async (req: Request): Promise<Response> => {
       <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">PontoMax</h1>
+            <h1 style="color: white; margin: 0; font-size: 24px;">Ponto Max</h1>
             <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0 0;">Sistema de Controle de Ponto</p>
           </div>
           
@@ -95,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
             ` : ''}
             
             <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 30px;">
-              Este é um email automático do sistema PontoMax. Por favor, não responda.
+              Este é um email automático do sistema Ponto Max. Por favor, não responda.
             </p>
           </div>
         </div>
@@ -110,9 +110,9 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "PontoMax <onboarding@resend.dev>",
+        from: "Ponto Max <onboarding@resend.dev>",
         to: [to],
-        subject: `${statusEmoji} Solicitação de Ajuste ${statusLabel} - PontoMax`,
+        subject: `${statusEmoji} Solicitação de Ajuste ${statusLabel} - Ponto Max`,
         html,
       }),
     });

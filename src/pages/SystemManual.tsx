@@ -48,11 +48,11 @@ const manualSections: ManualSection[] = [
     id: 'inicio',
     title: 'Introdução',
     icon: BookOpen,
-    description: 'Visão geral do sistema PontoMax',
+    description: 'Visão geral do sistema Ponto Max',
     topics: [
       {
-        title: 'O que é o PontoMax?',
-        content: `O PontoMax é um sistema completo de controle de ponto eletrônico desenvolvido para empresas e prefeituras. 
+        title: 'O que é o Ponto Max?',
+        content: `O Ponto Max é um sistema completo de controle de ponto eletrônico desenvolvido para empresas e prefeituras. 
         
 Ele oferece:
 • Registro de ponto via web e dispositivos móveis
@@ -64,7 +64,7 @@ Ele oferece:
       },
       {
         title: 'Requisitos do Sistema',
-        content: `Para utilizar o PontoMax, você precisa:
+        content: `Para utilizar o Ponto Max, você precisa:
 
 • Navegador moderno (Chrome, Firefox, Safari, Edge)
 • Conexão com internet
@@ -375,7 +375,7 @@ export default function SystemManual() {
             Manual do Sistema
           </h1>
           <p className="text-muted-foreground">
-            Documentação completa do PontoMax • {versionInfo.displayString}
+            Documentação completa do Ponto Max • {versionInfo.displayString}
           </p>
         </div>
         <HelpButton pageKey="system-manual" />
@@ -470,7 +470,7 @@ export default function SystemManual() {
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              © 2026 PontoMax. Todos os direitos reservados.
+              © 2026 Ponto Max. Todos os direitos reservados.
             </p>
           </div>
         </CardContent>

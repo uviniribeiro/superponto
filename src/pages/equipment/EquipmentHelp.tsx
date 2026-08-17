@@ -46,14 +46,14 @@ export default function EquipmentHelp() {
           Baixar Manual PDF
         </Button>
       </div>
-      {/* SuperPonto Communicator - Destaque principal */}
+      {/* Ponto Max Communicator - Destaque principal */}
       <Card className="border-2 border-primary bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-xl">
             <div className="p-2 rounded-lg bg-primary/20">
               <Cloud className="h-6 w-6 text-primary" />
             </div>
-            SuperPonto Communicator v2.0
+            Ponto Max Communicator v2.0
             <Badge className="bg-primary text-primary-foreground">NOVO</Badge>
             <Badge variant="outline" className="border-primary text-primary">Recomendado</Badge>
           </CardTitle>
@@ -68,7 +68,7 @@ export default function EquipmentHelp() {
               <Zap className="h-5 w-5 text-primary mt-0.5 shrink-0" />
               <div>
                 <h4 className="font-medium text-sm">Comunicação Cloud</h4>
-                <p className="text-xs text-muted-foreground">Sincroniza via IPv4 do servidor com a nuvem SuperPonto em tempo real</p>
+                <p className="text-xs text-muted-foreground">Sincroniza via IPv4 do servidor com a nuvem Ponto Max em tempo real</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 rounded-lg bg-background/60">
@@ -93,7 +93,7 @@ export default function EquipmentHelp() {
             <AlertDescription className="mt-2 text-sm">
               O Communicator é instalado no servidor local da empresa (Windows). Ele escaneia a rede automaticamente, 
               detecta todos os relógios de ponto (Henry, Dimep, Control iD, ZKTeco, Topdata, Biomtech, etc.), 
-              coleta os registros e envia para a nuvem SuperPonto. Tudo automático, sem intervenção manual.
+              coleta os registros e envia para a nuvem Ponto Max. Tudo automático, sem intervenção manual.
             </AlertDescription>
           </Alert>
 

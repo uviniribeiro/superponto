@@ -205,7 +205,7 @@ serve(async (req) => {
           .eq("user_id", user.id);
 
         // Gerar URL para QR Code
-        const issuer = encodeURIComponent("SuperPonto");
+        const issuer = encodeURIComponent("Ponto Max");
         const account = encodeURIComponent(profile.email || user.email || user.id);
         const otpauthUrl = `otpauth://totp/${issuer}:${account}?secret=${secret}&issuer=${issuer}&algorithm=SHA1&digits=${TOTP_DIGITS}&period=${TOTP_PERIOD}`;
 

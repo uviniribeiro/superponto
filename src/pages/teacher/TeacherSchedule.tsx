@@ -25,7 +25,7 @@ interface TeacherAssignment {
 
 export default function TeacherSchedule() {
   useSEO({
-    title: 'Quadro de Horários Professor | SuperPonto',
+    title: 'Quadro de Horários Professor | Ponto Max',
     description: 'Quadro de horários dos professores.',
   });
 

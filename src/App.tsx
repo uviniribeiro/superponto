@@ -45,6 +45,8 @@ const Users = React.lazy(() => import("@/pages/Users"));
 // Configuration
 const Company = React.lazy(() => import("@/pages/Company"));
 const NewCompanySettings = React.lazy(() => import("@/pages/NewCompanySettings"));
+const CompanyUnits = React.lazy(() => import("@/pages/CompanyUnits"));
+const TerminalApp = React.lazy(() => import("@/pages/TerminalApp"));
 const AccountSettings = React.lazy(() => import("@/pages/AccountSettings"));
 const WorkSchedules = React.lazy(() => import("@/pages/WorkSchedules"));
 const Holidays = React.lazy(() => import("@/pages/Holidays"));
@@ -243,6 +245,8 @@ const App = () => (
                   <Route path="mirror-point" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><MirrorPoint /></ProtectedRoute>} />
                   <Route path="company" element={<ProtectedRoute requiredRoles={['admin']}><Company /></ProtectedRoute>} />
                   <Route path="company-settings" element={<ProtectedRoute requiredRoles={['admin']}><NewCompanySettings /></ProtectedRoute>} />
+                  <Route path="company-units" element={<ProtectedRoute requiredRoles={['admin']}><CompanyUnits /></ProtectedRoute>} />
+                  <Route path="terminal-app" element={<ProtectedRoute requiredRoles={['admin']}><TerminalApp /></ProtectedRoute>} />
                   <Route path="holidays" element={<ProtectedRoute requiredRoles={['admin']}><Holidays /></ProtectedRoute>} />
                   <Route path="time-bank" element={<TimeBank />} />
                   <Route path="absences" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Absences /></ProtectedRoute>} />

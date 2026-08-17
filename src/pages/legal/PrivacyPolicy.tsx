@@ -31,7 +31,7 @@ export default function PrivacyPolicy() {
             <section>
               <h2 className="text-lg font-semibold">1. Introdução</h2>
               <p>
-                A PontoMax ("nós", "nosso" ou "Empresa") está comprometida em proteger sua privacidade. 
+                A Ponto Max ("nós", "nosso" ou "Empresa") está comprometida em proteger sua privacidade. 
                 Esta Política de Privacidade explica como coletamos, usamos, divulgamos e protegemos suas 
                 informações pessoais quando você utiliza nosso sistema de controle de ponto eletrônico 
                 ("Serviço"), em conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).

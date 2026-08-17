@@ -31,7 +31,7 @@ interface CalculationResult {
 
 export default function HoursCalculator() {
   useSEO({
-    title: 'Calculadora de Horas | SuperPonto',
+    title: 'Calculadora de Horas | Ponto Max',
     description: 'Calculadora de horas extras e adicional noturno.',
   });
 

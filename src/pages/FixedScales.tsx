@@ -29,7 +29,7 @@ interface FixedScale {
 
 export default function FixedScales() {
   useSEO({
-    title: 'Escalas Fixas | SuperPonto',
+    title: 'Escalas Fixas | Ponto Max',
     description: 'Gerencie escalas fixas com ciclos de trabalho e folga.',
   });
 

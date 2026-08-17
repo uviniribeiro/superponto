@@ -172,7 +172,7 @@ const handler = async (req: Request): Promise<Response> => {
       .sort((a, b) => b.totalOvertime - a.totalOvertime);
 
     const totalOvertimeHours = overtimeData.reduce((sum, d) => sum + d.overtimeHours, 0);
-    const companyName = companySettings.company_name || 'PontoMax';
+    const companyName = companySettings.company_name || 'Ponto Max';
 
     // Format dates for display
     const formatDate = (date: Date) => {
@@ -264,7 +264,7 @@ const handler = async (req: Request): Promise<Response> => {
           
           <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
             <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-              Este é um relatório automático do sistema PontoMax. Gerado em ${formatDate(new Date())}.
+              Este é um relatório automático do sistema Ponto Max. Gerado em ${formatDate(new Date())}.
             </p>
           </div>
         </div>
@@ -283,7 +283,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "PontoMax <onboarding@resend.dev>",
+      from: "Ponto Max <onboarding@resend.dev>",
       to: Array.from(recipientEmails),
       subject: `Relatório Semanal de Horas Extras - ${formatDate(startDate)} a ${formatDate(endDate)}`,
       html: emailHtml,

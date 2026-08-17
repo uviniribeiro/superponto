@@ -111,7 +111,7 @@ export default function DoctorModule({ defaultTab = 'overview' }: DoctorModulePr
   const { profile } = useAuth();
   
   useSEO({
-    title: 'Módulo Médico | SuperPonto',
+    title: 'Módulo Médico | Ponto Max',
     description: 'Gestão completa de médicos: plantões, sobreaviso, quadro de horários e espelho de ponto.',
   });
 

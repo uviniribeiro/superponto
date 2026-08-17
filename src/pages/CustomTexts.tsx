@@ -27,7 +27,7 @@ interface CustomText {
 
 export default function CustomTexts() {
   useSEO({
-    title: 'Textos Customizados | SuperPonto',
+    title: 'Textos Customizados | Ponto Max',
     description: 'Gerenciamento de textos personalizados do sistema.',
   });
 

@@ -38,7 +38,7 @@ export default function PayrollCreate() {
   const { profile } = useAuth();
 
   useSEO({
-    title: 'Nova Folha de Pagamento | SuperPonto',
+    title: 'Nova Folha de Pagamento | Ponto Max',
     description: 'Criar nova folha de pagamento.',
   });
 

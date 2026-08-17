@@ -32,7 +32,7 @@ export default function DataProcessingTerms() {
               <h2 className="text-lg font-semibold">1. Objeto</h2>
               <p>
                 Este Termo de Tratamento de Dados Pessoais ("Termo") estabelece as condições 
-                sob as quais a PontoMax ("Operador") realiza o tratamento de dados pessoais 
+                sob as quais a Ponto Max ("Operador") realiza o tratamento de dados pessoais 
                 em nome da empresa contratante ("Controlador"), em conformidade com a Lei 
                 Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
               </p>
@@ -42,7 +42,7 @@ export default function DataProcessingTerms() {
               <h2 className="text-lg font-semibold">2. Definições</h2>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li><strong>Controlador:</strong> Empresa contratante, empregador dos titulares</li>
-                <li><strong>Operador:</strong> PontoMax, processador dos dados</li>
+                <li><strong>Operador:</strong> Ponto Max, processador dos dados</li>
                 <li><strong>Titular:</strong> Funcionário cujos dados são tratados</li>
                 <li><strong>Dados Pessoais:</strong> Informações relacionadas a pessoa identificada ou identificável</li>
                 <li><strong>Dados Sensíveis:</strong> Dados biométricos (foto facial para reconhecimento)</li>

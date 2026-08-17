@@ -12,7 +12,7 @@ const tourSteps: TourConfig = {
     {
       element: '[data-tour="home-welcome"]',
       popover: {
-        title: 'Bem-vindo ao PontoMax! 👋',
+        title: 'Bem-vindo ao Ponto Max! 👋',
         description: 'Este é o seu painel inicial. Aqui você pode acessar rapidamente todas as funcionalidades do sistema.',
         side: 'bottom',
         align: 'center'

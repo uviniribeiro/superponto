@@ -64,7 +64,7 @@ export default function PayrollModule({ defaultTab = 'overview' }: PayrollModule
   const { profile } = useAuth();
   
   useSEO({
-    title: 'Folha de Pagamento | SuperPonto',
+    title: 'Folha de Pagamento | Ponto Max',
     description: 'Gestão completa de folha de pagamento, holerites e contra-cheques.',
   });
 

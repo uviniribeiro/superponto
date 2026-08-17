@@ -406,7 +406,7 @@ export default function OvertimeDashboard() {
         doc.setFontSize(8);
         doc.setTextColor(150);
         doc.text(
-          `PontoMax - Sistema de Controle de Ponto | Página ${i} de ${pageCount}`,
+          `Ponto Max - Sistema de Controle de Ponto | Página ${i} de ${pageCount}`,
           doc.internal.pageSize.width / 2,
           doc.internal.pageSize.height - 10,
           { align: 'center' }

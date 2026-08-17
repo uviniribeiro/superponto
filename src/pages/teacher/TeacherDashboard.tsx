@@ -56,7 +56,7 @@ const educatorTypes: Record<string, string> = {
 
 export default function TeacherDashboard() {
   useSEO({
-    title: 'Dashboard Professor | SuperPonto',
+    title: 'Dashboard Professor | Ponto Max',
     description: 'Dashboard do módulo professor com visão geral de professores e aulas.',
   });
 

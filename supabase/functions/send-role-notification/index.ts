@@ -36,9 +36,9 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Role changed from ${previousRole} to ${newRole} by ${changedByName}`);
 
     const emailResponse = await resend.emails.send({
-      from: "PontoMax <onboarding@resend.dev>",
+      from: "Ponto Max <onboarding@resend.dev>",
       to: [userEmail],
-      subject: "Alteração de Função no Sistema PontoMax",
+      subject: "Alteração de Função no Sistema Ponto Max",
       html: `
         <!DOCTYPE html>
         <html>
@@ -49,7 +49,7 @@ const handler = async (req: Request): Promise<Response> => {
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 30px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">PontoMax</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Ponto Max</h1>
               <p style="color: #e0e7ff; margin: 10px 0 0 0; font-size: 14px;">Controle de Ponto Eletrônico</p>
             </div>
             
@@ -57,7 +57,7 @@ const handler = async (req: Request): Promise<Response> => {
               <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 20px;">Olá, ${userName}!</h2>
               
               <p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
-                Informamos que sua função no sistema PontoMax foi alterada.
+                Informamos que sua função no sistema Ponto Max foi alterada.
               </p>
               
               <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
@@ -92,7 +92,7 @@ const handler = async (req: Request): Promise<Response> => {
             
             <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
               <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                Este é um email automático do sistema PontoMax. Por favor, não responda.
+                Este é um email automático do sistema Ponto Max. Por favor, não responda.
               </p>
             </div>
           </div>

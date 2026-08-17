@@ -46,7 +46,7 @@ function cnpjOf(data: Record<string, unknown> | null | undefined) {
 
 export default function CnpjAudit() {
   useSEO({
-    title: 'Auditoria de CNPJ | PontoMax',
+    title: 'Auditoria de CNPJ | Ponto Max',
     description: 'Histórico da revalidação quinzenal e de todas as alterações de CNPJ, com valor anterior e atual.',
   });
 

@@ -208,7 +208,7 @@ export default function SuperAdminDashboard() {
             <LayoutDashboard className="h-8 w-8 text-primary" />
             Dashboard
           </h1>
-          <p className="text-muted-foreground">Visão geral do sistema PontoMax</p>
+          <p className="text-muted-foreground">Visão geral do sistema Ponto Max</p>
         </div>
       </div>
 

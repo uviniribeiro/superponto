@@ -21,7 +21,7 @@ interface Finding {
 }
 
 /**
- * Robô diário de manutenção do PontoMax.
+ * Robô diário de manutenção do Ponto Max.
  * Roda às 03:00, sinaliza a janela de manutenção (o sistema continua no ar,
  * apenas exibindo o aviso) e executa checagens, correções e reativações.
  */

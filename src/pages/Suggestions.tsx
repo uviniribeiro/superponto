@@ -162,8 +162,8 @@ export default function Suggestions() {
         </h1>
         <p className="text-muted-foreground">
           {isAdmin
-            ? 'Painel administrativo — registre e acompanhe melhorias, funcionalidades e relatórios do PontoMax.'
-            : 'Acompanhe o andamento das sugestões enviadas para o PontoMax.'}
+            ? 'Painel administrativo — registre e acompanhe melhorias, funcionalidades e relatórios do Ponto Max.'
+            : 'Acompanhe o andamento das sugestões enviadas para o Ponto Max.'}
         </p>
       </div>
 

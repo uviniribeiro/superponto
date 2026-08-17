@@ -82,7 +82,7 @@ const holidayTreatmentLabels: Record<string, string> = {
 
 export default function Journeys() {
   useSEO({
-    title: 'Jornadas de Trabalho | SuperPonto',
+    title: 'Jornadas de Trabalho | Ponto Max',
     description: 'Gerencie jornadas e horários de trabalho dos funcionários.',
   });
 

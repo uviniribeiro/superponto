@@ -130,7 +130,7 @@ export default function Home() {
         {/* Welcome Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold mb-2">
-            Bem-vindo ao {companySettings?.company_name || 'PontoMax'}
+            Bem-vindo ao {companySettings?.company_name || 'Ponto Max'}
           </h1>
           <p className="text-muted-foreground text-sm">
             Acesse rapidamente as funções que você mais utiliza

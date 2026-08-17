@@ -55,7 +55,7 @@ interface ScheduledScale {
 
 export default function ScheduledScales() {
   useSEO({
-    title: 'Escalas Agendadas | SuperPonto',
+    title: 'Escalas Agendadas | Ponto Max',
     description: 'Gerencie escalas agendadas individuais por funcionário.',
   });
 
