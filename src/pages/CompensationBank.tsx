@@ -156,7 +156,7 @@ export default function CompensationBank() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="mb-0 flex flex-col gap-4 rounded-2xl border border-border/60 bg-card/80 p-5 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <PageHeader
           title="Banco de Compensação"
           description="Gerencie créditos e débitos de horas para compensação" icon={Scale}

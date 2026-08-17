@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -217,20 +218,20 @@ export default function NewScales() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Escalas de Trabalho</h1>
-          <p className="text-sm text-muted-foreground">
-            {schedules.length} escalas cadastradas
-          </p>
-        </div>
+    <div className="space-y-6 animate-fade-in">
+      <div className="mb-0 flex flex-col gap-4 rounded-2xl border border-border/60 bg-card/80 p-5 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <PageHeader
+          title="Escalas de Trabalho"
+          description={`${schedules.length} escalas cadastradas`}
+          icon={Calendar}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
         <Button onClick={() => openDialog()}>
           <Plus className="h-4 w-4 mr-2" />
           Nova Escala
         </Button>
       </div>
+
 
       {/* Schedule Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

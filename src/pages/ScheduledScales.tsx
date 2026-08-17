@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -262,21 +263,14 @@ export default function ScheduledScales() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <CalendarDays className="h-6 w-6 lg:h-7 lg:w-7 text-primary" />
-            </div>
-            Escalas Agendadas
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Atribua escalas individuais ou em lote para funcionários
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
+      <div className="mb-0 flex flex-col gap-4 rounded-2xl border border-border/60 bg-card/80 p-5 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <PageHeader
+          title="Escalas Agendadas"
+          description="Atribua escalas individuais ou em lote para funcionários"
+          icon={CalendarDays}
+          className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
+        />
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={openBulkDialog} className="gap-2">
             <Users className="h-4 w-4" />
             Escala em Lote
@@ -287,6 +281,7 @@ export default function ScheduledScales() {
           </Button>
         </div>
       </div>
+
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

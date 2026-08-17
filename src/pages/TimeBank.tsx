@@ -288,8 +288,8 @@ const TimeBank = () => {
     }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center flex-wrap gap-4">
+    <div className="space-y-6 animate-fade-in">
+      <div className="mb-0 flex flex-col gap-4 rounded-2xl border border-border/60 bg-card/80 p-5 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <PageHeader
           icon={Timer}
           title="Banco de Horas"
