@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
@@ -10,8 +11,51 @@ const getErrorMessage = (error: unknown): string => {
   return String(error);
 };
 
+// Strict schema for records read from external (semi-trusted) time clock devices.
+const MAX_RECORDS_PER_SYNC = 5000;
+const DeviceRecordSchema = z.object({
+  identifier: z.string().trim().min(1).max(32).regex(/^[A-Za-z0-9._-]+$/),
+  recordedAt: z.date().refine(
+    (d) =>
+      !Number.isNaN(d.getTime()) &&
+      // Not in the future (5 min clock skew tolerance) and not older than 5 years
+      d.getTime() <= Date.now() + 5 * 60 * 1000 &&
+      d.getTime() >= Date.now() - 5 * 365 * 24 * 60 * 60 * 1000,
+    "recordedAt out of accepted range",
+  ),
+  recordType: z.enum(['entry', 'exit', 'break_start', 'break_end', 'unknown']).optional(),
+});
+
+type DeviceRecord = z.infer<typeof DeviceRecordSchema>;
+
+const sanitizeRecords = (
+  manufacturer: string,
+  raw: Array<{ identifier: string; recordedAt: Date; recordType?: string }>,
+): DeviceRecord[] => {
+  const valid: DeviceRecord[] = [];
+  let rejected = 0;
+  for (const candidate of raw.slice(0, MAX_RECORDS_PER_SYNC)) {
+    const parsed = DeviceRecordSchema.safeParse({
+      identifier: typeof candidate.identifier === 'string' ? candidate.identifier.trim() : '',
+      recordedAt: candidate.recordedAt instanceof Date ? candidate.recordedAt : new Date(NaN),
+      recordType: candidate.recordType && ['entry', 'exit', 'break_start', 'break_end', 'unknown'].includes(candidate.recordType)
+        ? candidate.recordType
+        : undefined,
+    });
+    if (parsed.success) valid.push(parsed.data);
+    else rejected++;
+  }
+  if (rejected > 0 || raw.length > MAX_RECORDS_PER_SYNC) {
+    console.warn(
+      `[equipment-sync] ${manufacturer}: discarded ${rejected + Math.max(0, raw.length - MAX_RECORDS_PER_SYNC)} invalid/excess device records`,
+    );
+  }
+  return valid;
+};
+
 // Parse records from different manufacturer formats
 const parseRecords = (manufacturer: string, data: any): Array<{ identifier: string; recordedAt: Date; recordType?: string }> => {
+
   const records: Array<{ identifier: string; recordedAt: Date; recordType?: string }> = [];
   
   try {
