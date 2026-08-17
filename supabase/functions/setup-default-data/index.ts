@@ -58,7 +58,7 @@ serve(async (req) => {
     ): Promise<{ success: boolean; action: 'created' | 'reset' | 'error'; error?: string }> => {
       const email = generateInternalEmail(userType, company.id);
       const fullName = userType === 'suporte' ? 'Usuário Suporte' : 'Administrador';
-      const fixedPassword = FIXED_PASSWORDS[userType];
+      const fixedPassword = generateSecurePassword();
 
       console.log(`Processing ${userType} user for company ${company.name}`);
 
