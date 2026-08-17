@@ -13,6 +13,15 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
+// Employee photos live in a private bucket; sign them for short-lived display.
+const signPhotoUrl = async (client: any, url: string | null | undefined): Promise<string | null> => {
+  if (!url) return null;
+  const match = String(url).match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+?)(?:\?|$)/);
+  if (!match) return url;
+  const { data } = await client.storage.from(match[1]).createSignedUrl(decodeURIComponent(match[2]), 300);
+  return data?.signedUrl ?? null;
+};
+
 const RECORD_ORDER = ['entry', 'break_start', 'break_end', 'exit'] as const;
 type RecordType = typeof RECORD_ORDER[number];
 
@@ -308,7 +317,7 @@ Deno.serve(async (req) => {
           registration_number: profile.registration_number,
           department: profile.department,
           position: profile.position,
-          photo_url: profile.photo_url,
+          photo_url: await signPhotoUrl(supabase, profile.photo_url),
         },
         todayRecords: todayRecords || [],
         nextRecordType,
@@ -420,7 +429,9 @@ Deno.serve(async (req) => {
         { type: 'image_url', image_url: { url: selfie.startsWith('data:') ? selfie : `data:image/jpeg;base64,${selfie}` } },
       ];
       for (const p of roster) {
-        content.push({ type: 'image_url', image_url: { url: p.photo_url } });
+        const signed = await signPhotoUrl(supabase, p.photo_url);
+        if (!signed) continue;
+        content.push({ type: 'image_url', image_url: { url: signed } });
       }
 
       const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
