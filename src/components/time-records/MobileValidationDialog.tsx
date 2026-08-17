@@ -337,9 +337,16 @@ export default function MobileValidationDialog({
         return;
       }
 
+      // Registered photos live in a private bucket: send a short-lived signed URL.
+      const signedPhotoUrl = await resolveStorageUrl(photoUrl);
+      if (!signedPhotoUrl) {
+        throw new Error('Não foi possível acessar a foto cadastrada.');
+      }
+
       const { data, error } = await supabase.functions.invoke('validate-face', {
-        body: { selfieBase64: base64, registeredPhotoUrl: photoUrl },
+        body: { selfieBase64: base64, registeredPhotoUrl: signedPhotoUrl },
       });
+
       if (error) throw error;
 
       if (data?.isMatch) {
