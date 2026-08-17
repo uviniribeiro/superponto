@@ -11,7 +11,6 @@ import { useQuery } from '@tanstack/react-query';
 import { format, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
-import { PageHeader } from '@/components/shared/PageHeader';
 import { Activity } from 'lucide-react';
   MapPin, 
   Users, 
@@ -25,6 +24,7 @@ import { Activity } from 'lucide-react';
   AlertTriangle,
   Building2
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 interface EmployeePresence {
   id: string;

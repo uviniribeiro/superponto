@@ -12,12 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Loader2, Save, SlidersHorizontal, Moon, Clock, Scale, CalendarClock } from 'lucide-react';
 import {
-import { PageHeader } from '@/components/shared/PageHeader';
   AttendanceRules,
   DEFAULT_ATTENDANCE_RULES,
   calculateDay,
   formatMinutes,
 } from '@/lib/timeCalculation';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 type RulesRow = AttendanceRules & { id?: string; company_id?: string; name?: string };
 

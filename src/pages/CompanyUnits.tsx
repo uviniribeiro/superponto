@@ -19,9 +19,9 @@ import { Building2, Plus, Pencil, Search, Loader2, Network } from 'lucide-react'
 import { CnpjInput } from '@/components/shared/CnpjInput';
 import { ValidatedInput } from '@/components/shared/ValidatedInput';
 import {
-import { PageHeader } from '@/components/shared/PageHeader';
   BRAZILIAN_STATES, cleanCNPJ, formatCNPJ, validateCNPJ, validateAddress,
 } from '@/lib/validators';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export type UnitType = 'matriz' | 'filial';
 
