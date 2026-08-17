@@ -370,6 +370,14 @@ serve(async (req) => {
       case "authenticate-verify": {
         const { credential } = body;
 
+        if (!credential?.id || !credential?.response?.authenticatorData ||
+            !credential?.response?.clientDataJSON || !credential?.response?.signature) {
+          return new Response(JSON.stringify({ error: "Asserção WebAuthn incompleta" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         // Buscar credencial no banco
         const { data: storedCredential } = await supabase
           .from("webauthn_credentials")
@@ -384,25 +392,80 @@ serve(async (req) => {
           });
         }
 
-        // Verificar challenge
-        const { data: challengeData } = await supabase
-          .from("webauthn_challenges")
-          .select("*")
-          .eq("type", "authenticate")
-          .gt("expires_at", new Date().toISOString())
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        if (!challengeData) {
-          return new Response(JSON.stringify({ error: "Challenge expirado" }), {
+        // Dados do cliente assinados pelo autenticador
+        let clientData: { type?: string; challenge?: string; origin?: string };
+        const clientDataBytes = base64urlToBuffer(credential.response.clientDataJSON);
+        try {
+          clientData = JSON.parse(new TextDecoder().decode(clientDataBytes));
+        } catch {
+          return new Response(JSON.stringify({ error: "clientDataJSON inválido" }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
+        if (clientData.type !== "webauthn.get" || clientData.origin !== ORIGIN) {
+          return new Response(JSON.stringify({ error: "Origem da autenticação inválida" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Challenge deve pertencer ao usuário desta credencial e corresponder ao assinado
+        const { data: challengeData } = await supabase
+          .from("webauthn_challenges")
+          .select("*")
+          .eq("type", "authenticate")
+          .eq("challenge", clientData.challenge ?? "")
+          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!challengeData ||
+            (challengeData.user_id && challengeData.user_id !== storedCredential.user_id)) {
+          return new Response(JSON.stringify({ error: "Challenge inválido ou expirado" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verificação criptográfica da assinatura (prova de posse da chave privada)
+        const authenticatorData = base64urlToBuffer(credential.response.authenticatorData);
+        const clientDataHash = await sha256(clientDataBytes);
+        const signedData = new Uint8Array(authenticatorData.length + clientDataHash.length);
+        signedData.set(authenticatorData, 0);
+        signedData.set(clientDataHash, authenticatorData.length);
+
+        const expectedRpIdHash = await sha256(new TextEncoder().encode(RP_ID));
+        const rpIdMatches = expectedRpIdHash.every((b, i) => authenticatorData[i] === b);
+        const userPresent = (authenticatorData[32] & 0x01) === 0x01;
+
+        const signatureValid = rpIdMatches && userPresent && await verifySignature(
+          base64urlToBuffer(storedCredential.public_key),
+          base64urlToBuffer(credential.response.signature),
+          signedData
+        );
+
+        if (!signatureValid) {
+          await supabase.rpc("log_security_event", {
+            _user_id: storedCredential.user_id,
+            _event_type: "webauthn_invalid_signature",
+            _severity: "critical",
+            _ip_address: clientIp,
+            _user_agent: userAgent,
+          });
+
+          return new Response(JSON.stringify({ error: "Falha na verificação da credencial" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         // Verificar counter (proteção contra replay)
-        if (credential.counter <= storedCredential.counter) {
+        const assertionCounter = Number(credential.counter ?? 0);
+        const storedCounter = Number(storedCredential.counter ?? 0);
+        if ((assertionCounter > 0 || storedCounter > 0) && assertionCounter <= storedCounter) {
           // Possível ataque de replay
           await supabase.rpc("log_security_event", {
             _user_id: storedCredential.user_id,
@@ -417,6 +480,7 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
+
 
         // Atualizar counter e last_used
         await supabase
