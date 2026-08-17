@@ -454,10 +454,26 @@ Deno.serve(async (req) => {
         return json({ success: false, error: 'Funcionário inválido para este terminal.' }, 403);
       }
 
-      const recordedAt = new Date();
+      // Registro offline enfileirado no terminal: preserva a hora real da marcação
+      const clientRecordedAt = body?.clientRecordedAt ? new Date(String(body.clientRecordedAt)) : null;
+      const queued = !!clientRecordedAt && !isNaN(clientRecordedAt.getTime());
+      const recordedAt = queued ? clientRecordedAt! : new Date();
+
+      // Idempotência da fila: o mesmo registro reenviado não duplica
+      const punchId = String(body?.clientPunchId || '');
       const transactionHash = await sha256(
-        [profile.id, recordType, recordedAt.toISOString(), body?.latitude ?? '', body?.longitude ?? ''].join('|')
+        [profile.id, recordType, recordedAt.toISOString(), body?.latitude ?? '', body?.longitude ?? '', punchId].join('|')
       );
+
+      const { data: existing } = await supabase
+        .from('time_records')
+        .select('id, nsr, recorded_at, record_type, transaction_hash')
+        .eq('transaction_hash', transactionHash)
+        .maybeSingle();
+
+      if (existing) {
+        return json({ success: true, record: existing, employeeName: profile.full_name, duplicated: true });
+      }
 
       const { data: record, error } = await supabase
         .from('time_records')
@@ -469,11 +485,12 @@ Deno.serve(async (req) => {
           latitude: body?.latitude ?? terminal.latitude ?? null,
           longitude: body?.longitude ?? terminal.longitude ?? null,
           address: body?.address ?? terminal.address ?? null,
-          device_info: `Terminal CNPJ | ${terminal.name} | ${String(body?.userAgent || '').slice(0, 300)}`,
+          device_info: `Terminal CNPJ | ${terminal.name}${queued ? ' | fila offline' : ''} | ${String(body?.userAgent || '').slice(0, 300)}`,
           transaction_hash: transactionHash,
         })
         .select('id, nsr, recorded_at, record_type, transaction_hash')
         .single();
+
 
       if (error) {
         console.error('Erro ao inserir registro do terminal:', error);
