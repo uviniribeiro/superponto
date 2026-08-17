@@ -285,6 +285,8 @@ const App = () => (
                   <Route path="validation-audit" element={<ProtectedRoute><ValidationAudit /></ProtectedRoute>} />
                   <Route path="kiosk-terminals" element={<ProtectedRoute requiredRoles={['admin']}><KioskTerminals /></ProtectedRoute>} />
                   <Route path="diagnostics" element={<ProtectedRoute requiredRoles={['admin']}><DiagnosticPanel /></ProtectedRoute>} />
+                  <Route path="cnpj-audit" element={<ProtectedRoute requiredRoles={['admin']}><CnpjAudit /></ProtectedRoute>} />
+
                   <Route path="suggestions" element={<ProtectedRoute><Suggestions /></ProtectedRoute>} />
                   <Route path="basic-registrations" element={<ProtectedRoute requiredRoles={['admin']}><BasicRegistrations /></ProtectedRoute>} />
                   <Route path="unions" element={<ProtectedRoute requiredRoles={['admin']}><Unions /></ProtectedRoute>} />
