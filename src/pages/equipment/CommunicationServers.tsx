@@ -44,14 +44,14 @@ export default function CommunicationServers() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-wrap justify-between items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <PageHeader
           icon={Server}
           title="Servidores de Comunicação"
           description="Comunicação direta com relógios Henry (TCP/IP) e Control iD (REST local ou iD Cloud)"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
         />
-        <Button onClick={openNew}>
+        <Button onClick={openNew} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Novo Servidor
         </Button>

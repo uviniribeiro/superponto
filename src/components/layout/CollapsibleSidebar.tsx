@@ -92,6 +92,8 @@ import {
   LayoutList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Menu as MenuIcon, X as CloseIcon } from 'lucide-react';
 import { categoryHubConfigMap } from '@/config/categoryHubConfigs';
 
 interface CompanySettings {
@@ -245,7 +247,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'App do Terminal', icon: Smartphone, href: '/terminal-app', roles: ['admin'] },
       { title: 'Métodos de Identificação', icon: Smartphone, href: '/identification-methods', roles: ['admin'] },
       { title: 'Locais Georreferenciados', icon: MapPin, href: '/georeferenced-locations', roles: ['admin'] },
-      { title: 'Servidores TCP/IP', icon: Server, href: '/equipment/servers', roles: ['admin'] },
+      { title: 'Servidores de Comunicação', icon: Server, href: '/equipment/servers', roles: ['admin'] },
       { title: 'Ajuda REP', icon: HelpCircle, href: '/equipment/help', roles: ['admin'] },
     ]
   },
@@ -371,7 +373,14 @@ export default function CollapsibleSidebar() {
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [openCategories, setOpenCategories] = useState<string[]>(['home', 'ponto']);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const isMobile = useIsMobile();
   const { position, setPosition, isHorizontal } = useMenuPosition();
+
+  // Fecha o menu lateral ao navegar no celular
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const fetchCompanySettings = async () => {
@@ -668,10 +677,22 @@ export default function CollapsibleSidebar() {
     )}>
       {/* Sidebar */}
       <aside className={cn(
-        "bg-sidebar border-sidebar-border flex flex-col fixed h-full z-40 transition-all duration-300",
-        sidebarWidth,
-        position === 'left' ? "left-0 border-r" : "right-0 border-l"
+        "bg-sidebar border-sidebar-border flex flex-col fixed h-full z-50 transition-transform duration-300 lg:z-40 lg:transition-all",
+        isMobile ? "w-72 max-w-[85vw] shadow-2xl" : sidebarWidth,
+        position === 'left' ? "left-0 border-r" : "right-0 border-l",
+        isMobile && !mobileOpen && (position === 'left' ? "-translate-x-full" : "translate-x-full")
       )}>
+        {isMobile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Fechar menu"
+            className="absolute top-3 right-2 h-8 w-8 text-white hover:text-white"
+            onClick={() => setMobileOpen(false)}
+          >
+            <CloseIcon className="h-4 w-4" />
+          </Button>
+        )}
         {/* Logo/Brand */}
         <div className="p-3 border-b border-sidebar-border/60">
           <div className="flex items-center gap-3">
@@ -698,7 +719,7 @@ export default function CollapsibleSidebar() {
           variant="ghost"
           size="sm"
           className={cn(
-            "absolute top-16 h-6 w-6 rounded-full border bg-background shadow-sm z-50",
+            "absolute top-16 h-6 w-6 rounded-full border bg-background shadow-sm z-50 hidden lg:flex",
             position === 'left' ? "-right-3" : "-left-3"
           )}
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -911,13 +932,51 @@ export default function CollapsibleSidebar() {
         </div>
       </aside>
 
+      {/* Overlay do menu no celular */}
+      {isMobile && mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Main Content */}
       <main className={cn(
-        "flex-1 transition-all duration-300",
-        position === 'left' 
-          ? (isCollapsed ? "ml-16" : "ml-64") 
-          : (isCollapsed ? "mr-16" : "mr-64")
+        "min-w-0 flex-1 transition-all duration-300",
+        isMobile
+          ? "ml-0 mr-0"
+          : position === 'left'
+            ? (isCollapsed ? "ml-16" : "ml-64")
+            : (isCollapsed ? "mr-16" : "mr-64")
       )}>
+        {isMobile && (
+          <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border/60 bg-background/85 px-4 py-3 backdrop-blur-xl">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Abrir menu"
+              className="h-9 w-9"
+              onClick={() => setMobileOpen(true)}
+            >
+              <MenuIcon className="h-5 w-5" />
+            </Button>
+            <div className="flex min-w-0 items-center gap-2">
+              <img
+                src={companySettings?.logo_url || superpontoLogo}
+                alt={companySettings?.company_name || APP_NAME}
+                className="h-6 w-6 shrink-0 object-contain"
+              />
+              <span className="truncate font-heading text-sm font-semibold">
+                {companySettings?.company_name || APP_NAME}
+              </span>
+            </div>
+            <div className="ml-auto flex items-center gap-1">
+              <NotificationCenter />
+              <ThemeToggle />
+            </div>
+          </div>
+        )}
         <div className="p-4 lg:p-6">
           <Outlet />
         </div>
