@@ -15,13 +15,13 @@ export default {
   	extend: {
   		fontFamily: {
   			heading: [
-  				'Outfit',
+  				'Syne',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif'
   			],
   			sans: [
-  				'Figtree',
+  				'Plus Jakarta Sans',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
