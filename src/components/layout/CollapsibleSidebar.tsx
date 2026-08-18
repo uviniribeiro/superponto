@@ -70,6 +70,8 @@ import {
   Calendar,
   ListChecks,
   Network,
+  Landmark,
+  Store,
   Activity,
   HardDrive,
   RefreshCw,
