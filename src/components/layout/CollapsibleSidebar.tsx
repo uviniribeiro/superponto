@@ -398,6 +398,23 @@ export default function CollapsibleSidebar() {
     fetchCompanySettings();
   }, []);
 
+  // Unidades (matriz/filiais)
+  const [units, setUnits] = useState<SidebarUnit[]>([]);
+  const [unitsOpen, setUnitsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isAdmin && !isManager) return;
+    const fetchUnits = async () => {
+      const { data } = await (supabase as any)
+        .from('company_units')
+        .select('id, unit_name, trade_name, unit_type, is_active')
+        .order('unit_type', { ascending: true })
+        .order('unit_name', { ascending: true });
+      if (data) setUnits(data as SidebarUnit[]);
+    };
+    fetchUnits();
+  }, [isAdmin, isManager]);
+
   // Open category containing current route
   useEffect(() => {
     for (const category of menuCategories) {
