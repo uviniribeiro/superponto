@@ -70,6 +70,8 @@ import {
   Calendar,
   ListChecks,
   Network,
+  Landmark,
+  Store,
   Activity,
   HardDrive,
   RefreshCw,
@@ -99,6 +101,14 @@ import { categoryHubConfigMap } from '@/config/categoryHubConfigs';
 interface CompanySettings {
   company_name: string;
   logo_url: string | null;
+}
+
+interface SidebarUnit {
+  id: string;
+  unit_name: string;
+  trade_name: string | null;
+  unit_type: 'matriz' | 'filial';
+  is_active: boolean;
 }
 
 interface MenuCategory {
@@ -397,6 +407,23 @@ export default function CollapsibleSidebar() {
 
     fetchCompanySettings();
   }, []);
+
+  // Unidades (matriz/filiais)
+  const [units, setUnits] = useState<SidebarUnit[]>([]);
+  const [unitsOpen, setUnitsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isAdmin && !isManager) return;
+    const fetchUnits = async () => {
+      const { data } = await (supabase as any)
+        .from('company_units')
+        .select('id, unit_name, trade_name, unit_type, is_active')
+        .order('unit_type', { ascending: true })
+        .order('unit_name', { ascending: true });
+      if (data) setUnits(data as SidebarUnit[]);
+    };
+    fetchUnits();
+  }, [isAdmin, isManager]);
 
   // Open category containing current route
   useEffect(() => {
@@ -870,6 +897,97 @@ export default function CollapsibleSidebar() {
                 </Collapsible>
               );
             })}
+
+            {/* Unidades (Matriz/Filiais) */}
+            {(isAdmin || isManager) && units.length > 0 && (
+              isCollapsed ? (
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => { setIsCollapsed(false); setUnitsOpen(true); }}
+                      className="flex items-center justify-center w-full p-2.5 rounded-xl text-sm text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200"
+                    >
+                      <Landmark className="w-5 h-5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side={position === 'left' ? 'right' : 'left'} className="flex flex-col gap-1">
+                    <span className="font-medium">Unidades</span>
+                    <div className="text-xs text-muted-foreground">
+                      {units.map(u => (
+                        <Link key={u.id} to={`/company-units?unit=${u.id}`} className="block py-1 hover:text-foreground">
+                          {u.unit_name} · {u.unit_type === 'matriz' ? 'Matriz' : 'Filial'} · {u.is_active ? 'Ativa' : 'Inativa'}
+                        </Link>
+                      ))}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Collapsible open={unitsOpen}>
+                  <CollapsibleTrigger
+                    onClick={() => setUnitsOpen(o => !o)}
+                    className={cn(
+                      "group flex items-center justify-between w-full px-2.5 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                      isActiveLink('/company-units')
+                        ? "bg-white/10 text-white"
+                        : "text-white/70 hover:bg-white/[0.06] hover:text-white"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                        isActiveLink('/company-units')
+                          ? "bg-sidebar-primary text-white"
+                          : "bg-white/[0.07] text-white group-hover:bg-white/15"
+                      )}>
+                        <Landmark className="w-4 h-4" />
+                      </span>
+                      <span className="truncate">Unidades</span>
+                      <span className="ml-1 rounded-full bg-white/10 px-1.5 text-[10px] text-white/70">{units.length}</span>
+                    </div>
+                    {unitsOpen ? (
+                      <ChevronUp className="w-4 h-4 shrink-0 text-white/50" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 shrink-0 text-white/50" />
+                    )}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-1 ml-5 space-y-0.5 border-l border-white/10 pl-2">
+                    <Link
+                      to="/company-units"
+                      className={cn(
+                        "nav-item py-1.5 text-[13px]",
+                        location.pathname === '/company-units' && !location.search && "nav-item-active"
+                      )}
+                    >
+                      <Grid3X3 className="w-4 h-4 shrink-0 text-white" />
+                      <span className="truncate">Todas as unidades</span>
+                    </Link>
+                    {units.map((unit) => {
+                      const UnitIcon = unit.unit_type === 'matriz' ? Landmark : Store;
+                      return (
+                        <Link
+                          key={unit.id}
+                          to={`/company-units?unit=${unit.id}`}
+                          className={cn(
+                            "nav-item py-1.5 text-[13px]",
+                            location.search.includes(unit.id) && "nav-item-active"
+                          )}
+                        >
+                          <UnitIcon className="w-4 h-4 shrink-0 text-white" />
+                          <span className="truncate">{unit.unit_name}</span>
+                          <span
+                            title={unit.is_active ? 'Ativa' : 'Inativa'}
+                            className={cn(
+                              "ml-auto h-2 w-2 shrink-0 rounded-full",
+                              unit.is_active ? "bg-emerald-400" : "bg-white/30"
+                            )}
+                          />
+                        </Link>
+                      );
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
+              )
+            )}
           </nav>
         </ScrollArea>
 
