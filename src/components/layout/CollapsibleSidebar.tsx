@@ -101,6 +101,14 @@ interface CompanySettings {
   logo_url: string | null;
 }
 
+interface SidebarUnit {
+  id: string;
+  unit_name: string;
+  trade_name: string | null;
+  unit_type: 'matriz' | 'filial';
+  is_active: boolean;
+}
+
 interface MenuCategory {
   id: string;
   title: string;
