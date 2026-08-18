@@ -845,6 +845,75 @@ export type Database = {
           },
         ]
       }
+      communication_agents: {
+        Row: {
+          agent_version: string | null
+          auto_adopt: boolean
+          auto_discovery: boolean
+          company_id: string
+          created_at: string
+          discovery_ranges: string[]
+          hostname: string | null
+          id: string
+          is_active: boolean
+          last_heartbeat: string | null
+          local_ip: string | null
+          mac_address: string | null
+          name: string
+          os_info: string | null
+          public_ip: string | null
+          settings: Json
+          status: string
+          sync_interval_seconds: number
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          agent_version?: string | null
+          auto_adopt?: boolean
+          auto_discovery?: boolean
+          company_id: string
+          created_at?: string
+          discovery_ranges?: string[]
+          hostname?: string | null
+          id?: string
+          is_active?: boolean
+          last_heartbeat?: string | null
+          local_ip?: string | null
+          mac_address?: string | null
+          name: string
+          os_info?: string | null
+          public_ip?: string | null
+          settings?: Json
+          status?: string
+          sync_interval_seconds?: number
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          agent_version?: string | null
+          auto_adopt?: boolean
+          auto_discovery?: boolean
+          company_id?: string
+          created_at?: string
+          discovery_ranges?: string[]
+          hostname?: string | null
+          id?: string
+          is_active?: boolean
+          last_heartbeat?: string | null
+          local_ip?: string | null
+          mac_address?: string | null
+          name?: string
+          os_info?: string | null
+          public_ip?: string | null
+          settings?: Json
+          status?: string
+          sync_interval_seconds?: number
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       communication_servers: {
         Row: {
           allow_private_network: boolean
@@ -1590,6 +1659,173 @@ export type Database = {
           },
         ]
       }
+      device_commands: {
+        Row: {
+          agent_id: string | null
+          attempts: number
+          command: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          equipment_id: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          payload: Json
+          result: Json | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          attempts?: number
+          command: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          payload?: Json
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          attempts?: number
+          command?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          equipment_id?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          payload?: Json
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_commands_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "communication_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_commands_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "device_commands_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discovered_devices: {
+        Row: {
+          agent_id: string | null
+          company_id: string
+          created_at: string
+          details: Json
+          device_name: string | null
+          equipment_id: string | null
+          firmware_version: string | null
+          first_seen: string
+          id: string
+          ip_address: string
+          last_seen: string
+          mac_address: string | null
+          manufacturer: string | null
+          model: string | null
+          port: number | null
+          protocol: string | null
+          reachable: boolean
+          serial_number: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          company_id: string
+          created_at?: string
+          details?: Json
+          device_name?: string | null
+          equipment_id?: string | null
+          firmware_version?: string | null
+          first_seen?: string
+          id?: string
+          ip_address: string
+          last_seen?: string
+          mac_address?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          port?: number | null
+          protocol?: string | null
+          reachable?: boolean
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          company_id?: string
+          created_at?: string
+          details?: Json
+          device_name?: string | null
+          equipment_id?: string | null
+          firmware_version?: string | null
+          first_seen?: string
+          id?: string
+          ip_address?: string
+          last_seen?: string
+          mac_address?: string | null
+          manufacturer?: string | null
+          model?: string | null
+          port?: number | null
+          protocol?: string | null
+          reachable?: boolean
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discovered_devices_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "communication_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discovered_devices_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discovered_devices_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disregarded_records: {
         Row: {
           company_id: string | null
@@ -2022,6 +2258,80 @@ export type Database = {
             columns: ["work_schedule_id"]
             isOneToOne: false
             referencedRelation: "work_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_device_sync: {
+        Row: {
+          company_id: string
+          created_at: string
+          device_user_id: string | null
+          equipment_id: string
+          error_message: string | null
+          id: string
+          last_synced_at: string | null
+          operation: string
+          profile_id: string
+          status: string
+          templates_synced: boolean
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          device_user_id?: string | null
+          equipment_id: string
+          error_message?: string | null
+          id?: string
+          last_synced_at?: string | null
+          operation?: string
+          profile_id: string
+          status?: string
+          templates_synced?: boolean
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          device_user_id?: string | null
+          equipment_id?: string
+          error_message?: string | null
+          id?: string
+          last_synced_at?: string | null
+          operation?: string
+          profile_id?: string
+          status?: string
+          templates_synced?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_device_sync_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_device_sync_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_equipment_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_device_sync_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_device_sync_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -6273,20 +6583,26 @@ export type Database = {
       }
       time_clock_equipment: {
         Row: {
+          agent_id: string | null
           api_endpoint: string | null
+          auto_employee_sync: boolean
           cloud_device_id: string | null
           communication_server_id: string | null
           communication_type: string
           company_id: string | null
           created_at: string
+          dhcp_enabled: boolean
           firmware_version: string | null
           id: string
           ip_address: string
+          ip_history: Json
           is_active: boolean
           is_online: boolean
           last_communication: string | null
+          last_ip_change_at: string | null
           last_sync: string | null
           location: string | null
+          mac_address: string | null
           manufacturer: string
           model: string
           name: string
@@ -6302,20 +6618,26 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          agent_id?: string | null
           api_endpoint?: string | null
+          auto_employee_sync?: boolean
           cloud_device_id?: string | null
           communication_server_id?: string | null
           communication_type?: string
           company_id?: string | null
           created_at?: string
+          dhcp_enabled?: boolean
           firmware_version?: string | null
           id?: string
           ip_address: string
+          ip_history?: Json
           is_active?: boolean
           is_online?: boolean
           last_communication?: string | null
+          last_ip_change_at?: string | null
           last_sync?: string | null
           location?: string | null
+          mac_address?: string | null
           manufacturer: string
           model: string
           name: string
@@ -6331,20 +6653,26 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          agent_id?: string | null
           api_endpoint?: string | null
+          auto_employee_sync?: boolean
           cloud_device_id?: string | null
           communication_server_id?: string | null
           communication_type?: string
           company_id?: string | null
           created_at?: string
+          dhcp_enabled?: boolean
           firmware_version?: string | null
           id?: string
           ip_address?: string
+          ip_history?: Json
           is_active?: boolean
           is_online?: boolean
           last_communication?: string | null
+          last_ip_change_at?: string | null
           last_sync?: string | null
           location?: string | null
+          mac_address?: string | null
           manufacturer?: string
           model?: string
           name?: string
@@ -6360,6 +6688,13 @@ export type Database = {
           username?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "time_clock_equipment_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "communication_agents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "time_clock_equipment_communication_server_id_fkey"
             columns: ["communication_server_id"]
