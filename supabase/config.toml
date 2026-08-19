@@ -72,3 +72,7 @@ verify_jwt = false
 
 [functions.system-autofix]
 verify_jwt = false
+
+[functions.agent-gateway]
+verify_jwt = false
+
