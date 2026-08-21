@@ -1,0 +1,26 @@
+[Unit]
+Description=Ponto Max - Robo de Comunicacao (Agente Local)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/pontomax-agent --daemon
+Restart=always
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pontomax-agent
+
+# O agente precisa ler a tabela ARP e varrer a rede local
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/etc/pontomax-agent /var/log
+
+LimitNOFILE=65536
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
