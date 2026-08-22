@@ -1,4 +1,5 @@
 import {
+  Bot,
   Clock,
   UserPlus,
   CalendarRange,
