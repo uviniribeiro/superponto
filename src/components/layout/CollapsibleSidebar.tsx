@@ -14,7 +14,6 @@ import { useMenuPosition, MenuPosition } from '@/hooks/useMenuPosition';
 import { getVersionString, APP_NAME } from '@/lib/version';
 import superpontoLogo from '@/assets/pontomax-logo.png';
 import {
-  Bot,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -94,6 +93,7 @@ import {
   Banknote,
   LayoutList,
 } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu as MenuIcon, X as CloseIcon } from 'lucide-react';
