@@ -93,6 +93,7 @@ import {
   Banknote,
   LayoutList,
 } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu as MenuIcon, X as CloseIcon } from 'lucide-react';
@@ -257,6 +258,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'App do Terminal', icon: Smartphone, href: '/terminal-app', roles: ['admin'] },
       { title: 'Métodos de Identificação', icon: Smartphone, href: '/identification-methods', roles: ['admin'] },
       { title: 'Locais Georreferenciados', icon: MapPin, href: '/georeferenced-locations', roles: ['admin'] },
+      { title: 'Robô de Comunicação', icon: Bot, href: '/equipment/agents', roles: ['admin'] },
       { title: 'Servidores de Comunicação', icon: Server, href: '/equipment/servers', roles: ['admin'] },
       { title: 'Ajuda REP', icon: HelpCircle, href: '/equipment/help', roles: ['admin'] },
     ]
