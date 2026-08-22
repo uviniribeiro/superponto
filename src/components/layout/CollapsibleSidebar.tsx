@@ -14,6 +14,7 @@ import { useMenuPosition, MenuPosition } from '@/hooks/useMenuPosition';
 import { getVersionString, APP_NAME } from '@/lib/version';
 import superpontoLogo from '@/assets/pontomax-logo.png';
 import {
+  Bot,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -257,6 +258,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'App do Terminal', icon: Smartphone, href: '/terminal-app', roles: ['admin'] },
       { title: 'Métodos de Identificação', icon: Smartphone, href: '/identification-methods', roles: ['admin'] },
       { title: 'Locais Georreferenciados', icon: MapPin, href: '/georeferenced-locations', roles: ['admin'] },
+      { title: 'Robô de Comunicação', icon: Bot, href: '/equipment/agents', roles: ['admin'] },
       { title: 'Servidores de Comunicação', icon: Server, href: '/equipment/servers', roles: ['admin'] },
       { title: 'Ajuda REP', icon: HelpCircle, href: '/equipment/help', roles: ['admin'] },
     ]
