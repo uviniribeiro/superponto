@@ -119,21 +119,48 @@ serve(async (req) => {
   );
 
   const tokenHash = await sha256(token);
-  const { data: agent, error: agentError } = await supabase
+
+  // Aceita o token atual, o token pendente (janela de transição) ou o token
+  // anterior (tolerância pós-rotação, até expirar).
+  const { data: candidates, error: agentError } = await supabase
     .from("communication_agents")
     .select("*")
-    .eq("token_hash", tokenHash)
     .eq("is_active", true)
-    .maybeSingle();
+    .or(
+      `token_hash.eq.${tokenHash},pending_token_hash.eq.${tokenHash},previous_token_hash.eq.${tokenHash}`,
+    )
+    .limit(1);
 
   if (agentError) {
     console.error("[agent-gateway] erro ao buscar agente", agentError.message);
     return json({ error: "Falha ao autenticar o agente" }, 500);
   }
+
+  const agent = candidates?.[0];
   if (!agent) return json({ error: "Agente não autorizado" }, 401);
 
-  const now = new Date().toISOString();
+  const nowDate = new Date();
+  const now = nowDate.toISOString();
   const b = parsedBody;
+
+  const isCurrent = agent.token_hash === tokenHash;
+  const isPending = !isCurrent && agent.pending_token_hash === tokenHash;
+  const isPrevious = !isCurrent && !isPending && agent.previous_token_hash === tokenHash;
+
+  if (isPending) {
+    const windowExpired = agent.pending_token_expires_at &&
+      new Date(agent.pending_token_expires_at).getTime() < nowDate.getTime();
+    if (windowExpired) {
+      return json({ error: "Janela de rotação expirada. Gere um novo token." }, 401);
+    }
+  }
+  if (isPrevious) {
+    const graceExpired = !agent.previous_token_expires_at ||
+      new Date(agent.previous_token_expires_at).getTime() < nowDate.getTime();
+    if (graceExpired) {
+      return json({ error: "Token revogado após rotação. Atualize o robô." }, 401);
+    }
+  }
 
   // Toda requisição vale como sinal de vida.
   const liveness: Record<string, unknown> = {
@@ -147,7 +174,74 @@ serve(async (req) => {
   if (b.local_ip) liveness.local_ip = b.local_ip;
   if (b.public_ip) liveness.public_ip = b.public_ip;
   if (b.mac_address) liveness.mac_address = b.mac_address;
+
+  // Validação antes de efetivar: só troca o token quando o agente prova que
+  // consegue autenticar com o token pendente.
+  let rotationApplied = false;
+  if (isPending) {
+    const graceMinutes = 30;
+    liveness.token_hash = tokenHash;
+    liveness.pending_token_hash = null;
+    liveness.pending_token_expires_at = null;
+    liveness.previous_token_hash = agent.token_hash;
+    liveness.previous_token_expires_at = new Date(
+      nowDate.getTime() + graceMinutes * 60_000,
+    ).toISOString();
+    liveness.token_rotation_status = "validated";
+    liveness.token_rotated_at = now;
+    if (agent.token_auto_rotation) {
+      liveness.next_token_rotation_at = new Date(
+        nowDate.getTime() + (agent.token_rotation_interval_days ?? 90) * 86_400_000,
+      ).toISOString();
+    }
+    rotationApplied = true;
+  }
+
   await supabase.from("communication_agents").update(liveness).eq("id", agent.id);
+
+  if (rotationApplied) {
+    await supabase
+      .from("agent_token_rotations")
+      .update({ status: "completed", validated_at: now, finished_at: now, updated_at: now })
+      .eq("agent_id", agent.id)
+      .eq("status", "pending");
+  }
+
+  // Rotação automática: quando vencida, o sistema emite um token pendente e o
+  // entrega uma única vez ao agente autenticado.
+  let issuedToken: string | null = null;
+  let issuedExpiresAt: string | null = null;
+  if (
+    !rotationApplied &&
+    isCurrent &&
+    agent.token_auto_rotation &&
+    !agent.pending_token_hash &&
+    agent.next_token_rotation_at &&
+    new Date(agent.next_token_rotation_at).getTime() <= nowDate.getTime()
+  ) {
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    issuedToken = Array.from(bytes).map((x) => x.toString(16).padStart(2, "0")).join("");
+    issuedExpiresAt = new Date(nowDate.getTime() + 60 * 60_000).toISOString();
+    await supabase
+      .from("communication_agents")
+      .update({
+        pending_token_hash: await sha256(issuedToken),
+        pending_token_expires_at: issuedExpiresAt,
+        token_rotation_status: "pending",
+        token_rotation_started_at: now,
+        updated_at: now,
+      })
+      .eq("id", agent.id);
+    await supabase.from("agent_token_rotations").insert({
+      company_id: agent.company_id,
+      agent_id: agent.id,
+      mode: "automatic",
+      status: "pending",
+      window_expires_at: issuedExpiresAt,
+      notes: "Rotação automática emitida pelo gateway",
+    });
+  }
 
   const agentConfig = {
     id: agent.id,
@@ -159,7 +253,15 @@ serve(async (req) => {
     sync_interval_seconds: agent.sync_interval_seconds,
     settings: agent.settings,
     server_time: now,
+    token_rotation: {
+      applied: rotationApplied,
+      using_previous_token: isPrevious,
+      // Novo token entregue uma única vez; o agente deve salvá-lo e reautenticar.
+      new_token: issuedToken,
+      new_token_expires_at: issuedExpiresAt,
+    },
   };
+
 
   try {
     switch (b.action) {
