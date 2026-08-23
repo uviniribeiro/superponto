@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -20,6 +21,26 @@ export interface CommunicationAgent {
   sync_interval_seconds: number | null;
   is_active: boolean | null;
   created_at: string;
+  token_rotation_status: string | null;
+  token_rotation_started_at: string | null;
+  token_rotated_at: string | null;
+  pending_token_expires_at: string | null;
+  previous_token_expires_at: string | null;
+  token_auto_rotation: boolean | null;
+  token_rotation_interval_days: number | null;
+  next_token_rotation_at: string | null;
+}
+
+export interface AgentTokenRotation {
+  id: string;
+  agent_id: string;
+  mode: string;
+  status: string;
+  started_at: string;
+  window_expires_at: string | null;
+  validated_at: string | null;
+  finished_at: string | null;
+  notes: string | null;
 }
 
 export interface DiscoveredDevice {
@@ -319,8 +340,147 @@ export function useCommunicationAgents() {
       toast({ title: 'Erro ao agendar envio', description: error.message, variant: 'destructive' }),
   });
 
+  const rotationsQuery = useQuery({
+    queryKey: ['agent-token-rotations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agent_token_rotations')
+        .select('*')
+        .order('started_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as unknown as AgentTokenRotation[];
+    },
+  });
+
+  /** Inicia a rotação manual: gera o token novo e abre a janela de transição.
+   *  O token antigo continua válido até o agente autenticar com o novo. */
+  const startTokenRotationMutation = useMutation({
+    mutationFn: async (input: { agent: CommunicationAgent; windowMinutes: number }) => {
+      const token = randomToken();
+      const token_hash = await sha256(token);
+      const expiresAt = new Date(Date.now() + input.windowMinutes * 60_000).toISOString();
+
+      const { error } = await supabase
+        .from('communication_agents')
+        .update({
+          pending_token_hash: token_hash,
+          pending_token_expires_at: expiresAt,
+          token_rotation_status: 'pending',
+          token_rotation_started_at: new Date().toISOString(),
+        } as never)
+        .eq('id', input.agent.id);
+      if (error) throw error;
+
+      const { error: logError } = await supabase.from('agent_token_rotations').insert({
+        company_id: input.agent.company_id,
+        agent_id: input.agent.id,
+        mode: 'manual',
+        status: 'pending',
+        window_expires_at: expiresAt,
+        started_by: (await supabase.auth.getUser()).data.user?.id,
+        notes: `Janela de transição de ${input.windowMinutes} minuto(s)`,
+      } as never);
+      if (logError) throw logError;
+
+      return { token, expiresAt };
+    },
+    onSuccess: () => {
+      invalidate('communication-agents');
+      invalidate('agent-token-rotations');
+      toast({
+        title: 'Rotação iniciada',
+        description: 'O token antigo segue válido até o robô validar o novo.',
+      });
+    },
+    onError: (error: Error) =>
+      toast({ title: 'Erro ao iniciar rotação', description: error.message, variant: 'destructive' }),
+  });
+
+  /** Cancela a rotação em andamento (mantém o token atual). */
+  const cancelTokenRotationMutation = useMutation({
+    mutationFn: async (agentId: string) => {
+      const { error } = await supabase
+        .from('communication_agents')
+        .update({
+          pending_token_hash: null,
+          pending_token_expires_at: null,
+          token_rotation_status: 'idle',
+        } as never)
+        .eq('id', agentId);
+      if (error) throw error;
+
+      await supabase
+        .from('agent_token_rotations')
+        .update({ status: 'cancelled', finished_at: new Date().toISOString() } as never)
+        .eq('agent_id', agentId)
+        .eq('status', 'pending');
+    },
+    onSuccess: () => {
+      invalidate('communication-agents');
+      invalidate('agent-token-rotations');
+      toast({ title: 'Rotação cancelada', description: 'O token atual continua em uso.' });
+    },
+    onError: (error: Error) =>
+      toast({ title: 'Erro ao cancelar rotação', description: error.message, variant: 'destructive' }),
+  });
+
+  /** Liga/desliga a rotação automática periódica do token. */
+  const setAutoRotationMutation = useMutation({
+    mutationFn: async (input: { agentId: string; enabled: boolean; intervalDays: number }) => {
+      const next = input.enabled
+        ? new Date(Date.now() + input.intervalDays * 86_400_000).toISOString()
+        : null;
+      const { error } = await supabase
+        .from('communication_agents')
+        .update({
+          token_auto_rotation: input.enabled,
+          token_rotation_interval_days: input.intervalDays,
+          next_token_rotation_at: next,
+        } as never)
+        .eq('id', input.agentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate('communication-agents');
+      toast({ title: 'Política de rotação atualizada' });
+    },
+    onError: (error: Error) =>
+      toast({ title: 'Erro ao salvar política', description: error.message, variant: 'destructive' }),
+  });
+
+  // Tempo real: status/heartbeat dos agentes, descobertas, fila de comandos e de funcionários.
+  useEffect(() => {
+    const channel = supabase
+      .channel('communication-robot-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'communication_agents' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['communication-agents'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'discovered_devices' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['discovered-devices'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'device_commands' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['device-commands'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_device_sync' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['employee-device-sync'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_token_rotations' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['agent-token-rotations'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return {
     agents: agentsQuery.data ?? [],
+    rotations: rotationsQuery.data ?? [],
+    startTokenRotationMutation,
+    cancelTokenRotationMutation,
+    setAutoRotationMutation,
     devices: devicesQuery.data ?? [],
     commands: commandsQuery.data ?? [],
     employeeSync: syncQuery.data ?? [],
