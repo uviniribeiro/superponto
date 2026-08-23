@@ -111,6 +111,62 @@ export type Database = {
           },
         ]
       }
+      agent_token_rotations: {
+        Row: {
+          agent_id: string
+          company_id: string
+          created_at: string
+          finished_at: string | null
+          id: string
+          mode: string
+          notes: string | null
+          started_at: string
+          started_by: string | null
+          status: string
+          updated_at: string
+          validated_at: string | null
+          window_expires_at: string | null
+        }
+        Insert: {
+          agent_id: string
+          company_id: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          notes?: string | null
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          window_expires_at?: string | null
+        }
+        Update: {
+          agent_id?: string
+          company_id?: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          notes?: string | null
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          window_expires_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_token_rotations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "communication_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcement_dismissals: {
         Row: {
           announcement_id: string
@@ -860,12 +916,22 @@ export type Database = {
           local_ip: string | null
           mac_address: string | null
           name: string
+          next_token_rotation_at: string | null
           os_info: string | null
+          pending_token_expires_at: string | null
+          pending_token_hash: string | null
+          previous_token_expires_at: string | null
+          previous_token_hash: string | null
           public_ip: string | null
           settings: Json
           status: string
           sync_interval_seconds: number
+          token_auto_rotation: boolean
           token_hash: string
+          token_rotated_at: string | null
+          token_rotation_interval_days: number
+          token_rotation_started_at: string | null
+          token_rotation_status: string
           updated_at: string
         }
         Insert: {
@@ -882,12 +948,22 @@ export type Database = {
           local_ip?: string | null
           mac_address?: string | null
           name: string
+          next_token_rotation_at?: string | null
           os_info?: string | null
+          pending_token_expires_at?: string | null
+          pending_token_hash?: string | null
+          previous_token_expires_at?: string | null
+          previous_token_hash?: string | null
           public_ip?: string | null
           settings?: Json
           status?: string
           sync_interval_seconds?: number
+          token_auto_rotation?: boolean
           token_hash: string
+          token_rotated_at?: string | null
+          token_rotation_interval_days?: number
+          token_rotation_started_at?: string | null
+          token_rotation_status?: string
           updated_at?: string
         }
         Update: {
@@ -904,12 +980,22 @@ export type Database = {
           local_ip?: string | null
           mac_address?: string | null
           name?: string
+          next_token_rotation_at?: string | null
           os_info?: string | null
+          pending_token_expires_at?: string | null
+          pending_token_hash?: string | null
+          previous_token_expires_at?: string | null
+          previous_token_hash?: string | null
           public_ip?: string | null
           settings?: Json
           status?: string
           sync_interval_seconds?: number
+          token_auto_rotation?: boolean
           token_hash?: string
+          token_rotated_at?: string | null
+          token_rotation_interval_days?: number
+          token_rotation_started_at?: string | null
+          token_rotation_status?: string
           updated_at?: string
         }
         Relationships: []
