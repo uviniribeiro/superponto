@@ -117,9 +117,26 @@ def utcnow():
 # --------------------------------------------------------------------------- #
 class Gateway:
     def __init__(self, cfg):
+        self.cfg = cfg
         self.url = cfg["gateway_url"]
         self.token = cfg["agent_token"]
         self.verify_ssl = cfg.get("verify_ssl", True)
+
+    def adopt_token(self, new_token):
+        """Rotacao de token: salva o novo token e passa a usa-lo.
+
+        O token antigo continua aceito ate a primeira autenticacao bem-sucedida
+        com o novo (validacao no servidor), sem interromper a comunicacao.
+        """
+        if not new_token or new_token == self.token:
+            return
+        self.token = new_token
+        self.cfg["agent_token"] = new_token
+        try:
+            save_config(self.cfg)
+            log("Token rotacionado com sucesso.")
+        except Exception as exc:
+            log("Falha ao salvar novo token: %s" % exc, "ERROR")
 
     def call(self, action, **payload):
         body = dict(payload)
@@ -724,6 +741,15 @@ class Agent:
             log("Handshake recusado. Verifique o token do agente.", "ERROR")
             return False
         self.remote = data.get("agent") or {}
+        rotation = self.remote.get("token_rotation") or {}
+        if rotation.get("new_token"):
+            self.gw.adopt_token(rotation["new_token"])
+            # Revalida imediatamente com o token novo para efetivar a troca.
+            check = self.gw.call("handshake", local_ip=self._local_ip())
+            if not check or not check.get("success"):
+                log("Falha ao validar token rotacionado.", "ERROR")
+                return False
+            self.remote = check.get("agent") or self.remote
         log("Conectado ao sistema como agente '%s'" % self.remote.get("name"))
         return True
 
