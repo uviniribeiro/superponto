@@ -264,6 +264,49 @@ serve(async (req) => {
     });
   }
 
+
+  // ---- Auto-atualização do executável do agente -------------------------------
+  // O gateway indica a release ativa do canal do agente. O robô só troca o
+  // executável depois de conferir o checksum, mantendo o binário anterior para
+  // rollback automático caso a nova versão não consiga autenticar.
+  const currentVersion = b.agent_version ?? agent.agent_version ?? "0.0.0";
+  const platform = (b.platform ?? (agent.os_info?.toLowerCase().includes("linux") ? "linux" : "windows"));
+
+  let updateInstruction: Record<string, unknown> | null = null;
+  const { data: releases } = await supabase
+    .from("agent_releases")
+    .select("*")
+    .eq("is_active", true)
+    .eq("channel", agent.update_channel ?? "stable")
+    .eq("platform", platform)
+    .order("published_at", { ascending: false })
+    .limit(20);
+
+  const desired = agent.target_version
+    ? releases?.find((r) => r.version === agent.target_version)
+    : releases?.[0];
+
+  if (desired && compareVersions(desired.version, currentVersion) > 0) {
+    updateInstruction = {
+      available: true,
+      apply: agent.auto_update !== false,
+      release_id: desired.id,
+      version: desired.version,
+      channel: desired.channel,
+      platform: desired.platform,
+      download_url: desired.download_url,
+      checksum_sha256: desired.checksum_sha256,
+      notes: desired.notes,
+      rollback_to: currentVersion,
+    };
+  } else if (
+    agent.rollback_version &&
+    compareVersions(agent.rollback_version, currentVersion) > 0 === false &&
+    agent.last_update_status === "rollback_requested"
+  ) {
+    updateInstruction = { available: false, rollback_requested: true, version: agent.rollback_version };
+  }
+
   const agentConfig = {
     id: agent.id,
     name: agent.name,
@@ -281,7 +324,9 @@ serve(async (req) => {
       new_token: issuedToken,
       new_token_expires_at: issuedExpiresAt,
     },
+    update: updateInstruction,
   };
+
 
 
   try {
