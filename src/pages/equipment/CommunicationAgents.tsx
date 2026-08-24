@@ -339,7 +339,6 @@ export default function CommunicationAgents() {
                       <TableHead>Protocolo</TableHead>
                       <TableHead>Visto em</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Token</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
