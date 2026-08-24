@@ -111,6 +111,51 @@ export type Database = {
           },
         ]
       }
+      agent_releases: {
+        Row: {
+          channel: string
+          checksum_sha256: string
+          created_at: string
+          download_url: string
+          id: string
+          is_active: boolean
+          min_supported_version: string | null
+          notes: string | null
+          platform: string
+          published_at: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          channel?: string
+          checksum_sha256: string
+          created_at?: string
+          download_url: string
+          id?: string
+          is_active?: boolean
+          min_supported_version?: string | null
+          notes?: string | null
+          platform?: string
+          published_at?: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          channel?: string
+          checksum_sha256?: string
+          created_at?: string
+          download_url?: string
+          id?: string
+          is_active?: boolean
+          min_supported_version?: string | null
+          notes?: string | null
+          platform?: string
+          published_at?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       agent_token_rotations: {
         Row: {
           agent_id: string
@@ -163,6 +208,69 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "communication_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_update_events: {
+        Row: {
+          agent_id: string
+          checksum_ok: boolean | null
+          company_id: string
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          from_version: string | null
+          id: string
+          release_id: string | null
+          started_at: string
+          status: string
+          to_version: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          checksum_ok?: boolean | null
+          company_id: string
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          from_version?: string | null
+          id?: string
+          release_id?: string | null
+          started_at?: string
+          status?: string
+          to_version?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          checksum_ok?: boolean | null
+          company_id?: string
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          from_version?: string | null
+          id?: string
+          release_id?: string | null
+          started_at?: string
+          status?: string
+          to_version?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_update_events_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "communication_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_update_events_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "agent_releases"
             referencedColumns: ["id"]
           },
         ]
@@ -906,6 +1014,7 @@ export type Database = {
           agent_version: string | null
           auto_adopt: boolean
           auto_discovery: boolean
+          auto_update: boolean
           company_id: string
           created_at: string
           discovery_ranges: string[]
@@ -913,6 +1022,8 @@ export type Database = {
           id: string
           is_active: boolean
           last_heartbeat: string | null
+          last_update_at: string | null
+          last_update_status: string | null
           local_ip: string | null
           mac_address: string | null
           name: string
@@ -923,21 +1034,25 @@ export type Database = {
           previous_token_expires_at: string | null
           previous_token_hash: string | null
           public_ip: string | null
+          rollback_version: string | null
           settings: Json
           status: string
           sync_interval_seconds: number
+          target_version: string | null
           token_auto_rotation: boolean
           token_hash: string
           token_rotated_at: string | null
           token_rotation_interval_days: number
           token_rotation_started_at: string | null
           token_rotation_status: string
+          update_channel: string
           updated_at: string
         }
         Insert: {
           agent_version?: string | null
           auto_adopt?: boolean
           auto_discovery?: boolean
+          auto_update?: boolean
           company_id: string
           created_at?: string
           discovery_ranges?: string[]
@@ -945,6 +1060,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_heartbeat?: string | null
+          last_update_at?: string | null
+          last_update_status?: string | null
           local_ip?: string | null
           mac_address?: string | null
           name: string
@@ -955,21 +1072,25 @@ export type Database = {
           previous_token_expires_at?: string | null
           previous_token_hash?: string | null
           public_ip?: string | null
+          rollback_version?: string | null
           settings?: Json
           status?: string
           sync_interval_seconds?: number
+          target_version?: string | null
           token_auto_rotation?: boolean
           token_hash: string
           token_rotated_at?: string | null
           token_rotation_interval_days?: number
           token_rotation_started_at?: string | null
           token_rotation_status?: string
+          update_channel?: string
           updated_at?: string
         }
         Update: {
           agent_version?: string | null
           auto_adopt?: boolean
           auto_discovery?: boolean
+          auto_update?: boolean
           company_id?: string
           created_at?: string
           discovery_ranges?: string[]
@@ -977,6 +1098,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_heartbeat?: string | null
+          last_update_at?: string | null
+          last_update_status?: string | null
           local_ip?: string | null
           mac_address?: string | null
           name?: string
@@ -987,15 +1110,18 @@ export type Database = {
           previous_token_expires_at?: string | null
           previous_token_hash?: string | null
           public_ip?: string | null
+          rollback_version?: string | null
           settings?: Json
           status?: string
           sync_interval_seconds?: number
+          target_version?: string | null
           token_auto_rotation?: boolean
           token_hash?: string
           token_rotated_at?: string | null
           token_rotation_interval_days?: number
           token_rotation_started_at?: string | null
           token_rotation_status?: string
+          update_channel?: string
           updated_at?: string
         }
         Relationships: []
