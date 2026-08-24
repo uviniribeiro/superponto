@@ -339,7 +339,6 @@ export default function CommunicationAgents() {
                       <TableHead>Protocolo</TableHead>
                       <TableHead>Visto em</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Token</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -363,29 +362,9 @@ export default function CommunicationAgents() {
                             {device.equipment_id ? 'Adotado' : (device.status ?? 'novo')}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              agent.token_rotation_status === 'pending' ? 'secondary' : 'outline'
-                            }
-                          >
-                            {agent.token_rotation_status === 'pending'
-                              ? 'Rotação pendente'
-                              : agent.token_auto_rotation
-                                ? 'Auto'
-                                : 'Estável'}
-                          </Badge>
-                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-wrap justify-end gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setRotationAgentId(agent.id)}
-                            >
-                              <KeyRound className="mr-1 h-3.5 w-3.5" />
-                              Token
-                            </Button>
+
                             {!device.equipment_id && (
                               <>
                                 <Button
