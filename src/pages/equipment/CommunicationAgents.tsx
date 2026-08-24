@@ -35,12 +35,14 @@ import {
   Users,
   Terminal,
   Info,
+  KeyRound,
 } from 'lucide-react';
 import {
   useCommunicationAgents,
   type CommunicationAgent,
   type DiscoveredDevice,
 } from '@/hooks/useCommunicationAgents';
+import { AgentTokenRotationDialog } from '@/components/equipment/AgentTokenRotationDialog';
 
 const statusVariant = (status?: string | null) => {
   switch (status) {
@@ -77,6 +79,10 @@ export default function CommunicationAgents() {
     adoptDeviceMutation,
     ignoreDeviceMutation,
     syncEmployeesMutation,
+    rotations,
+    startTokenRotationMutation,
+    cancelTokenRotationMutation,
+    setAutoRotationMutation,
   } = useCommunicationAgents();
 
   const [open, setOpen] = useState(false);
@@ -85,6 +91,8 @@ export default function CommunicationAgents() {
   const [autoAdopt, setAutoAdopt] = useState(true);
   const [token, setToken] = useState<string | null>(null);
   const [syncEquipment, setSyncEquipment] = useState<string>('');
+  const [rotationAgentId, setRotationAgentId] = useState<string | null>(null);
+  const rotationAgent = agents.find((item) => item.id === rotationAgentId) ?? null;
 
   const { data: equipmentList = [] } = useQuery({
     queryKey: ['equipment-simple'],
@@ -198,6 +206,7 @@ export default function CommunicationAgents() {
           <TabsTrigger value="devices">Dispositivos Encontrados</TabsTrigger>
           <TabsTrigger value="commands">Comandos</TabsTrigger>
           <TabsTrigger value="employees">Funcionários no Relógio</TabsTrigger>
+          <TabsTrigger value="tokens">Tokens</TabsTrigger>
           <TabsTrigger value="downloads">Downloads</TabsTrigger>
         </TabsList>
 
@@ -224,6 +233,7 @@ export default function CommunicationAgents() {
                       <TableHead>Versão</TableHead>
                       <TableHead>Último sinal</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Token</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -245,8 +255,29 @@ export default function CommunicationAgents() {
                             {isOnline(agent) ? 'Online' : 'Offline'}
                           </Badge>
                         </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              agent.token_rotation_status === 'pending' ? 'secondary' : 'outline'
+                            }
+                          >
+                            {agent.token_rotation_status === 'pending'
+                              ? 'Rotação pendente'
+                              : agent.token_auto_rotation
+                                ? 'Auto'
+                                : 'Estável'}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-wrap justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setRotationAgentId(agent.id)}
+                            >
+                              <KeyRound className="mr-1 h-3.5 w-3.5" />
+                              Token
+                            </Button>
                             <Button
                               size="sm"
                               variant="outline"
@@ -308,6 +339,7 @@ export default function CommunicationAgents() {
                       <TableHead>Protocolo</TableHead>
                       <TableHead>Visto em</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Token</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -331,8 +363,29 @@ export default function CommunicationAgents() {
                             {device.equipment_id ? 'Adotado' : (device.status ?? 'novo')}
                           </Badge>
                         </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              agent.token_rotation_status === 'pending' ? 'secondary' : 'outline'
+                            }
+                          >
+                            {agent.token_rotation_status === 'pending'
+                              ? 'Rotação pendente'
+                              : agent.token_auto_rotation
+                                ? 'Auto'
+                                : 'Estável'}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-wrap justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setRotationAgentId(agent.id)}
+                            >
+                              <KeyRound className="mr-1 h-3.5 w-3.5" />
+                              Token
+                            </Button>
                             {!device.equipment_id && (
                               <>
                                 <Button
@@ -532,6 +585,57 @@ export default function CommunicationAgents() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="tokens" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico de rotações de token</CardTitle>
+              <CardDescription>
+                Rotações manuais e automáticas, com janela de transição e validação pelo robô.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              {rotations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma rotação registrada.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Agente</TableHead>
+                      <TableHead>Modo</TableHead>
+                      <TableHead>Início</TableHead>
+                      <TableHead>Janela até</TableHead>
+                      <TableHead>Validado em</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rotations.map((rotation) => (
+                      <TableRow key={rotation.id}>
+                        <TableCell>
+                          {agents.find((item) => item.id === rotation.agent_id)?.name ?? '—'}
+                        </TableCell>
+                        <TableCell>{rotation.mode === 'automatic' ? 'Automática' : 'Manual'}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(rotation.started_at)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(rotation.window_expires_at)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(rotation.validated_at)}</TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant(rotation.status === 'completed' ? 'done' : rotation.status)}>
+                            {rotation.status === 'completed'
+                              ? 'Concluída'
+                              : rotation.status === 'cancelled'
+                                ? 'Cancelada'
+                                : 'Aguardando validação'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="downloads" className="mt-4">
           <Card>
             <CardHeader>
@@ -564,6 +668,16 @@ export default function CommunicationAgents() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AgentTokenRotationDialog
+        agent={rotationAgent}
+        open={!!rotationAgent}
+        onOpenChange={(value) => !value && setRotationAgentId(null)}
+        onStart={(input) => startTokenRotationMutation.mutateAsync(input)}
+        onCancel={(id) => cancelTokenRotationMutation.mutate(id)}
+        onSavePolicy={(input) => setAutoRotationMutation.mutate(input)}
+        isBusy={startTokenRotationMutation.isPending || cancelTokenRotationMutation.isPending}
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
