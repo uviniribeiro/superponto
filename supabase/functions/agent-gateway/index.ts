@@ -335,6 +335,68 @@ serve(async (req) => {
       case "heartbeat":
         return json({ success: true, agent: agentConfig });
 
+      // Relata cada etapa da auto-atualização (download, instalação, verificação
+      // ou rollback). O robô só é considerado atualizado quando reautentica com
+      // a nova versão e envia "verified".
+      case "update_status": {
+        const status = b.update_status ?? "installed";
+        const finished = ["verified", "failed", "rolled_back"].includes(status);
+
+        const { data: openEvent } = await supabase
+          .from("agent_update_events")
+          .select("id")
+          .eq("agent_id", agent.id)
+          .is("finished_at", null)
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const payload = {
+          status,
+          checksum_ok: b.checksum_ok ?? null,
+          error_message: b.error_message ?? null,
+          to_version: b.to_version ?? null,
+          from_version: b.from_version ?? currentVersion,
+          finished_at: finished ? now : null,
+          updated_at: now,
+        };
+
+        if (openEvent) {
+          await supabase.from("agent_update_events").update(payload).eq("id", openEvent.id);
+        } else {
+          await supabase.from("agent_update_events").insert({
+            company_id: agent.company_id,
+            agent_id: agent.id,
+            release_id: b.release_id ?? null,
+            started_at: now,
+            ...payload,
+          });
+        }
+
+        const agentPatch: Record<string, unknown> = {
+          last_update_status: status,
+          last_update_at: now,
+          updated_at: now,
+        };
+        if (status === "installed" || status === "verified") {
+          agentPatch.rollback_version = b.from_version ?? currentVersion;
+        }
+        if (status === "verified") {
+          agentPatch.target_version = null;
+          agentPatch.agent_version = b.to_version ?? b.agent_version ?? currentVersion;
+        }
+        if (status === "rolled_back" || status === "failed") {
+          // Impede novo download automático da versão problemática.
+          agentPatch.target_version = agent.rollback_version ?? currentVersion;
+          agentPatch.auto_update = status === "rolled_back" ? false : agent.auto_update;
+        }
+        await supabase.from("communication_agents").update(agentPatch).eq("id", agent.id);
+
+        return json({ success: true, status });
+      }
+
+
+
       case "discovery": {
         const devices = b.devices ?? [];
         const adopted: string[] = [];
