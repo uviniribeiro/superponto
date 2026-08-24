@@ -65,10 +65,12 @@ const BodySchema = z.object({
     "employee_result",
     "records",
     "log",
+    "update_status",
   ]),
   hostname: z.string().trim().max(120).optional(),
   os_info: z.string().trim().max(160).optional(),
   agent_version: z.string().trim().max(32).optional(),
+  platform: z.string().trim().max(32).optional(),
   local_ip: IP.optional(),
   public_ip: IP.optional(),
   mac_address: z.string().trim().max(64).optional(),
@@ -77,6 +79,13 @@ const BodySchema = z.object({
   command_id: z.string().uuid().optional(),
   equipment_id: z.string().uuid().optional(),
   sync_id: z.string().uuid().optional(),
+  release_id: z.string().uuid().optional(),
+  update_status: z
+    .enum(["downloading", "installing", "installed", "verified", "failed", "rolled_back"])
+    .optional(),
+  from_version: z.string().trim().max(32).optional(),
+  to_version: z.string().trim().max(32).optional(),
+  checksum_ok: z.boolean().optional(),
   device_user_id: z.string().trim().max(64).optional(),
   templates_synced: z.boolean().optional(),
   success: z.boolean().optional(),
@@ -85,6 +94,18 @@ const BodySchema = z.object({
   message: z.string().trim().max(1000).optional(),
   limit: z.number().int().min(1).max(200).optional(),
 });
+
+/** Compara versões semânticas simples ("3.1.0"). Retorna >0 se a > b. */
+const compareVersions = (a: string, b: string) => {
+  const pa = a.replace(/[^0-9.]/g, "").split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = b.replace(/[^0-9.]/g, "").split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+};
+
 
 serve(async (req) => {
   const corsHeaders = {
