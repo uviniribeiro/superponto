@@ -1081,7 +1081,12 @@ class Agent:
                              error_message=str(exc)[:400])
 
     def loop(self):
-        if not self.handshake():
+        connected = self.handshake()
+        # Confirma a atualizacao recem instalada ou reverte para a versao anterior.
+        if self.updater.read_state():
+            if self.updater.confirm_or_rollback(self.gw, connected):
+                restart_process()
+        if not connected:
             return 1
         interval = int(self.remote.get("sync_interval_seconds")
                        or self.cfg.get("sync_interval_seconds") or 60)
@@ -1091,7 +1096,15 @@ class Agent:
         while not self.stop_event.is_set():
             cycle_started = time.time()
             try:
-                self.gw.call("heartbeat", local_ip=self._local_ip())
+                beat = self.gw.call("heartbeat", local_ip=self._local_ip())
+                remote = (beat or {}).get("agent") or {}
+                if remote:
+                    self.remote = remote
+                update = self.remote.get("update")
+                if update and self.updater.apply(self.gw, update):
+                    self.stop_event.set()
+                    restart_process()
+                    return 0
                 self.refresh_equipment()
                 if self.remote.get("auto_discovery", True) and \
                         time.time() - last_discovery > discovery_every:
@@ -1105,6 +1118,7 @@ class Agent:
             wait = max(5, interval - int(time.time() - cycle_started))
             self.stop_event.wait(wait)
         return 0
+
 
 
 # --------------------------------------------------------------------------- #
