@@ -51,7 +51,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
-AGENT_VERSION = "3.0.0"
+AGENT_VERSION = "3.1.0"
 DEFAULT_GATEWAY = "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/agent-gateway"
 
 if platform.system() == "Windows":
@@ -61,6 +61,9 @@ else:
 
 CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
 LOG_PATH = os.path.join(CONFIG_DIR, "agent.log")
+UPDATE_DIR = os.path.join(CONFIG_DIR, "updates")
+UPDATE_STATE_PATH = os.path.join(UPDATE_DIR, "update_state.json")
+
 
 DEFAULT_CONFIG = {
     "gateway_url": DEFAULT_GATEWAY,
