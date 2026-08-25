@@ -31,6 +31,9 @@ Uso:
 """
 
 import argparse
+import hashlib
+import shutil
+
 import concurrent.futures
 import ipaddress
 import json
