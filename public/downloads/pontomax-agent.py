@@ -31,6 +31,9 @@ Uso:
 """
 
 import argparse
+import hashlib
+import shutil
+
 import concurrent.futures
 import ipaddress
 import json
@@ -48,7 +51,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
-AGENT_VERSION = "3.0.0"
+AGENT_VERSION = "3.1.0"
 DEFAULT_GATEWAY = "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/agent-gateway"
 
 if platform.system() == "Windows":
@@ -58,6 +61,9 @@ else:
 
 CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
 LOG_PATH = os.path.join(CONFIG_DIR, "agent.log")
+UPDATE_DIR = os.path.join(CONFIG_DIR, "updates")
+UPDATE_STATE_PATH = os.path.join(UPDATE_DIR, "update_state.json")
+
 
 DEFAULT_CONFIG = {
     "gateway_url": DEFAULT_GATEWAY,
@@ -144,6 +150,8 @@ class Gateway:
         body.setdefault("agent_version", AGENT_VERSION)
         body.setdefault("hostname", socket.gethostname())
         body.setdefault("os_info", "%s %s" % (platform.system(), platform.release()))
+        body.setdefault("platform", "windows" if platform.system() == "Windows" else "linux")
+
         data = json.dumps(body).encode("utf-8")
         req = urllib.request.Request(
             self.url,
@@ -165,6 +173,210 @@ class Gateway:
         except Exception as exc:
             log("Gateway %s -> %s" % (action, exc), "ERROR")
         return None
+
+
+# --------------------------------------------------------------------------- #
+# Auto-atualizacao com rollback seguro
+# --------------------------------------------------------------------------- #
+class Updater:
+    """Baixa, valida (SHA-256) e instala uma nova versao do executavel.
+
+    Seguranca:
+      * o binario atual e copiado para <executavel>.bak antes da troca;
+      * o checksum e conferido antes de qualquer substituicao;
+      * o estado fica em update_state.json - se a nova versao nao conseguir
+        autenticar no gateway, o binario anterior e restaurado (rollback) e o
+        sistema e avisado com o status "rolled_back".
+    """
+
+    MAX_BOOT_FAILURES = 2
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+
+    # -- caminhos ----------------------------------------------------------
+    @staticmethod
+    def is_frozen():
+        return bool(getattr(sys, "frozen", False))
+
+    @staticmethod
+    def target_path():
+        return os.path.abspath(sys.executable if Updater.is_frozen() else __file__)
+
+    @staticmethod
+    def backup_path():
+        return Updater.target_path() + ".bak"
+
+    # -- estado ------------------------------------------------------------
+    @staticmethod
+    def read_state():
+        try:
+            with open(UPDATE_STATE_PATH, "r", encoding="utf-8") as fh:
+                return json.load(fh)
+        except Exception:
+            return None
+
+    @staticmethod
+    def write_state(state):
+        os.makedirs(UPDATE_DIR, exist_ok=True)
+        with open(UPDATE_STATE_PATH, "w", encoding="utf-8") as fh:
+            json.dump(state, fh, indent=2)
+
+    @staticmethod
+    def clear_state():
+        try:
+            os.remove(UPDATE_STATE_PATH)
+        except Exception:
+            pass
+
+    # -- download ----------------------------------------------------------
+    def _download(self, url, destination):
+        ctx = None
+        if not self.cfg.get("verify_ssl", True):
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+        digest = hashlib.sha256()
+        with urllib.request.urlopen(url, timeout=300, context=ctx) as resp, \
+                open(destination, "wb") as out:
+            while True:
+                chunk = resp.read(65536)
+                if not chunk:
+                    break
+                digest.update(chunk)
+                out.write(chunk)
+        return digest.hexdigest()
+
+    # -- instalacao --------------------------------------------------------
+    def apply(self, gw, update):
+        """Executa a atualizacao. Retorna True quando o processo deve reiniciar."""
+        if not update or not update.get("available") or not update.get("apply"):
+            return False
+        if not self.cfg.get("auto_update", True):
+            return False
+        version = update.get("version")
+        release_id = update.get("release_id")
+        target = self.target_path()
+        os.makedirs(UPDATE_DIR, exist_ok=True)
+        staged = os.path.join(UPDATE_DIR, "pontomax-agent-%s.new" % version)
+
+        log("Atualizacao disponivel: %s -> %s" % (AGENT_VERSION, version))
+        gw.call("update_status", update_status="downloading", release_id=release_id,
+                from_version=AGENT_VERSION, to_version=version)
+        try:
+            checksum = self._download(update["download_url"], staged)
+        except Exception as exc:
+            gw.call("update_status", update_status="failed", release_id=release_id,
+                    from_version=AGENT_VERSION, to_version=version,
+                    error_message="Falha no download: %s" % str(exc)[:300])
+            log("Falha ao baixar atualizacao: %s" % exc, "ERROR")
+            return False
+
+        expected = (update.get("checksum_sha256") or "").lower().strip()
+        if not expected or checksum.lower() != expected:
+            try:
+                os.remove(staged)
+            except Exception:
+                pass
+            gw.call("update_status", update_status="failed", checksum_ok=False,
+                    release_id=release_id, from_version=AGENT_VERSION, to_version=version,
+                    error_message="Checksum divergente - atualizacao descartada")
+            log("Checksum invalido. Atualizacao cancelada.", "ERROR")
+            return False
+
+        gw.call("update_status", update_status="installing", checksum_ok=True,
+                release_id=release_id, from_version=AGENT_VERSION, to_version=version)
+
+        backup = self.backup_path()
+        try:
+            shutil.copy2(target, backup)
+            self.write_state({
+                "status": "installed",
+                "from_version": AGENT_VERSION,
+                "to_version": version,
+                "release_id": release_id,
+                "target": target,
+                "backup": backup,
+                "boot_failures": 0,
+                "installed_at": utcnow(),
+            })
+            if platform.system() == "Windows":
+                # No Windows o executavel em uso nao pode ser sobrescrito:
+                # renomeia o atual e coloca o novo no lugar.
+                stale = target + ".old"
+                if os.path.exists(stale):
+                    os.remove(stale)
+                os.rename(target, stale)
+            os.replace(staged, target)
+            try:
+                os.chmod(target, 0o755)
+            except Exception:
+                pass
+        except Exception as exc:
+            log("Falha ao instalar atualizacao: %s" % exc, "ERROR")
+            self.restore(gw, "Falha ao instalar: %s" % str(exc)[:200])
+            return False
+
+        gw.call("update_status", update_status="installed", checksum_ok=True,
+                release_id=release_id, from_version=AGENT_VERSION, to_version=version)
+        log("Nova versao instalada. Reiniciando o robo...")
+        return True
+
+    # -- rollback ----------------------------------------------------------
+    def restore(self, gw, reason):
+        state = self.read_state() or {}
+        target = state.get("target") or self.target_path()
+        backup = state.get("backup") or self.backup_path()
+        restored = False
+        if os.path.exists(backup):
+            try:
+                shutil.copy2(backup, target)
+                restored = True
+            except Exception as exc:
+                log("Falha no rollback: %s" % exc, "ERROR")
+        gw.call("update_status",
+                update_status="rolled_back" if restored else "failed",
+                release_id=state.get("release_id"),
+                from_version=state.get("to_version") or AGENT_VERSION,
+                to_version=state.get("from_version") or AGENT_VERSION,
+                error_message=reason[:300])
+        self.clear_state()
+        log("Rollback %s: %s" % ("concluido" if restored else "falhou", reason),
+            "WARN" if restored else "ERROR")
+        return restored
+
+    def confirm_or_rollback(self, gw, healthy):
+        """Chamado no start-up: confirma a versao nova ou desfaz a atualizacao."""
+        state = self.read_state()
+        if not state:
+            return False
+        if healthy:
+            gw.call("update_status", update_status="verified", checksum_ok=True,
+                    release_id=state.get("release_id"),
+                    from_version=state.get("from_version"),
+                    to_version=state.get("to_version") or AGENT_VERSION)
+            self.clear_state()
+            log("Atualizacao para %s verificada com sucesso." % AGENT_VERSION)
+            return False
+        state["boot_failures"] = int(state.get("boot_failures", 0)) + 1
+        if state["boot_failures"] >= self.MAX_BOOT_FAILURES:
+            return self.restore(gw, "Nova versao nao conseguiu autenticar no gateway")
+        self.write_state(state)
+        return False
+
+
+def restart_process():
+    """Reinicia o proprio processo apos a troca do executavel."""
+    try:
+        if Updater.is_frozen():
+            os.execv(sys.executable, [sys.executable] + sys.argv[1:])
+        else:
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+    except Exception as exc:
+        log("Nao foi possivel reiniciar automaticamente (%s). "
+            "O servico reiniciara no proximo ciclo." % exc, "WARN")
+        sys.exit(0)
+
 
 
 # --------------------------------------------------------------------------- #
@@ -726,6 +938,8 @@ class Agent:
         self.equipment = []
         self.nsr_state = {}
         self.stop_event = threading.Event()
+        self.updater = Updater(cfg)
+
 
     # -- helpers -----------------------------------------------------------
     def driver_for(self, equipment):
@@ -871,7 +1085,12 @@ class Agent:
                              error_message=str(exc)[:400])
 
     def loop(self):
-        if not self.handshake():
+        connected = self.handshake()
+        # Confirma a atualizacao recem instalada ou reverte para a versao anterior.
+        if self.updater.read_state():
+            if self.updater.confirm_or_rollback(self.gw, connected):
+                restart_process()
+        if not connected:
             return 1
         interval = int(self.remote.get("sync_interval_seconds")
                        or self.cfg.get("sync_interval_seconds") or 60)
@@ -881,7 +1100,15 @@ class Agent:
         while not self.stop_event.is_set():
             cycle_started = time.time()
             try:
-                self.gw.call("heartbeat", local_ip=self._local_ip())
+                beat = self.gw.call("heartbeat", local_ip=self._local_ip())
+                remote = (beat or {}).get("agent") or {}
+                if remote:
+                    self.remote = remote
+                update = self.remote.get("update")
+                if update and self.updater.apply(self.gw, update):
+                    self.stop_event.set()
+                    restart_process()
+                    return 0
                 self.refresh_equipment()
                 if self.remote.get("auto_discovery", True) and \
                         time.time() - last_discovery > discovery_every:
@@ -895,6 +1122,7 @@ class Agent:
             wait = max(5, interval - int(time.time() - cycle_started))
             self.stop_event.wait(wait)
         return 0
+
 
 
 # --------------------------------------------------------------------------- #
@@ -942,6 +1170,8 @@ def main():
     parser.add_argument("--daemon", action="store_true", help="executa em loop continuo")
     parser.add_argument("--service", action="store_true", help="alias de --daemon (servico)")
     parser.add_argument("--scan", nargs="?", const="", help="varre a rede (opcional: CIDR)")
+    parser.add_argument("--rollback", action="store_true",
+                        help="restaura manualmente a versao anterior do executavel")
     parser.add_argument("--version", action="store_true")
     args = parser.parse_args()
 
@@ -952,11 +1182,17 @@ def main():
         return configure()
 
     cfg = load_config()
+    if args.rollback:
+        updater = Updater(cfg)
+        ok = updater.restore(Gateway(cfg), "Rollback manual solicitado pelo operador")
+        print("Rollback concluido." if ok else "Nenhuma versao anterior disponivel.")
+        return 0 if ok else 1
     if args.scan is not None:
         ranges = [args.scan] if args.scan else (cfg.get("discovery_ranges") or local_networks())
         for device in scan_network(ranges):
             print(json.dumps(device, ensure_ascii=False))
         return 0
+
 
     if not cfg.get("agent_token"):
         log("Agente sem token. Execute: pontomax-agent --configure", "ERROR")

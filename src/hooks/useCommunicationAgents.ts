@@ -29,7 +29,40 @@ export interface CommunicationAgent {
   token_auto_rotation: boolean | null;
   token_rotation_interval_days: number | null;
   next_token_rotation_at: string | null;
+  auto_update: boolean | null;
+  update_channel: string | null;
+  target_version: string | null;
+  rollback_version: string | null;
+  last_update_status: string | null;
+  last_update_at: string | null;
 }
+
+export interface AgentRelease {
+  id: string;
+  version: string;
+  channel: string;
+  platform: string;
+  download_url: string;
+  checksum_sha256: string;
+  min_supported_version: string | null;
+  notes: string | null;
+  is_active: boolean;
+  published_at: string;
+}
+
+export interface AgentUpdateEvent {
+  id: string;
+  agent_id: string;
+  release_id: string | null;
+  from_version: string | null;
+  to_version: string | null;
+  status: string;
+  checksum_ok: boolean | null;
+  error_message: string | null;
+  started_at: string;
+  finished_at: string | null;
+}
+
 
 export interface AgentTokenRotation {
   id: string;
@@ -449,6 +482,79 @@ export function useCommunicationAgents() {
       toast({ title: 'Erro ao salvar política', description: error.message, variant: 'destructive' }),
   });
 
+  const releasesQuery = useQuery({
+    queryKey: ['agent-releases'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agent_releases')
+        .select('*')
+        .order('published_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as AgentRelease[];
+    },
+  });
+
+  const updateEventsQuery = useQuery({
+    queryKey: ['agent-update-events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agent_update_events')
+        .select('*')
+        .order('started_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return (data ?? []) as unknown as AgentUpdateEvent[];
+    },
+  });
+
+  /** Política de auto-atualização do executável (canal e versão fixada). */
+  const setUpdatePolicyMutation = useMutation({
+    mutationFn: async (input: {
+      agentId: string;
+      auto_update?: boolean;
+      update_channel?: string;
+      target_version?: string | null;
+    }) => {
+      const { agentId, ...values } = input;
+      const { error } = await supabase
+        .from('communication_agents')
+        .update(values as never)
+        .eq('id', agentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate('communication-agents');
+      toast({ title: 'Política de atualização salva' });
+    },
+    onError: (error: Error) =>
+      toast({ title: 'Erro ao salvar atualização', description: error.message, variant: 'destructive' }),
+  });
+
+  /** Reversão segura: fixa a versão anterior e desliga a auto-atualização. */
+  const rollbackAgentMutation = useMutation({
+    mutationFn: async (agent: CommunicationAgent) => {
+      if (!agent.rollback_version) throw new Error('Não há versão anterior registrada para este agente.');
+      const { error } = await supabase
+        .from('communication_agents')
+        .update({
+          target_version: agent.rollback_version,
+          auto_update: false,
+          last_update_status: 'rollback_requested',
+        } as never)
+        .eq('id', agent.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidate('communication-agents');
+      toast({
+        title: 'Reversão solicitada',
+        description: 'O robô voltará para a versão anterior no próximo ciclo.',
+      });
+    },
+    onError: (error: Error) =>
+      toast({ title: 'Erro ao reverter', description: error.message, variant: 'destructive' }),
+  });
+
   // Tempo real: status/heartbeat dos agentes, descobertas, fila de comandos e de funcionários.
   useEffect(() => {
     const channel = supabase
@@ -468,6 +574,9 @@ export function useCommunicationAgents() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_token_rotations' }, () => {
         queryClient.invalidateQueries({ queryKey: ['agent-token-rotations'] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agent_update_events' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['agent-update-events'] });
+      })
       .subscribe();
 
     return () => {
@@ -475,9 +584,15 @@ export function useCommunicationAgents() {
     };
   }, [queryClient]);
 
+
   return {
     agents: agentsQuery.data ?? [],
     rotations: rotationsQuery.data ?? [],
+    releases: releasesQuery.data ?? [],
+    updateEvents: updateEventsQuery.data ?? [],
+    setUpdatePolicyMutation,
+    rollbackAgentMutation,
+
     startTokenRotationMutation,
     cancelTokenRotationMutation,
     setAutoRotationMutation,
