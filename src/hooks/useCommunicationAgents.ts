@@ -588,6 +588,11 @@ export function useCommunicationAgents() {
   return {
     agents: agentsQuery.data ?? [],
     rotations: rotationsQuery.data ?? [],
+    releases: releasesQuery.data ?? [],
+    updateEvents: updateEventsQuery.data ?? [],
+    setUpdatePolicyMutation,
+    rollbackAgentMutation,
+
     startTokenRotationMutation,
     cancelTokenRotationMutation,
     setAutoRotationMutation,
