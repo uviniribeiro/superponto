@@ -1170,6 +1170,8 @@ def main():
     parser.add_argument("--daemon", action="store_true", help="executa em loop continuo")
     parser.add_argument("--service", action="store_true", help="alias de --daemon (servico)")
     parser.add_argument("--scan", nargs="?", const="", help="varre a rede (opcional: CIDR)")
+    parser.add_argument("--rollback", action="store_true",
+                        help="restaura manualmente a versao anterior do executavel")
     parser.add_argument("--version", action="store_true")
     args = parser.parse_args()
 
@@ -1180,11 +1182,17 @@ def main():
         return configure()
 
     cfg = load_config()
+    if args.rollback:
+        updater = Updater(cfg)
+        ok = updater.restore(Gateway(cfg), "Rollback manual solicitado pelo operador")
+        print("Rollback concluido." if ok else "Nenhuma versao anterior disponivel.")
+        return 0 if ok else 1
     if args.scan is not None:
         ranges = [args.scan] if args.scan else (cfg.get("discovery_ranges") or local_networks())
         for device in scan_network(ranges):
             print(json.dumps(device, ensure_ascii=False))
         return 0
+
 
     if not cfg.get("agent_token"):
         log("Agente sem token. Execute: pontomax-agent --configure", "ERROR")
