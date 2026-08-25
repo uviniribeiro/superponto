@@ -150,6 +150,8 @@ class Gateway:
         body.setdefault("agent_version", AGENT_VERSION)
         body.setdefault("hostname", socket.gethostname())
         body.setdefault("os_info", "%s %s" % (platform.system(), platform.release()))
+        body.setdefault("platform", "windows" if platform.system() == "Windows" else "linux")
+
         data = json.dumps(body).encode("utf-8")
         req = urllib.request.Request(
             self.url,
