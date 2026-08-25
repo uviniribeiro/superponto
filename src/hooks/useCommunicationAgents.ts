@@ -29,7 +29,40 @@ export interface CommunicationAgent {
   token_auto_rotation: boolean | null;
   token_rotation_interval_days: number | null;
   next_token_rotation_at: string | null;
+  auto_update: boolean | null;
+  update_channel: string | null;
+  target_version: string | null;
+  rollback_version: string | null;
+  last_update_status: string | null;
+  last_update_at: string | null;
 }
+
+export interface AgentRelease {
+  id: string;
+  version: string;
+  channel: string;
+  platform: string;
+  download_url: string;
+  checksum_sha256: string;
+  min_supported_version: string | null;
+  notes: string | null;
+  is_active: boolean;
+  published_at: string;
+}
+
+export interface AgentUpdateEvent {
+  id: string;
+  agent_id: string;
+  release_id: string | null;
+  from_version: string | null;
+  to_version: string | null;
+  status: string;
+  checksum_ok: boolean | null;
+  error_message: string | null;
+  started_at: string;
+  finished_at: string | null;
+}
+
 
 export interface AgentTokenRotation {
   id: string;
