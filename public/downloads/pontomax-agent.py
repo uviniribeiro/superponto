@@ -936,6 +936,8 @@ class Agent:
         self.equipment = []
         self.nsr_state = {}
         self.stop_event = threading.Event()
+        self.updater = Updater(cfg)
+
 
     # -- helpers -----------------------------------------------------------
     def driver_for(self, equipment):
