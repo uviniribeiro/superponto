@@ -36,6 +36,8 @@ import {
   Terminal,
   Info,
   KeyRound,
+  RotateCcw,
+
 } from 'lucide-react';
 import {
   useCommunicationAgents,
@@ -83,7 +85,12 @@ export default function CommunicationAgents() {
     startTokenRotationMutation,
     cancelTokenRotationMutation,
     setAutoRotationMutation,
+    releases,
+    updateEvents,
+    setUpdatePolicyMutation,
+    rollbackAgentMutation,
   } = useCommunicationAgents();
+
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -207,6 +214,8 @@ export default function CommunicationAgents() {
           <TabsTrigger value="commands">Comandos</TabsTrigger>
           <TabsTrigger value="employees">Funcionários no Relógio</TabsTrigger>
           <TabsTrigger value="tokens">Tokens</TabsTrigger>
+          <TabsTrigger value="updates">Atualizações</TabsTrigger>
+
           <TabsTrigger value="downloads">Downloads</TabsTrigger>
         </TabsList>
 
@@ -614,6 +623,196 @@ export default function CommunicationAgents() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="updates" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Auto-atualização do robô</CardTitle>
+              <CardDescription>
+                O robô baixa a nova versão, confere o código de verificação e guarda o executável
+                anterior. Se a nova versão não conseguir se conectar, ele volta sozinho para a
+                versão anterior.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              {agents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum agente cadastrado.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Agente</TableHead>
+                      <TableHead>Versão instalada</TableHead>
+                      <TableHead>Canal</TableHead>
+                      <TableHead>Automática</TableHead>
+                      <TableHead>Situação</TableHead>
+                      <TableHead>Versão anterior</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {agents.map((agent: CommunicationAgent) => (
+                      <TableRow key={agent.id}>
+                        <TableCell className="font-medium">{agent.name}</TableCell>
+                        <TableCell>{agent.agent_version ?? '—'}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={agent.update_channel ?? 'stable'}
+                            onValueChange={(value) =>
+                              setUpdatePolicyMutation.mutate({ agentId: agent.id, update_channel: value })
+                            }
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="stable">Estável</SelectItem>
+                              <SelectItem value="beta">Beta</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={agent.auto_update !== false}
+                            onCheckedChange={(checked) =>
+                              setUpdatePolicyMutation.mutate({
+                                agentId: agent.id,
+                                auto_update: checked,
+                                target_version: checked ? null : agent.target_version,
+                              })
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant(agent.last_update_status === 'verified' ? 'done' : agent.last_update_status)}>
+                            {agent.last_update_status === 'verified'
+                              ? 'Atualizado'
+                              : agent.last_update_status === 'rolled_back'
+                                ? 'Revertido'
+                                : agent.last_update_status === 'failed'
+                                  ? 'Falhou'
+                                  : agent.last_update_status === 'rollback_requested'
+                                    ? 'Reversão pendente'
+                                    : (agent.last_update_status ?? 'Em dia')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{agent.rollback_version ?? '—'}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={!agent.rollback_version || rollbackAgentMutation.isPending}
+                            onClick={() => rollbackAgentMutation.mutate(agent)}
+                          >
+                            <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                            Reverter versão
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Versões publicadas</CardTitle>
+              <CardDescription>Instaladores disponíveis por canal e sistema operacional.</CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              {releases.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma versão publicada. Cadastre uma versão para liberar a atualização automática.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Versão</TableHead>
+                      <TableHead>Canal</TableHead>
+                      <TableHead>Sistema</TableHead>
+                      <TableHead>Publicada em</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {releases.map((release) => (
+                      <TableRow key={release.id}>
+                        <TableCell className="font-medium">{release.version}</TableCell>
+                        <TableCell className="capitalize">{release.channel}</TableCell>
+                        <TableCell className="capitalize">{release.platform}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(release.published_at)}</TableCell>
+                        <TableCell>
+                          <Badge variant={release.is_active ? 'default' : 'secondary'}>
+                            {release.is_active ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico de atualizações</CardTitle>
+              <CardDescription>Download, checksum, instalação e reversões por agente.</CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              {updateEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma atualização registrada.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Agente</TableHead>
+                      <TableHead>De → Para</TableHead>
+                      <TableHead>Checksum</TableHead>
+                      <TableHead>Início</TableHead>
+                      <TableHead>Conclusão</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {updateEvents.map((event) => (
+                      <TableRow key={event.id}>
+                        <TableCell>
+                          {agents.find((item) => item.id === event.agent_id)?.name ?? '—'}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {(event.from_version ?? '—') + ' → ' + (event.to_version ?? '—')}
+                        </TableCell>
+                        <TableCell>
+                          {event.checksum_ok === null
+                            ? '—'
+                            : event.checksum_ok
+                              ? 'OK'
+                              : 'Divergente'}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(event.started_at)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{formatDate(event.finished_at)}</TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant(event.status === 'verified' ? 'done' : event.status)}>
+                            {event.status}
+                          </Badge>
+                          {event.error_message && (
+                            <div className="text-xs text-destructive">{event.error_message}</div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+
 
         <TabsContent value="downloads" className="mt-4">
           <Card>
