@@ -116,6 +116,16 @@ export interface DeviceCommand {
   last_action_at?: string | null;
 }
 
+export interface QueueAuditEntry {
+  id: string;
+  action: string;
+  description: string | null;
+  user_name: string | null;
+  created_at: string;
+  record_id: string | null;
+}
+
+
 
 export interface EmployeeDeviceSync {
   id: string;
