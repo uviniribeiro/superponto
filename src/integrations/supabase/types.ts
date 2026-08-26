@@ -1034,6 +1034,9 @@ export type Database = {
           previous_token_expires_at: string | null
           previous_token_hash: string | null
           public_ip: string | null
+          queue_paused: boolean
+          queue_paused_at: string | null
+          queue_paused_by: string | null
           rollback_version: string | null
           settings: Json
           status: string
@@ -1072,6 +1075,9 @@ export type Database = {
           previous_token_expires_at?: string | null
           previous_token_hash?: string | null
           public_ip?: string | null
+          queue_paused?: boolean
+          queue_paused_at?: string | null
+          queue_paused_by?: string | null
           rollback_version?: string | null
           settings?: Json
           status?: string
@@ -1110,6 +1116,9 @@ export type Database = {
           previous_token_expires_at?: string | null
           previous_token_hash?: string | null
           public_ip?: string | null
+          queue_paused?: boolean
+          queue_paused_at?: string | null
+          queue_paused_by?: string | null
           rollback_version?: string | null
           settings?: Json
           status?: string
@@ -1883,6 +1892,10 @@ export type Database = {
           error_message: string | null
           finished_at: string | null
           id: string
+          last_action: string | null
+          last_action_at: string | null
+          paused_at: string | null
+          paused_by: string | null
           payload: Json
           result: Json | null
           started_at: string | null
@@ -1900,6 +1913,10 @@ export type Database = {
           error_message?: string | null
           finished_at?: string | null
           id?: string
+          last_action?: string | null
+          last_action_at?: string | null
+          paused_at?: string | null
+          paused_by?: string | null
           payload?: Json
           result?: Json | null
           started_at?: string | null
@@ -1917,6 +1934,10 @@ export type Database = {
           error_message?: string | null
           finished_at?: string | null
           id?: string
+          last_action?: string | null
+          last_action_at?: string | null
+          paused_at?: string | null
+          paused_by?: string | null
           payload?: Json
           result?: Json | null
           started_at?: string | null
