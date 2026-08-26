@@ -293,6 +293,154 @@ export function useCommunicationAgents() {
       toast({ title: 'Erro ao enviar comando', description: error.message, variant: 'destructive' }),
   });
 
+  /** Registra em auditoria toda ação do operador sobre a fila de comandos. */
+  const auditQueueAction = async (params: {
+    action: string;
+    recordId: string;
+    description: string;
+    oldData?: Record<string, unknown>;
+    newData?: Record<string, unknown>;
+    companyId?: string | null;
+    table?: string;
+  }) => {
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth.user?.id;
+    let companyId = params.companyId ?? null;
+    let userName = auth.user?.email ?? 'Sistema';
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id, full_name, email')
+        .eq('user_id', userId)
+        .maybeSingle();
+      companyId = companyId ?? profile?.company_id ?? null;
+      userName = profile?.full_name ?? profile?.email ?? userName;
+    }
+    await supabase.from('audit_logs').insert({
+      company_id: companyId,
+      user_id: userId,
+      user_name: userName,
+      action: params.action,
+      table_name: params.table ?? 'device_commands',
+      record_id: params.recordId,
+      old_data: params.oldData ?? null,
+      new_data: params.newData ?? null,
+      menu_section: 'Robô de Comunicação',
+      description: params.description,
+    } as never);
+  };
+
+  /** Pausar, retomar, reexecutar ou cancelar um comando da fila. */
+  const commandActionMutation = useMutation({
+    mutationFn: async (input: {
+      command: DeviceCommand;
+      action: 'pause' | 'resume' | 'retry' | 'cancel';
+    }) => {
+      const { command, action } = input;
+      const nowIso = new Date().toISOString();
+      const base: Record<string, unknown> = { last_action: action, last_action_at: nowIso };
+
+      if (action === 'pause') {
+        if (command.status !== 'pending') throw new Error('Só é possível pausar comandos pendentes.');
+        Object.assign(base, { status: 'paused', paused_at: nowIso });
+      } else if (action === 'resume') {
+        Object.assign(base, { status: 'pending', paused_at: null, error_message: null });
+      } else if (action === 'retry') {
+        Object.assign(base, {
+          status: 'pending',
+          paused_at: null,
+          error_message: null,
+          result: null,
+          started_at: null,
+          finished_at: null,
+        });
+      } else {
+        Object.assign(base, { status: 'cancelled', finished_at: nowIso });
+      }
+
+      const { error } = await supabase.from('device_commands').update(base as never).eq('id', command.id);
+      if (error) throw error;
+
+      const labels: Record<string, string> = {
+        pause: 'Comando pausado na fila',
+        resume: 'Comando retomado na fila',
+        retry: 'Comando reenviado para execução',
+        cancel: 'Comando cancelado',
+      };
+      await auditQueueAction({
+        action: 'command_' + action,
+        recordId: command.id,
+        description: labels[action] + ': ' + command.command,
+        oldData: { status: command.status },
+        newData: { status: base.status },
+      });
+      return labels[action];
+    },
+    onSuccess: (label) => {
+      invalidate('device-commands');
+      toast({ title: label });
+    },
+    onError: (error: Error) =>
+      toast({ title: 'Erro na fila de comandos', description: error.message, variant: 'destructive' }),
+  });
+
+  /** Pausa ou retoma a fila inteira de um agente. */
+  const toggleQueuePauseMutation = useMutation({
+    mutationFn: async (input: { agent: CommunicationAgent; paused: boolean }) => {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('communication_agents')
+        .update({
+          queue_paused: input.paused,
+          queue_paused_at: input.paused ? new Date().toISOString() : null,
+          queue_paused_by: input.paused ? (auth.user?.id ?? null) : null,
+        } as never)
+        .eq('id', input.agent.id);
+      if (error) throw error;
+
+      await auditQueueAction({
+        action: input.paused ? 'queue_paused' : 'queue_resumed',
+        table: 'communication_agents',
+        recordId: input.agent.id,
+        companyId: input.agent.company_id,
+        description:
+          (input.paused ? 'Fila de comandos pausada' : 'Fila de comandos retomada') +
+          ' no robô ' + input.agent.name,
+        oldData: { queue_paused: input.agent.queue_paused },
+        newData: { queue_paused: input.paused },
+      });
+      return input.paused;
+    },
+    onSuccess: (paused) => {
+      invalidate('communication-agents');
+      toast({
+        title: paused ? 'Fila pausada' : 'Fila retomada',
+        description: paused
+          ? 'O robô não receberá novos comandos até ser retomado.'
+          : 'Os comandos pendentes voltarão a ser executados.',
+      });
+    },
+    onError: (error: Error) =>
+      toast({ title: 'Erro ao alterar a fila', description: error.message, variant: 'destructive' }),
+  });
+
+  /** Auditoria das ações do operador sobre a fila. */
+  const queueAuditQuery = useQuery({
+    queryKey: ['device-commands-audit'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('id, action, description, user_name, created_at, record_id')
+        .eq('menu_section', 'Robô de Comunicação')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return (data ?? []) as unknown as QueueAuditEntry[];
+    },
+  });
+
+
+
   /** Adota um relógio encontrado na rede, criando o equipamento no sistema. */
   const adoptDeviceMutation = useMutation({
     mutationFn: async (device: DiscoveredDevice) => {
