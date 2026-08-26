@@ -513,7 +513,12 @@ serve(async (req) => {
       }
 
       case "pull_commands": {
+        // Fila pausada pelo operador: o robô não recebe novos comandos.
+        if (agent.queue_paused) {
+          return json({ success: true, commands: [], queue_paused: true });
+        }
         const { data: commands } = await supabase
+
           .from("device_commands")
           .select("id, command, payload, equipment_id")
           .eq("company_id", agent.company_id)
