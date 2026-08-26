@@ -104,7 +104,15 @@ export interface DeviceCommand {
   error_message: string | null;
   created_at: string;
   finished_at: string | null;
+  started_at?: string | null;
+  updated_at?: string | null;
+  payload?: Record<string, unknown> | null;
+  result?: Record<string, unknown> | null;
+  paused_at?: string | null;
+  last_action?: string | null;
+  last_action_at?: string | null;
 }
+
 
 export interface EmployeeDeviceSync {
   id: string;
