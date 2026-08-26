@@ -83,7 +83,12 @@ export default function CommunicationAgents() {
     startTokenRotationMutation,
     cancelTokenRotationMutation,
     setAutoRotationMutation,
+    releases,
+    updateEvents,
+    setUpdatePolicyMutation,
+    rollbackAgentMutation,
   } = useCommunicationAgents();
+
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
