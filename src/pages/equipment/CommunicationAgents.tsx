@@ -212,6 +212,8 @@ export default function CommunicationAgents() {
           <TabsTrigger value="commands">Comandos</TabsTrigger>
           <TabsTrigger value="employees">Funcionários no Relógio</TabsTrigger>
           <TabsTrigger value="tokens">Tokens</TabsTrigger>
+          <TabsTrigger value="updates">Atualizações</TabsTrigger>
+
           <TabsTrigger value="downloads">Downloads</TabsTrigger>
         </TabsList>
 
