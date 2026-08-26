@@ -35,7 +35,10 @@ export interface CommunicationAgent {
   rollback_version: string | null;
   last_update_status: string | null;
   last_update_at: string | null;
+  queue_paused: boolean | null;
+  queue_paused_at: string | null;
 }
+
 
 export interface AgentRelease {
   id: string;
