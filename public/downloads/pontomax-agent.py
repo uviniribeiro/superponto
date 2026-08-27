@@ -126,6 +126,9 @@ class Gateway:
         self.cfg = cfg
         self.url = cfg["gateway_url"]
         self.token = cfg["agent_token"]
+        self.token_expired = False
+        self.auth_error = None
+        self.token_expires_at = None
         self.verify_ssl = cfg.get("verify_ssl", True)
 
     def adopt_token(self, new_token):
@@ -169,6 +172,15 @@ class Gateway:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", "ignore")
+            if exc.code == 401:
+                self.auth_error = detail
+                if "expirad" in detail.lower():
+                    self.token_expired = True
+                    log(
+                        "Token expirado. Gere um novo token no sistema e rode: "
+                        "pontomax-agent --configure",
+                        "ERROR",
+                    )
             log("Gateway %s -> HTTP %s %s" % (action, exc.code, detail), "ERROR")
         except Exception as exc:
             log("Gateway %s -> %s" % (action, exc), "ERROR")
@@ -956,6 +968,11 @@ class Agent:
             return False
         self.remote = data.get("agent") or {}
         rotation = self.remote.get("token_rotation") or {}
+        self.gw.token_expired = False
+        self.gw.auth_error = None
+        if rotation.get("current_token_expires_at"):
+            self.gw.token_expires_at = rotation["current_token_expires_at"]
+            log("Token atual valido ate %s" % rotation["current_token_expires_at"])
         if rotation.get("new_token"):
             self.gw.adopt_token(rotation["new_token"])
             # Revalida imediatamente com o token novo para efetivar a troca.
