@@ -37,11 +37,16 @@ import {
   Info,
   KeyRound,
   RotateCcw,
+  Pause,
+  Play,
+  Ban,
+  FileText,
 
 } from 'lucide-react';
 import {
   useCommunicationAgents,
   type CommunicationAgent,
+  type DeviceCommand,
   type DiscoveredDevice,
 } from '@/hooks/useCommunicationAgents';
 import { AgentTokenRotationDialog } from '@/components/equipment/AgentTokenRotationDialog';
@@ -78,6 +83,9 @@ export default function CommunicationAgents() {
     updateAgentMutation,
     deleteAgentMutation,
     queueCommandMutation,
+    commandActionMutation,
+    toggleQueuePauseMutation,
+    queueAudit,
     adoptDeviceMutation,
     ignoreDeviceMutation,
     syncEmployeesMutation,
@@ -99,6 +107,9 @@ export default function CommunicationAgents() {
   const [token, setToken] = useState<string | null>(null);
   const [syncEquipment, setSyncEquipment] = useState<string>('');
   const [rotationAgentId, setRotationAgentId] = useState<string | null>(null);
+  const [commandSearch, setCommandSearch] = useState('');
+  const [commandStatus, setCommandStatus] = useState('all');
+  const [logCommand, setLogCommand] = useState<DeviceCommand | null>(null);
   const rotationAgent = agents.find((item) => item.id === rotationAgentId) ?? null;
 
   const { data: equipmentList = [] } = useQuery({
