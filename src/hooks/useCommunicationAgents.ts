@@ -773,6 +773,10 @@ export function useCommunicationAgents() {
     updateAgentMutation,
     deleteAgentMutation,
     queueCommandMutation,
+    commandActionMutation,
+    toggleQueuePauseMutation,
+    queueAudit: queueAuditQuery.data ?? [],
+
     adoptDeviceMutation,
     ignoreDeviceMutation,
     syncEmployeesMutation,
