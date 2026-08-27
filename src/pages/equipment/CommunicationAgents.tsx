@@ -127,6 +127,16 @@ export default function CommunicationAgents() {
   const equipmentName = (id?: string | null) =>
     equipmentList.find((item) => item.id === id)?.name ?? '—';
 
+  const filteredCommands = commands.filter((command) => {
+    const term = commandSearch.trim().toLowerCase();
+    const matchesTerm =
+      !term ||
+      command.command.toLowerCase().includes(term) ||
+      equipmentName(command.equipment_id).toLowerCase().includes(term);
+    const status = command.status ?? 'pending';
+    return matchesTerm && (commandStatus === 'all' || status === commandStatus);
+  });
+
   const handleCreate = async () => {
     const generated = await createAgentMutation.mutateAsync({
       name: name.trim(),
@@ -1020,6 +1030,47 @@ export default function CommunicationAgents() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!logCommand} onOpenChange={(value) => !value && setLogCommand(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Logs do comando</DialogTitle>
+            <DialogDescription>
+              {logCommand ? logCommand.command + ' · ' + equipmentName(logCommand.equipment_id) : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {logCommand && (
+            <div className="space-y-3 text-sm">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div>Status: <Badge variant={statusVariant(logCommand.status)}>{logCommand.status ?? 'pendente'}</Badge></div>
+                <div>Tentativas: {logCommand.attempts ?? 0}</div>
+                <div>Criado em: {formatDate(logCommand.created_at)}</div>
+                <div>Iniciado em: {formatDate(logCommand.started_at)}</div>
+                <div>Concluído em: {formatDate(logCommand.finished_at)}</div>
+                <div>Última ação: {logCommand.last_action ?? '—'} {logCommand.last_action_at ? '(' + formatDate(logCommand.last_action_at) + ')' : ''}</div>
+              </div>
+              {logCommand.error_message && (
+                <p className="text-destructive">{logCommand.error_message}</p>
+              )}
+              <div>
+                <p className="mb-1 font-medium">Dados enviados</p>
+                <pre className="max-h-40 overflow-auto rounded-xl bg-muted p-3 text-xs">
+                  {JSON.stringify(logCommand.payload ?? {}, null, 2)}
+                </pre>
+              </div>
+              <div>
+                <p className="mb-1 font-medium">Retorno do relógio</p>
+                <pre className="max-h-40 overflow-auto rounded-xl bg-muted p-3 text-xs">
+                  {JSON.stringify(logCommand.result ?? {}, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogCommand(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AgentTokenRotationDialog
         agent={rotationAgent}
