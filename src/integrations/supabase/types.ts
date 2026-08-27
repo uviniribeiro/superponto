@@ -1043,7 +1043,11 @@ export type Database = {
           sync_interval_seconds: number
           target_version: string | null
           token_auto_rotation: boolean
+          token_expired_at: string | null
+          token_expires_at: string | null
           token_hash: string
+          token_max_age_days: number
+          token_renew_before_days: number
           token_rotated_at: string | null
           token_rotation_interval_days: number
           token_rotation_started_at: string | null
@@ -1084,7 +1088,11 @@ export type Database = {
           sync_interval_seconds?: number
           target_version?: string | null
           token_auto_rotation?: boolean
+          token_expired_at?: string | null
+          token_expires_at?: string | null
           token_hash: string
+          token_max_age_days?: number
+          token_renew_before_days?: number
           token_rotated_at?: string | null
           token_rotation_interval_days?: number
           token_rotation_started_at?: string | null
@@ -1125,7 +1133,11 @@ export type Database = {
           sync_interval_seconds?: number
           target_version?: string | null
           token_auto_rotation?: boolean
+          token_expired_at?: string | null
+          token_expires_at?: string | null
           token_hash?: string
+          token_max_age_days?: number
+          token_renew_before_days?: number
           token_rotated_at?: string | null
           token_rotation_interval_days?: number
           token_rotation_started_at?: string | null
