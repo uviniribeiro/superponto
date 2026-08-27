@@ -455,12 +455,88 @@ export default function CommunicationAgents() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Histórico de comandos</CardTitle>
-              <CardDescription>Últimas 100 execuções.</CardDescription>
+              <CardTitle>Fila por robô</CardTitle>
+              <CardDescription>
+                Ao pausar, o robô deixa de receber novos comandos até a fila ser retomada.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {agents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum robô cadastrado.</p>
+              ) : (
+                agents.map((agent: CommunicationAgent) => (
+                  <div
+                    key={agent.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card/60 p-4"
+                  >
+                    <div>
+                      <p className="font-medium">{agent.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {commands.filter((c) => c.agent_id === agent.id && c.status === 'pending').length} pendente(s) ·{' '}
+                        {commands.filter((c) => c.agent_id === agent.id && c.status === 'paused').length} pausado(s)
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant={agent.queue_paused ? 'destructive' : 'default'}>
+                        {agent.queue_paused ? 'Fila pausada' : 'Fila ativa'}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={toggleQueuePauseMutation.isPending}
+                        onClick={() =>
+                          toggleQueuePauseMutation.mutate({ agent, paused: !agent.queue_paused })
+                        }
+                      >
+                        {agent.queue_paused ? (
+                          <>
+                            <Play className="mr-1 h-3.5 w-3.5" /> Retomar fila
+                          </>
+                        ) : (
+                          <>
+                            <Pause className="mr-1 h-3.5 w-3.5" /> Pausar fila
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="gap-3 sm:flex sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <CardTitle>Fila e histórico de comandos</CardTitle>
+                <CardDescription>Últimas 100 execuções, com pausa, reexecução e logs.</CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Input
+                  value={commandSearch}
+                  onChange={(event) => setCommandSearch(event.target.value)}
+                  placeholder="Buscar comando ou equipamento"
+                  className="w-full sm:w-64"
+                />
+                <Select value={commandStatus} onValueChange={setCommandStatus}>
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="pending">Pendentes</SelectItem>
+                    <SelectItem value="paused">Pausados</SelectItem>
+                    <SelectItem value="running">Em execução</SelectItem>
+                    <SelectItem value="done">Concluídos</SelectItem>
+                    <SelectItem value="failed">Com falha</SelectItem>
+                    <SelectItem value="cancelled">Cancelados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-              {commands.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum comando executado.</p>
+              {filteredCommands.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum comando encontrado.</p>
               ) : (
                 <Table>
                   <TableHeader>
@@ -471,10 +547,11 @@ export default function CommunicationAgents() {
                       <TableHead>Criado em</TableHead>
                       <TableHead>Concluído</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {commands.map((command) => (
+                    {filteredCommands.map((command) => (
                       <TableRow key={command.id}>
                         <TableCell className="font-medium">{command.command}</TableCell>
                         <TableCell>{equipmentName(command.equipment_id)}</TableCell>
@@ -487,6 +564,91 @@ export default function CommunicationAgents() {
                             <div className="text-xs text-destructive">{command.error_message}</div>
                           )}
                         </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            {command.status === 'pending' && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                title="Pausar comando"
+                                onClick={() => commandActionMutation.mutate({ command, action: 'pause' })}
+                              >
+                                <Pause className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {command.status === 'paused' && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                title="Retomar comando"
+                                onClick={() => commandActionMutation.mutate({ command, action: 'resume' })}
+                              >
+                                <Play className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {['done', 'failed', 'cancelled'].includes(command.status ?? '') && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                title="Reexecutar comando"
+                                onClick={() => commandActionMutation.mutate({ command, action: 'retry' })}
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {['pending', 'paused', 'running'].includes(command.status ?? 'pending') && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                title="Cancelar comando"
+                                onClick={() => commandActionMutation.mutate({ command, action: 'cancel' })}
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              title="Ver logs do comando"
+                              onClick={() => setLogCommand(command)}
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Auditoria da fila</CardTitle>
+              <CardDescription>Quem pausou, retomou, reexecutou ou cancelou cada comando.</CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              {queueAudit.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma ação registrada.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Usuário</TableHead>
+                      <TableHead>Ação</TableHead>
+                      <TableHead>Detalhe</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {queueAudit.map((entry) => (
+                      <TableRow key={entry.id}>
+                        <TableCell className="whitespace-nowrap">{formatDate(entry.created_at)}</TableCell>
+                        <TableCell>{entry.user_name ?? '—'}</TableCell>
+                        <TableCell>{entry.action}</TableCell>
+                        <TableCell>{entry.description ?? '—'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -495,6 +657,7 @@ export default function CommunicationAgents() {
             </CardContent>
           </Card>
         </TabsContent>
+
 
         <TabsContent value="employees" className="mt-4 space-y-4">
           <Card>
