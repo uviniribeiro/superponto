@@ -183,6 +183,41 @@ serve(async (req) => {
     }
   }
 
+  // Expiração automática: o token atual tem validade máxima. Depois dela, só
+  // um token novo (emitido no sistema) volta a autenticar o robô.
+  const maxAgeDays = agent.token_max_age_days ?? 90;
+  const renewBeforeMs = (agent.token_renew_before_days ?? 7) * 86_400_000;
+  const tokenExpiresAtMs = agent.token_expires_at
+    ? new Date(agent.token_expires_at).getTime()
+    : null;
+  const currentTokenExpired = isCurrent && tokenExpiresAtMs !== null &&
+    tokenExpiresAtMs < nowDate.getTime();
+
+  if (currentTokenExpired && !agent.pending_token_hash) {
+    if (agent.token_rotation_status !== "expired") {
+      await supabase
+        .from("communication_agents")
+        .update({
+          token_rotation_status: "expired",
+          token_expired_at: now,
+          status: "offline",
+          updated_at: now,
+        })
+        .eq("id", agent.id);
+      await supabase.from("agent_token_rotations").insert({
+        company_id: agent.company_id,
+        agent_id: agent.id,
+        mode: "automatic",
+        status: "expired",
+        notes: "Token expirado automaticamente por tempo de validade",
+      });
+    }
+    return json({
+      error: "Token expirado. Gere um novo token do robô no sistema.",
+      token_expired: true,
+    }, 401);
+  }
+
   // Toda requisição vale como sinal de vida.
   const liveness: Record<string, unknown> = {
     status: "online",
@@ -210,6 +245,10 @@ serve(async (req) => {
     ).toISOString();
     liveness.token_rotation_status = "validated";
     liveness.token_rotated_at = now;
+    liveness.token_expired_at = null;
+    liveness.token_expires_at = new Date(
+      nowDate.getTime() + maxAgeDays * 86_400_000,
+    ).toISOString();
     if (agent.token_auto_rotation) {
       liveness.next_token_rotation_at = new Date(
         nowDate.getTime() + (agent.token_rotation_interval_days ?? 90) * 86_400_000,
@@ -237,8 +276,13 @@ serve(async (req) => {
     isCurrent &&
     agent.token_auto_rotation &&
     !agent.pending_token_hash &&
-    agent.next_token_rotation_at &&
-    new Date(agent.next_token_rotation_at).getTime() <= nowDate.getTime()
+    (
+      (agent.next_token_rotation_at &&
+        new Date(agent.next_token_rotation_at).getTime() <= nowDate.getTime()) ||
+      // Renovação antecipada: evita que o token chegue a expirar de fato.
+      (tokenExpiresAtMs !== null &&
+        tokenExpiresAtMs - nowDate.getTime() <= renewBeforeMs)
+    )
   ) {
     const bytes = new Uint8Array(24);
     crypto.getRandomValues(bytes);
@@ -323,6 +367,8 @@ serve(async (req) => {
       // Novo token entregue uma única vez; o agente deve salvá-lo e reautenticar.
       new_token: issuedToken,
       new_token_expires_at: issuedExpiresAt,
+      current_token_expires_at: agent.token_expires_at ?? null,
+      max_age_days: maxAgeDays,
     },
     update: updateInstruction,
   };
