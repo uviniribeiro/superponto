@@ -388,6 +388,7 @@ export function useCommunicationAgents() {
     },
     onSuccess: (label) => {
       invalidate('device-commands');
+      invalidate('device-commands-audit');
       toast({ title: label });
     },
     onError: (error: Error) =>
@@ -423,6 +424,7 @@ export function useCommunicationAgents() {
     },
     onSuccess: (paused) => {
       invalidate('communication-agents');
+      invalidate('device-commands-audit');
       toast({
         title: paused ? 'Fila pausada' : 'Fila retomada',
         description: paused
