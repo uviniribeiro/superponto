@@ -1145,6 +1145,24 @@ class Agent:
 # --------------------------------------------------------------------------- #
 # Configuracao assistida
 # --------------------------------------------------------------------------- #
+def install_windows_service():
+    """Registra e inicia o agente como servico do Windows."""
+    service_script = Path(__file__).with_name("pontomax-agent-service.py")
+    try:
+        if getattr(sys, "frozen", False):
+            base = [sys.executable, "--service"]
+        else:
+            base = [sys.executable, str(service_script)]
+        subprocess.run(base + ["--startup", "auto", "install"], check=True)
+        subprocess.run(base + ["start"], check=True)
+        print("Servico PontoMaxAgent instalado e iniciado.")
+        return True
+    except Exception as exc:
+        print("Nao foi possivel registrar o servico automaticamente: %s" % exc)
+        print("Rode o instalador como administrador ou use install-pontomax-agent.bat.")
+        return False
+
+
 def configure():
     cfg = load_config()
     print("=" * 62)
@@ -1176,6 +1194,10 @@ def configure():
             print("%d relogio(s) enviados ao sistema." % len(devices))
         else:
             print("Nenhum relogio encontrado agora - a varredura roda novamente automaticamente.")
+        if platform.system() == "Windows":
+            answer = input("Registrar como servico do Windows agora? [S/n]: ").strip().lower()
+            if answer in ("", "s", "sim", "y"):
+                install_windows_service()
         return 0
     print("Nao foi possivel validar o token. Revise os dados e rode novamente com --configure.")
     return 1
