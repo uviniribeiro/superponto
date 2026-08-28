@@ -124,6 +124,9 @@ export default function CommunicationAgents() {
     },
   });
 
+  const tokenExpired = (agent: CommunicationAgent) =>
+    !!agent.token_expires_at && new Date(agent.token_expires_at).getTime() < Date.now();
+
   const equipmentName = (id?: string | null) =>
     equipmentList.find((item) => item.id === id)?.name ?? '—';
 
@@ -288,15 +291,26 @@ export default function CommunicationAgents() {
                         <TableCell>
                           <Badge
                             variant={
-                              agent.token_rotation_status === 'pending' ? 'secondary' : 'outline'
+                              tokenExpired(agent)
+                                ? 'destructive'
+                                : agent.token_rotation_status === 'pending'
+                                  ? 'secondary'
+                                  : 'outline'
                             }
                           >
-                            {agent.token_rotation_status === 'pending'
-                              ? 'Rotação pendente'
-                              : agent.token_auto_rotation
-                                ? 'Auto'
-                                : 'Estável'}
+                            {tokenExpired(agent)
+                              ? 'Token expirado'
+                              : agent.token_rotation_status === 'pending'
+                                ? 'Rotação pendente'
+                                : agent.token_auto_rotation
+                                  ? 'Auto'
+                                  : 'Estável'}
                           </Badge>
+                          {agent.token_expires_at && (
+                            <div className="text-xs text-muted-foreground">
+                              Expira em {formatDate(agent.token_expires_at)}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-wrap justify-end gap-1">
@@ -1079,7 +1093,11 @@ export default function CommunicationAgents() {
         onStart={(input) => startTokenRotationMutation.mutateAsync(input)}
         onCancel={(id) => cancelTokenRotationMutation.mutate(id)}
         onSavePolicy={(input) => setAutoRotationMutation.mutate(input)}
-        isBusy={startTokenRotationMutation.isPending || cancelTokenRotationMutation.isPending}
+        isBusy={
+          startTokenRotationMutation.isPending ||
+          cancelTokenRotationMutation.isPending ||
+          setAutoRotationMutation.isPending
+        }
       />
 
       <Dialog open={open} onOpenChange={setOpen}>
