@@ -29,6 +29,10 @@ export interface CommunicationAgent {
   token_auto_rotation: boolean | null;
   token_rotation_interval_days: number | null;
   next_token_rotation_at: string | null;
+  token_expires_at: string | null;
+  token_max_age_days: number | null;
+  token_renew_before_days: number | null;
+  token_expired_at: string | null;
   auto_update: boolean | null;
   update_channel: string | null;
   target_version: string | null;
@@ -232,6 +236,7 @@ export function useCommunicationAgents() {
         auto_adopt: input.auto_adopt,
         auto_discovery: true,
         status: 'pending',
+        token_expires_at: new Date(Date.now() + 90 * 86_400_000).toISOString(),
       } as never);
       if (error) throw error;
       return token;
