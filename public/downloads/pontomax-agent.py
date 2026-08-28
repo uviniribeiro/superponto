@@ -50,6 +50,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 
 AGENT_VERSION = "3.1.0"
 DEFAULT_GATEWAY = "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/agent-gateway"
