@@ -1093,7 +1093,11 @@ export default function CommunicationAgents() {
         onStart={(input) => startTokenRotationMutation.mutateAsync(input)}
         onCancel={(id) => cancelTokenRotationMutation.mutate(id)}
         onSavePolicy={(input) => setAutoRotationMutation.mutate(input)}
-        isBusy={startTokenRotationMutation.isPending || cancelTokenRotationMutation.isPending}
+        isBusy={
+          startTokenRotationMutation.isPending ||
+          cancelTokenRotationMutation.isPending ||
+          setAutoRotationMutation.isPending
+        }
       />
 
       <Dialog open={open} onOpenChange={setOpen}>

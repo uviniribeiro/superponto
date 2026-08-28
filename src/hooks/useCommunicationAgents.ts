@@ -636,17 +636,37 @@ export function useCommunicationAgents() {
 
   /** Liga/desliga a rotação automática periódica do token. */
   const setAutoRotationMutation = useMutation({
-    mutationFn: async (input: { agentId: string; enabled: boolean; intervalDays: number }) => {
+    mutationFn: async (input: {
+      agentId: string;
+      enabled: boolean;
+      intervalDays: number;
+      maxAgeDays: number;
+      renewBeforeDays: number;
+    }) => {
+      const { data: current, error: readError } = await supabase
+        .from('communication_agents')
+        .select('token_expires_at')
+        .eq('id', input.agentId)
+        .maybeSingle();
+      if (readError) throw readError;
+
       const next = input.enabled
         ? new Date(Date.now() + input.intervalDays * 86_400_000).toISOString()
         : null;
+      const patch: Record<string, unknown> = {
+        token_auto_rotation: input.enabled,
+        token_rotation_interval_days: input.intervalDays,
+        next_token_rotation_at: next,
+        token_max_age_days: input.maxAgeDays,
+        token_renew_before_days: Math.min(input.renewBeforeDays, Math.max(1, input.maxAgeDays - 1)),
+      };
+      if (!current?.token_expires_at) {
+        patch.token_expires_at = new Date(Date.now() + input.maxAgeDays * 86_400_000).toISOString();
+      }
+
       const { error } = await supabase
         .from('communication_agents')
-        .update({
-          token_auto_rotation: input.enabled,
-          token_rotation_interval_days: input.intervalDays,
-          next_token_rotation_at: next,
-        } as never)
+        .update(patch as never)
         .eq('id', input.agentId);
       if (error) throw error;
     },

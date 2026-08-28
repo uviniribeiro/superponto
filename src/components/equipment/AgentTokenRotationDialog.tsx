@@ -24,7 +24,13 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onStart: (input: { agent: CommunicationAgent; windowMinutes: number }) => Promise<{ token: string; expiresAt: string }>;
   onCancel: (agentId: string) => void;
-  onSavePolicy: (input: { agentId: string; enabled: boolean; intervalDays: number }) => void;
+  onSavePolicy: (input: {
+    agentId: string;
+    enabled: boolean;
+    intervalDays: number;
+    maxAgeDays: number;
+    renewBeforeDays: number;
+  }) => void;
   isBusy?: boolean;
 }
 
@@ -49,14 +55,18 @@ export function AgentTokenRotationDialog({
   const [windowMinutes, setWindowMinutes] = useState('60');
   const [autoRotation, setAutoRotation] = useState(false);
   const [intervalDays, setIntervalDays] = useState('90');
+  const [maxAgeDays, setMaxAgeDays] = useState('90');
+  const [renewBeforeDays, setRenewBeforeDays] = useState('7');
   const [newToken, setNewToken] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    if (!agent) return;
-    setAutoRotation(!!agent.token_auto_rotation);
-    setIntervalDays(String(agent.token_rotation_interval_days ?? 90));
-    setNewToken(null);
+     if (!agent) return;
+     setAutoRotation(!!agent.token_auto_rotation);
+     setIntervalDays(String(agent.token_rotation_interval_days ?? 90));
+     setMaxAgeDays(String(agent.token_max_age_days ?? 90));
+     setRenewBeforeDays(String(agent.token_renew_before_days ?? 7));
+     setNewToken(null);
   }, [agent?.id, open]);
 
   useEffect(() => {
@@ -150,49 +160,75 @@ export function AgentTokenRotationDialog({
             </div>
           )}
 
-          <div className="rounded-xl border p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Label className="text-sm">Rotação automática</Label>
-                <p className="text-xs text-muted-foreground">
-                  O sistema emite um token novo periodicamente e o robô troca sozinho, com validação.
-                </p>
-              </div>
-              <Switch checked={autoRotation} onCheckedChange={setAutoRotation} />
-            </div>
-            {autoRotation && (
-              <div className="mt-3 space-y-2">
-                <Label className="text-xs">Intervalo (dias)</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={intervalDays}
-                  onChange={(event) => setIntervalDays(event.target.value)}
-                />
-                {agent.next_token_rotation_at && (
-                  <p className="text-xs text-muted-foreground">
-                    Próxima rotação prevista:{' '}
-                    {new Date(agent.next_token_rotation_at).toLocaleString('pt-BR')}
-                  </p>
-                )}
-              </div>
-            )}
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-3"
-              onClick={() =>
-                onSavePolicy({
-                  agentId: agent.id,
-                  enabled: autoRotation,
-                  intervalDays: Math.max(1, Number(intervalDays) || 90),
-                })
-              }
-            >
-              Salvar política
-            </Button>
-          </div>
+           <div className="rounded-xl border p-3">
+             <div className="flex items-center justify-between gap-3">
+               <div>
+                 <Label className="text-sm">Rotação automática</Label>
+                 <p className="text-xs text-muted-foreground">
+                   O sistema emite um token novo periodicamente e o robô troca sozinho, com validação.
+                 </p>
+               </div>
+               <Switch checked={autoRotation} onCheckedChange={setAutoRotation} />
+             </div>
+             <div className="mt-3 grid gap-3 sm:grid-cols-3">
+               <div className="space-y-2">
+                 <Label className="text-xs">Validade máxima (dias)</Label>
+                 <Input
+                   type="number"
+                   min={1}
+                   max={730}
+                   value={maxAgeDays}
+                   onChange={(event) => setMaxAgeDays(event.target.value)}
+                 />
+               </div>
+               <div className="space-y-2">
+                 <Label className="text-xs">Renovar antes (dias)</Label>
+                 <Input
+                   type="number"
+                   min={1}
+                   max={30}
+                   value={renewBeforeDays}
+                   onChange={(event) => setRenewBeforeDays(event.target.value)}
+                 />
+               </div>
+               {autoRotation && (
+                 <div className="space-y-2">
+                   <Label className="text-xs">Intervalo (dias)</Label>
+                   <Input
+                     type="number"
+                     min={1}
+                     max={365}
+                     value={intervalDays}
+                     onChange={(event) => setIntervalDays(event.target.value)}
+                   />
+                 </div>
+               )}
+             </div>
+             <p className="mt-2 text-xs text-muted-foreground">
+               Token atual: {agent.token_expires_at ? `expira em ${new Date(agent.token_expires_at).toLocaleString('pt-BR')}` : 'sem validade configurada'}.
+             </p>
+             {autoRotation && agent.next_token_rotation_at && (
+               <p className="mt-1 text-xs text-muted-foreground">
+                 Próxima rotação prevista: {new Date(agent.next_token_rotation_at).toLocaleString('pt-BR')}
+               </p>
+             )}
+             <Button
+               size="sm"
+               variant="outline"
+               className="mt-3"
+               onClick={() =>
+                 onSavePolicy({
+                   agentId: agent.id,
+                   enabled: autoRotation,
+                   intervalDays: Math.min(365, Math.max(1, Number(intervalDays) || 90)),
+                   maxAgeDays: Math.min(730, Math.max(1, Number(maxAgeDays) || 90)),
+                   renewBeforeDays: Math.min(30, Math.max(1, Number(renewBeforeDays) || 7)),
+                 })
+               }
+             >
+               Salvar política
+             </Button>
+           </div>
         </div>
 
         <DialogFooter className="gap-2">
