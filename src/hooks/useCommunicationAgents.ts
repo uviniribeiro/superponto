@@ -384,8 +384,17 @@ export function useCommunicationAgents() {
       action: 'pause' | 'resume' | 'retry' | 'cancel';
     }) => {
       const { command, action } = input;
+      const permissionMap = {
+        pause: [permissions.canPause, 'pausar comandos'],
+        resume: [permissions.canResume, 'retomar comandos'],
+        retry: [permissions.canRetry, 'reexecutar comandos'],
+        cancel: [permissions.canCancel, 'cancelar comandos'],
+      } as const;
+      assertPermission(permissionMap[action][0], permissionMap[action][1]);
+
       const nowIso = new Date().toISOString();
       const base: Record<string, unknown> = { last_action: action, last_action_at: nowIso };
+
 
       if (action === 'pause') {
         if (command.status !== 'pending') throw new Error('Só é possível pausar comandos pendentes.');
