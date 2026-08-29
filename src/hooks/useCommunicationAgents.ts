@@ -176,6 +176,23 @@ const sha256 = async (value: string) => {
 export function useCommunicationAgents() {
   const queryClient = useQueryClient();
   const invalidate = (key: string) => queryClient.invalidateQueries({ queryKey: [key] });
+  const { isAdmin, isManager } = useAuth();
+
+  /** Permissões da fila: gerentes operam a fila, apenas admin encerra/cancela e mexe em token. */
+  const permissions = {
+    canPause: isManager,
+    canResume: isManager,
+    canRetry: isManager,
+    canCancel: isAdmin,
+    canManageTokens: isAdmin,
+    canAdoptDevices: isAdmin,
+  };
+
+  const assertPermission = (allowed: boolean, action: string) => {
+    if (!allowed) {
+      throw new Error(`Seu perfil não tem permissão para ${action}.`);
+    }
+  };
 
   const agentsQuery = useQuery({
     queryKey: ['communication-agents'],
