@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface CommunicationAgent {
   id: string;
@@ -81,6 +82,20 @@ export interface AgentTokenRotation {
   validated_at: string | null;
   finished_at: string | null;
   notes: string | null;
+  started_by: string | null;
+  started_by_name?: string | null;
+}
+
+/** Resultado do teste em modo simulado da troca de token. */
+export interface RotationSimulation {
+  agentName: string;
+  checksumOk: boolean;
+  sampleHashPrefix: string;
+  gatewayReachable: boolean;
+  gatewayRejectedFakeToken: boolean;
+  agentOnline: boolean;
+  currentTokenExpiresAt: string | null;
+  blockingReason: string | null;
 }
 
 export interface DiscoveredDevice {
@@ -161,6 +176,23 @@ const sha256 = async (value: string) => {
 export function useCommunicationAgents() {
   const queryClient = useQueryClient();
   const invalidate = (key: string) => queryClient.invalidateQueries({ queryKey: [key] });
+  const { isAdmin, isManager } = useAuth();
+
+  /** Permissões da fila: gerentes operam a fila, apenas admin encerra/cancela e mexe em token. */
+  const permissions = {
+    canPause: isManager,
+    canResume: isManager,
+    canRetry: isManager,
+    canCancel: isAdmin,
+    canManageTokens: isAdmin,
+    canAdoptDevices: isAdmin,
+  };
+
+  const assertPermission = (allowed: boolean, action: string) => {
+    if (!allowed) {
+      throw new Error(`Seu perfil não tem permissão para ${action}.`);
+    }
+  };
 
   const agentsQuery = useQuery({
     queryKey: ['communication-agents'],
@@ -352,8 +384,17 @@ export function useCommunicationAgents() {
       action: 'pause' | 'resume' | 'retry' | 'cancel';
     }) => {
       const { command, action } = input;
+      const permissionMap = {
+        pause: [permissions.canPause, 'pausar comandos'],
+        resume: [permissions.canResume, 'retomar comandos'],
+        retry: [permissions.canRetry, 'reexecutar comandos'],
+        cancel: [permissions.canCancel, 'cancelar comandos'],
+      } as const;
+      assertPermission(permissionMap[action][0], permissionMap[action][1]);
+
       const nowIso = new Date().toISOString();
       const base: Record<string, unknown> = { last_action: action, last_action_at: nowIso };
+
 
       if (action === 'pause') {
         if (command.status !== 'pending') throw new Error('Só é possível pausar comandos pendentes.');
@@ -403,6 +444,10 @@ export function useCommunicationAgents() {
   /** Pausa ou retoma a fila inteira de um agente. */
   const toggleQueuePauseMutation = useMutation({
     mutationFn: async (input: { agent: CommunicationAgent; paused: boolean }) => {
+      assertPermission(
+        input.paused ? permissions.canPause : permissions.canResume,
+        input.paused ? 'pausar a fila' : 'retomar a fila',
+      );
       const { data: auth } = await supabase.auth.getUser();
       const { error } = await supabase
         .from('communication_agents')
@@ -441,6 +486,64 @@ export function useCommunicationAgents() {
       toast({ title: 'Erro ao alterar a fila', description: error.message, variant: 'destructive' }),
   });
 
+  /** Reexecuta em lote, preservando a ordem de criação dos comandos. */
+  const batchRetryMutation = useMutation({
+    mutationFn: async (commands: DeviceCommand[]) => {
+      assertPermission(permissions.canRetry, 'reexecutar comandos');
+      const ordered = [...commands].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+
+      let succeeded = 0;
+      const failures: string[] = [];
+      for (const command of ordered) {
+        const nowIso = new Date().toISOString();
+        const { error } = await supabase
+          .from('device_commands')
+          .update({
+            status: 'pending',
+            paused_at: null,
+            error_message: null,
+            result: null,
+            started_at: null,
+            finished_at: null,
+            last_action: 'retry',
+            last_action_at: nowIso,
+          } as never)
+          .eq('id', command.id);
+        if (error) {
+          failures.push(`${command.command}: ${error.message}`);
+          continue;
+        }
+        succeeded += 1;
+      }
+
+      await auditQueueAction({
+        action: 'command_batch_retry',
+        recordId: ordered[0]?.id ?? 'lote',
+        description:
+          `Reexecução em lote de ${succeeded} comando(s), na ordem original de criação` +
+          (failures.length ? ` — ${failures.length} falha(s)` : ''),
+        newData: { commands: ordered.map((item) => item.id), failures },
+      });
+
+      return { succeeded, failures };
+    },
+    onSuccess: ({ succeeded, failures }) => {
+      invalidate('device-commands');
+      invalidate('device-commands-audit');
+      toast({
+        title: `${succeeded} comando(s) reenviado(s)`,
+        description: failures.length
+          ? `${failures.length} não puderam ser reenviados.`
+          : 'A ordem original da fila foi preservada.',
+        variant: failures.length ? 'destructive' : undefined,
+      });
+    },
+    onError: (error: Error) =>
+      toast({ title: 'Erro na reexecução em lote', description: error.message, variant: 'destructive' }),
+  });
+
   /** Auditoria das ações do operador sobre a fila. */
   const queueAuditQuery = useQuery({
     queryKey: ['device-commands-audit'],
@@ -455,6 +558,7 @@ export function useCommunicationAgents() {
       return (data ?? []) as unknown as QueueAuditEntry[];
     },
   });
+
 
 
 
