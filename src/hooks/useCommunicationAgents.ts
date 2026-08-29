@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface CommunicationAgent {
   id: string;
@@ -81,6 +82,20 @@ export interface AgentTokenRotation {
   validated_at: string | null;
   finished_at: string | null;
   notes: string | null;
+  started_by: string | null;
+  started_by_name?: string | null;
+}
+
+/** Resultado do teste em modo simulado da troca de token. */
+export interface RotationSimulation {
+  agentName: string;
+  checksumOk: boolean;
+  sampleHashPrefix: string;
+  gatewayReachable: boolean;
+  gatewayRejectedFakeToken: boolean;
+  agentOnline: boolean;
+  currentTokenExpiresAt: string | null;
+  blockingReason: string | null;
 }
 
 export interface DiscoveredDevice {
