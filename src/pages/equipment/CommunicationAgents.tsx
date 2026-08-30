@@ -87,6 +87,9 @@ export default function CommunicationAgents() {
     queueCommandMutation,
     commandActionMutation,
     toggleQueuePauseMutation,
+    batchRetryMutation,
+    simulateTokenRotationMutation,
+    permissions,
     queueAudit,
     adoptDeviceMutation,
     ignoreDeviceMutation,
@@ -101,7 +104,6 @@ export default function CommunicationAgents() {
     rollbackAgentMutation,
   } = useCommunicationAgents();
 
-
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [ranges, setRanges] = useState('192.168.0.0/24');
@@ -111,7 +113,14 @@ export default function CommunicationAgents() {
   const [rotationAgentId, setRotationAgentId] = useState<string | null>(null);
   const [commandSearch, setCommandSearch] = useState('');
   const [commandStatus, setCommandStatus] = useState('all');
+  const [commandAgent, setCommandAgent] = useState('all');
+  const [commandStartDate, setCommandStartDate] = useState('');
+  const [commandEndDate, setCommandEndDate] = useState('');
+  const [selectedCommandIds, setSelectedCommandIds] = useState<string[]>([]);
   const [logCommand, setLogCommand] = useState<DeviceCommand | null>(null);
+  const [adoptionDevice, setAdoptionDevice] = useState<DiscoveredDevice | null>(null);
+  const [simulation, setSimulation] = useState<RotationSimulation | null>(null);
+  const alertedCommandIds = useRef(new Set<string>());
   const rotationAgent = agents.find((item) => item.id === rotationAgentId) ?? null;
 
   const { data: equipmentList = [] } = useQuery({
