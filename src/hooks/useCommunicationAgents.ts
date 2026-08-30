@@ -662,17 +662,97 @@ export function useCommunicationAgents() {
         .order('started_at', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data ?? []) as unknown as AgentTokenRotation[];
+
+      const rows = (data ?? []) as unknown as AgentTokenRotation[];
+      const authorIds = Array.from(
+        new Set(rows.map((row) => row.started_by).filter((value): value is string => !!value)),
+      );
+      if (authorIds.length === 0) return rows;
+
+      const { data: authors } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .in('user_id', authorIds);
+      const nameById = new Map(
+        (authors ?? []).map((author) => [
+          author.user_id as string,
+          (author.full_name as string) || (author.email as string) || null,
+        ]),
+      );
+      return rows.map((row) => ({
+        ...row,
+        started_by_name: row.started_by ? (nameById.get(row.started_by) ?? null) : null,
+      }));
     },
+  });
+
+  /** Teste em modo simulado: valida o hash SHA-256 e a conectividade antes de trocar o token. */
+  const simulateTokenRotationMutation = useMutation({
+    mutationFn: async (agent: CommunicationAgent): Promise<RotationSimulation> => {
+      assertPermission(permissions.canManageTokens, 'testar a rotação de token');
+
+      // 1) Checksum: gera um token de amostra e confere que o hash é reproduzível.
+      const sample = randomToken();
+      const hashA = await sha256(sample);
+      const hashB = await sha256(sample);
+      const checksumOk = hashA === hashB && /^[0-9a-f]{64}$/.test(hashA);
+
+      // 2) Conectividade: o gateway deve responder e recusar um token falso.
+      let gatewayReachable = false;
+      let gatewayRejectedFakeToken = false;
+      try {
+        const { error } = await supabase.functions.invoke('agent-gateway', {
+          body: { action: 'handshake' },
+          headers: { 'x-agent-token': `simulacao-${hashA.slice(0, 32)}` },
+        });
+        gatewayReachable = true;
+        gatewayRejectedFakeToken = !!error;
+      } catch {
+        gatewayReachable = false;
+      }
+
+      // 3) Robô local: precisa ter dado sinal de vida recente para adotar o novo token.
+      const agentOnline =
+        !!agent.last_heartbeat &&
+        Date.now() - new Date(agent.last_heartbeat).getTime() < 5 * 60 * 1000;
+
+      const expired =
+        !!agent.token_expires_at && new Date(agent.token_expires_at).getTime() < Date.now();
+
+      let blockingReason: string | null = null;
+      if (!checksumOk) blockingReason = 'Falha na verificação do hash SHA-256 neste navegador.';
+      else if (!gatewayReachable) blockingReason = 'O gateway de comunicação não respondeu.';
+      else if (!gatewayRejectedFakeToken)
+        blockingReason = 'O gateway aceitou um token inválido — revise a configuração antes de rotacionar.';
+      else if (!agentOnline)
+        blockingReason = 'O robô local está offline: ele não conseguiria validar o novo token na janela de transição.';
+      else if (expired)
+        blockingReason = 'O token atual já expirou: a rotação vai exigir reconfiguração manual do robô.';
+
+      return {
+        agentName: agent.name,
+        checksumOk,
+        sampleHashPrefix: hashA.slice(0, 16),
+        gatewayReachable,
+        gatewayRejectedFakeToken,
+        agentOnline,
+        currentTokenExpiresAt: agent.token_expires_at,
+        blockingReason,
+      };
+    },
+    onError: (error: Error) =>
+      toast({ title: 'Erro no teste simulado', description: error.message, variant: 'destructive' }),
   });
 
   /** Inicia a rotação manual: gera o token novo e abre a janela de transição.
    *  O token antigo continua válido até o agente autenticar com o novo. */
   const startTokenRotationMutation = useMutation({
     mutationFn: async (input: { agent: CommunicationAgent; windowMinutes: number }) => {
+      assertPermission(permissions.canManageTokens, 'rotacionar tokens');
       const token = randomToken();
       const token_hash = await sha256(token);
       const expiresAt = new Date(Date.now() + input.windowMinutes * 60_000).toISOString();
+
 
       const { error } = await supabase
         .from('communication_agents')
