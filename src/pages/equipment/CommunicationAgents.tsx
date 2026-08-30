@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ import {
   type CommunicationAgent,
   type DeviceCommand,
   type DiscoveredDevice,
+  type RotationSimulation,
 } from '@/hooks/useCommunicationAgents';
 import { AgentTokenRotationDialog } from '@/components/equipment/AgentTokenRotationDialog';
 
@@ -85,6 +87,9 @@ export default function CommunicationAgents() {
     queueCommandMutation,
     commandActionMutation,
     toggleQueuePauseMutation,
+    batchRetryMutation,
+    simulateTokenRotationMutation,
+    permissions,
     queueAudit,
     adoptDeviceMutation,
     ignoreDeviceMutation,
@@ -99,7 +104,6 @@ export default function CommunicationAgents() {
     rollbackAgentMutation,
   } = useCommunicationAgents();
 
-
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [ranges, setRanges] = useState('192.168.0.0/24');
@@ -109,7 +113,14 @@ export default function CommunicationAgents() {
   const [rotationAgentId, setRotationAgentId] = useState<string | null>(null);
   const [commandSearch, setCommandSearch] = useState('');
   const [commandStatus, setCommandStatus] = useState('all');
+  const [commandAgent, setCommandAgent] = useState('all');
+  const [commandStartDate, setCommandStartDate] = useState('');
+  const [commandEndDate, setCommandEndDate] = useState('');
+  const [selectedCommandIds, setSelectedCommandIds] = useState<string[]>([]);
   const [logCommand, setLogCommand] = useState<DeviceCommand | null>(null);
+  const [adoptionDevice, setAdoptionDevice] = useState<DiscoveredDevice | null>(null);
+  const [simulation, setSimulation] = useState<RotationSimulation | null>(null);
+  const alertedCommandIds = useRef(new Set<string>());
   const rotationAgent = agents.find((item) => item.id === rotationAgentId) ?? null;
 
   const { data: equipmentList = [] } = useQuery({
@@ -132,13 +143,97 @@ export default function CommunicationAgents() {
 
   const filteredCommands = commands.filter((command) => {
     const term = commandSearch.trim().toLowerCase();
+    const payloadText = JSON.stringify(command.payload ?? {}).toLowerCase();
     const matchesTerm =
       !term ||
+      command.id.toLowerCase().includes(term) ||
       command.command.toLowerCase().includes(term) ||
-      equipmentName(command.equipment_id).toLowerCase().includes(term);
+      equipmentName(command.equipment_id).toLowerCase().includes(term) ||
+      payloadText.includes(term);
     const status = command.status ?? 'pending';
-    return matchesTerm && (commandStatus === 'all' || status === commandStatus);
+    const createdAt = new Date(command.created_at).getTime();
+    const start = commandStartDate ? new Date(`${commandStartDate}T00:00:00`).getTime() : -Infinity;
+    const end = commandEndDate ? new Date(`${commandEndDate}T23:59:59.999`).getTime() : Infinity;
+    return (
+      matchesTerm &&
+      (commandStatus === 'all' || status === commandStatus) &&
+      (commandAgent === 'all' || command.agent_id === commandAgent) &&
+      createdAt >= start &&
+      createdAt <= end
+    );
   });
+
+  const csvCell = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+  const exportCommandsCsv = () => {
+    const rows = [
+      ['ID', 'Robô', 'Equipamento', 'Comando', 'Payload', 'Status', 'Criado em', 'Finalizado em'],
+      ...filteredCommands.map((item) => [
+        item.id,
+        agents.find((agent) => agent.id === item.agent_id)?.name ?? '',
+        equipmentName(item.equipment_id),
+        item.command,
+        JSON.stringify(item.payload ?? {}),
+        item.status ?? 'pending',
+        formatDate(item.created_at),
+        formatDate(item.finished_at),
+      ]),
+    ];
+    const blob = new Blob([rows.map((row) => row.map(csvCell).join(';')).join('\n')], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'pontomax-comandos.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const exportCommandsPdf = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.text('Ponto Max — Comandos', 14, 14);
+    autoTable(doc, {
+      startY: 20,
+      head: [['ID', 'Robô', 'Equipamento', 'Comando', 'Status', 'Criado em']],
+      body: filteredCommands.map((item) => [
+        item.id.slice(0, 12),
+        agents.find((agent) => agent.id === item.agent_id)?.name ?? '—',
+        equipmentName(item.equipment_id),
+        item.command,
+        item.status ?? 'pending',
+        formatDate(item.created_at),
+      ]),
+    });
+    doc.save('pontomax-comandos.pdf');
+  };
+
+  useEffect(() => {
+    const staleLimit = Date.now() - 15 * 60 * 1000;
+    commands.forEach((command) => {
+      const status = command.status ?? 'pending';
+      const stale = status === 'pending' && new Date(command.created_at).getTime() < staleLimit;
+      const alertKey = `${command.id}:${status}:${stale}`;
+      if (alertedCommandIds.current.has(alertKey)) return;
+      if (status === 'failed') {
+        toast({ title: 'Comando falhou', description: `${command.command}: ${command.error_message ?? 'verifique os logs.'}`, variant: 'destructive' });
+        alertedCommandIds.current.add(alertKey);
+      } else if (status === 'cancelled') {
+        toast({ title: 'Comando cancelado', description: command.command });
+        alertedCommandIds.current.add(alertKey);
+      } else if (stale) {
+        toast({ title: 'Comando aguardando há muito tempo', description: command.command, variant: 'destructive' });
+        alertedCommandIds.current.add(alertKey);
+      }
+    });
+  }, [commands]);
+
+  const toggleCommandSelection = (id: string, checked: boolean) => {
+    setSelectedCommandIds((current) => checked ? [...current, id] : current.filter((item) => item !== id));
+  };
+
+  const selectAllFiltered = (checked: boolean) => {
+    setSelectedCommandIds(checked ? filteredCommands.map((item) => item.id) : []);
+  };
+
 
   const handleCreate = async () => {
     const generated = await createAgentMutation.mutateAsync({

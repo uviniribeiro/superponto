@@ -173,6 +173,31 @@ const sha256 = async (value: string) => {
     .join('');
 };
 
+/** Dados mínimos do robô usados na validação da adoção de um dispositivo. */
+export interface AdoptionAgentCheck {
+  name?: string | null;
+  is_active?: boolean | null;
+  token_expires_at?: string | null;
+  token_rotation_status?: string | null;
+}
+
+/** Motivo de reprovação da adoção, ou null quando o robô está apto. */
+export const adoptionBlockReason = (agent: AdoptionAgentCheck | null): string | null => {
+  if (!agent) return 'Robô de origem não encontrado — não é possível validar o token.';
+  if (agent.is_active === false) return `O robô ${agent.name ?? ''} está inativo.`.trim();
+  if (agent.token_expires_at && new Date(agent.token_expires_at).getTime() < Date.now()) {
+    return 'Token do robô expirado. Gere um novo token antes de adotar o dispositivo.';
+  }
+  if (agent.token_rotation_status === 'expired') {
+    return 'Token do robô marcado como expirado pelo gateway. Gere um novo token.';
+  }
+  if (agent.token_rotation_status === 'pending') {
+    return 'Rotação de token em andamento: aguarde o robô validar o novo token antes de adotar.';
+  }
+  return null;
+};
+
+
 export function useCommunicationAgents() {
   const queryClient = useQueryClient();
   const invalidate = (key: string) => queryClient.invalidateQueries({ queryKey: [key] });
@@ -562,15 +587,23 @@ export function useCommunicationAgents() {
 
 
 
-  /** Adota um relógio encontrado na rede, criando o equipamento no sistema. */
+  /** Adota um relógio encontrado na rede, criando o equipamento no sistema.
+   *  Só prossegue com token do robô válido (nem expirado, nem em janela de transição pendente). */
   const adoptDeviceMutation = useMutation({
     mutationFn: async (device: DiscoveredDevice) => {
+      assertPermission(permissions.canAdoptDevices, 'adotar dispositivos');
+
       const { data: agent } = await supabase
         .from('communication_agents')
-        .select('company_id')
+        .select('company_id, name, token_expires_at, token_rotation_status, is_active')
         .eq('id', device.agent_id ?? '')
         .maybeSingle();
+
+      const reason = adoptionBlockReason(agent as AdoptionAgentCheck | null);
+      if (reason) throw new Error(reason);
+
       const companyId = (agent as { company_id?: string } | null)?.company_id;
+
 
       const { data: equipment, error } = await supabase
         .from('time_clock_equipment')
@@ -662,17 +695,97 @@ export function useCommunicationAgents() {
         .order('started_at', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data ?? []) as unknown as AgentTokenRotation[];
+
+      const rows = (data ?? []) as unknown as AgentTokenRotation[];
+      const authorIds = Array.from(
+        new Set(rows.map((row) => row.started_by).filter((value): value is string => !!value)),
+      );
+      if (authorIds.length === 0) return rows;
+
+      const { data: authors } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .in('user_id', authorIds);
+      const nameById = new Map(
+        (authors ?? []).map((author) => [
+          author.user_id as string,
+          (author.full_name as string) || (author.email as string) || null,
+        ]),
+      );
+      return rows.map((row) => ({
+        ...row,
+        started_by_name: row.started_by ? (nameById.get(row.started_by) ?? null) : null,
+      }));
     },
+  });
+
+  /** Teste em modo simulado: valida o hash SHA-256 e a conectividade antes de trocar o token. */
+  const simulateTokenRotationMutation = useMutation({
+    mutationFn: async (agent: CommunicationAgent): Promise<RotationSimulation> => {
+      assertPermission(permissions.canManageTokens, 'testar a rotação de token');
+
+      // 1) Checksum: gera um token de amostra e confere que o hash é reproduzível.
+      const sample = randomToken();
+      const hashA = await sha256(sample);
+      const hashB = await sha256(sample);
+      const checksumOk = hashA === hashB && /^[0-9a-f]{64}$/.test(hashA);
+
+      // 2) Conectividade: o gateway deve responder e recusar um token falso.
+      let gatewayReachable = false;
+      let gatewayRejectedFakeToken = false;
+      try {
+        const { error } = await supabase.functions.invoke('agent-gateway', {
+          body: { action: 'handshake' },
+          headers: { 'x-agent-token': `simulacao-${hashA.slice(0, 32)}` },
+        });
+        gatewayReachable = true;
+        gatewayRejectedFakeToken = !!error;
+      } catch {
+        gatewayReachable = false;
+      }
+
+      // 3) Robô local: precisa ter dado sinal de vida recente para adotar o novo token.
+      const agentOnline =
+        !!agent.last_heartbeat &&
+        Date.now() - new Date(agent.last_heartbeat).getTime() < 5 * 60 * 1000;
+
+      const expired =
+        !!agent.token_expires_at && new Date(agent.token_expires_at).getTime() < Date.now();
+
+      let blockingReason: string | null = null;
+      if (!checksumOk) blockingReason = 'Falha na verificação do hash SHA-256 neste navegador.';
+      else if (!gatewayReachable) blockingReason = 'O gateway de comunicação não respondeu.';
+      else if (!gatewayRejectedFakeToken)
+        blockingReason = 'O gateway aceitou um token inválido — revise a configuração antes de rotacionar.';
+      else if (!agentOnline)
+        blockingReason = 'O robô local está offline: ele não conseguiria validar o novo token na janela de transição.';
+      else if (expired)
+        blockingReason = 'O token atual já expirou: a rotação vai exigir reconfiguração manual do robô.';
+
+      return {
+        agentName: agent.name,
+        checksumOk,
+        sampleHashPrefix: hashA.slice(0, 16),
+        gatewayReachable,
+        gatewayRejectedFakeToken,
+        agentOnline,
+        currentTokenExpiresAt: agent.token_expires_at,
+        blockingReason,
+      };
+    },
+    onError: (error: Error) =>
+      toast({ title: 'Erro no teste simulado', description: error.message, variant: 'destructive' }),
   });
 
   /** Inicia a rotação manual: gera o token novo e abre a janela de transição.
    *  O token antigo continua válido até o agente autenticar com o novo. */
   const startTokenRotationMutation = useMutation({
     mutationFn: async (input: { agent: CommunicationAgent; windowMinutes: number }) => {
+      assertPermission(permissions.canManageTokens, 'rotacionar tokens');
       const token = randomToken();
       const token_hash = await sha256(token);
       const expiresAt = new Date(Date.now() + input.windowMinutes * 60_000).toISOString();
+
 
       const { error } = await supabase
         .from('communication_agents')
@@ -906,6 +1019,9 @@ export function useCommunicationAgents() {
     queueCommandMutation,
     commandActionMutation,
     toggleQueuePauseMutation,
+    batchRetryMutation,
+    simulateTokenRotationMutation,
+    permissions,
     queueAudit: queueAuditQuery.data ?? [],
 
     adoptDeviceMutation,
