@@ -562,15 +562,23 @@ export function useCommunicationAgents() {
 
 
 
-  /** Adota um relógio encontrado na rede, criando o equipamento no sistema. */
+  /** Adota um relógio encontrado na rede, criando o equipamento no sistema.
+   *  Só prossegue com token do robô válido (nem expirado, nem em janela de transição pendente). */
   const adoptDeviceMutation = useMutation({
     mutationFn: async (device: DiscoveredDevice) => {
+      assertPermission(permissions.canAdoptDevices, 'adotar dispositivos');
+
       const { data: agent } = await supabase
         .from('communication_agents')
-        .select('company_id')
+        .select('company_id, name, token_expires_at, token_rotation_status, is_active')
         .eq('id', device.agent_id ?? '')
         .maybeSingle();
+
+      const reason = adoptionBlockReason(agent as AdoptionAgentCheck | null);
+      if (reason) throw new Error(reason);
+
       const companyId = (agent as { company_id?: string } | null)?.company_id;
+
 
       const { data: equipment, error } = await supabase
         .from('time_clock_equipment')
@@ -986,6 +994,9 @@ export function useCommunicationAgents() {
     queueCommandMutation,
     commandActionMutation,
     toggleQueuePauseMutation,
+    batchRetryMutation,
+    simulateTokenRotationMutation,
+    permissions,
     queueAudit: queueAuditQuery.data ?? [],
 
     adoptDeviceMutation,
