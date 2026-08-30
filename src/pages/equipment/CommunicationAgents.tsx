@@ -143,13 +143,97 @@ export default function CommunicationAgents() {
 
   const filteredCommands = commands.filter((command) => {
     const term = commandSearch.trim().toLowerCase();
+    const payloadText = JSON.stringify(command.payload ?? {}).toLowerCase();
     const matchesTerm =
       !term ||
+      command.id.toLowerCase().includes(term) ||
       command.command.toLowerCase().includes(term) ||
-      equipmentName(command.equipment_id).toLowerCase().includes(term);
+      equipmentName(command.equipment_id).toLowerCase().includes(term) ||
+      payloadText.includes(term);
     const status = command.status ?? 'pending';
-    return matchesTerm && (commandStatus === 'all' || status === commandStatus);
+    const createdAt = new Date(command.created_at).getTime();
+    const start = commandStartDate ? new Date(`${commandStartDate}T00:00:00`).getTime() : -Infinity;
+    const end = commandEndDate ? new Date(`${commandEndDate}T23:59:59.999`).getTime() : Infinity;
+    return (
+      matchesTerm &&
+      (commandStatus === 'all' || status === commandStatus) &&
+      (commandAgent === 'all' || command.agent_id === commandAgent) &&
+      createdAt >= start &&
+      createdAt <= end
+    );
   });
+
+  const csvCell = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+  const exportCommandsCsv = () => {
+    const rows = [
+      ['ID', 'Robô', 'Equipamento', 'Comando', 'Payload', 'Status', 'Criado em', 'Finalizado em'],
+      ...filteredCommands.map((item) => [
+        item.id,
+        agents.find((agent) => agent.id === item.agent_id)?.name ?? '',
+        equipmentName(item.equipment_id),
+        item.command,
+        JSON.stringify(item.payload ?? {}),
+        item.status ?? 'pending',
+        formatDate(item.created_at),
+        formatDate(item.finished_at),
+      ]),
+    ];
+    const blob = new Blob([rows.map((row) => row.map(csvCell).join(';')).join('\n')], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'pontomax-comandos.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const exportCommandsPdf = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.text('Ponto Max — Comandos', 14, 14);
+    autoTable(doc, {
+      startY: 20,
+      head: [['ID', 'Robô', 'Equipamento', 'Comando', 'Status', 'Criado em']],
+      body: filteredCommands.map((item) => [
+        item.id.slice(0, 12),
+        agents.find((agent) => agent.id === item.agent_id)?.name ?? '—',
+        equipmentName(item.equipment_id),
+        item.command,
+        item.status ?? 'pending',
+        formatDate(item.created_at),
+      ]),
+    });
+    doc.save('pontomax-comandos.pdf');
+  };
+
+  useEffect(() => {
+    const staleLimit = Date.now() - 15 * 60 * 1000;
+    commands.forEach((command) => {
+      const status = command.status ?? 'pending';
+      const stale = status === 'pending' && new Date(command.created_at).getTime() < staleLimit;
+      const alertKey = `${command.id}:${status}:${stale}`;
+      if (alertedCommandIds.current.has(alertKey)) return;
+      if (status === 'failed') {
+        toast({ title: 'Comando falhou', description: `${command.command}: ${command.error_message ?? 'verifique os logs.'}`, variant: 'destructive' });
+        alertedCommandIds.current.add(alertKey);
+      } else if (status === 'cancelled') {
+        toast({ title: 'Comando cancelado', description: command.command });
+        alertedCommandIds.current.add(alertKey);
+      } else if (stale) {
+        toast({ title: 'Comando aguardando há muito tempo', description: command.command, variant: 'destructive' });
+        alertedCommandIds.current.add(alertKey);
+      }
+    });
+  }, [commands]);
+
+  const toggleCommandSelection = (id: string, checked: boolean) => {
+    setSelectedCommandIds((current) => checked ? [...current, id] : current.filter((item) => item !== id));
+  };
+
+  const selectAllFiltered = (checked: boolean) => {
+    setSelectedCommandIds(checked ? filteredCommands.map((item) => item.id) : []);
+  };
+
 
   const handleCreate = async () => {
     const generated = await createAgentMutation.mutateAsync({
