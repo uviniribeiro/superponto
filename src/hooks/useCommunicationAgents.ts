@@ -173,6 +173,31 @@ const sha256 = async (value: string) => {
     .join('');
 };
 
+/** Dados mínimos do robô usados na validação da adoção de um dispositivo. */
+export interface AdoptionAgentCheck {
+  name?: string | null;
+  is_active?: boolean | null;
+  token_expires_at?: string | null;
+  token_rotation_status?: string | null;
+}
+
+/** Motivo de reprovação da adoção, ou null quando o robô está apto. */
+export const adoptionBlockReason = (agent: AdoptionAgentCheck | null): string | null => {
+  if (!agent) return 'Robô de origem não encontrado — não é possível validar o token.';
+  if (agent.is_active === false) return `O robô ${agent.name ?? ''} está inativo.`.trim();
+  if (agent.token_expires_at && new Date(agent.token_expires_at).getTime() < Date.now()) {
+    return 'Token do robô expirado. Gere um novo token antes de adotar o dispositivo.';
+  }
+  if (agent.token_rotation_status === 'expired') {
+    return 'Token do robô marcado como expirado pelo gateway. Gere um novo token.';
+  }
+  if (agent.token_rotation_status === 'pending') {
+    return 'Rotação de token em andamento: aguarde o robô validar o novo token antes de adotar.';
+  }
+  return null;
+};
+
+
 export function useCommunicationAgents() {
   const queryClient = useQueryClient();
   const invalidate = (key: string) => queryClient.invalidateQueries({ queryKey: [key] });
