@@ -645,9 +645,20 @@ export default function CommunicationAgents() {
                 <Input
                   value={commandSearch}
                   onChange={(event) => setCommandSearch(event.target.value)}
-                  placeholder="Buscar comando ou equipamento"
-                  className="w-full sm:w-64"
+                  placeholder="Buscar por ID, comando, equipamento ou dados enviados"
+                  className="w-full sm:w-72"
                 />
+                <Select value={commandAgent} onValueChange={setCommandAgent}>
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue placeholder="Robô" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os robôs</SelectItem>
+                    {agents.map((agent: CommunicationAgent) => (
+                      <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Select value={commandStatus} onValueChange={setCommandStatus}>
                   <SelectTrigger className="w-full sm:w-44">
                     <SelectValue placeholder="Status" />
@@ -662,6 +673,26 @@ export default function CommunicationAgents() {
                     <SelectItem value="cancelled">Cancelados</SelectItem>
                   </SelectContent>
                 </Select>
+                <Input
+                  type="date"
+                  value={commandStartDate}
+                  onChange={(event) => setCommandStartDate(event.target.value)}
+                  className="w-full sm:w-40"
+                  aria-label="Data inicial"
+                />
+                <Input
+                  type="date"
+                  value={commandEndDate}
+                  onChange={(event) => setCommandEndDate(event.target.value)}
+                  className="w-full sm:w-40"
+                  aria-label="Data final"
+                />
+                <Button variant="outline" onClick={exportCommandsCsv} disabled={filteredCommands.length === 0}>
+                  <Download className="mr-2 h-4 w-4" /> CSV
+                </Button>
+                <Button variant="outline" onClick={exportCommandsPdf} disabled={filteredCommands.length === 0}>
+                  <FileText className="mr-2 h-4 w-4" /> PDF
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
