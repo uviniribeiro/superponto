@@ -831,9 +831,25 @@ export default function CommunicationAgents() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Auditoria da fila</CardTitle>
-              <CardDescription>Quem pausou, retomou, reexecutou ou cancelou cada comando.</CardDescription>
+            <CardHeader className="gap-3 sm:flex sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <CardTitle>Auditoria da fila</CardTitle>
+                <CardDescription>Quem pausou, retomou, reexecutou ou cancelou cada comando.</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  const rows = [['Data', 'Usuário', 'Ação', 'Detalhe'], ...queueAudit.map((entry) => [formatDate(entry.created_at), entry.user_name ?? '', entry.action, entry.description ?? ''])];
+                  const blob = new Blob([rows.map((row) => row.map(csvCell).join(';')).join('\n')], { type: 'text/csv;charset=utf-8' });
+                  const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'pontomax-auditoria-comandos.csv'; link.click(); URL.revokeObjectURL(link.href);
+                }} disabled={queueAudit.length === 0}><Download className="mr-1 h-4 w-4" /> CSV</Button>
+                <Button variant="outline" size="sm" onClick={async () => {
+                  const { default: jsPDF } = await import('jspdf');
+                  const { default: autoTable } = await import('jspdf-autotable');
+                  const doc = new jsPDF({ orientation: 'landscape' }); doc.text('Ponto Max — Auditoria de comandos', 14, 14);
+                  autoTable(doc, { startY: 20, head: [['Data', 'Usuário', 'Ação', 'Detalhe']], body: queueAudit.map((entry) => [formatDate(entry.created_at), entry.user_name ?? '—', entry.action, entry.description ?? '—']) });
+                  doc.save('pontomax-auditoria-comandos.pdf');
+                }} disabled={queueAudit.length === 0}><FileText className="mr-1 h-4 w-4" /> PDF</Button>
+              </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
               {queueAudit.length === 0 ? (
