@@ -772,7 +772,7 @@ export default function CommunicationAgents() {
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
-                            {command.status === 'pending' && (
+                            {command.status === 'pending' && permissions.canPause && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -782,7 +782,7 @@ export default function CommunicationAgents() {
                                 <Pause className="h-4 w-4" />
                               </Button>
                             )}
-                            {command.status === 'paused' && (
+                            {command.status === 'paused' && permissions.canResume && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -792,7 +792,7 @@ export default function CommunicationAgents() {
                                 <Play className="h-4 w-4" />
                               </Button>
                             )}
-                            {['done', 'failed', 'cancelled'].includes(command.status ?? '') && (
+                            {['done', 'failed', 'cancelled'].includes(command.status ?? '') && permissions.canRetry && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -802,7 +802,7 @@ export default function CommunicationAgents() {
                                 <RotateCcw className="h-4 w-4" />
                               </Button>
                             )}
-                            {['pending', 'paused', 'running'].includes(command.status ?? 'pending') && (
+                            {['pending', 'paused', 'running'].includes(command.status ?? 'pending') && permissions.canCancel && (
                               <Button
                                 size="icon"
                                 variant="ghost"
