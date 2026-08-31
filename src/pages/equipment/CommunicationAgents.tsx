@@ -163,7 +163,7 @@ export default function CommunicationAgents() {
     );
   });
 
-  const csvCell = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+  const csvCell = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
   const exportCommandsCsv = () => {
     const rows = [
       ['ID', 'Robô', 'Equipamento', 'Comando', 'Payload', 'Status', 'Criado em', 'Finalizado em'],
@@ -645,9 +645,20 @@ export default function CommunicationAgents() {
                 <Input
                   value={commandSearch}
                   onChange={(event) => setCommandSearch(event.target.value)}
-                  placeholder="Buscar comando ou equipamento"
-                  className="w-full sm:w-64"
+                  placeholder="Buscar por ID, comando, equipamento ou dados enviados"
+                  className="w-full sm:w-72"
                 />
+                <Select value={commandAgent} onValueChange={setCommandAgent}>
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue placeholder="Robô" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os robôs</SelectItem>
+                    {agents.map((agent: CommunicationAgent) => (
+                      <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Select value={commandStatus} onValueChange={setCommandStatus}>
                   <SelectTrigger className="w-full sm:w-44">
                     <SelectValue placeholder="Status" />
@@ -662,16 +673,70 @@ export default function CommunicationAgents() {
                     <SelectItem value="cancelled">Cancelados</SelectItem>
                   </SelectContent>
                 </Select>
+                <Input
+                  type="date"
+                  value={commandStartDate}
+                  onChange={(event) => setCommandStartDate(event.target.value)}
+                  className="w-full sm:w-40"
+                  aria-label="Data inicial"
+                />
+                <Input
+                  type="date"
+                  value={commandEndDate}
+                  onChange={(event) => setCommandEndDate(event.target.value)}
+                  className="w-full sm:w-40"
+                  aria-label="Data final"
+                />
+                <Button variant="outline" onClick={exportCommandsCsv} disabled={filteredCommands.length === 0}>
+                  <Download className="mr-2 h-4 w-4" /> CSV
+                </Button>
+                <Button variant="outline" onClick={exportCommandsPdf} disabled={filteredCommands.length === 0}>
+                  <FileText className="mr-2 h-4 w-4" /> PDF
+                </Button>
               </div>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent className="space-y-3 overflow-x-auto">
+              {selectedCommandIds.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/40 p-3">
+                  <p className="text-sm">
+                    {selectedCommandIds.length} comando(s) selecionado(s) — a reexecução respeita a ordem original da fila.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedCommandIds([])}>
+                      Limpar seleção
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!permissions.canRetry || batchRetryMutation.isPending}
+                      onClick={() => {
+                        const selected = filteredCommands.filter((item) => selectedCommandIds.includes(item.id));
+                        if (!window.confirm(`Reexecutar ${selected.length} comando(s) na ordem original?`)) return;
+                        batchRetryMutation.mutate(selected, { onSuccess: () => setSelectedCommandIds([]) });
+                      }}
+                    >
+                      <RotateCcw className="mr-1 h-3.5 w-3.5" /> Reexecutar em lote
+                    </Button>
+                  </div>
+                </div>
+              )}
               {filteredCommands.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum comando encontrado.</p>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={
+                            filteredCommands.length > 0 &&
+                            filteredCommands.every((item) => selectedCommandIds.includes(item.id))
+                          }
+                          onCheckedChange={(value) => selectAllFiltered(value === true)}
+                          aria-label="Selecionar todos os comandos filtrados"
+                        />
+                      </TableHead>
                       <TableHead>Comando</TableHead>
+                      <TableHead>Robô</TableHead>
                       <TableHead>Equipamento</TableHead>
                       <TableHead>Tentativas</TableHead>
                       <TableHead>Criado em</TableHead>
@@ -683,7 +748,18 @@ export default function CommunicationAgents() {
                   <TableBody>
                     {filteredCommands.map((command) => (
                       <TableRow key={command.id}>
-                        <TableCell className="font-medium">{command.command}</TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedCommandIds.includes(command.id)}
+                            onCheckedChange={(value) => toggleCommandSelection(command.id, value === true)}
+                            aria-label={`Selecionar comando ${command.command}`}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {command.command}
+                          <div className="text-xs text-muted-foreground">{command.id.slice(0, 8)}</div>
+                        </TableCell>
+                        <TableCell>{agents.find((item) => item.id === command.agent_id)?.name ?? '—'}</TableCell>
                         <TableCell>{equipmentName(command.equipment_id)}</TableCell>
                         <TableCell>{command.attempts ?? 0}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(command.created_at)}</TableCell>
@@ -696,7 +772,7 @@ export default function CommunicationAgents() {
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-1">
-                            {command.status === 'pending' && (
+                            {command.status === 'pending' && permissions.canPause && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -706,7 +782,7 @@ export default function CommunicationAgents() {
                                 <Pause className="h-4 w-4" />
                               </Button>
                             )}
-                            {command.status === 'paused' && (
+                            {command.status === 'paused' && permissions.canResume && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -716,7 +792,7 @@ export default function CommunicationAgents() {
                                 <Play className="h-4 w-4" />
                               </Button>
                             )}
-                            {['done', 'failed', 'cancelled'].includes(command.status ?? '') && (
+                            {['done', 'failed', 'cancelled'].includes(command.status ?? '') && permissions.canRetry && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -726,7 +802,7 @@ export default function CommunicationAgents() {
                                 <RotateCcw className="h-4 w-4" />
                               </Button>
                             )}
-                            {['pending', 'paused', 'running'].includes(command.status ?? 'pending') && (
+                            {['pending', 'paused', 'running'].includes(command.status ?? 'pending') && permissions.canCancel && (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -755,9 +831,25 @@ export default function CommunicationAgents() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Auditoria da fila</CardTitle>
-              <CardDescription>Quem pausou, retomou, reexecutou ou cancelou cada comando.</CardDescription>
+            <CardHeader className="gap-3 sm:flex sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <CardTitle>Auditoria da fila</CardTitle>
+                <CardDescription>Quem pausou, retomou, reexecutou ou cancelou cada comando.</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  const rows = [['Data', 'Usuário', 'Ação', 'Detalhe'], ...queueAudit.map((entry) => [formatDate(entry.created_at), entry.user_name ?? '', entry.action, entry.description ?? ''])];
+                  const blob = new Blob([rows.map((row) => row.map(csvCell).join(';')).join('\n')], { type: 'text/csv;charset=utf-8' });
+                  const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'pontomax-auditoria-comandos.csv'; link.click(); URL.revokeObjectURL(link.href);
+                }} disabled={queueAudit.length === 0}><Download className="mr-1 h-4 w-4" /> CSV</Button>
+                <Button variant="outline" size="sm" onClick={async () => {
+                  const { default: jsPDF } = await import('jspdf');
+                  const { default: autoTable } = await import('jspdf-autotable');
+                  const doc = new jsPDF({ orientation: 'landscape' }); doc.text('Ponto Max — Auditoria de comandos', 14, 14);
+                  autoTable(doc, { startY: 20, head: [['Data', 'Usuário', 'Ação', 'Detalhe']], body: queueAudit.map((entry) => [formatDate(entry.created_at), entry.user_name ?? '—', entry.action, entry.description ?? '—']) });
+                  doc.save('pontomax-auditoria-comandos.pdf');
+                }} disabled={queueAudit.length === 0}><FileText className="mr-1 h-4 w-4" /> PDF</Button>
+              </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
               {queueAudit.length === 0 ? (
