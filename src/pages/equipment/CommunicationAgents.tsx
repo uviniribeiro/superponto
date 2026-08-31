@@ -163,7 +163,7 @@ export default function CommunicationAgents() {
     );
   });
 
-  const csvCell = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+  const csvCell = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
   const exportCommandsCsv = () => {
     const rows = [
       ['ID', 'Robô', 'Equipamento', 'Comando', 'Payload', 'Status', 'Criado em', 'Finalizado em'],
