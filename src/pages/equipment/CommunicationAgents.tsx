@@ -695,14 +695,48 @@ export default function CommunicationAgents() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent className="space-y-3 overflow-x-auto">
+              {selectedCommandIds.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/40 p-3">
+                  <p className="text-sm">
+                    {selectedCommandIds.length} comando(s) selecionado(s) — a reexecução respeita a ordem original da fila.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedCommandIds([])}>
+                      Limpar seleção
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!permissions.canRetry || batchRetryMutation.isPending}
+                      onClick={() => {
+                        const selected = filteredCommands.filter((item) => selectedCommandIds.includes(item.id));
+                        if (!window.confirm(`Reexecutar ${selected.length} comando(s) na ordem original?`)) return;
+                        batchRetryMutation.mutate(selected, { onSuccess: () => setSelectedCommandIds([]) });
+                      }}
+                    >
+                      <RotateCcw className="mr-1 h-3.5 w-3.5" /> Reexecutar em lote
+                    </Button>
+                  </div>
+                </div>
+              )}
               {filteredCommands.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum comando encontrado.</p>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={
+                            filteredCommands.length > 0 &&
+                            filteredCommands.every((item) => selectedCommandIds.includes(item.id))
+                          }
+                          onCheckedChange={(value) => selectAllFiltered(value === true)}
+                          aria-label="Selecionar todos os comandos filtrados"
+                        />
+                      </TableHead>
                       <TableHead>Comando</TableHead>
+                      <TableHead>Robô</TableHead>
                       <TableHead>Equipamento</TableHead>
                       <TableHead>Tentativas</TableHead>
                       <TableHead>Criado em</TableHead>
@@ -714,7 +748,18 @@ export default function CommunicationAgents() {
                   <TableBody>
                     {filteredCommands.map((command) => (
                       <TableRow key={command.id}>
-                        <TableCell className="font-medium">{command.command}</TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedCommandIds.includes(command.id)}
+                            onCheckedChange={(value) => toggleCommandSelection(command.id, value === true)}
+                            aria-label={`Selecionar comando ${command.command}`}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {command.command}
+                          <div className="text-xs text-muted-foreground">{command.id.slice(0, 8)}</div>
+                        </TableCell>
+                        <TableCell>{agents.find((item) => item.id === command.agent_id)?.name ?? '—'}</TableCell>
                         <TableCell>{equipmentName(command.equipment_id)}</TableCell>
                         <TableCell>{command.attempts ?? 0}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(command.created_at)}</TableCell>
