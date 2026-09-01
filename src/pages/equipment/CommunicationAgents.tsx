@@ -52,6 +52,7 @@ import {
   type RotationSimulation,
 } from '@/hooks/useCommunicationAgents';
 import { AgentTokenRotationDialog } from '@/components/equipment/AgentTokenRotationDialog';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const statusVariant = (status?: string | null) => {
   switch (status) {
@@ -122,6 +123,7 @@ export default function CommunicationAgents() {
   const [simulation, setSimulation] = useState<RotationSimulation | null>(null);
   const alertedCommandIds = useRef(new Set<string>());
   const rotationAgent = agents.find((item) => item.id === rotationAgentId) ?? null;
+  const { addNotification } = useNotifications();
 
   const { data: equipmentList = [] } = useQuery({
     queryKey: ['equipment-simple'],
@@ -213,18 +215,22 @@ export default function CommunicationAgents() {
       const stale = status === 'pending' && new Date(command.created_at).getTime() < staleLimit;
       const alertKey = `${command.id}:${status}:${stale}`;
       if (alertedCommandIds.current.has(alertKey)) return;
+
+      const alert = (title: string, message: string, type: 'error' | 'warning' | 'info') => {
+        toast({ title, description: message, variant: type === 'error' ? 'destructive' : undefined });
+        addNotification({ type, title, message, actionUrl: '/equipment/agents', actionLabel: 'Ver comandos' });
+        alertedCommandIds.current.add(alertKey);
+      };
+
       if (status === 'failed') {
-        toast({ title: 'Comando falhou', description: `${command.command}: ${command.error_message ?? 'verifique os logs.'}`, variant: 'destructive' });
-        alertedCommandIds.current.add(alertKey);
+        alert('Comando falhou', `${command.command}: ${command.error_message ?? 'verifique os logs.'}`, 'error');
       } else if (status === 'cancelled') {
-        toast({ title: 'Comando cancelado', description: command.command });
-        alertedCommandIds.current.add(alertKey);
+        alert('Comando cancelado', `${command.command} foi cancelado antes da execução.`, 'info');
       } else if (stale) {
-        toast({ title: 'Comando aguardando há muito tempo', description: command.command, variant: 'destructive' });
-        alertedCommandIds.current.add(alertKey);
+        alert('Comando aguardando há muito tempo', `${command.command} está na fila há mais de 15 minutos.`, 'warning');
       }
     });
-  }, [commands]);
+  }, [commands, addNotification]);
 
   const toggleCommandSelection = (id: string, checked: boolean) => {
     setSelectedCommandIds((current) => checked ? [...current, id] : current.filter((item) => item !== id));
@@ -412,10 +418,24 @@ export default function CommunicationAgents() {
                             <Button
                               size="sm"
                               variant="outline"
+                              disabled={!permissions.canManageTokens}
                               onClick={() => setRotationAgentId(agent.id)}
                             >
                               <KeyRound className="mr-1 h-3.5 w-3.5" />
                               Token
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={!permissions.canManageTokens || simulateTokenRotationMutation.isPending}
+                              title="Testar a troca do token em modo simulado"
+                              onClick={async () => {
+                                const result = await simulateTokenRotationMutation.mutateAsync(agent);
+                                setSimulation(result);
+                              }}
+                            >
+                              <Terminal className="mr-1 h-3.5 w-3.5" />
+                              Testar troca
                             </Button>
                             <Button
                               size="sm"
@@ -508,8 +528,8 @@ export default function CommunicationAgents() {
                               <>
                                 <Button
                                   size="sm"
-                                  onClick={() => adoptDeviceMutation.mutate(device)}
-                                  disabled={adoptDeviceMutation.isPending}
+                                  onClick={() => setAdoptionDevice(device)}
+                                  disabled={adoptDeviceMutation.isPending || !permissions.canAdoptDevices}
                                 >
                                   <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                                   Adotar
@@ -613,7 +633,10 @@ export default function CommunicationAgents() {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={toggleQueuePauseMutation.isPending}
+                        disabled={
+                          toggleQueuePauseMutation.isPending ||
+                          (agent.queue_paused ? !permissions.canResume : !permissions.canPause)
+                        }
                         onClick={() =>
                           toggleQueuePauseMutation.mutate({ agent, paused: !agent.queue_paused })
                         }
@@ -974,7 +997,9 @@ export default function CommunicationAgents() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Agente</TableHead>
+                      <TableHead>Executado por</TableHead>
                       <TableHead>Modo</TableHead>
+                      <TableHead>Motivo / resultado</TableHead>
                       <TableHead>Início</TableHead>
                       <TableHead>Janela até</TableHead>
                       <TableHead>Validado em</TableHead>
@@ -987,7 +1012,11 @@ export default function CommunicationAgents() {
                         <TableCell>
                           {agents.find((item) => item.id === rotation.agent_id)?.name ?? '—'}
                         </TableCell>
+                        <TableCell>{rotation.started_by_name ?? 'Sistema'}</TableCell>
                         <TableCell>{rotation.mode === 'automatic' ? 'Automática' : 'Manual'}</TableCell>
+                        <TableCell className="max-w-xs text-xs text-muted-foreground">
+                          {rotation.notes ?? (rotation.status === 'completed' ? 'Token validado pelo robô' : 'Sem observações')}
+                        </TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(rotation.started_at)}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(rotation.window_expires_at)}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(rotation.validated_at)}</TableCell>
@@ -1270,6 +1299,62 @@ export default function CommunicationAgents() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setLogCommand(null)}>Fechar</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!adoptionDevice} onOpenChange={(value) => !value && setAdoptionDevice(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar adoção do dispositivo</DialogTitle>
+            <DialogDescription>
+              A adoção valida o robô de origem e cadastra este relógio no banco de equipamentos.
+            </DialogDescription>
+          </DialogHeader>
+          {adoptionDevice && (
+            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/40 p-4 text-sm">
+              <p><strong>Endereço:</strong> {adoptionDevice.ip_address}{adoptionDevice.port ? `:${adoptionDevice.port}` : ''}</p>
+              <p><strong>Fabricante:</strong> {adoptionDevice.manufacturer ?? '—'}</p>
+              <p><strong>Modelo:</strong> {adoptionDevice.model ?? '—'}</p>
+              <p><strong>Robô:</strong> {agents.find((agent) => agent.id === adoptionDevice.agent_id)?.name ?? '—'}</p>
+              <p className="text-xs text-muted-foreground">O token precisa estar ativo, não expirado e fora de uma janela de rotação pendente.</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdoptionDevice(null)}>Cancelar</Button>
+            <Button
+              disabled={!permissions.canAdoptDevices || adoptDeviceMutation.isPending}
+              onClick={() => {
+                if (!adoptionDevice) return;
+                adoptDeviceMutation.mutate(adoptionDevice, { onSuccess: () => setAdoptionDevice(null) });
+              }}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Confirmar adoção
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!simulation} onOpenChange={(value) => !value && setSimulation(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Teste simulado de troca de token</DialogTitle>
+            <DialogDescription>{simulation?.agentName ?? ''}</DialogDescription>
+          </DialogHeader>
+          {simulation && (
+            <div className="space-y-3 text-sm">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <p>SHA-256: <Badge variant={simulation.checksumOk ? 'default' : 'destructive'}>{simulation.checksumOk ? 'Válido' : 'Falhou'}</Badge></p>
+                <p>Gateway: <Badge variant={simulation.gatewayReachable && simulation.gatewayRejectedFakeToken ? 'default' : 'destructive'}>{simulation.gatewayReachable && simulation.gatewayRejectedFakeToken ? 'Protegido' : 'Revisar'}</Badge></p>
+                <p>Robô local: <Badge variant={simulation.agentOnline ? 'default' : 'destructive'}>{simulation.agentOnline ? 'Online' : 'Offline'}</Badge></p>
+                <p className="text-xs text-muted-foreground">Hash de teste: {simulation.sampleHashPrefix}…</p>
+              </div>
+              <Alert variant={simulation.blockingReason ? 'destructive' : 'default'}>
+                <AlertTitle>{simulation.blockingReason ? 'Troca bloqueada' : 'Pronto para efetivar'}</AlertTitle>
+                <AlertDescription>{simulation.blockingReason ?? 'Checksum, gateway e conectividade do robô foram validados.'}</AlertDescription>
+              </Alert>
+            </div>
+          )}
+          <DialogFooter><Button variant="outline" onClick={() => setSimulation(null)}>Fechar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
