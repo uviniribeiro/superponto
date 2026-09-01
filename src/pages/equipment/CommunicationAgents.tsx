@@ -123,6 +123,7 @@ export default function CommunicationAgents() {
   const [simulation, setSimulation] = useState<RotationSimulation | null>(null);
   const alertedCommandIds = useRef(new Set<string>());
   const rotationAgent = agents.find((item) => item.id === rotationAgentId) ?? null;
+  const { addNotification } = useNotifications();
 
   const { data: equipmentList = [] } = useQuery({
     queryKey: ['equipment-simple'],
