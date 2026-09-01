@@ -215,18 +215,22 @@ export default function CommunicationAgents() {
       const stale = status === 'pending' && new Date(command.created_at).getTime() < staleLimit;
       const alertKey = `${command.id}:${status}:${stale}`;
       if (alertedCommandIds.current.has(alertKey)) return;
+
+      const alert = (title: string, message: string, type: 'error' | 'warning' | 'info') => {
+        toast({ title, description: message, variant: type === 'error' ? 'destructive' : undefined });
+        addNotification({ type, title, message, actionUrl: '/equipment/agents', actionLabel: 'Ver comandos' });
+        alertedCommandIds.current.add(alertKey);
+      };
+
       if (status === 'failed') {
-        toast({ title: 'Comando falhou', description: `${command.command}: ${command.error_message ?? 'verifique os logs.'}`, variant: 'destructive' });
-        alertedCommandIds.current.add(alertKey);
+        alert('Comando falhou', `${command.command}: ${command.error_message ?? 'verifique os logs.'}`, 'error');
       } else if (status === 'cancelled') {
-        toast({ title: 'Comando cancelado', description: command.command });
-        alertedCommandIds.current.add(alertKey);
+        alert('Comando cancelado', `${command.command} foi cancelado antes da execução.`, 'info');
       } else if (stale) {
-        toast({ title: 'Comando aguardando há muito tempo', description: command.command, variant: 'destructive' });
-        alertedCommandIds.current.add(alertKey);
+        alert('Comando aguardando há muito tempo', `${command.command} está na fila há mais de 15 minutos.`, 'warning');
       }
     });
-  }, [commands]);
+  }, [commands, addNotification]);
 
   const toggleCommandSelection = (id: string, checked: boolean) => {
     setSelectedCommandIds((current) => checked ? [...current, id] : current.filter((item) => item !== id));
