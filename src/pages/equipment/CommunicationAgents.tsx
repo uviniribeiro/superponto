@@ -1302,6 +1302,62 @@ export default function CommunicationAgents() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!adoptionDevice} onOpenChange={(value) => !value && setAdoptionDevice(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar adoção do dispositivo</DialogTitle>
+            <DialogDescription>
+              A adoção valida o robô de origem e cadastra este relógio no banco de equipamentos.
+            </DialogDescription>
+          </DialogHeader>
+          {adoptionDevice && (
+            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/40 p-4 text-sm">
+              <p><strong>Endereço:</strong> {adoptionDevice.ip_address}{adoptionDevice.port ? `:${adoptionDevice.port}` : ''}</p>
+              <p><strong>Fabricante:</strong> {adoptionDevice.manufacturer ?? '—'}</p>
+              <p><strong>Modelo:</strong> {adoptionDevice.model ?? '—'}</p>
+              <p><strong>Robô:</strong> {agents.find((agent) => agent.id === adoptionDevice.agent_id)?.name ?? '—'}</p>
+              <p className="text-xs text-muted-foreground">O token precisa estar ativo, não expirado e fora de uma janela de rotação pendente.</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdoptionDevice(null)}>Cancelar</Button>
+            <Button
+              disabled={!permissions.canAdoptDevices || adoptDeviceMutation.isPending}
+              onClick={() => {
+                if (!adoptionDevice) return;
+                adoptDeviceMutation.mutate(adoptionDevice, { onSuccess: () => setAdoptionDevice(null) });
+              }}
+            >
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Confirmar adoção
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!simulation} onOpenChange={(value) => !value && setSimulation(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Teste simulado de troca de token</DialogTitle>
+            <DialogDescription>{simulation?.agentName ?? ''}</DialogDescription>
+          </DialogHeader>
+          {simulation && (
+            <div className="space-y-3 text-sm">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <p>SHA-256: <Badge variant={simulation.checksumOk ? 'default' : 'destructive'}>{simulation.checksumOk ? 'Válido' : 'Falhou'}</Badge></p>
+                <p>Gateway: <Badge variant={simulation.gatewayReachable && simulation.gatewayRejectedFakeToken ? 'default' : 'destructive'}>{simulation.gatewayReachable && simulation.gatewayRejectedFakeToken ? 'Protegido' : 'Revisar'}</Badge></p>
+                <p>Robô local: <Badge variant={simulation.agentOnline ? 'default' : 'destructive'}>{simulation.agentOnline ? 'Online' : 'Offline'}</Badge></p>
+                <p className="text-xs text-muted-foreground">Hash de teste: {simulation.sampleHashPrefix}…</p>
+              </div>
+              <Alert variant={simulation.blockingReason ? 'destructive' : 'default'}>
+                <AlertTitle>{simulation.blockingReason ? 'Troca bloqueada' : 'Pronto para efetivar'}</AlertTitle>
+                <AlertDescription>{simulation.blockingReason ?? 'Checksum, gateway e conectividade do robô foram validados.'}</AlertDescription>
+              </Alert>
+            </div>
+          )}
+          <DialogFooter><Button variant="outline" onClick={() => setSimulation(null)}>Fechar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AgentTokenRotationDialog
         agent={rotationAgent}
         open={!!rotationAgent}
