@@ -52,6 +52,7 @@ import {
   type RotationSimulation,
 } from '@/hooks/useCommunicationAgents';
 import { AgentTokenRotationDialog } from '@/components/equipment/AgentTokenRotationDialog';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const statusVariant = (status?: string | null) => {
   switch (status) {
