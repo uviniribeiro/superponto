@@ -619,7 +619,10 @@ export default function CommunicationAgents() {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={toggleQueuePauseMutation.isPending}
+                        disabled={
+                          toggleQueuePauseMutation.isPending ||
+                          (agent.queue_paused ? !permissions.canResume : !permissions.canPause)
+                        }
                         onClick={() =>
                           toggleQueuePauseMutation.mutate({ agent, paused: !agent.queue_paused })
                         }
