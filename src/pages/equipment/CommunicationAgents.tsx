@@ -418,10 +418,24 @@ export default function CommunicationAgents() {
                             <Button
                               size="sm"
                               variant="outline"
+                              disabled={!permissions.canManageTokens}
                               onClick={() => setRotationAgentId(agent.id)}
                             >
                               <KeyRound className="mr-1 h-3.5 w-3.5" />
                               Token
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={!permissions.canManageTokens || simulateTokenRotationMutation.isPending}
+                              title="Testar a troca do token em modo simulado"
+                              onClick={async () => {
+                                const result = await simulateTokenRotationMutation.mutateAsync(agent);
+                                setSimulation(result);
+                              }}
+                            >
+                              <Terminal className="mr-1 h-3.5 w-3.5" />
+                              Testar troca
                             </Button>
                             <Button
                               size="sm"
