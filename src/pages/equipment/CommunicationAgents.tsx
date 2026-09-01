@@ -997,7 +997,9 @@ export default function CommunicationAgents() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Agente</TableHead>
+                      <TableHead>Executado por</TableHead>
                       <TableHead>Modo</TableHead>
+                      <TableHead>Motivo / resultado</TableHead>
                       <TableHead>Início</TableHead>
                       <TableHead>Janela até</TableHead>
                       <TableHead>Validado em</TableHead>
