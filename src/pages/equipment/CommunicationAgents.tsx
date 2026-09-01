@@ -514,8 +514,8 @@ export default function CommunicationAgents() {
                               <>
                                 <Button
                                   size="sm"
-                                  onClick={() => adoptDeviceMutation.mutate(device)}
-                                  disabled={adoptDeviceMutation.isPending}
+                                  onClick={() => setAdoptionDevice(device)}
+                                  disabled={adoptDeviceMutation.isPending || !permissions.canAdoptDevices}
                                 >
                                   <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                                   Adotar
