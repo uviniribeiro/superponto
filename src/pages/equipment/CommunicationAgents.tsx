@@ -1012,7 +1012,11 @@ export default function CommunicationAgents() {
                         <TableCell>
                           {agents.find((item) => item.id === rotation.agent_id)?.name ?? '—'}
                         </TableCell>
+                        <TableCell>{rotation.started_by_name ?? 'Sistema'}</TableCell>
                         <TableCell>{rotation.mode === 'automatic' ? 'Automática' : 'Manual'}</TableCell>
+                        <TableCell className="max-w-xs text-xs text-muted-foreground">
+                          {rotation.notes ?? (rotation.status === 'completed' ? 'Token validado pelo robô' : 'Sem observações')}
+                        </TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(rotation.started_at)}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(rotation.window_expires_at)}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatDate(rotation.validated_at)}</TableCell>
