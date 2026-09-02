@@ -77,8 +77,10 @@ def build_executable():
 
 
 NSIS_TEMPLATE = r'''
-; Instalador do Robo de Comunicacao Ponto Max
+; Instalador do Robo de Comunicacao Ponto Max (wizard: token, empresa e rede)
 !include "MUI2.nsh"
+!include "nsDialogs.nsh"
+!include "LogicLib.nsh"
 
 Name "Ponto Max - Robo de Comunicacao"
 OutFile "PontoMaxAgentInstaller.exe"
@@ -86,23 +88,77 @@ InstallDir "$PROGRAMFILES64\PontoMax Agent"
 RequestExecutionLevel admin
 Unicode true
 
+Var Dialog
+Var TokenBox
+Var EmpresaBox
+Var CnpjBox
+Var RangesBox
+Var Token
+Var Empresa
+Var Cnpj
+Var Ranges
+
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
+Page custom ConfigPage ConfigPageLeave
 !insertmacro MUI_PAGE_INSTFILES
-!define MUI_FINISHPAGE_RUN "$INSTDIR\__APP__.exe"
-!define MUI_FINISHPAGE_RUN_PARAMETERS "--configure"
-!define MUI_FINISHPAGE_RUN_TEXT "Configurar o agente agora (token e rede)"
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "PortugueseBR"
 
+Function ConfigPage
+    !insertmacro MUI_HEADER_TEXT "Configuracao do robo" "Informe o token, a empresa e as faixas de rede."
+    nsDialogs::Create 1018
+    Pop $Dialog
+    ${If} $Dialog == error
+        Abort
+    ${EndIf}
+
+    ${NSD_CreateLabel} 0 0 100% 12u "Token do agente (gerado em Equipamentos > Robo de Comunicacao):"
+    Pop $0
+    ${NSD_CreateText} 0 14u 100% 12u ""
+    Pop $TokenBox
+
+    ${NSD_CreateLabel} 0 34u 100% 12u "Empresa (razao social):"
+    Pop $0
+    ${NSD_CreateText} 0 48u 100% 12u ""
+    Pop $EmpresaBox
+
+    ${NSD_CreateLabel} 0 68u 100% 12u "CNPJ (aceita formato alfanumerico):"
+    Pop $0
+    ${NSD_CreateText} 0 82u 100% 12u ""
+    Pop $CnpjBox
+
+    ${NSD_CreateLabel} 0 102u 100% 12u "Faixas de rede a varrer (ex: 192.168.0.0/24, 10.0.1.0/24):"
+    Pop $0
+    ${NSD_CreateText} 0 116u 100% 12u ""
+    Pop $RangesBox
+
+    nsDialogs::Show
+FunctionEnd
+
+Function ConfigPageLeave
+    ${NSD_GetText} $TokenBox $Token
+    ${NSD_GetText} $EmpresaBox $Empresa
+    ${NSD_GetText} $CnpjBox $Cnpj
+    ${NSD_GetText} $RangesBox $Ranges
+    ${If} $Token == ""
+        MessageBox MB_ICONEXCLAMATION "Informe o token do agente para continuar."
+        Abort
+    ${EndIf}
+FunctionEnd
+
 Section "Principal"
     SetOutPath $INSTDIR
     File "dist\__APP__.exe"
     File /nonfatal "pontomax-agent.py"
     File /nonfatal "README.txt"
+
+    ; Grava a configuracao (token, empresa e faixas) sem perguntas
+    nsExec::ExecToLog '"$INSTDIR\__APP__.exe" --configure --sim --token "$Token" --empresa "$Empresa" --cnpj "$Cnpj" --ranges "$Ranges"'
+    Pop $0
 
     CreateDirectory "$SMPROGRAMS\Ponto Max Agent"
     CreateShortcut "$SMPROGRAMS\Ponto Max Agent\Configurar Agente.lnk" "$INSTDIR\__APP__.exe" "--configure"
