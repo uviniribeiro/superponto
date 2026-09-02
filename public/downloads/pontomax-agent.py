@@ -69,6 +69,8 @@ UPDATE_STATE_PATH = os.path.join(UPDATE_DIR, "update_state.json")
 DEFAULT_CONFIG = {
     "gateway_url": DEFAULT_GATEWAY,
     "agent_token": "",
+    "company_name": "",
+    "company_cnpj": "",
     "discovery_ranges": [],
     "sync_interval_seconds": 60,
     "discovery_interval_seconds": 900,
@@ -922,6 +924,55 @@ def fingerprint(ip, macs):
     return None
 
 
+def probe_device(ip, port=None, manufacturer=None):
+    """Valida um relogio especifico: porta aberta + identificacao pelo driver.
+
+    Retorna sempre um dicionario com o motivo da reprovacao quando falhar,
+    para que o sistema exiba o log de validacao da adocao.
+    """
+    started = time.time()
+    if not ip:
+        return {"reachable": False, "reason": "IP do dispositivo nao informado"}
+
+    candidates = []
+    cls = PROTOCOLS.get((manufacturer or "").lower())
+    if cls:
+        candidates.append((manufacturer.lower(), cls))
+    for key in PROBE_ORDER:
+        if not cls or key != (manufacturer or "").lower():
+            candidates.append((key, PROTOCOLS[key]))
+
+    tried_ports = []
+    for key, driver_cls in candidates:
+        ports = [int(port)] if port else list(driver_cls.probe_ports)
+        for prt in ports:
+            if prt in tried_ports and key != (manufacturer or "").lower():
+                continue
+            tried_ports.append(prt)
+            if not port_open(ip, prt):
+                continue
+            try:
+                info = driver_cls(ip, prt).identify()
+            except Exception as exc:  # noqa: BLE001
+                return {"reachable": False, "port": prt, "protocol": key,
+                        "reason": "Erro ao comunicar com o relogio: %s" % str(exc)[:200],
+                        "elapsed_ms": int((time.time() - started) * 1000)}
+            if info:
+                info.update({
+                    "reachable": True,
+                    "ip_address": ip,
+                    "port": prt,
+                    "protocol": key,
+                    "validated_at": datetime.now().isoformat(),
+                    "elapsed_ms": int((time.time() - started) * 1000),
+                })
+                return info
+    reason = ("Nenhuma porta de comunicacao respondeu (%s)" % ", ".join(str(p) for p in tried_ports)
+              if tried_ports else "Dispositivo inacessivel na rede")
+    return {"reachable": False, "ip_address": ip, "reason": reason,
+            "tried_ports": tried_ports, "elapsed_ms": int((time.time() - started) * 1000)}
+
+
 def scan_network(ranges=None, workers=64):
     targets = []
     for cidr in (ranges or local_networks()):
@@ -1072,6 +1123,18 @@ class Agent:
             name = cmd.get("command")
             eq = equipment_index.get(cmd.get("equipment_id"))
             try:
+                if name == "probe_device":
+                    payload = cmd.get("payload") or {}
+                    result = probe_device(
+                        payload.get("ip_address"),
+                        payload.get("port"),
+                        payload.get("manufacturer"),
+                    )
+                    self.gw.call("command_result", command_id=cmd["id"],
+                                 success=bool(result.get("reachable")),
+                                 result=result,
+                                 error_message=None if result.get("reachable") else result.get("reason"))
+                    continue
                 if name == "discover":
                     devices = self.run_discovery()
                     self.gw.call("command_result", command_id=cmd["id"], success=True,
