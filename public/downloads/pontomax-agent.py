@@ -1227,25 +1227,61 @@ def install_windows_service():
         return False
 
 
-def configure():
+def configure(args=None):
+    """Assistente de configuracao: token, empresa e faixas de rede.
+
+    Aceita os mesmos dados por parametro (--token, --empresa, --cnpj, --ranges,
+    --gateway, --intervalo, --sim) para instalacao silenciosa pelo .exe.
+    """
+    args = args or argparse.Namespace()
+    silent = bool(getattr(args, "yes", False))
     cfg = load_config()
     print("=" * 62)
     print(" Ponto Max - Configuracao do Robo de Comunicacao v%s" % AGENT_VERSION)
     print("=" * 62)
-    token = input("Token do agente (gerado no sistema): ").strip() or cfg.get("agent_token", "")
-    gateway = input("URL do gateway [%s]: " % cfg["gateway_url"]).strip() or cfg["gateway_url"]
+
+    def ask(label, preset, current):
+        if preset:
+            print("%s: %s" % (label, preset))
+            return preset
+        if silent:
+            return current
+        return input("%s: " % label).strip() or current
+
+    token = ask("Token do agente (gerado no sistema)",
+                getattr(args, "token", None), cfg.get("agent_token", ""))
+    company = ask("Empresa (razao social)",
+                  getattr(args, "empresa", None), cfg.get("company_name", ""))
+    cnpj = ask("CNPJ da empresa",
+               getattr(args, "cnpj", None), cfg.get("company_cnpj", ""))
+    gateway = ask("URL do gateway [%s]" % cfg["gateway_url"],
+                  getattr(args, "gateway", None), cfg["gateway_url"])
     detected = ", ".join(local_networks())
-    ranges = input("Faixas de rede para varredura [%s]: " % detected).strip() or detected
-    interval = input("Intervalo de sincronizacao em segundos [60]: ").strip() or "60"
+    ranges = ask("Faixas de rede para varredura [%s]" % detected,
+                 getattr(args, "ranges", None),
+                 ", ".join(cfg.get("discovery_ranges") or []) or detected)
+    interval = ask("Intervalo de sincronizacao em segundos [60]",
+                   getattr(args, "intervalo", None),
+                   str(cfg.get("sync_interval_seconds") or 60))
+
+    if not token:
+        print("Token obrigatorio. Gere um token em Equipamentos > Robo de Comunicacao.")
+        return 1
 
     cfg.update({
         "agent_token": token,
+        "company_name": company,
+        "company_cnpj": re.sub(r"[^0-9A-Za-z]", "", cnpj or "").upper(),
         "gateway_url": gateway,
-        "discovery_ranges": [r.strip() for r in ranges.split(",") if r.strip()],
-        "sync_interval_seconds": int(interval),
+        "discovery_ranges": [r.strip() for r in str(ranges).split(",") if r.strip()],
+        "sync_interval_seconds": int(str(interval) or 60),
     })
     save_config(cfg)
     print("\nConfiguracao salva em %s" % CONFIG_PATH)
+
+    if getattr(args, "skip_validation", False):
+        print("Validacao remota ignorada (--sem-validacao).")
+        return 0
 
     gw = Gateway(cfg)
     data = gw.call("handshake", local_ip=Agent._local_ip())
@@ -1259,7 +1295,7 @@ def configure():
         else:
             print("Nenhum relogio encontrado agora - a varredura roda novamente automaticamente.")
         if platform.system() == "Windows":
-            answer = input("Registrar como servico do Windows agora? [S/n]: ").strip().lower()
+            answer = "s" if silent else input("Registrar como servico do Windows agora? [S/n]: ").strip().lower()
             if answer in ("", "s", "sim", "y"):
                 install_windows_service()
         return 0
@@ -1270,6 +1306,16 @@ def configure():
 def main():
     parser = argparse.ArgumentParser(description="Ponto Max - Robo de Comunicacao")
     parser.add_argument("--configure", action="store_true", help="assistente de configuracao")
+    parser.add_argument("--token", help="token SHA-256 do agente (instalacao silenciosa)")
+    parser.add_argument("--empresa", help="razao social da empresa")
+    parser.add_argument("--cnpj", help="CNPJ da empresa")
+    parser.add_argument("--ranges", help="faixas de rede separadas por virgula (ex: 192.168.0.0/24)")
+    parser.add_argument("--gateway", help="URL do agent-gateway")
+    parser.add_argument("--intervalo", help="intervalo de sincronizacao em segundos")
+    parser.add_argument("--sim", "--yes", dest="yes", action="store_true",
+                        help="nao faz perguntas: usa parametros e valores atuais")
+    parser.add_argument("--sem-validacao", dest="skip_validation", action="store_true",
+                        help="salva a configuracao sem validar no gateway")
     parser.add_argument("--daemon", action="store_true", help="executa em loop continuo")
     parser.add_argument("--service", action="store_true", help="alias de --daemon (servico)")
     parser.add_argument("--scan", nargs="?", const="", help="varre a rede (opcional: CIDR)")
@@ -1282,7 +1328,7 @@ def main():
         print("Ponto Max Agent %s" % AGENT_VERSION)
         return 0
     if args.configure:
-        return configure()
+        return configure(args)
 
     cfg = load_config()
     if args.rollback:
