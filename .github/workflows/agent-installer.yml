@@ -1,0 +1,63 @@
+name: Robo de Comunicacao - Instalador Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'agent-v*'
+
+jobs:
+  build-and-test-service:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: public/downloads
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias
+        run: python -m pip install --upgrade pip pyinstaller pywin32 requests
+
+      - name: Compilar o executavel do agente
+        run: python build-pontomax-installer.py
+
+      - name: Gerar o script NSIS do wizard
+        run: python build-pontomax-installer.py --nsis
+
+      - name: Compilar o instalador NSIS
+        run: |
+          choco install nsis -y --no-progress
+          & "$env:ProgramFiles(x86)\NSIS\makensis.exe" pontomax-agent-installer.nsi
+
+      - name: Testar o wizard silencioso (token, empresa e faixas)
+        run: |
+          .\dist\PontoMaxAgent.exe --configure --sim --sem-validacao `
+            --token "ci-token-sha256" --empresa "Ponto Max CI" --cnpj "12ABC34501DE35" `
+            --ranges "192.168.0.0/24"
+          Get-Content "$env:ProgramData\PontoMaxAgent\config.json"
+
+      - name: Testar registro como servico do Windows
+        run: |
+          .\dist\PontoMaxAgent.exe install
+          sc.exe config PontoMaxAgent start= auto
+          .\dist\PontoMaxAgent.exe start
+          Start-Sleep -Seconds 10
+          sc.exe query PontoMaxAgent
+          $status = (Get-Service PontoMaxAgent).Status
+          if ($status -ne 'Running') { throw "Servico nao ficou em execucao: $status" }
+          .\dist\PontoMaxAgent.exe stop
+          .\dist\PontoMaxAgent.exe remove
+
+      - name: Publicar artefatos
+        uses: actions/upload-artifact@v4
+        with:
+          name: pontomax-agent-installer
+          path: |
+            public/downloads/dist/PontoMaxAgent.exe
+            public/downloads/PontoMaxAgentInstaller.exe
