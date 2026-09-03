@@ -10,14 +10,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Users as UsersIcon, Shield, Search, UserCog, History, Link, Eye, Settings, FileText, Clock, Calendar, Building2, BarChart3, Check } from 'lucide-react';
+import { Users as UsersIcon, Shield, Search, UserCog, History, Link, Eye, Settings, FileText, Clock, Calendar, Building2, BarChart3, Check, Bot } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
 
 import { SignedAvatarImage } from "@/components/shared/SignedImage";
 import { PageHeader } from '@/components/shared/PageHeader';
+import {
+  AGENT_PERMISSION_KEYS,
+  AGENT_PERMISSION_LABELS,
+  AGENT_ROLE_LABELS,
+  type AgentPermissionMatrix,
+  type AgentRoleKey,
+  useAgentPermissions,
+} from '@/hooks/useAgentPermissions';
+
 interface UserWithRole {
   id: string;
   user_id: string;
