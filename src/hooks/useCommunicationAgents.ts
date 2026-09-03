@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
 import { useAgentPermissions } from '@/hooks/useAgentPermissions';
+
 
 
 export interface CommunicationAgent {
@@ -203,11 +203,10 @@ export const adoptionBlockReason = (agent: AdoptionAgentCheck | null): string | 
 export function useCommunicationAgents() {
   const queryClient = useQueryClient();
   const invalidate = (key: string) => queryClient.invalidateQueries({ queryKey: [key] });
-  useAuth();
-
   /** Matriz de perfis configurável na tela "Perfis e permissões" (sem alteração de backend). */
-  const { permissions, matrix: permissionMatrix, canEditMatrix, saveMatrixMutation } =
-    useAgentPermissions();
+  const { permissions } = useAgentPermissions();
+
+
 
 
 
