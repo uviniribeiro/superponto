@@ -201,17 +201,13 @@ export const adoptionBlockReason = (agent: AdoptionAgentCheck | null): string | 
 export function useCommunicationAgents() {
   const queryClient = useQueryClient();
   const invalidate = (key: string) => queryClient.invalidateQueries({ queryKey: [key] });
-  const { isAdmin, isManager } = useAuth();
+  useAuth();
 
-  /** Permissões da fila: gerentes operam a fila, apenas admin encerra/cancela e mexe em token. */
-  const permissions = {
-    canPause: isManager,
-    canResume: isManager,
-    canRetry: isManager,
-    canCancel: isAdmin,
-    canManageTokens: isAdmin,
-    canAdoptDevices: isAdmin,
-  };
+  /** Matriz de perfis configurável na tela "Perfis e permissões" (sem alteração de backend). */
+  const { permissions, matrix: permissionMatrix, canEditMatrix, saveMatrixMutation } =
+    useAgentPermissions();
+
+
 
   const assertPermission = (allowed: boolean, action: string) => {
     if (!allowed) {
