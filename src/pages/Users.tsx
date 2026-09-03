@@ -23,6 +23,15 @@ import {
   AGENT_PERMISSION_KEYS,
   AGENT_PERMISSION_LABELS,
   AGENT_ROLE_LABELS,
+  type AgentPermissionKey,
+  type AgentPermissionMatrix,
+  type AgentRoleKey,
+  useAgentPermissions,
+} from '@/hooks/useAgentPermissions';
+import {
+  AGENT_PERMISSION_KEYS,
+  AGENT_PERMISSION_LABELS,
+  AGENT_ROLE_LABELS,
   type AgentPermissionMatrix,
   type AgentRoleKey,
   useAgentPermissions,
@@ -119,6 +128,12 @@ const rolePermissions = {
 
 export default function Users() {
   const { isAdmin, user, profile: currentProfile } = useAuth();
+  const {
+    matrix: savedAgentMatrix,
+    canEditMatrix,
+    saveMatrixMutation,
+  } = useAgentPermissions();
+  const [agentMatrixDraft, setAgentMatrixDraft] = useState<AgentPermissionMatrix>(savedAgentMatrix);
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [allEmployees, setAllEmployees] = useState<EmployeeProfile[]>([]);
   const [history, setHistory] = useState<RoleChangeHistory[]>([]);
@@ -132,6 +147,10 @@ export default function Users() {
   const [selectedRole, setSelectedRole] = useState<'admin' | 'manager' | 'employee'>('employee');
   const [isLinking, setIsLinking] = useState(false);
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+
+  useEffect(() => {
+    setAgentMatrixDraft(savedAgentMatrix);
+  }, [savedAgentMatrix]);
 
   useEffect(() => {
     fetchUsers();
@@ -368,6 +387,17 @@ export default function Users() {
     }
   };
 
+  const toggleAgentPermission = (role: AgentRoleKey, permission: AgentPermissionKey) => {
+    setAgentMatrixDraft((current) => ({
+      ...current,
+      [role]: { ...current[role], [permission]: !current[role][permission] },
+    }));
+  };
+
+  const saveAgentPermissions = () => {
+    saveMatrixMutation.mutate(agentMatrixDraft);
+  };
+
   const filteredUsers = users.filter(user =>
     user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -424,6 +454,10 @@ export default function Users() {
           <TabsTrigger value="history" className="gap-2">
             <History className="h-4 w-4" />
             Histórico
+          </TabsTrigger>
+          <TabsTrigger value="agent-permissions" className="gap-2">
+            <Bot className="h-4 w-4" />
+            Perfis do robô
           </TabsTrigger>
         </TabsList>
 
@@ -696,6 +730,73 @@ export default function Users() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="agent-permissions">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                Perfis e permissões do Robô de Comunicação
+              </CardTitle>
+              <CardDescription>
+                Defina quais ações cada perfil pode executar na fila, nos dispositivos e nos tokens.
+                As alterações ficam registradas na configuração da empresa.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {!canEditMatrix && (
+                <div className="rounded-lg border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
+                  Apenas administradores podem alterar esta matriz.
+                </div>
+              )}
+              <div className="overflow-x-auto rounded-lg border border-border/60">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ação</TableHead>
+                      {(Object.keys(AGENT_ROLE_LABELS) as AgentRoleKey[]).map((role) => (
+                        <TableHead key={role} className="min-w-[150px] text-center">
+                          {AGENT_ROLE_LABELS[role]}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {AGENT_PERMISSION_KEYS.map((permission) => (
+                      <TableRow key={permission}>
+                        <TableCell className="font-medium">{AGENT_PERMISSION_LABELS[permission]}</TableCell>
+                        {(Object.keys(AGENT_ROLE_LABELS) as AgentRoleKey[]).map((role) => (
+                          <TableCell key={role} className="text-center">
+                            <div className="flex justify-center">
+                              <Switch
+                                aria-label={`${AGENT_ROLE_LABELS[role]}: ${AGENT_PERMISSION_LABELS[permission]}`}
+                                checked={agentMatrixDraft[role][permission]}
+                                disabled={!canEditMatrix || saveMatrixMutation.isPending}
+                                onCheckedChange={() => toggleAgentPermission(role, permission)}
+                              />
+                            </div>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-muted-foreground">
+                  O administrador sempre mantém o controle total do módulo; desative apenas o que não deve ser operado por cada perfil.
+                </p>
+                <Button
+                  onClick={saveAgentPermissions}
+                  disabled={!canEditMatrix || saveMatrixMutation.isPending}
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  {saveMatrixMutation.isPending ? 'Salvando...' : 'Salvar permissões'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="history">
