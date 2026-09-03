@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAgentPermissions } from '@/hooks/useAgentPermissions';
+
+
 
 export interface CommunicationAgent {
   id: string;
@@ -201,17 +203,12 @@ export const adoptionBlockReason = (agent: AdoptionAgentCheck | null): string | 
 export function useCommunicationAgents() {
   const queryClient = useQueryClient();
   const invalidate = (key: string) => queryClient.invalidateQueries({ queryKey: [key] });
-  const { isAdmin, isManager } = useAuth();
+  /** Matriz de perfis configurável na tela "Perfis e permissões" (sem alteração de backend). */
+  const { permissions } = useAgentPermissions();
 
-  /** Permissões da fila: gerentes operam a fila, apenas admin encerra/cancela e mexe em token. */
-  const permissions = {
-    canPause: isManager,
-    canResume: isManager,
-    canRetry: isManager,
-    canCancel: isAdmin,
-    canManageTokens: isAdmin,
-    canAdoptDevices: isAdmin,
-  };
+
+
+
 
   const assertPermission = (allowed: boolean, action: string) => {
     if (!allowed) {
@@ -587,8 +584,7 @@ export function useCommunicationAgents() {
 
 
 
-  /** Adota um relógio encontrado na rede, criando o equipamento no sistema.
-   *  Só prossegue com token do robô válido (nem expirado, nem em janela de transição pendente). */
+  /** Adota um relógio somente depois de o robô validar conectividade e identidade. */
   const adoptDeviceMutation = useMutation({
     mutationFn: async (device: DiscoveredDevice) => {
       assertPermission(permissions.canAdoptDevices, 'adotar dispositivos');
@@ -601,10 +597,51 @@ export function useCommunicationAgents() {
 
       const reason = adoptionBlockReason(agent as AdoptionAgentCheck | null);
       if (reason) throw new Error(reason);
+      if (!device.agent_id) throw new Error('Dispositivo sem robô de origem — não é possível validar a adoção.');
+
+      const { data: probe, error: probeError } = await supabase
+        .from('device_commands')
+        .insert({
+          company_id: (agent as { company_id?: string } | null)?.company_id,
+          agent_id: device.agent_id,
+          equipment_id: null,
+          command: 'probe_device',
+          payload: {
+            ip_address: device.ip_address,
+            port: device.port ?? 3000,
+            manufacturer: device.manufacturer,
+          },
+          status: 'pending',
+          created_by: (await supabase.auth.getUser()).data.user?.id,
+        } as never)
+        .select('id')
+        .single();
+      if (probeError) throw probeError;
+
+      // O agente consulta a fila em ciclos curtos. Adoção só avança com retorno real.
+      const commandId = (probe as { id: string }).id;
+      let validation: DeviceCommand | null = null;
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        const { data: result, error } = await supabase
+          .from('device_commands')
+          .select('status, result, error_message')
+          .eq('id', commandId)
+          .maybeSingle();
+        if (error) throw error;
+        validation = result as DeviceCommand | null;
+        if (validation?.status === 'done' || validation?.status === 'failed') break;
+      }
+
+      if (validation?.status !== 'done') {
+        const reasonText = validation?.error_message ?? 'O robô não respondeu dentro do tempo esperado.';
+        throw new Error(`Validação do relógio reprovada: ${reasonText}`);
+      }
+      if (validation.result?.reachable !== true) {
+        throw new Error(`Validação do relógio reprovada: ${String(validation.result?.reason ?? 'Dispositivo inacessível')}`);
+      }
 
       const companyId = (agent as { company_id?: string } | null)?.company_id;
-
-
       const { data: equipment, error } = await supabase
         .from('time_clock_equipment')
         .insert({
@@ -616,6 +653,7 @@ export function useCommunicationAgents() {
           ip_address: device.ip_address,
           port: device.port ?? 3000,
           mac_address: device.mac_address ?? null,
+          protocol: device.protocol ?? 'tcp',
           is_active: true,
         } as never)
         .select('id')
@@ -628,6 +666,7 @@ export function useCommunicationAgents() {
         .eq('id', device.id);
       if (linkError) throw linkError;
     },
+
     onSuccess: () => {
       invalidate('discovered-devices');
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
