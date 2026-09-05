@@ -28,14 +28,6 @@ import {
   type AgentRoleKey,
   useAgentPermissions,
 } from '@/hooks/useAgentPermissions';
-import {
-  AGENT_PERMISSION_KEYS,
-  AGENT_PERMISSION_LABELS,
-  AGENT_ROLE_LABELS,
-  type AgentPermissionMatrix,
-  type AgentRoleKey,
-  useAgentPermissions,
-} from '@/hooks/useAgentPermissions';
 
 interface UserWithRole {
   id: string;
