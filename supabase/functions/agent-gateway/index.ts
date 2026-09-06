@@ -92,6 +92,8 @@ const BodySchema = z.object({
   result: z.record(z.unknown()).optional(),
   error_message: z.string().trim().max(1000).optional(),
   message: z.string().trim().max(1000).optional(),
+  // Telemetria do robô local (CPU, memória, disco, uptime) exibida em tempo real.
+  metrics: z.record(z.unknown()).optional(),
   limit: z.number().int().min(1).max(200).optional(),
 });
 
