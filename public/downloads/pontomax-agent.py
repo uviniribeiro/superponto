@@ -53,6 +53,49 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 AGENT_VERSION = "3.1.0"
+
+PROCESS_STARTED_AT = time.time()
+
+
+def collect_metrics():
+    """Coleta CPU, memoria, disco e uptime do robo local (sem dependencias extras)."""
+    metrics = {
+        "agent_version": AGENT_VERSION,
+        "platform": platform.system(),
+        "hostname": socket.gethostname(),
+        "uptime_seconds": int(time.time() - PROCESS_STARTED_AT),
+        "pid": os.getpid(),
+    }
+    try:
+        import psutil  # type: ignore
+        metrics["cpu_percent"] = round(psutil.cpu_percent(interval=0.3), 1)
+        vm = psutil.virtual_memory()
+        metrics["memory_percent"] = round(vm.percent, 1)
+        metrics["memory_used_mb"] = int(vm.used / 1048576)
+        metrics["memory_total_mb"] = int(vm.total / 1048576)
+        du = psutil.disk_usage(str(Path(__file__).resolve().parent))
+        metrics["disk_percent"] = round(du.percent, 1)
+    except Exception:
+        try:
+            if hasattr(os, "getloadavg"):
+                load = os.getloadavg()[0]
+                cpus = os.cpu_count() or 1
+                metrics["cpu_percent"] = round(min(100.0, load / cpus * 100), 1)
+            if platform.system() == "Linux":
+                info = {}
+                for line in Path("/proc/meminfo").read_text().splitlines():
+                    key, _, rest = line.partition(":")
+                    info[key] = int(rest.strip().split()[0])
+                total = info.get("MemTotal", 0)
+                avail = info.get("MemAvailable", 0)
+                if total:
+                    metrics["memory_total_mb"] = int(total / 1024)
+                    metrics["memory_used_mb"] = int((total - avail) / 1024)
+                    metrics["memory_percent"] = round((total - avail) / total * 100, 1)
+        except Exception:
+            pass
+    return metrics
+
 DEFAULT_GATEWAY = "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/agent-gateway"
 
 if platform.system() == "Windows":
@@ -1181,7 +1224,8 @@ class Agent:
         while not self.stop_event.is_set():
             cycle_started = time.time()
             try:
-                beat = self.gw.call("heartbeat", local_ip=self._local_ip())
+                beat = self.gw.call("heartbeat", local_ip=self._local_ip(),
+                                    metrics=collect_metrics())
                 remote = (beat or {}).get("agent") or {}
                 if remote:
                     self.remote = remote

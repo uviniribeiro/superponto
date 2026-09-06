@@ -92,6 +92,8 @@ const BodySchema = z.object({
   result: z.record(z.unknown()).optional(),
   error_message: z.string().trim().max(1000).optional(),
   message: z.string().trim().max(1000).optional(),
+  // Telemetria do robô local (CPU, memória, disco, uptime) exibida em tempo real.
+  metrics: z.record(z.unknown()).optional(),
   limit: z.number().int().min(1).max(200).optional(),
 });
 
@@ -230,6 +232,13 @@ serve(async (req) => {
   if (b.local_ip) liveness.local_ip = b.local_ip;
   if (b.public_ip) liveness.public_ip = b.public_ip;
   if (b.mac_address) liveness.mac_address = b.mac_address;
+  if (b.metrics) {
+    const currentSettings = (agent.settings ?? {}) as Record<string, unknown>;
+    liveness.settings = {
+      ...currentSettings,
+      metrics: { ...b.metrics, collected_at: now, gateway_ok: true },
+    };
+  }
 
   // Validação antes de efetivar: só troca o token quando o agente prova que
   // consegue autenticar com o token pendente.
