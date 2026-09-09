@@ -30,6 +30,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Clock,
+  Bus,
+  Route as RouteIcon,
+  Gauge,
+  ShieldCheck,
   LayoutDashboard,
   Users,
   FileText,
@@ -238,6 +242,21 @@ const menuCategories: MenuCategory[] = [
       { title: 'Dashboard de HE', icon: BarChart3, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
       { title: 'Regras de HE', icon: TrendingUp, href: '/overtime-percentages', roles: ['admin'] },
       { title: 'Hora In Itinere', icon: Clock, href: '/commute-time', roles: ['admin'] },
+    ]
+  },
+  {
+    id: 'controle-operacional',
+    title: 'Controle Operacional',
+    icon: Gauge,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Painel Operacional', icon: Gauge, href: '/operational', roles: ['admin', 'manager'] },
+      { title: 'Escalas', icon: CalendarDays, href: '/operational/schedules', roles: ['admin', 'manager'] },
+      { title: 'Operação do Dia', icon: Activity, href: '/operational/day', roles: ['admin', 'manager'] },
+      { title: 'Motoristas', icon: Users, href: '/operational/drivers', roles: ['admin', 'manager'] },
+      { title: 'Veículos', icon: Bus, href: '/operational/vehicles', roles: ['admin', 'manager'] },
+      { title: 'Linhas e Serviços', icon: RouteIcon, href: '/operational/lines', roles: ['admin', 'manager'] },
+      { title: 'Permissões', icon: ShieldCheck, href: '/operational/permissions', roles: ['admin'] },
     ]
   },
   {

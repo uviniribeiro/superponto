@@ -151,6 +151,15 @@ const CommunicationServers = React.lazy(() => import("@/pages/equipment/Communic
 const CommunicationAgents = React.lazy(() => import("@/pages/equipment/CommunicationAgents"));
 const AgentHealth = React.lazy(() => import("@/pages/equipment/AgentHealth"));
 const ClocksLive = React.lazy(() => import("@/pages/equipment/ClocksLive"));
+
+// Controle Operacional
+const OperationalDashboard = React.lazy(() => import("@/pages/operational/OperationalDashboard"));
+const OperationalSchedules = React.lazy(() => import("@/pages/operational/OperationalSchedules"));
+const OperationalDay = React.lazy(() => import("@/pages/operational/OperationalDay"));
+const OperationalDrivers = React.lazy(() => import("@/pages/operational/OperationalDrivers"));
+const OperationalVehicles = React.lazy(() => import("@/pages/operational/OperationalVehicles"));
+const OperationalLines = React.lazy(() => import("@/pages/operational/OperationalLines"));
+const OperationalPermissions = React.lazy(() => import("@/pages/operational/OperationalPermissions"));
 const MTECompliancePanel = React.lazy(() => import("@/pages/equipment/MTECompliancePanel"));
 
 // Security & Help
@@ -348,6 +357,14 @@ const App = () => (
                   <Route path="equipment/agent-health" element={<ProtectedRoute requiredRoles={['admin']}><AgentHealth /></ProtectedRoute>} />
                   <Route path="equipment/clocks-live" element={<ProtectedRoute requiredRoles={['admin']}><ClocksLive /></ProtectedRoute>} />
                   <Route path="equipment/servers" element={<ProtectedRoute requiredRoles={['admin']}><CommunicationServers /></ProtectedRoute>} />
+                  {/* Controle Operacional */}
+                  <Route path="operational" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalDashboard /></ProtectedRoute>} />
+                  <Route path="operational/schedules" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalSchedules /></ProtectedRoute>} />
+                  <Route path="operational/day" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalDay /></ProtectedRoute>} />
+                  <Route path="operational/drivers" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalDrivers /></ProtectedRoute>} />
+                  <Route path="operational/vehicles" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalVehicles /></ProtectedRoute>} />
+                  <Route path="operational/lines" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalLines /></ProtectedRoute>} />
+                  <Route path="operational/permissions" element={<ProtectedRoute requiredRoles={['admin']}><OperationalPermissions /></ProtectedRoute>} />
                 </Route>
                 
                   <Route path="*" element={<NotFound />} />
