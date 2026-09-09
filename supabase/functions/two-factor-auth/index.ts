@@ -146,18 +146,37 @@ serve(async (req) => {
     const userAgent = req.headers.get("user-agent") || "unknown";
 
     // Buscar perfil do usuário
-    const { data: profile, error: profileError } = await supabase
+    const { data: profileRow, error: profileError } = await supabase
       .from("profiles")
-      .select("id, full_name, email, two_factor_enabled, two_factor_secret, backup_codes")
+      .select("id, full_name, email, two_factor_enabled")
       .eq("user_id", user.id)
       .single();
 
-    if (profileError || !profile) {
+    if (profileError || !profileRow) {
       return new Response(JSON.stringify({ error: "Perfil não encontrado" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Segredos 2FA ficam em tabela separada, acessível apenas pelo próprio usuário
+    const { data: secretsRow } = await supabase
+      .from("profile_2fa_secrets")
+      .select("two_factor_secret, backup_codes")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const profile = {
+      ...profileRow,
+      two_factor_secret: secretsRow?.two_factor_secret ?? null,
+      backup_codes: secretsRow?.backup_codes ?? null,
+    };
+
+    const saveSecrets = (values: { two_factor_secret?: string | null; backup_codes?: string[] | null }) =>
+      supabase
+        .from("profile_2fa_secrets")
+        .upsert({ profile_id: profileRow.id, user_id: user.id, ...values }, { onConflict: "profile_id" });
+
 
     switch (action) {
       // Iniciar setup do 2FA
