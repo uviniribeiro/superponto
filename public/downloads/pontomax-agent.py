@@ -119,7 +119,11 @@ DEFAULT_CONFIG = {
     "discovery_interval_seconds": 900,
     "auto_update": True,
     "verify_ssl": True,
+    # Recepcao de GPS/telemetria da frota (rastreadores enviam JSON por UDP).
+    "gps_enabled": True,
+    "gps_udp_port": 5514,
 }
+
 
 
 # --------------------------------------------------------------------------- #
@@ -1035,9 +1039,94 @@ def scan_network(ranges=None, workers=64):
 
 
 # --------------------------------------------------------------------------- #
+# Recepcao de GPS e telemetria da frota
+# --------------------------------------------------------------------------- #
+class FleetReceiver(object):
+    """Escuta pacotes JSON de rastreadores/telemetria em UDP e repassa ao gateway.
+
+    Formato aceito (uma mensagem JSON por pacote):
+      {"tracker_id": "1234", "lat": -23.5, "lon": -46.6, "speed_kmh": 42}
+      {"tracker_id": "1234", "event_type": "freada_brusca", "severity": "alta"}
+    """
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.port = int(cfg.get("gps_udp_port") or 5514)
+        self.positions = []
+        self.events = []
+        self.lock = threading.Lock()
+        self.sock = None
+        self.thread = None
+
+    def start(self):
+        if not self.cfg.get("gps_enabled", True):
+            return
+        try:
+            import socket
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.sock.settimeout(1.0)
+            self.sock.bind(("0.0.0.0", self.port))
+        except Exception as exc:
+            log("GPS/telemetria desativado (porta %s): %s" % (self.port, exc), "WARN")
+            self.sock = None
+            return
+        self.thread = threading.Thread(target=self._listen, name="fleet-receiver")
+        self.thread.daemon = True
+        self.thread.start()
+        log("Recepcao de GPS/telemetria ativa na porta UDP %s" % self.port)
+
+    def _listen(self):
+        while self.sock:
+            try:
+                raw, _addr = self.sock.recvfrom(8192)
+            except Exception:
+                continue
+            try:
+                msg = json.loads(raw.decode("utf-8", "ignore"))
+            except Exception:
+                continue
+            if not isinstance(msg, dict):
+                continue
+            msg.setdefault("source", "agent")
+            with self.lock:
+                if msg.get("event_type") or msg.get("type"):
+                    if len(self.events) < 500:
+                        self.events.append(msg)
+                elif msg.get("lat") is not None or msg.get("latitude") is not None:
+                    if len(self.positions) < 1000:
+                        self.positions.append(msg)
+
+    def flush(self, gw):
+        with self.lock:
+            positions, events = self.positions, self.events
+            self.positions, self.events = [], []
+        if positions:
+            try:
+                gw.call("gps", positions=positions)
+                log("GPS: %s posicoes enviadas ao sistema" % len(positions))
+            except Exception as exc:
+                log("Falha ao enviar GPS: %s" % exc, "ERROR")
+        if events:
+            try:
+                gw.call("telemetry", events=events)
+                log("Telemetria: %s eventos enviados ao sistema" % len(events))
+            except Exception as exc:
+                log("Falha ao enviar telemetria: %s" % exc, "ERROR")
+
+    def stop(self):
+        sock, self.sock = self.sock, None
+        if sock:
+            try:
+                sock.close()
+            except Exception:
+                pass
+
+
+# --------------------------------------------------------------------------- #
 # Loop do agente
 # --------------------------------------------------------------------------- #
 class Agent:
+
     def __init__(self, cfg):
         self.cfg = cfg
         self.gw = Gateway(cfg)
@@ -1046,6 +1135,8 @@ class Agent:
         self.nsr_state = {}
         self.stop_event = threading.Event()
         self.updater = Updater(cfg)
+        self.fleet = FleetReceiver(cfg)
+
 
 
     # -- helpers -----------------------------------------------------------
@@ -1216,6 +1307,8 @@ class Agent:
                 restart_process()
         if not connected:
             return 1
+        self.fleet.start()
+
         interval = int(self.remote.get("sync_interval_seconds")
                        or self.cfg.get("sync_interval_seconds") or 60)
         discovery_every = int(self.cfg.get("discovery_interval_seconds") or 900)
@@ -1248,11 +1341,14 @@ class Agent:
                 self.run_commands()
                 self.push_employees()
                 self.collect_all()
+                self.fleet.flush(self.gw)
             except Exception as exc:
                 log("Erro no ciclo: %s" % exc, "ERROR")
             wait = max(5, interval - int(time.time() - cycle_started))
             self.stop_event.wait(wait)
+        self.fleet.stop()
         return 0
+
 
 
 

@@ -758,7 +758,88 @@ serve(async (req) => {
         return json({ success: true, received: items.length, saved });
       }
 
+      // Recepção de GPS enviada pelo robô local (rastreadores da frota).
+      case "gps": {
+        const items = Array.isArray(b.positions) ? b.positions : (b.position ? [b.position] : []);
+        if (!items.length) return json({ success: true, saved: 0 });
+
+        const day = now.slice(0, 10);
+        const { data: vehicles } = await supabase.from("op_vehicles")
+          .select("id, plate, number, tracker_id").eq("company_id", agent.company_id);
+        const { data: schedules } = await supabase.from("op_schedules")
+          .select("id, vehicle_id, profile_id").eq("company_id", agent.company_id).eq("work_date", day);
+
+        const findVehicle = (p: Record<string, unknown>) => {
+          const key = String(p.tracker_id ?? p.vehicle ?? p.plate ?? "").trim().toUpperCase();
+          if (!key) return null;
+          return (vehicles ?? []).find((v) =>
+            [v.tracker_id, v.plate, v.number].some((f) => String(f ?? "").trim().toUpperCase() === key)) ?? null;
+        };
+
+        const rows = items.map((p: Record<string, unknown>) => {
+          const v = findVehicle(p);
+          const sch = v ? (schedules ?? []).find((s) => s.vehicle_id === v.id) : null;
+          return {
+            company_id: agent.company_id,
+            vehicle_id: v?.id ?? null,
+            profile_id: sch?.profile_id ?? null,
+            schedule_id: sch?.id ?? null,
+            latitude: Number(p.latitude ?? p.lat),
+            longitude: Number(p.longitude ?? p.lng ?? p.lon),
+            speed_kmh: p.speed_kmh != null ? Number(p.speed_kmh) : (p.speed != null ? Number(p.speed) : null),
+            heading: p.heading != null ? Number(p.heading) : null,
+            accuracy_m: p.accuracy_m != null ? Number(p.accuracy_m) : null,
+            recorded_at: String(p.recorded_at ?? now),
+            source: String(p.source ?? "agent"),
+          };
+        }).filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude));
+
+        if (rows.length) {
+          const { error } = await supabase.from("op_gps_positions").insert(rows);
+          if (error) return json({ error: error.message }, 400);
+        }
+        return json({ success: true, received: items.length, saved: rows.length });
+      }
+
+      // Recepção de eventos de telemetria (freada brusca, excesso de velocidade, etc.)
+      case "telemetry": {
+        const items = Array.isArray(b.events) ? b.events : (b.event ? [b.event] : []);
+        if (!items.length) return json({ success: true, saved: 0 });
+
+        const day = now.slice(0, 10);
+        const { data: vehicles } = await supabase.from("op_vehicles")
+          .select("id, plate, number, tracker_id").eq("company_id", agent.company_id);
+        const { data: schedules } = await supabase.from("op_schedules")
+          .select("id, vehicle_id, profile_id").eq("company_id", agent.company_id).eq("work_date", day);
+
+        const rows = items.map((e: Record<string, unknown>) => {
+          const key = String(e.tracker_id ?? e.vehicle ?? e.plate ?? "").trim().toUpperCase();
+          const v = key ? (vehicles ?? []).find((x) =>
+            [x.tracker_id, x.plate, x.number].some((f) => String(f ?? "").trim().toUpperCase() === key)) : null;
+          const sch = v ? (schedules ?? []).find((s) => s.vehicle_id === v.id) : null;
+          return {
+            company_id: agent.company_id,
+            vehicle_id: v?.id ?? null,
+            profile_id: sch?.profile_id ?? null,
+            schedule_id: sch?.id ?? null,
+            event_type: String(e.event_type ?? e.type ?? "evento"),
+            severity: String(e.severity ?? "media"),
+            value: e.value != null ? Number(e.value) : null,
+            description: e.description ? String(e.description).slice(0, 500) : null,
+            metadata: (e.metadata as Record<string, unknown>) ?? {},
+            occurred_at: String(e.occurred_at ?? now),
+          };
+        }).filter((r) => r.event_type);
+
+        if (rows.length) {
+          const { error } = await supabase.from("op_telemetry_events").insert(rows);
+          if (error) return json({ error: error.message }, 400);
+        }
+        return json({ success: true, received: items.length, saved: rows.length });
+      }
+
       case "log": {
+
         if (b.equipment_id) {
           await supabase.from("equipment_communication_logs").insert({
             equipment_id: b.equipment_id,
