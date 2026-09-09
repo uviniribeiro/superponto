@@ -357,6 +357,14 @@ const App = () => (
                   <Route path="equipment/agent-health" element={<ProtectedRoute requiredRoles={['admin']}><AgentHealth /></ProtectedRoute>} />
                   <Route path="equipment/clocks-live" element={<ProtectedRoute requiredRoles={['admin']}><ClocksLive /></ProtectedRoute>} />
                   <Route path="equipment/servers" element={<ProtectedRoute requiredRoles={['admin']}><CommunicationServers /></ProtectedRoute>} />
+                  {/* Controle Operacional */}
+                  <Route path="operational" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalDashboard /></ProtectedRoute>} />
+                  <Route path="operational/schedules" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalSchedules /></ProtectedRoute>} />
+                  <Route path="operational/day" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalDay /></ProtectedRoute>} />
+                  <Route path="operational/drivers" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalDrivers /></ProtectedRoute>} />
+                  <Route path="operational/vehicles" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalVehicles /></ProtectedRoute>} />
+                  <Route path="operational/lines" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalLines /></ProtectedRoute>} />
+                  <Route path="operational/permissions" element={<ProtectedRoute requiredRoles={['admin']}><OperationalPermissions /></ProtectedRoute>} />
                 </Route>
                 
                   <Route path="*" element={<NotFound />} />
