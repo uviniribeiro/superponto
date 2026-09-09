@@ -160,6 +160,8 @@ const OperationalDrivers = React.lazy(() => import("@/pages/operational/Operatio
 const OperationalVehicles = React.lazy(() => import("@/pages/operational/OperationalVehicles"));
 const OperationalLines = React.lazy(() => import("@/pages/operational/OperationalLines"));
 const OperationalPermissions = React.lazy(() => import("@/pages/operational/OperationalPermissions"));
+const OperationalTimeComparison = React.lazy(() => import("@/pages/operational/OperationalTimeComparison"));
+
 const MTECompliancePanel = React.lazy(() => import("@/pages/equipment/MTECompliancePanel"));
 
 // Security & Help
@@ -365,6 +367,8 @@ const App = () => (
                   <Route path="operational/vehicles" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalVehicles /></ProtectedRoute>} />
                   <Route path="operational/lines" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalLines /></ProtectedRoute>} />
                   <Route path="operational/permissions" element={<ProtectedRoute requiredRoles={['admin']}><OperationalPermissions /></ProtectedRoute>} />
+                  <Route path="operational/time-check" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalTimeComparison /></ProtectedRoute>} />
+
                 </Route>
                 
                   <Route path="*" element={<NotFound />} />

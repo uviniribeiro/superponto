@@ -256,6 +256,8 @@ const menuCategories: MenuCategory[] = [
       { title: 'Motoristas', icon: Users, href: '/operational/drivers', roles: ['admin', 'manager'] },
       { title: 'Veículos', icon: Bus, href: '/operational/vehicles', roles: ['admin', 'manager'] },
       { title: 'Linhas e Serviços', icon: RouteIcon, href: '/operational/lines', roles: ['admin', 'manager'] },
+      { title: 'Ponto x Escala', icon: Clock, href: '/operational/time-check', roles: ['admin', 'manager'] },
+
       { title: 'Permissões', icon: ShieldCheck, href: '/operational/permissions', roles: ['admin'] },
     ]
   },

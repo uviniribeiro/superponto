@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, ShieldCheck, Trash2 } from 'lucide-react';
@@ -13,6 +15,7 @@ import { useOperationalStore } from '@/hooks/useOperationalStore';
 import { useOperationalPermissions } from '@/hooks/useOperationalPermissions';
 
 const empty = {
+  userId: '',
   userName: '',
   userEmail: '',
   role: '',
@@ -28,16 +31,25 @@ export default function OperationalPermissions() {
   const [form, setForm] = useState(empty);
   const [open, setOpen] = useState(false);
 
-  const save = () => {
-    if (!form.userName.trim() || !form.userEmail.trim()) {
-      toast.error('Informe nome e e-mail do usuário.');
+  const available = data.employees.filter(
+    (e) => e.userId && !data.permissions.some((p) => p.userId === e.userId),
+  );
+
+  const save = async () => {
+    if (!form.userId) {
+      toast.error('Escolha o usuário.');
       return;
     }
-    insert('permissions', form);
-    toast.success('Permissões salvas.');
-    setForm(empty);
-    setOpen(false);
+    try {
+      await insert('permissions', form);
+      toast.success('Permissões salvas.');
+      setForm(empty);
+      setOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Não foi possível salvar.');
+    }
   };
+
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -53,8 +65,24 @@ export default function OperationalPermissions() {
             <DialogContent>
               <DialogHeader><DialogTitle>Permissões do usuário</DialogTitle></DialogHeader>
               <div className="grid gap-3">
-                <div className="grid gap-1.5"><Label>Nome</Label><Input value={form.userName} onChange={(e) => setForm({ ...form, userName: e.target.value })} /></div>
-                <div className="grid gap-1.5"><Label>E-mail</Label><Input type="email" value={form.userEmail} onChange={(e) => setForm({ ...form, userEmail: e.target.value })} /></div>
+                <div className="grid gap-1.5">
+                  <Label>Usuário</Label>
+                  <Select
+                    value={form.userId}
+                    onValueChange={(v) => {
+                      const emp = available.find((e) => e.userId === v);
+                      setForm({ ...form, userId: v, userName: emp?.name ?? '', userEmail: emp?.email ?? '' });
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Escolha um usuário" /></SelectTrigger>
+                    <SelectContent>
+                      {available.map((e) => (
+                        <SelectItem key={e.userId} value={e.userId}>{e.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid gap-1.5"><Label>Função</Label><Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="Tráfego, coordenação..." /></div>
                 {([
                   ['canCreateSchedules', 'Criar e apagar escalas'],

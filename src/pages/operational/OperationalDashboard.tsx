@@ -24,14 +24,38 @@ export default function OperationalDashboard() {
 
   const openOccurrences = data.occurrences.filter((o) => !o.resolved);
 
+  const todaySchedules = data.schedules.filter((s) => s.date === today);
+  const withoutDriver = todaySchedules.filter((s) => !s.driverId);
+  const late = todaySchedules
+    .filter((s) => s.driverId)
+    .map((s) => {
+      const first = data.timeRecords
+        .filter((r) => r.profileId === s.driverId && r.recordedAt.slice(0, 10) === today)
+        .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))[0];
+      const [ph, pm] = s.startTime.split(':').map(Number);
+      const planned = ph * 60 + pm;
+      const name = data.drivers.find((d) => d.id === s.driverId)?.name ?? 'Motorista';
+      if (!first) {
+        const now = new Date();
+        const minutes = now.getHours() * 60 + now.getMinutes() - planned;
+        return minutes > 5 ? { id: s.id, name, minutes, text: 'sem batida de ponto' } : null;
+      }
+      const rec = new Date(first.recordedAt);
+      const minutes = rec.getHours() * 60 + rec.getMinutes() - planned;
+      return minutes > 5 ? { id: s.id, name, minutes, text: 'entrou depois do horário' } : null;
+    })
+    .filter(Boolean) as { id: string; name: string; minutes: number; text: string }[];
+
   const shortcuts = [
     { title: 'Escalas', description: 'Planejar motorista, veículo, linha e serviço.', icon: CalendarClock, to: '/operational/schedules' },
     { title: 'Operação do Dia', description: 'Acompanhar a operação e trocar motorista.', icon: Gauge, to: '/operational/day' },
+    { title: 'Ponto x Escala', description: 'Conferir atrasos entre escala e batida de ponto.', icon: AlertTriangle, to: '/operational/time-check' },
     { title: 'Motoristas', description: 'Cadastro operacional, CNH e situação.', icon: Users, to: '/operational/drivers' },
     { title: 'Veículos', description: 'Frota, garagem e disponibilidade.', icon: Bus, to: '/operational/vehicles' },
     { title: 'Linhas e Serviços', description: 'Itinerários, horários e viagens.', icon: Route, to: '/operational/lines' },
     { title: 'Permissões', description: 'Quem pode escalar, trocar e alterar ocorrências.', icon: ShieldCheck, to: '/operational/permissions' },
   ];
+
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -57,7 +81,49 @@ export default function OperationalDashboard() {
         ))}
       </div>
 
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Motoristas atrasados hoje</CardTitle>
+            <CardDescription>Comparação entre o horário da escala e a batida de ponto.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {late.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">Nenhum atraso identificado.</p>
+            ) : late.map((l) => (
+              <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{l.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{l.text}</p>
+                </div>
+                <Badge variant="destructive">+{l.minutes} min</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Escalas sem motorista</CardTitle>
+            <CardDescription>Serviços do dia que ainda precisam de alguém escalado.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {withoutDriver.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">Todas as escalas têm motorista.</p>
+            ) : withoutDriver.map((s) => (
+              <div key={s.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-3">
+                <p className="truncate text-sm font-medium">
+                  {data.lines.find((l) => l.id === s.lineId)?.name ?? 'Linha não informada'}
+                </p>
+                <Badge variant="secondary">{s.startTime}</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="mt-6">
+
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <AlertTriangle className="h-4 w-4 text-amber-500" /> Ocorrências em aberto

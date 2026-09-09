@@ -146,18 +146,37 @@ serve(async (req) => {
     const userAgent = req.headers.get("user-agent") || "unknown";
 
     // Buscar perfil do usuário
-    const { data: profile, error: profileError } = await supabase
+    const { data: profileRow, error: profileError } = await supabase
       .from("profiles")
-      .select("id, full_name, email, two_factor_enabled, two_factor_secret, backup_codes")
+      .select("id, full_name, email, two_factor_enabled")
       .eq("user_id", user.id)
       .single();
 
-    if (profileError || !profile) {
+    if (profileError || !profileRow) {
       return new Response(JSON.stringify({ error: "Perfil não encontrado" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Segredos 2FA ficam em tabela separada, acessível apenas pelo próprio usuário
+    const { data: secretsRow } = await supabase
+      .from("profile_2fa_secrets")
+      .select("two_factor_secret, backup_codes")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const profile = {
+      ...profileRow,
+      two_factor_secret: secretsRow?.two_factor_secret ?? null,
+      backup_codes: secretsRow?.backup_codes ?? null,
+    };
+
+    const saveSecrets = (values: { two_factor_secret?: string | null; backup_codes?: string[] | null }) =>
+      supabase
+        .from("profile_2fa_secrets")
+        .upsert({ profile_id: profileRow.id, user_id: user.id, ...values }, { onConflict: "profile_id" });
+
 
     switch (action) {
       // Iniciar setup do 2FA
@@ -196,13 +215,11 @@ serve(async (req) => {
         );
 
         // Salvar secret temporariamente (não habilitado ainda)
-        await supabase
-          .from("profiles")
-          .update({
-            two_factor_secret: secret,
-            backup_codes: hashedBackupCodes,
-          })
-          .eq("user_id", user.id);
+        await saveSecrets({
+          two_factor_secret: secret,
+          backup_codes: hashedBackupCodes,
+        });
+
 
         // Gerar URL para QR Code
         const issuer = encodeURIComponent("Ponto Max");
@@ -401,10 +418,8 @@ serve(async (req) => {
 
         // Remover código usado
         backupCodes.splice(codeIndex, 1);
-        await supabase
-          .from("profiles")
-          .update({ backup_codes: backupCodes })
-          .eq("user_id", user.id);
+        await saveSecrets({ backup_codes: backupCodes });
+
 
         await supabase.rpc("log_2fa_attempt", {
           _user_id: user.id,
@@ -461,11 +476,11 @@ serve(async (req) => {
           .from("profiles")
           .update({
             two_factor_enabled: false,
-            two_factor_secret: null,
-            backup_codes: null,
             two_factor_verified_at: null,
           })
           .eq("user_id", user.id);
+        await saveSecrets({ two_factor_secret: null, backup_codes: null });
+
 
         return new Response(JSON.stringify({
           success: true,
@@ -505,10 +520,8 @@ serve(async (req) => {
           newBackupCodes.map((code) => hashBackupCode(code))
         );
 
-        await supabase
-          .from("profiles")
-          .update({ backup_codes: hashedBackupCodes })
-          .eq("user_id", user.id);
+        await saveSecrets({ backup_codes: hashedBackupCodes });
+
 
         return new Response(JSON.stringify({
           success: true,

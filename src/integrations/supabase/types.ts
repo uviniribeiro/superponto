@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -6366,9 +6366,50 @@ export type Database = {
           },
         ]
       }
-      profiles: {
+      profile_2fa_secrets: {
         Row: {
           backup_codes: string[] | null
+          created_at: string
+          profile_id: string
+          two_factor_secret: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          backup_codes?: string[] | null
+          created_at?: string
+          profile_id: string
+          two_factor_secret?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          backup_codes?: string[] | null
+          created_at?: string
+          profile_id?: string
+          two_factor_secret?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_2fa_secrets_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_2fa_secrets_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
           cnh: string | null
           cnh_category: string | null
           cnh_expiry: string | null
@@ -6395,19 +6436,18 @@ export type Database = {
           notify_new_device: boolean | null
           notify_password_change: boolean | null
           notify_suspicious_login: boolean | null
+          op_driver_status: string
           phone: string | null
           photo_url: string | null
           pis: string | null
           position: string | null
           registration_number: string | null
           two_factor_enabled: boolean | null
-          two_factor_secret: string | null
           two_factor_verified_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          backup_codes?: string[] | null
           cnh?: string | null
           cnh_category?: string | null
           cnh_expiry?: string | null
@@ -6434,19 +6474,18 @@ export type Database = {
           notify_new_device?: boolean | null
           notify_password_change?: boolean | null
           notify_suspicious_login?: boolean | null
+          op_driver_status?: string
           phone?: string | null
           photo_url?: string | null
           pis?: string | null
           position?: string | null
           registration_number?: string | null
           two_factor_enabled?: boolean | null
-          two_factor_secret?: string | null
           two_factor_verified_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          backup_codes?: string[] | null
           cnh?: string | null
           cnh_category?: string | null
           cnh_expiry?: string | null
@@ -6473,13 +6512,13 @@ export type Database = {
           notify_new_device?: boolean | null
           notify_password_change?: boolean | null
           notify_suspicious_login?: boolean | null
+          op_driver_status?: string
           phone?: string | null
           photo_url?: string | null
           pis?: string | null
           position?: string | null
           registration_number?: string | null
           two_factor_enabled?: boolean | null
-          two_factor_secret?: string | null
           two_factor_verified_at?: string | null
           updated_at?: string
           user_id?: string

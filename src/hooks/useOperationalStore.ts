@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
- * Armazenamento local temporário do módulo Controle Operacional.
- * Assim que o banco hospedado voltar, cada coleção aqui vira uma tabela (op_*)
- * e as funções de leitura/escrita passam a chamar o backend sem mudar as telas.
+ * Camada de dados do módulo Controle Operacional.
+ * Tudo é lido e gravado nas tabelas op_* do banco, sempre no escopo da empresa
+ * do usuário logado. Motoristas reutilizam o cadastro de colaboradores (profiles).
  */
 
 export type OpDriverStatus = 'ativo' | 'ferias' | 'afastado' | 'inativo';
@@ -20,6 +22,15 @@ export interface OpDriver {
   cnhExpiry: string;
   phone: string;
   status: OpDriverStatus;
+}
+
+export interface OpEmployee {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  registration: string;
+  isDriver: boolean;
 }
 
 export interface OpVehicle {
@@ -79,6 +90,7 @@ export interface OpOccurrence {
 
 export interface OpPermission {
   id: string;
+  userId: string;
   userName: string;
   userEmail: string;
   role: string;
@@ -88,94 +100,180 @@ export interface OpPermission {
   canViewReports: boolean;
 }
 
+export interface OpTimeRecord {
+  id: string;
+  profileId: string;
+  recordedAt: string;
+  recordType: string;
+}
+
 export interface OperationalData {
   drivers: OpDriver[];
+  employees: OpEmployee[];
   vehicles: OpVehicle[];
   lines: OpLine[];
   services: OpService[];
   schedules: OpSchedule[];
   occurrences: OpOccurrence[];
   permissions: OpPermission[];
+  timeRecords: OpTimeRecord[];
 }
 
-const STORAGE_KEY = 'pontomax.operational.v1';
-
-const uid = () => Math.random().toString(36).slice(2, 10);
-
-const today = () => new Date().toISOString().slice(0, 10);
-
-const seed = (): OperationalData => {
-  const drivers: OpDriver[] = [
-    { id: 'd1', name: 'Carlos Almeida', registration: '10021', cnh: '01234567890', cnhCategory: 'D', cnhExpiry: '2027-04-18', phone: '(11) 98888-1010', status: 'ativo' },
-    { id: 'd2', name: 'Marcos Pereira', registration: '10044', cnh: '09876543210', cnhCategory: 'D', cnhExpiry: '2026-11-02', phone: '(11) 97777-2020', status: 'ativo' },
-    { id: 'd3', name: 'Fernanda Lima', registration: '10078', cnh: '05566778899', cnhCategory: 'E', cnhExpiry: '2028-01-30', phone: '(11) 96666-3030', status: 'ferias' },
-  ];
-  const vehicles: OpVehicle[] = [
-    { id: 'v1', plate: 'ABC1D23', number: '4021', model: 'Marcopolo Torino', capacity: 42, status: 'operando', garage: 'Garagem Central' },
-    { id: 'v2', plate: 'EFG4H56', number: '4088', model: 'Caio Apache', capacity: 45, status: 'operando', garage: 'Garagem Central' },
-    { id: 'v3', plate: 'IJK7L89', number: '4102', model: 'Mascarello Gran Via', capacity: 40, status: 'manutencao', garage: 'Garagem Norte' },
-  ];
-  const lines: OpLine[] = [
-    { id: 'l1', code: '201', name: 'Centro / Terminal Norte', origin: 'Centro', destination: 'Terminal Norte', km: 18.4, active: true },
-    { id: 'l2', code: '355', name: 'Rodoviária / Zona Sul', origin: 'Rodoviária', destination: 'Zona Sul', km: 24.1, active: true },
-  ];
-  const services: OpService[] = [
-    { id: 's1', lineId: 'l1', code: '201-A', name: 'Serviço manhã', startTime: '04:40', endTime: '13:00', trips: 8 },
-    { id: 's2', lineId: 'l1', code: '201-B', name: 'Serviço tarde', startTime: '13:00', endTime: '21:20', trips: 8 },
-    { id: 's3', lineId: 'l2', code: '355-A', name: 'Serviço integral', startTime: '05:10', endTime: '14:30', trips: 6 },
-  ];
-  const schedules: OpSchedule[] = [
-    { id: 'e1', date: today(), driverId: 'd1', vehicleId: 'v1', lineId: 'l1', serviceId: 's1', startTime: '04:40', endTime: '13:00', status: 'em_andamento' },
-    { id: 'e2', date: today(), driverId: 'd2', vehicleId: 'v2', lineId: 'l2', serviceId: 's3', startTime: '05:10', endTime: '14:30', status: 'planejada' },
-  ];
-  const occurrences: OpOccurrence[] = [
-    { id: 'o1', date: today(), scheduleId: 'e1', driverId: 'd1', vehicleId: 'v1', type: 'Atraso na partida', severity: 'media', description: 'Trânsito intenso na saída da garagem.', resolved: false },
-  ];
-  const permissions: OpPermission[] = [
-    { id: 'p1', userName: 'Ana Souza', userEmail: 'ana@empresa.com', role: 'Coordenação', canCreateSchedules: true, canSwapDrivers: true, canEditOccurrences: true, canViewReports: true },
-    { id: 'p2', userName: 'Rafael Dias', userEmail: 'rafael@empresa.com', role: 'Tráfego', canCreateSchedules: false, canSwapDrivers: true, canEditOccurrences: true, canViewReports: true },
-  ];
-  return { drivers, vehicles, lines, services, schedules, occurrences, permissions };
+const emptyData: OperationalData = {
+  drivers: [], employees: [], vehicles: [], lines: [], services: [],
+  schedules: [], occurrences: [], permissions: [], timeRecords: [],
 };
 
-const load = (): OperationalData => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...seed(), ...(JSON.parse(raw) as OperationalData) };
-  } catch {
-    /* ignora dados corrompidos e recomeça do exemplo */
-  }
-  return seed();
-};
+const hhmm = (v?: string | null) => (v ? String(v).slice(0, 5) : '00:00');
 
-type Collection = keyof OperationalData;
+type Collection = 'vehicles' | 'lines' | 'services' | 'schedules' | 'occurrences' | 'permissions';
 
 export function useOperationalStore() {
-  const [data, setData] = useState<OperationalData>(load);
+  const { profile } = useAuth();
+  const companyId = (profile as { company_id?: string | null } | null)?.company_id ?? null;
+  const [data, setData] = useState<OperationalData>(emptyData);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [data]);
+  const fetchAll = useCallback(async () => {
+    if (!companyId) {
+      setData(emptyData);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const since = new Date(Date.now() - 1000 * 60 * 60 * 24 * 45).toISOString();
+    const [profilesRes, vehiclesRes, linesRes, servicesRes, schedulesRes, occRes, permRes, recRes] = await Promise.all([
+      supabase.from('profiles').select('id, user_id, full_name, email, registration_number, phone, is_driver, cnh, cnh_category, cnh_expiry, op_driver_status').eq('company_id', companyId).order('full_name'),
+      supabase.from('op_vehicles').select('*').eq('company_id', companyId).order('plate'),
+      supabase.from('op_lines').select('*').eq('company_id', companyId).order('code'),
+      supabase.from('op_services').select('*').eq('company_id', companyId).order('code'),
+      supabase.from('op_schedules').select('*').eq('company_id', companyId).order('start_time'),
+      supabase.from('op_occurrences').select('*').eq('company_id', companyId).order('occurred_on', { ascending: false }),
+      supabase.from('op_user_permissions').select('*').eq('company_id', companyId).order('user_name'),
+      supabase.from('time_records').select('id, profile_id, recorded_at, record_type').eq('company_id', companyId).gte('recorded_at', since).order('recorded_at', { ascending: false }).limit(2000),
+    ]);
 
-  const insert = useCallback(<K extends Collection>(key: K, item: Omit<OperationalData[K][number], 'id'>) => {
-    setData((prev) => ({ ...prev, [key]: [...prev[key], { ...item, id: uid() }] } as OperationalData));
-  }, []);
+    const profiles = (profilesRes.data ?? []) as Record<string, unknown>[];
 
-  const update = useCallback(<K extends Collection>(key: K, id: string, patch: Partial<OperationalData[K][number]>) => {
-    setData((prev) => ({
-      ...prev,
-      [key]: (prev[key] as { id: string }[]).map((row) => (row.id === id ? { ...row, ...patch } : row)),
-    } as OperationalData));
-  }, []);
+    setData({
+      employees: profiles.map((p) => ({
+        id: String(p.id), userId: String(p.user_id ?? ''), name: String(p.full_name ?? ''),
+        email: String(p.email ?? ''), registration: String(p.registration_number ?? ''), isDriver: Boolean(p.is_driver),
+      })),
+      drivers: profiles.filter((p) => p.is_driver).map((p) => ({
+        id: String(p.id),
+        name: String(p.full_name ?? ''),
+        registration: String(p.registration_number ?? ''),
+        cnh: String(p.cnh ?? ''),
+        cnhCategory: String(p.cnh_category ?? 'D'),
+        cnhExpiry: p.cnh_expiry ? String(p.cnh_expiry) : '',
+        phone: String(p.phone ?? ''),
+        status: (String(p.op_driver_status ?? 'ativo') as OpDriverStatus),
+      })),
+      vehicles: (vehiclesRes.data ?? []).map((v: Record<string, unknown>) => ({
+        id: String(v.id), plate: String(v.plate ?? ''), number: String(v.number ?? ''), model: String(v.model ?? ''),
+        capacity: Number(v.capacity ?? 0), status: String(v.status ?? 'operando') as OpVehicleStatus, garage: String(v.garage ?? ''),
+      })),
+      lines: (linesRes.data ?? []).map((l: Record<string, unknown>) => ({
+        id: String(l.id), code: String(l.code ?? ''), name: String(l.name ?? ''), origin: String(l.origin ?? ''),
+        destination: String(l.destination ?? ''), km: Number(l.km ?? 0), active: Boolean(l.active),
+      })),
+      services: (servicesRes.data ?? []).map((s: Record<string, unknown>) => ({
+        id: String(s.id), lineId: String(s.line_id ?? ''), code: String(s.code ?? ''), name: String(s.name ?? ''),
+        startTime: hhmm(s.start_time as string), endTime: hhmm(s.end_time as string), trips: Number(s.trips ?? 0),
+      })),
+      schedules: (schedulesRes.data ?? []).map((s: Record<string, unknown>) => ({
+        id: String(s.id), date: String(s.work_date ?? ''), driverId: String(s.profile_id ?? ''),
+        vehicleId: String(s.vehicle_id ?? ''), lineId: String(s.line_id ?? ''), serviceId: String(s.service_id ?? ''),
+        startTime: hhmm(s.start_time as string), endTime: hhmm(s.end_time as string),
+        status: String(s.status ?? 'planejada') as OpScheduleStatus, notes: (s.notes as string) ?? undefined,
+      })),
+      occurrences: (occRes.data ?? []).map((o: Record<string, unknown>) => ({
+        id: String(o.id), date: String(o.occurred_on ?? ''), scheduleId: (o.schedule_id as string) ?? undefined,
+        driverId: (o.profile_id as string) ?? undefined, vehicleId: (o.vehicle_id as string) ?? undefined,
+        type: String(o.type ?? ''), severity: String(o.severity ?? 'media') as OpOccurrenceSeverity,
+        description: String(o.description ?? ''), resolved: Boolean(o.resolved),
+      })),
+      permissions: (permRes.data ?? []).map((p: Record<string, unknown>) => ({
+        id: String(p.id), userId: String(p.user_id ?? ''), userName: String(p.user_name ?? ''), userEmail: String(p.user_email ?? ''),
+        role: String(p.role_label ?? ''), canCreateSchedules: Boolean(p.can_create_schedules), canSwapDrivers: Boolean(p.can_swap_drivers),
+        canEditOccurrences: Boolean(p.can_edit_occurrences), canViewReports: Boolean(p.can_view_reports),
+      })),
+      timeRecords: (recRes.data ?? []).map((r: Record<string, unknown>) => ({
+        id: String(r.id), profileId: String(r.profile_id ?? ''), recordedAt: String(r.recorded_at ?? ''), recordType: String(r.record_type ?? ''),
+      })),
+    });
+    setLoading(false);
+  }, [companyId]);
 
-  const remove = useCallback((key: Collection, id: string) => {
-    setData((prev) => ({
-      ...prev,
-      [key]: (prev[key] as { id: string }[]).filter((row) => row.id !== id),
-    } as OperationalData));
-  }, []);
+  useEffect(() => { void fetchAll(); }, [fetchAll]);
 
-  const reset = useCallback(() => setData(seed()), []);
+  const toRow = (key: Collection, item: Record<string, unknown>) => {
+    switch (key) {
+      case 'vehicles':
+        return { plate: item.plate, number: item.number, model: item.model, capacity: item.capacity, status: item.status, garage: item.garage };
+      case 'lines':
+        return { code: item.code, name: item.name, origin: item.origin, destination: item.destination, km: item.km, active: item.active };
+      case 'services':
+        return { line_id: item.lineId || null, code: item.code, name: item.name, start_time: item.startTime, end_time: item.endTime, trips: item.trips };
+      case 'schedules':
+        return {
+          work_date: item.date, profile_id: item.driverId || null, vehicle_id: item.vehicleId || null,
+          line_id: item.lineId || null, service_id: item.serviceId || null,
+          start_time: item.startTime, end_time: item.endTime, status: item.status, notes: item.notes ?? null,
+        };
+      case 'occurrences':
+        return {
+          occurred_on: item.date, schedule_id: item.scheduleId || null, profile_id: item.driverId || null,
+          vehicle_id: item.vehicleId || null, type: item.type, severity: item.severity,
+          description: item.description, resolved: item.resolved,
+        };
+      case 'permissions':
+        return {
+          user_id: item.userId, user_name: item.userName, user_email: item.userEmail, role_label: item.role,
+          can_create_schedules: item.canCreateSchedules, can_swap_drivers: item.canSwapDrivers,
+          can_edit_occurrences: item.canEditOccurrences, can_view_reports: item.canViewReports,
+        };
+    }
+  };
 
-  return { data, insert, update, remove, reset };
+  const table = (key: Collection) => `op_${key === 'permissions' ? 'user_permissions' : key}` as const;
+
+  const clean = (row: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(row).filter(([, v]) => v !== undefined));
+
+  const insert = useCallback(async (key: Collection, item: Record<string, unknown>) => {
+    if (!companyId) throw new Error('Empresa não identificada.');
+    const { error } = await supabase.from(table(key) as never).insert({ ...clean(toRow(key, item) as Record<string, unknown>), company_id: companyId } as never);
+    if (error) throw error;
+    await fetchAll();
+  }, [companyId, fetchAll]);
+
+  const update = useCallback(async (key: Collection, id: string, patch: Record<string, unknown>) => {
+    const { error } = await supabase.from(table(key) as never).update(clean(toRow(key, patch) as Record<string, unknown>) as never).eq('id', id);
+    if (error) throw error;
+    await fetchAll();
+  }, [fetchAll]);
+
+  const remove = useCallback(async (key: Collection, id: string) => {
+    const { error } = await supabase.from(table(key) as never).delete().eq('id', id);
+    if (error) throw error;
+    await fetchAll();
+  }, [fetchAll]);
+
+  /** Marca/atualiza um colaborador existente como motorista. */
+  const saveDriver = useCallback(async (profileId: string, values: Partial<OpDriver> & { isDriver?: boolean }) => {
+    const patch: Record<string, unknown> = {};
+    if (values.isDriver !== undefined) patch.is_driver = values.isDriver;
+    if (values.cnh !== undefined) patch.cnh = values.cnh;
+    if (values.cnhCategory !== undefined) patch.cnh_category = values.cnhCategory;
+    if (values.cnhExpiry !== undefined) patch.cnh_expiry = values.cnhExpiry || null;
+    if (values.phone !== undefined) patch.phone = values.phone;
+    if (values.status !== undefined) patch.op_driver_status = values.status;
+    const { error } = await supabase.from('profiles').update(patch).eq('id', profileId);
+    if (error) throw error;
+    await fetchAll();
+  }, [fetchAll]);
+
+  return { data, loading, refetch: fetchAll, insert, update, remove, saveDriver };
 }
