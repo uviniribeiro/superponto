@@ -1135,6 +1135,8 @@ class Agent:
         self.nsr_state = {}
         self.stop_event = threading.Event()
         self.updater = Updater(cfg)
+        self.fleet = FleetReceiver(cfg)
+
 
 
     # -- helpers -----------------------------------------------------------
