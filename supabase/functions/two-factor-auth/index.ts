@@ -215,13 +215,11 @@ serve(async (req) => {
         );
 
         // Salvar secret temporariamente (não habilitado ainda)
-        await supabase
-          .from("profiles")
-          .update({
-            two_factor_secret: secret,
-            backup_codes: hashedBackupCodes,
-          })
-          .eq("user_id", user.id);
+        await saveSecrets({
+          two_factor_secret: secret,
+          backup_codes: hashedBackupCodes,
+        });
+
 
         // Gerar URL para QR Code
         const issuer = encodeURIComponent("Ponto Max");
