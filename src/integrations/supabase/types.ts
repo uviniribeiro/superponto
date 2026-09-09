@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -5017,6 +5017,337 @@ export type Database = {
           },
         ]
       }
+      op_lines: {
+        Row: {
+          active: boolean
+          code: string
+          company_id: string
+          created_at: string
+          destination: string | null
+          id: string
+          km: number
+          name: string
+          origin: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          company_id: string
+          created_at?: string
+          destination?: string | null
+          id?: string
+          km?: number
+          name: string
+          origin?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          company_id?: string
+          created_at?: string
+          destination?: string | null
+          id?: string
+          km?: number
+          name?: string
+          origin?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      op_occurrences: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          occurred_on: string
+          profile_id: string | null
+          resolved: boolean
+          schedule_id: string | null
+          severity: string
+          type: string
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          occurred_on?: string
+          profile_id?: string | null
+          resolved?: boolean
+          schedule_id?: string | null
+          severity?: string
+          type: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          occurred_on?: string
+          profile_id?: string | null
+          resolved?: boolean
+          schedule_id?: string | null
+          severity?: string
+          type?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_occurrences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_occurrences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_occurrences_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "op_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_occurrences_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "op_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_schedules: {
+        Row: {
+          company_id: string
+          created_at: string
+          end_time: string
+          id: string
+          line_id: string | null
+          notes: string | null
+          profile_id: string | null
+          service_id: string | null
+          start_time: string
+          status: string
+          updated_at: string
+          vehicle_id: string | null
+          work_date: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          line_id?: string | null
+          notes?: string | null
+          profile_id?: string | null
+          service_id?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+          vehicle_id?: string | null
+          work_date?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          line_id?: string | null
+          notes?: string | null
+          profile_id?: string | null
+          service_id?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+          vehicle_id?: string | null
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_schedules_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "op_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_schedules_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_schedules_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_schedules_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "op_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_schedules_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "op_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_services: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string
+          end_time: string
+          id: string
+          line_id: string | null
+          name: string | null
+          start_time: string
+          trips: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          line_id?: string | null
+          name?: string | null
+          start_time?: string
+          trips?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          line_id?: string | null
+          name?: string | null
+          start_time?: string
+          trips?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_services_line_id_fkey"
+            columns: ["line_id"]
+            isOneToOne: false
+            referencedRelation: "op_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      op_user_permissions: {
+        Row: {
+          can_create_schedules: boolean
+          can_edit_occurrences: boolean
+          can_swap_drivers: boolean
+          can_view_reports: boolean
+          company_id: string
+          created_at: string
+          id: string
+          role_label: string | null
+          updated_at: string
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          can_create_schedules?: boolean
+          can_edit_occurrences?: boolean
+          can_swap_drivers?: boolean
+          can_view_reports?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          role_label?: string | null
+          updated_at?: string
+          user_email?: string
+          user_id: string
+          user_name?: string
+        }
+        Update: {
+          can_create_schedules?: boolean
+          can_edit_occurrences?: boolean
+          can_swap_drivers?: boolean
+          can_view_reports?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          role_label?: string | null
+          updated_at?: string
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
+      op_vehicles: {
+        Row: {
+          capacity: number
+          company_id: string
+          created_at: string
+          garage: string | null
+          id: string
+          model: string | null
+          number: string | null
+          plate: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          company_id: string
+          created_at?: string
+          garage?: string | null
+          id?: string
+          model?: string | null
+          number?: string | null
+          plate: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          company_id?: string
+          created_at?: string
+          garage?: string | null
+          id?: string
+          model?: string | null
+          number?: string | null
+          plate?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       overtime_alerts: {
         Row: {
           alert_type: string
@@ -6038,6 +6369,9 @@ export type Database = {
       profiles: {
         Row: {
           backup_codes: string[] | null
+          cnh: string | null
+          cnh_category: string | null
+          cnh_expiry: string | null
           company_id: string | null
           company_unit_id: string | null
           cpf: string | null
@@ -6052,6 +6386,7 @@ export type Database = {
           hire_date: string | null
           id: string
           is_active: boolean
+          is_driver: boolean
           is_system_user: boolean | null
           last_failed_login: string | null
           locked_until: string | null
@@ -6073,6 +6408,9 @@ export type Database = {
         }
         Insert: {
           backup_codes?: string[] | null
+          cnh?: string | null
+          cnh_category?: string | null
+          cnh_expiry?: string | null
           company_id?: string | null
           company_unit_id?: string | null
           cpf?: string | null
@@ -6087,6 +6425,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           is_active?: boolean
+          is_driver?: boolean
           is_system_user?: boolean | null
           last_failed_login?: string | null
           locked_until?: string | null
@@ -6108,6 +6447,9 @@ export type Database = {
         }
         Update: {
           backup_codes?: string[] | null
+          cnh?: string | null
+          cnh_category?: string | null
+          cnh_expiry?: string | null
           company_id?: string | null
           company_unit_id?: string | null
           cpf?: string | null
@@ -6122,6 +6464,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           is_active?: boolean
+          is_driver?: boolean
           is_system_user?: boolean | null
           last_failed_login?: string | null
           locked_until?: string | null
@@ -8179,6 +8522,8 @@ export type Database = {
         }
         Returns: string
       }
+      op_can: { Args: { _flag: string }; Returns: boolean }
+      op_company_id: { Args: never; Returns: string }
       purge_old_location_data: { Args: never; Returns: number }
       record_failed_login: { Args: { _user_id: string }; Returns: Json }
       reset_failed_login: { Args: { _user_id: string }; Returns: undefined }
@@ -8225,12 +8570,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8254,11 +8599,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8279,11 +8624,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8304,11 +8649,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8321,11 +8666,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
