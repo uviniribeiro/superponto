@@ -520,10 +520,8 @@ serve(async (req) => {
           newBackupCodes.map((code) => hashBackupCode(code))
         );
 
-        await supabase
-          .from("profiles")
-          .update({ backup_codes: hashedBackupCodes })
-          .eq("user_id", user.id);
+        await saveSecrets({ backup_codes: hashedBackupCodes });
+
 
         return new Response(JSON.stringify({
           success: true,
