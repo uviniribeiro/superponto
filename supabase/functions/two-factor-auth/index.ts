@@ -476,11 +476,11 @@ serve(async (req) => {
           .from("profiles")
           .update({
             two_factor_enabled: false,
-            two_factor_secret: null,
-            backup_codes: null,
             two_factor_verified_at: null,
           })
           .eq("user_id", user.id);
+        await saveSecrets({ two_factor_secret: null, backup_codes: null });
+
 
         return new Response(JSON.stringify({
           success: true,
