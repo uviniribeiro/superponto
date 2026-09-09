@@ -63,8 +63,24 @@ export default function OperationalPermissions() {
             <DialogContent>
               <DialogHeader><DialogTitle>Permissões do usuário</DialogTitle></DialogHeader>
               <div className="grid gap-3">
-                <div className="grid gap-1.5"><Label>Nome</Label><Input value={form.userName} onChange={(e) => setForm({ ...form, userName: e.target.value })} /></div>
-                <div className="grid gap-1.5"><Label>E-mail</Label><Input type="email" value={form.userEmail} onChange={(e) => setForm({ ...form, userEmail: e.target.value })} /></div>
+                <div className="grid gap-1.5">
+                  <Label>Usuário</Label>
+                  <Select
+                    value={form.userId}
+                    onValueChange={(v) => {
+                      const emp = available.find((e) => e.userId === v);
+                      setForm({ ...form, userId: v, userName: emp?.name ?? '', userEmail: emp?.email ?? '' });
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Escolha um usuário" /></SelectTrigger>
+                    <SelectContent>
+                      {available.map((e) => (
+                        <SelectItem key={e.userId} value={e.userId}>{e.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid gap-1.5"><Label>Função</Label><Input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="Tráfego, coordenação..." /></div>
                 {([
                   ['canCreateSchedules', 'Criar e apagar escalas'],
