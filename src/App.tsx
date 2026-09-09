@@ -151,6 +151,15 @@ const CommunicationServers = React.lazy(() => import("@/pages/equipment/Communic
 const CommunicationAgents = React.lazy(() => import("@/pages/equipment/CommunicationAgents"));
 const AgentHealth = React.lazy(() => import("@/pages/equipment/AgentHealth"));
 const ClocksLive = React.lazy(() => import("@/pages/equipment/ClocksLive"));
+
+// Controle Operacional
+const OperationalDashboard = React.lazy(() => import("@/pages/operational/OperationalDashboard"));
+const OperationalSchedules = React.lazy(() => import("@/pages/operational/OperationalSchedules"));
+const OperationalDay = React.lazy(() => import("@/pages/operational/OperationalDay"));
+const OperationalDrivers = React.lazy(() => import("@/pages/operational/OperationalDrivers"));
+const OperationalVehicles = React.lazy(() => import("@/pages/operational/OperationalVehicles"));
+const OperationalLines = React.lazy(() => import("@/pages/operational/OperationalLines"));
+const OperationalPermissions = React.lazy(() => import("@/pages/operational/OperationalPermissions"));
 const MTECompliancePanel = React.lazy(() => import("@/pages/equipment/MTECompliancePanel"));
 
 // Security & Help
