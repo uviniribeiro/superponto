@@ -81,7 +81,49 @@ export default function OperationalDashboard() {
         ))}
       </div>
 
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Motoristas atrasados hoje</CardTitle>
+            <CardDescription>Comparação entre o horário da escala e a batida de ponto.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {late.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">Nenhum atraso identificado.</p>
+            ) : late.map((l) => (
+              <div key={l.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{l.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{l.text}</p>
+                </div>
+                <Badge variant="destructive">+{l.minutes} min</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Escalas sem motorista</CardTitle>
+            <CardDescription>Serviços do dia que ainda precisam de alguém escalado.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {withoutDriver.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">Todas as escalas têm motorista.</p>
+            ) : withoutDriver.map((s) => (
+              <div key={s.id} className="flex items-center justify-between gap-2 rounded-xl border border-border/60 p-3">
+                <p className="truncate text-sm font-medium">
+                  {data.lines.find((l) => l.id === s.lineId)?.name ?? 'Linha não informada'}
+                </p>
+                <Badge variant="secondary">{s.startTime}</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="mt-6">
+
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <AlertTriangle className="h-4 w-4 text-amber-500" /> Ocorrências em aberto
