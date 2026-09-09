@@ -6366,9 +6366,50 @@ export type Database = {
           },
         ]
       }
-      profiles: {
+      profile_2fa_secrets: {
         Row: {
           backup_codes: string[] | null
+          created_at: string
+          profile_id: string
+          two_factor_secret: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          backup_codes?: string[] | null
+          created_at?: string
+          profile_id: string
+          two_factor_secret?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          backup_codes?: string[] | null
+          created_at?: string
+          profile_id?: string
+          two_factor_secret?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_2fa_secrets_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_2fa_secrets_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
           cnh: string | null
           cnh_category: string | null
           cnh_expiry: string | null
@@ -6401,13 +6442,11 @@ export type Database = {
           position: string | null
           registration_number: string | null
           two_factor_enabled: boolean | null
-          two_factor_secret: string | null
           two_factor_verified_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          backup_codes?: string[] | null
           cnh?: string | null
           cnh_category?: string | null
           cnh_expiry?: string | null
@@ -6440,13 +6479,11 @@ export type Database = {
           position?: string | null
           registration_number?: string | null
           two_factor_enabled?: boolean | null
-          two_factor_secret?: string | null
           two_factor_verified_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          backup_codes?: string[] | null
           cnh?: string | null
           cnh_category?: string | null
           cnh_expiry?: string | null
@@ -6479,7 +6516,6 @@ export type Database = {
           position?: string | null
           registration_number?: string | null
           two_factor_enabled?: boolean | null
-          two_factor_secret?: string | null
           two_factor_verified_at?: string | null
           updated_at?: string
           user_id?: string
