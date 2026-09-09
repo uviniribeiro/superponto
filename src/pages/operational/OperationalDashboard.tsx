@@ -24,14 +24,38 @@ export default function OperationalDashboard() {
 
   const openOccurrences = data.occurrences.filter((o) => !o.resolved);
 
+  const todaySchedules = data.schedules.filter((s) => s.date === today);
+  const withoutDriver = todaySchedules.filter((s) => !s.driverId);
+  const late = todaySchedules
+    .filter((s) => s.driverId)
+    .map((s) => {
+      const first = data.timeRecords
+        .filter((r) => r.profileId === s.driverId && r.recordedAt.slice(0, 10) === today)
+        .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))[0];
+      const [ph, pm] = s.startTime.split(':').map(Number);
+      const planned = ph * 60 + pm;
+      const name = data.drivers.find((d) => d.id === s.driverId)?.name ?? 'Motorista';
+      if (!first) {
+        const now = new Date();
+        const minutes = now.getHours() * 60 + now.getMinutes() - planned;
+        return minutes > 5 ? { id: s.id, name, minutes, text: 'sem batida de ponto' } : null;
+      }
+      const rec = new Date(first.recordedAt);
+      const minutes = rec.getHours() * 60 + rec.getMinutes() - planned;
+      return minutes > 5 ? { id: s.id, name, minutes, text: 'entrou depois do horário' } : null;
+    })
+    .filter(Boolean) as { id: string; name: string; minutes: number; text: string }[];
+
   const shortcuts = [
     { title: 'Escalas', description: 'Planejar motorista, veículo, linha e serviço.', icon: CalendarClock, to: '/operational/schedules' },
     { title: 'Operação do Dia', description: 'Acompanhar a operação e trocar motorista.', icon: Gauge, to: '/operational/day' },
+    { title: 'Ponto x Escala', description: 'Conferir atrasos entre escala e batida de ponto.', icon: AlertTriangle, to: '/operational/time-check' },
     { title: 'Motoristas', description: 'Cadastro operacional, CNH e situação.', icon: Users, to: '/operational/drivers' },
     { title: 'Veículos', description: 'Frota, garagem e disponibilidade.', icon: Bus, to: '/operational/vehicles' },
     { title: 'Linhas e Serviços', description: 'Itinerários, horários e viagens.', icon: Route, to: '/operational/lines' },
     { title: 'Permissões', description: 'Quem pode escalar, trocar e alterar ocorrências.', icon: ShieldCheck, to: '/operational/permissions' },
   ];
+
 
   return (
     <div className="container mx-auto px-4 py-6">
