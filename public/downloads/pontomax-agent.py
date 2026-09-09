@@ -1339,11 +1339,14 @@ class Agent:
                 self.run_commands()
                 self.push_employees()
                 self.collect_all()
+                self.fleet.flush(self.gw)
             except Exception as exc:
                 log("Erro no ciclo: %s" % exc, "ERROR")
             wait = max(5, interval - int(time.time() - cycle_started))
             self.stop_event.wait(wait)
+        self.fleet.stop()
         return 0
+
 
 
 
