@@ -384,11 +384,32 @@ serve(async (req) => {
 
 
 
+  // Resumo operacional (escalas do dia, motoristas e ocorrências em aberto) para
+  // o robô registrar nos logs de comunicação junto com o sinal de vida.
+  const operationalSnapshot = async () => {
+    const day = now.slice(0, 10);
+    const [schedules, drivers, occurrences] = await Promise.all([
+      supabase.from("op_schedules").select("id", { count: "exact", head: true })
+        .eq("company_id", agent.company_id).eq("work_date", day),
+      supabase.from("profiles").select("id", { count: "exact", head: true })
+        .eq("company_id", agent.company_id).eq("is_driver", true),
+      supabase.from("op_occurrences").select("id", { count: "exact", head: true })
+        .eq("company_id", agent.company_id).eq("resolved", false),
+    ]);
+    return {
+      date: day,
+      schedules_today: schedules.count ?? 0,
+      drivers: drivers.count ?? 0,
+      open_occurrences: occurrences.count ?? 0,
+    };
+  };
+
   try {
     switch (b.action) {
       case "handshake":
       case "heartbeat":
-        return json({ success: true, agent: agentConfig });
+        return json({ success: true, agent: agentConfig, operational: await operationalSnapshot() });
+
 
       // Relata cada etapa da auto-atualização (download, instalação, verificação
       // ou rollback). O robô só é considerado atualizado quando reautentica com

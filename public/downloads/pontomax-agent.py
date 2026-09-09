@@ -1227,8 +1227,14 @@ class Agent:
                 beat = self.gw.call("heartbeat", local_ip=self._local_ip(),
                                     metrics=collect_metrics())
                 remote = (beat or {}).get("agent") or {}
+                op = (beat or {}).get("operational") or {}
+                if op:
+                    log("Operacao %s: %s escalas hoje, %s motoristas, %s ocorrencias em aberto" % (
+                        op.get("date"), op.get("schedules_today"), op.get("drivers"), op.get("open_occurrences")))
+
                 if remote:
                     self.remote = remote
+
                 update = self.remote.get("update")
                 if update and self.updater.apply(self.gw, update):
                     self.stop_event.set()
