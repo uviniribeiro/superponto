@@ -13,6 +13,7 @@ import { useOperationalStore } from '@/hooks/useOperationalStore';
 import { useOperationalPermissions } from '@/hooks/useOperationalPermissions';
 
 const empty = {
+  userId: '',
   userName: '',
   userEmail: '',
   role: '',
@@ -28,16 +29,25 @@ export default function OperationalPermissions() {
   const [form, setForm] = useState(empty);
   const [open, setOpen] = useState(false);
 
-  const save = () => {
-    if (!form.userName.trim() || !form.userEmail.trim()) {
-      toast.error('Informe nome e e-mail do usuário.');
+  const available = data.employees.filter(
+    (e) => e.userId && !data.permissions.some((p) => p.userId === e.userId),
+  );
+
+  const save = async () => {
+    if (!form.userId) {
+      toast.error('Escolha o usuário.');
       return;
     }
-    insert('permissions', form);
-    toast.success('Permissões salvas.');
-    setForm(empty);
-    setOpen(false);
+    try {
+      await insert('permissions', form);
+      toast.success('Permissões salvas.');
+      setForm(empty);
+      setOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Não foi possível salvar.');
+    }
   };
+
 
   return (
     <div className="container mx-auto px-4 py-6">
