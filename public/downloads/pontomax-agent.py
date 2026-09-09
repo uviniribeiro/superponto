@@ -1229,8 +1229,9 @@ class Agent:
                 remote = (beat or {}).get("agent") or {}
                 op = (beat or {}).get("operational") or {}
                 if op:
-                    log("INFO", "Operacao %s: %s escalas hoje, %s motoristas, %s ocorrencias em aberto" % (
+                    log("Operacao %s: %s escalas hoje, %s motoristas, %s ocorrencias em aberto" % (
                         op.get("date"), op.get("schedules_today"), op.get("drivers"), op.get("open_occurrences")))
+
                 if remote:
                     self.remote = remote
 
