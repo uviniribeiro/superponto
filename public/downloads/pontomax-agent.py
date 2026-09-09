@@ -1307,6 +1307,8 @@ class Agent:
                 restart_process()
         if not connected:
             return 1
+        self.fleet.start()
+
         interval = int(self.remote.get("sync_interval_seconds")
                        or self.cfg.get("sync_interval_seconds") or 60)
         discovery_every = int(self.cfg.get("discovery_interval_seconds") or 900)
