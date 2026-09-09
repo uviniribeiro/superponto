@@ -245,6 +245,21 @@ const menuCategories: MenuCategory[] = [
     ]
   },
   {
+    id: 'controle-operacional',
+    title: 'Controle Operacional',
+    icon: Gauge,
+    roles: ['admin', 'manager'],
+    items: [
+      { title: 'Painel Operacional', icon: Gauge, href: '/operational', roles: ['admin', 'manager'] },
+      { title: 'Escalas', icon: CalendarDays, href: '/operational/schedules', roles: ['admin', 'manager'] },
+      { title: 'Operação do Dia', icon: Activity, href: '/operational/day', roles: ['admin', 'manager'] },
+      { title: 'Motoristas', icon: Users, href: '/operational/drivers', roles: ['admin', 'manager'] },
+      { title: 'Veículos', icon: Bus, href: '/operational/vehicles', roles: ['admin', 'manager'] },
+      { title: 'Linhas e Serviços', icon: RouteIcon, href: '/operational/lines', roles: ['admin', 'manager'] },
+      { title: 'Permissões', icon: ShieldCheck, href: '/operational/permissions', roles: ['admin'] },
+    ]
+  },
+  {
     id: 'dispositivos',
     title: 'Dispositivos e REP',
     icon: Server,
