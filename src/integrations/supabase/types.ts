@@ -5017,6 +5017,83 @@ export type Database = {
           },
         ]
       }
+      op_gps_positions: {
+        Row: {
+          accuracy_m: number | null
+          company_id: string
+          created_at: string
+          heading: number | null
+          id: string
+          latitude: number
+          longitude: number
+          profile_id: string | null
+          recorded_at: string
+          schedule_id: string | null
+          source: string
+          speed_kmh: number | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          company_id: string
+          created_at?: string
+          heading?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          profile_id?: string | null
+          recorded_at?: string
+          schedule_id?: string | null
+          source?: string
+          speed_kmh?: number | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          company_id?: string
+          created_at?: string
+          heading?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          profile_id?: string | null
+          recorded_at?: string
+          schedule_id?: string | null
+          source?: string
+          speed_kmh?: number | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_gps_positions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_gps_positions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_gps_positions_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "op_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_gps_positions_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "op_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       op_lines: {
         Row: {
           active: boolean
@@ -5264,6 +5341,80 @@ export type Database = {
           },
         ]
       }
+      op_telemetry_events: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          event_type: string
+          id: string
+          metadata: Json
+          occurred_at: string
+          profile_id: string | null
+          schedule_id: string | null
+          severity: string
+          value: number | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          profile_id?: string | null
+          schedule_id?: string | null
+          severity?: string
+          value?: number | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          profile_id?: string | null
+          schedule_id?: string | null
+          severity?: string
+          value?: number | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "op_telemetry_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_telemetry_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_telemetry_events_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "op_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "op_telemetry_events_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "op_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       op_user_permissions: {
         Row: {
           can_create_schedules: boolean
@@ -5320,6 +5471,9 @@ export type Database = {
           number: string | null
           plate: string
           status: string
+          telemetry_provider: string | null
+          tracker_id: string | null
+          tracking_enabled: boolean
           updated_at: string
         }
         Insert: {
@@ -5332,6 +5486,9 @@ export type Database = {
           number?: string | null
           plate: string
           status?: string
+          telemetry_provider?: string | null
+          tracker_id?: string | null
+          tracking_enabled?: boolean
           updated_at?: string
         }
         Update: {
@@ -5344,6 +5501,9 @@ export type Database = {
           number?: string | null
           plate?: string
           status?: string
+          telemetry_provider?: string | null
+          tracker_id?: string | null
+          tracking_enabled?: boolean
           updated_at?: string
         }
         Relationships: []
