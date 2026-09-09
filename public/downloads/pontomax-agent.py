@@ -119,7 +119,11 @@ DEFAULT_CONFIG = {
     "discovery_interval_seconds": 900,
     "auto_update": True,
     "verify_ssl": True,
+    # Recepcao de GPS/telemetria da frota (rastreadores enviam JSON por UDP).
+    "gps_enabled": True,
+    "gps_udp_port": 5514,
 }
+
 
 
 # --------------------------------------------------------------------------- #
