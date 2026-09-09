@@ -6436,6 +6436,7 @@ export type Database = {
           notify_new_device: boolean | null
           notify_password_change: boolean | null
           notify_suspicious_login: boolean | null
+          op_driver_status: string
           phone: string | null
           photo_url: string | null
           pis: string | null
@@ -6473,6 +6474,7 @@ export type Database = {
           notify_new_device?: boolean | null
           notify_password_change?: boolean | null
           notify_suspicious_login?: boolean | null
+          op_driver_status?: string
           phone?: string | null
           photo_url?: string | null
           pis?: string | null
@@ -6510,6 +6512,7 @@ export type Database = {
           notify_new_device?: boolean | null
           notify_password_change?: boolean | null
           notify_suspicious_login?: boolean | null
+          op_driver_status?: string
           phone?: string | null
           photo_url?: string | null
           pis?: string | null
