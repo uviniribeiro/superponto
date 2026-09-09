@@ -418,10 +418,8 @@ serve(async (req) => {
 
         // Remover código usado
         backupCodes.splice(codeIndex, 1);
-        await supabase
-          .from("profiles")
-          .update({ backup_codes: backupCodes })
-          .eq("user_id", user.id);
+        await saveSecrets({ backup_codes: backupCodes });
+
 
         await supabase.rpc("log_2fa_attempt", {
           _user_id: user.id,
