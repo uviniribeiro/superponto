@@ -132,6 +132,9 @@ export function useOperationalLive(dateISO?: string, onlyProfileId?: string | nu
           firstPunch: first ? new Date(first).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
           diffMinutes: diff,
           situation,
+          actualStartAt: s.actual_start_at ?? null,
+          actualEndAt: s.actual_end_at ?? null,
+
         };
       });
 
