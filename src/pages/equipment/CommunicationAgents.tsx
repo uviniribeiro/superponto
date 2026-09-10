@@ -341,8 +341,14 @@ export default function CommunicationAgents() {
           <TabsTrigger value="tokens">Tokens</TabsTrigger>
           <TabsTrigger value="updates">Atualizações</TabsTrigger>
 
+          <TabsTrigger value="operation">Operação</TabsTrigger>
           <TabsTrigger value="downloads">Downloads</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="operation" className="mt-4">
+          <OperationalLivePanel />
+        </TabsContent>
+
 
         <TabsContent value="agents" className="mt-4">
           <Card>
