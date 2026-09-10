@@ -21,6 +21,9 @@ export interface LiveSchedule {
   firstPunch: string | null;
   diffMinutes: number | null;
   situation: 'Sem motorista' | 'Sem registro' | 'Atrasado' | 'Em dia' | 'Adiantado';
+  actualStartAt: string | null;
+  actualEndAt: string | null;
+
 }
 
 export interface LivePosition {
