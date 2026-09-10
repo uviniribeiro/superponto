@@ -162,6 +162,11 @@ export default function OperationalDashboard() {
           </button>
         ))}
       </div>
+
+      <div className="mt-6">
+        <OperationalLivePanel />
+      </div>
     </div>
+
   );
 }
