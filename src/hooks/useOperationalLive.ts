@@ -21,6 +21,9 @@ export interface LiveSchedule {
   firstPunch: string | null;
   diffMinutes: number | null;
   situation: 'Sem motorista' | 'Sem registro' | 'Atrasado' | 'Em dia' | 'Adiantado';
+  actualStartAt: string | null;
+  actualEndAt: string | null;
+
 }
 
 export interface LivePosition {
@@ -129,6 +132,9 @@ export function useOperationalLive(dateISO?: string, onlyProfileId?: string | nu
           firstPunch: first ? new Date(first).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
           diffMinutes: diff,
           situation,
+          actualStartAt: s.actual_start_at ?? null,
+          actualEndAt: s.actual_end_at ?? null,
+
         };
       });
 

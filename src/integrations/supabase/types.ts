@@ -5212,45 +5212,57 @@ export type Database = {
       }
       op_schedules: {
         Row: {
+          actual_end_at: string | null
+          actual_start_at: string | null
           company_id: string
           created_at: string
           end_time: string
+          ended_by: string | null
           id: string
           line_id: string | null
           notes: string | null
           profile_id: string | null
           service_id: string | null
           start_time: string
+          started_by: string | null
           status: string
           updated_at: string
           vehicle_id: string | null
           work_date: string
         }
         Insert: {
+          actual_end_at?: string | null
+          actual_start_at?: string | null
           company_id: string
           created_at?: string
           end_time?: string
+          ended_by?: string | null
           id?: string
           line_id?: string | null
           notes?: string | null
           profile_id?: string | null
           service_id?: string | null
           start_time?: string
+          started_by?: string | null
           status?: string
           updated_at?: string
           vehicle_id?: string | null
           work_date?: string
         }
         Update: {
+          actual_end_at?: string | null
+          actual_start_at?: string | null
           company_id?: string
           created_at?: string
           end_time?: string
+          ended_by?: string | null
           id?: string
           line_id?: string | null
           notes?: string | null
           profile_id?: string | null
           service_id?: string | null
           start_time?: string
+          started_by?: string | null
           status?: string
           updated_at?: string
           vehicle_id?: string | null
