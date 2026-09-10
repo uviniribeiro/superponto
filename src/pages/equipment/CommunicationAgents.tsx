@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { OperationalLivePanel } from '@/components/operational/OperationalLivePanel';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -341,8 +343,14 @@ export default function CommunicationAgents() {
           <TabsTrigger value="tokens">Tokens</TabsTrigger>
           <TabsTrigger value="updates">Atualizações</TabsTrigger>
 
+          <TabsTrigger value="operation">Operação</TabsTrigger>
           <TabsTrigger value="downloads">Downloads</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="operation" className="mt-4">
+          <OperationalLivePanel />
+        </TabsContent>
+
 
         <TabsContent value="agents" className="mt-4">
           <Card>
