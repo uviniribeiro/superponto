@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Bus, CalendarClock, Gauge, Route, ShieldCheck, Users } from 'lucide-react';
 import { useOperationalStore } from '@/hooks/useOperationalStore';
+import { OperationalLivePanel } from '@/components/operational/OperationalLivePanel';
+
 
 export default function OperationalDashboard() {
   const navigate = useNavigate();
