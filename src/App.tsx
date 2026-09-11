@@ -162,6 +162,9 @@ const OperationalLines = React.lazy(() => import("@/pages/operational/Operationa
 const OperationalPermissions = React.lazy(() => import("@/pages/operational/OperationalPermissions"));
 const OperationalTimeComparison = React.lazy(() => import("@/pages/operational/OperationalTimeComparison"));
 const OperationalMyDay = React.lazy(() => import("@/pages/operational/OperationalMyDay"));
+const OperationalSupervision = React.lazy(() => import("@/pages/operational/OperationalSupervision"));
+const DriverTerminal = React.lazy(() => import("@/pages/operational/DriverTerminal"));
+
 
 
 const MTECompliancePanel = React.lazy(() => import("@/pages/equipment/MTECompliancePanel"));
