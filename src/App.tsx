@@ -219,6 +219,8 @@ const App = () => (
                 <Route path="/" element={<Navigate to="/home" replace />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/terminal" element={<Suspense fallback={<PageLoader />}><KioskTerminal /></Suspense>} />
+                <Route path="/terminal/motorista" element={<Suspense fallback={<PageLoader />}><DriverTerminal /></Suspense>} />
+
                 <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
                 
                 {/* Public Legal Pages */}
