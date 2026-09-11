@@ -36,6 +36,7 @@ export function OperationalLivePanel() {
                   <TableHead>Linha</TableHead>
                   <TableHead>Veículo</TableHead>
                   <TableHead>Ponto</TableHead>
+                  <TableHead>Operação</TableHead>
                   <TableHead>Situação</TableHead>
                 </TableRow>
               </TableHeader>
@@ -47,6 +48,13 @@ export function OperationalLivePanel() {
                     <TableCell>{s.lineLabel}</TableCell>
                     <TableCell>{s.vehicleLabel}</TableCell>
                     <TableCell>{s.firstPunch ?? '—'}</TableCell>
+                    <TableCell>
+                      {s.actualEndAt
+                        ? 'Encerrada'
+                        : s.actualStartAt
+                          ? `Iniciada ${new Date(s.actualStartAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                          : 'Não iniciada'}
+                    </TableCell>
                     <TableCell><Badge variant={tone(s.situation)}>{s.situation}</Badge></TableCell>
                   </TableRow>
                 ))}
