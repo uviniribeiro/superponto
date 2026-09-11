@@ -215,6 +215,11 @@ export default function ClocksLive() {
           })}
         </div>
       )}
+
+      <div className="mt-6">
+        <OperationalLivePanel />
+      </div>
     </div>
+
   );
 }
