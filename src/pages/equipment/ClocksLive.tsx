@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Clock, MonitorSmartphone, RefreshCw, Terminal, Wifi, WifiOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { OperationalLivePanel } from '@/components/operational/OperationalLivePanel';
+
 import { ptBR } from 'date-fns/locale';
 
 interface ClockRow {
