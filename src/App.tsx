@@ -162,6 +162,9 @@ const OperationalLines = React.lazy(() => import("@/pages/operational/Operationa
 const OperationalPermissions = React.lazy(() => import("@/pages/operational/OperationalPermissions"));
 const OperationalTimeComparison = React.lazy(() => import("@/pages/operational/OperationalTimeComparison"));
 const OperationalMyDay = React.lazy(() => import("@/pages/operational/OperationalMyDay"));
+const OperationalSupervision = React.lazy(() => import("@/pages/operational/OperationalSupervision"));
+const DriverTerminal = React.lazy(() => import("@/pages/operational/DriverTerminal"));
+
 
 
 const MTECompliancePanel = React.lazy(() => import("@/pages/equipment/MTECompliancePanel"));
@@ -216,6 +219,8 @@ const App = () => (
                 <Route path="/" element={<Navigate to="/home" replace />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/terminal" element={<Suspense fallback={<PageLoader />}><KioskTerminal /></Suspense>} />
+                <Route path="/terminal/motorista" element={<Suspense fallback={<PageLoader />}><DriverTerminal /></Suspense>} />
+
                 <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
                 
                 {/* Public Legal Pages */}
@@ -371,6 +376,8 @@ const App = () => (
                   <Route path="operational/permissions" element={<ProtectedRoute requiredRoles={['admin']}><OperationalPermissions /></ProtectedRoute>} />
                   <Route path="operational/time-check" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalTimeComparison /></ProtectedRoute>} />
                   <Route path="operational/my-day" element={<ProtectedRoute><OperationalMyDay /></ProtectedRoute>} />
+                  <Route path="operational/supervision" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalSupervision /></ProtectedRoute>} />
+
 
 
                 </Route>

@@ -252,6 +252,8 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'Minha Operação', icon: Bus, href: '/operational/my-day', roles: ['admin', 'manager', 'employee'] },
       { title: 'Painel Operacional', icon: Gauge, href: '/operational', roles: ['admin', 'manager'] },
+      { title: 'Supervisão', icon: Activity, href: '/operational/supervision', roles: ['admin', 'manager'] },
+
 
       { title: 'Escalas', icon: CalendarDays, href: '/operational/schedules', roles: ['admin', 'manager'] },
       { title: 'Operação do Dia', icon: Activity, href: '/operational/day', roles: ['admin', 'manager'] },
