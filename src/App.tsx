@@ -376,6 +376,8 @@ const App = () => (
                   <Route path="operational/permissions" element={<ProtectedRoute requiredRoles={['admin']}><OperationalPermissions /></ProtectedRoute>} />
                   <Route path="operational/time-check" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalTimeComparison /></ProtectedRoute>} />
                   <Route path="operational/my-day" element={<ProtectedRoute><OperationalMyDay /></ProtectedRoute>} />
+                  <Route path="operational/supervision" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalSupervision /></ProtectedRoute>} />
+
 
 
                 </Route>
