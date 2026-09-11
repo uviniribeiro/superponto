@@ -12,6 +12,7 @@ export interface LiveSchedule {
   date: string;
   driverId: string | null;
   driverName: string;
+  vehicleId: string | null;
   vehicleLabel: string;
   lineLabel: string;
   serviceLabel: string;
@@ -123,6 +124,7 @@ export function useOperationalLive(dateISO?: string, onlyProfileId?: string | nu
           date: s.work_date,
           driverId: s.profile_id,
           driverName: s.profile_id ? nameOf.get(s.profile_id) ?? 'Colaborador' : 'Sem motorista',
+          vehicleId: s.vehicle_id ?? null,
           vehicleLabel: s.vehicle_id ? vehOf.get(s.vehicle_id) ?? '—' : '—',
           lineLabel: s.line_id ? lineOf.get(s.line_id) ?? '—' : '—',
           serviceLabel: s.service_id ? servOf.get(s.service_id) ?? '—' : '—',
