@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Play, Square, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 import type { LiveSchedule } from '@/hooks/useOperationalLive';
@@ -45,12 +46,25 @@ export function JourneyTimer({
 
   const start = () => update(
     { actual_start_at: new Date().toISOString(), started_by: profileId, status: 'em_andamento' },
-    'Operação iniciada',
+    currentStartDeviation > 5
+      ? `Operação iniciada com ${currentStartDeviation} min de atraso`
+      : 'Operação iniciada',
   );
   const finish = () => update(
     { actual_end_at: new Date().toISOString(), ended_by: profileId, status: 'concluida' },
-    'Operação encerrada',
+    currentEndDeviation < 0
+      ? `Operação encerrada ${Math.abs(currentEndDeviation)} min antes do previsto`
+      : 'Operação encerrada',
   );
+
+  const plannedMinutes = (value: string) => {
+    const [h, m] = value.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentStartDeviation = nowMinutes - plannedMinutes(schedule.startTime);
+  const currentEndDeviation = nowMinutes - plannedMinutes(schedule.endTime);
 
   const startDelay = (() => {
     if (!schedule.actualStartAt) return null;
@@ -71,6 +85,22 @@ export function JourneyTimer({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        {!schedule.actualStartAt && currentStartDeviation > 5 && (
+          <Alert variant="destructive">
+            <AlertTitle>Início atrasado</AlertTitle>
+            <AlertDescription>
+              A operação está {currentStartDeviation} minutos atrasada. O horário real será registrado ao iniciar.
+            </AlertDescription>
+          </Alert>
+        )}
+        {schedule.actualStartAt && !schedule.actualEndAt && currentEndDeviation < 0 && (
+          <Alert>
+            <AlertTitle>Saída antecipada</AlertTitle>
+            <AlertDescription>
+              Encerrar agora antecipa a saída em {Math.abs(currentEndDeviation)} minutos. O horário real será registrado.
+            </AlertDescription>
+          </Alert>
+        )}
         <p className="font-mono text-4xl font-semibold tabular-nums">{elapsed}</p>
         <div className="flex flex-wrap items-center gap-2">
           {!schedule.actualStartAt && (

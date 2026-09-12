@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOperationalLive } from '@/hooks/useOperationalLive';
 import { JourneyTimer } from '@/components/operational/JourneyTimer';
+import { useDriverGps } from '@/hooks/useDriverGps';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,8 +21,17 @@ export default function DriverTerminal() {
   const [busy, setBusy] = useState(false);
 
   const profileId = (profile as { id?: string } | null)?.id ?? null;
+  const companyId = (profile as { company_id?: string | null } | null)?.company_id ?? null;
   const name = (profile as { full_name?: string } | null)?.full_name ?? 'Motorista';
   const { schedules, updatedAt, refetch, loading: loadingOps } = useOperationalLive(undefined, profileId);
+  const activeSchedule = schedules.find((schedule) => schedule.actualStartAt && !schedule.actualEndAt) ?? null;
+  const { lastSentAt: gpsSentAt, error: gpsError } = useDriverGps({
+    enabled: Boolean(user && activeSchedule),
+    companyId,
+    profileId,
+    vehicleId: activeSchedule?.vehicleId ?? null,
+    scheduleId: activeSchedule?.id ?? null,
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +103,16 @@ export default function DriverTerminal() {
       </header>
 
       <div className="mx-auto max-w-3xl space-y-4">
+        {activeSchedule && (
+          <Card>
+            <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+              <span>GPS do terminal ativo · {activeSchedule.vehicleLabel} · {activeSchedule.lineLabel}</span>
+              <Badge variant={gpsError ? 'destructive' : 'secondary'}>
+                {gpsError ? 'GPS sem envio' : gpsSentAt ? `Enviado ${gpsSentAt.toLocaleTimeString('pt-BR')}` : 'Obtendo posição'}
+              </Badge>
+            </CardContent>
+          </Card>
+        )}
         {loadingOps && <p className="text-sm text-muted-foreground">Carregando escalas...</p>}
         {!loadingOps && schedules.length === 0 && (
           <Card><CardContent className="py-10 text-center text-muted-foreground">
