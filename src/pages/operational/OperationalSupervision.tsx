@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Activity, MapPin, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useOperationalLive } from '@/hooks/useOperationalLive';
+import { RunningJourneys } from '@/components/operational/RunningJourneys';
 
 /** Supervisão em tempo real: jornadas em andamento, GPS dos veículos e atrasos. */
 export default function OperationalSupervision() {
@@ -62,6 +63,10 @@ export default function OperationalSupervision() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="mt-6">
+        <RunningJourneys />
       </div>
 
       <Card className="mt-6">

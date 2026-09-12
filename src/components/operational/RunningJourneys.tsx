@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useOperationalLive, type LiveSchedule } from '@/hooks/useOperationalLive';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +28,11 @@ function elapsed(s: LiveSchedule, now: number) {
 /** Lista das jornadas do dia com horário previsto, horário real e status. */
 export function RunningJourneys({ compact = false }: { compact?: boolean }) {
   const { schedules, loading, updatedAt } = useOperationalLive();
-  const now = Date.now();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const running = schedules.filter((s) => s.actualStartAt && !s.actualEndAt);
   const rows = compact ? (running.length ? running : schedules) : schedules;
 

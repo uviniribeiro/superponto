@@ -1,74 +1,24 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useOperationalLive } from '@/hooks/useOperationalLive';
+import { RunningJourneys } from '@/components/operational/RunningJourneys';
 
 /**
  * Painel de operação em tempo real: escalas do dia com horário previsto,
  * veículo e linha, além de GPS, telemetria e ocorrências recebidos do robô.
  */
 export function OperationalLivePanel() {
-  const { schedules, positions, telemetry, occurrences, loading, updatedAt } = useOperationalLive();
-
-  const tone = (s: string) => (s === 'Atrasado' ? 'destructive' : s === 'Em dia' ? 'secondary' : 'outline');
+  const { positions, telemetry, occurrences } = useOperationalLive();
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Operação de hoje</CardTitle>
-          <CardDescription>
-            Escalas com horário previsto, veículo e linha — atualiza sozinho.
-            {updatedAt && ` Última atualização: ${updatedAt.toLocaleTimeString('pt-BR')}`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading && <p className="text-sm text-muted-foreground">Carregando operação...</p>}
-          {!loading && schedules.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma escala registrada para hoje.</p>
-          )}
-          {schedules.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Previsto</TableHead>
-                  <TableHead>Motorista</TableHead>
-                  <TableHead>Linha</TableHead>
-                  <TableHead>Veículo</TableHead>
-                  <TableHead>Ponto</TableHead>
-                  <TableHead>Operação</TableHead>
-                  <TableHead>Situação</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {schedules.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>{s.startTime} – {s.endTime}</TableCell>
-                    <TableCell>{s.driverName}</TableCell>
-                    <TableCell>{s.lineLabel}</TableCell>
-                    <TableCell>{s.vehicleLabel}</TableCell>
-                    <TableCell>{s.firstPunch ?? '—'}</TableCell>
-                    <TableCell>
-                      {s.actualEndAt
-                        ? 'Encerrada'
-                        : s.actualStartAt
-                          ? `Iniciada ${new Date(s.actualStartAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
-                          : 'Não iniciada'}
-                    </TableCell>
-                    <TableCell><Badge variant={tone(s.situation)}>{s.situation}</Badge></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <RunningJourneys compact />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Últimas posições (GPS)</CardTitle>
-            <CardDescription>Recebidas do robô de comunicação da frota.</CardDescription>
+            <CardDescription>Recebidas do terminal do motorista ou do robô da frota.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {positions.length === 0 && <p className="text-muted-foreground">Nenhuma posição recebida ainda.</p>}
