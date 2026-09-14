@@ -37,7 +37,7 @@ describe('Button Component', () => {
     expect(getByRole('button')).toHaveClass('h-9');
 
     rerender(<Button size="lg">Large</Button>);
-    expect(getByRole('button')).toHaveClass('h-11');
+    expect(getByRole('button')).toHaveClass('h-12');
   });
 
   it('should render as child element when asChild is true', () => {

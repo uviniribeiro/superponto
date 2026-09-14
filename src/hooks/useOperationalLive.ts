@@ -67,7 +67,7 @@ interface LiveData {
 const empty: LiveData = { schedules: [], positions: [], telemetry: [], occurrences: [] };
 const hhmm = (v?: string | null) => (v ? String(v).slice(0, 5) : '--:--');
 
-export function useOperationalLive(dateISO?: string, onlyProfileId?: string | null) {
+export function useOperationalLive(dateISO?: string, onlyProfileId?: string | null, enabled = true) {
   const { profile } = useAuth();
   const companyId = (profile as { company_id?: string | null } | null)?.company_id ?? null;
   const day = dateISO ?? new Date().toISOString().slice(0, 10);
@@ -76,6 +76,7 @@ export function useOperationalLive(dateISO?: string, onlyProfileId?: string | nu
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
   const fetchAll = useCallback(async () => {
+    if (!enabled) return;
     if (!companyId) {
       setData(empty);
       setLoading(false);
@@ -165,21 +166,23 @@ export function useOperationalLive(dateISO?: string, onlyProfileId?: string | nu
     });
     setUpdatedAt(new Date());
     setLoading(false);
-  }, [companyId, day, onlyProfileId]);
+  }, [companyId, day, onlyProfileId, enabled]);
 
   useEffect(() => { void fetchAll(); }, [fetchAll]);
 
   // Atualização em tempo real das tabelas que alimentam a operação.
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId || !enabled) return;
     const channel = supabase.channel(`op-live-${companyId}-${day}`);
     for (const t of ['op_schedules', 'op_occurrences', 'op_gps_positions', 'op_telemetry_events', 'time_records']) {
       channel.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => { void fetchAll(); });
     }
     channel.subscribe();
-    const timer = window.setInterval(() => { void fetchAll(); }, 60000);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchAll();
+    }, 60000);
     return () => { supabase.removeChannel(channel); window.clearInterval(timer); };
-  }, [companyId, day, fetchAll]);
+  }, [companyId, day, enabled, fetchAll]);
 
   return { ...data, loading, updatedAt, refetch: fetchAll };
 }

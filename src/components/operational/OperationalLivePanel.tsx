@@ -8,11 +8,12 @@ import { RunningJourneys } from '@/components/operational/RunningJourneys';
  * veículo e linha, além de GPS, telemetria e ocorrências recebidos do robô.
  */
 export function OperationalLivePanel() {
-  const { positions, telemetry, occurrences } = useOperationalLive();
+  const liveData = useOperationalLive();
+  const { positions, telemetry, occurrences } = liveData;
 
   return (
     <div className="space-y-4">
-      <RunningJourneys compact />
+      <RunningJourneys compact liveData={liveData} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

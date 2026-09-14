@@ -3,8 +3,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-// @ts-ignore - no type declarations available
-import { viteObfuscateFile } from "vite-plugin-obfuscator";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -15,36 +13,6 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === 'development' && componentTagger(),
-    mode === 'production' && viteObfuscateFile({
-      options: {
-        compact: true,
-        controlFlowFlattening: true,
-        controlFlowFlatteningThreshold: 0.5,
-        deadCodeInjection: true,
-        deadCodeInjectionThreshold: 0.2,
-        debugProtection: false,
-        disableConsoleOutput: true,
-        identifierNamesGenerator: 'hexadecimal',
-        renameGlobals: false,
-        selfDefending: true,
-        simplify: true,
-        splitStrings: true,
-        splitStringsChunkLength: 5,
-        stringArray: true,
-        stringArrayCallsTransform: true,
-        stringArrayEncoding: ['rc4'],
-        stringArrayIndexShift: true,
-        stringArrayRotate: true,
-        stringArrayShuffle: true,
-        stringArrayWrappersCount: 2,
-        stringArrayWrappersChainedCalls: true,
-        stringArrayWrappersParametersMaxCount: 4,
-        stringArrayWrappersType: 'function',
-        stringArrayThreshold: 0.75,
-        transformObjectKeys: true,
-        unicodeEscapeSequence: false,
-      },
-    }),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -57,13 +25,13 @@ export default defineConfig(({ mode }) => ({
     // Chunk splitting for better caching
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover', '@radix-ui/react-select', '@radix-ui/react-tabs'],
-          'vendor-charts': ['recharts'],
-          'vendor-pdf': ['jspdf', 'jspdf-autotable'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-query': ['@tanstack/react-query'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router')) return 'vendor-react';
+          if (id.includes('@supabase')) return 'vendor-data';
+          if (id.includes('@tanstack')) return 'vendor-query';
+          if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('jszip')) return 'vendor-export';
+          if (id.includes('recharts')) return 'vendor-charts';
         },
         // Hash filenames to prevent guessing
         chunkFileNames: 'assets/[hash].js',
@@ -72,20 +40,10 @@ export default defineConfig(({ mode }) => ({
       },
     },
     // Minification
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn'],
-      },
-      mangle: {
-        safari10: true,
-      },
-      format: {
-        comments: false,
-      },
-    },
+    minify: 'esbuild',
+    cssMinify: 'esbuild',
+    target: 'es2020',
+    chunkSizeWarningLimit: 700,
   },
   test: {
     globals: true,

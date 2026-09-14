@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { validateCNPJ, cleanCNPJ } from '@/lib/validators';
@@ -84,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [company, setCompany] = useState<Company | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const loadedUserId = useRef<string | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -91,11 +92,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user) {
+        if (session?.user && loadedUserId.current !== session.user.id) {
+          loadedUserId.current = session.user.id;
           setTimeout(() => {
             fetchUserData(session.user.id);
           }, 0);
         } else {
+          loadedUserId.current = null;
           setProfile(null);
           setCompany(null);
           setRoles([]);
@@ -107,7 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
+      if (session?.user && loadedUserId.current !== session.user.id) {
+        loadedUserId.current = session.user.id;
         fetchUserData(session.user.id);
       } else {
         setLoading(false);
