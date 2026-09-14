@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { CnpjInput } from '@/components/shared/CnpjInput';
 import { getCNPJFeedback, cleanCNPJ } from '@/lib/validators';
 import { cn } from '@/lib/utils';
-import superpontoLogo from '@/assets/pontomax-logo.png';
+import superpontoLogo from '@/assets/pontomax-logo.webp';
 
 
 type LoginType = 'company' | 'city_hall' | 'super_admin';

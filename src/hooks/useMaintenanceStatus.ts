@@ -32,8 +32,18 @@ export function useMaintenanceStatus(pollMs = 60_000) {
     };
 
     load();
-    const t = setInterval(load, pollMs);
-    return () => { cancelled = true; clearInterval(t); };
+    const t = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void load();
+    }, pollMs);
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') void load();
+    };
+    document.addEventListener('visibilitychange', refreshVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+      document.removeEventListener('visibilitychange', refreshVisible);
+    };
   }, [pollMs]);
 
   return maintenance;

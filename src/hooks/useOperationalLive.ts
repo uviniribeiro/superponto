@@ -178,7 +178,9 @@ export function useOperationalLive(dateISO?: string, onlyProfileId?: string | nu
       channel.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => { void fetchAll(); });
     }
     channel.subscribe();
-    const timer = window.setInterval(() => { void fetchAll(); }, 60000);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchAll();
+    }, 60000);
     return () => { supabase.removeChannel(channel); window.clearInterval(timer); };
   }, [companyId, day, enabled, fetchAll]);
 
