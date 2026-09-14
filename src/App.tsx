@@ -383,7 +383,9 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
-              <GuidedTourButton />
+              <Suspense fallback={null}>
+                <GuidedTourButton />
+              </Suspense>
             </AuthProvider>
           </BrowserRouter>
         </HolidayThemeProvider>
