@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import superpontoLogo from '@/assets/pontomax-logo.png';
+import superpontoLogo from '@/assets/pontomax-logo.webp';
 
 export function GlobalWatermark() {
   const { user } = useAuth();
@@ -53,6 +53,8 @@ export function GlobalWatermark() {
       <img 
         src={displayLogo} 
         alt="" 
+        loading="lazy"
+        decoding="async"
         className="w-[40vw] max-w-[500px] min-w-[200px] select-none"
         style={{
           opacity: logoUrl ? 0.08 : 0.03,

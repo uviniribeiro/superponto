@@ -9,7 +9,8 @@ import { RunningJourneys } from '@/components/operational/RunningJourneys';
 
 /** Supervisão em tempo real: jornadas em andamento, GPS dos veículos e atrasos. */
 export default function OperationalSupervision() {
-  const { schedules, positions, telemetry, loading, updatedAt, refetch } = useOperationalLive();
+  const liveData = useOperationalLive();
+  const { schedules, positions, telemetry, loading, updatedAt, refetch } = liveData;
 
   const running = schedules.filter((s) => s.actualStartAt && !s.actualEndAt);
   const finished = schedules.filter((s) => s.actualEndAt);
@@ -66,7 +67,7 @@ export default function OperationalSupervision() {
       </div>
 
       <div className="mt-6">
-        <RunningJourneys />
+        <RunningJourneys liveData={liveData} />
       </div>
 
       <Card className="mt-6">

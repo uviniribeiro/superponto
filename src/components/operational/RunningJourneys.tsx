@@ -26,8 +26,14 @@ function elapsed(s: LiveSchedule, now: number) {
 }
 
 /** Lista das jornadas do dia com horário previsto, horário real e status. */
-export function RunningJourneys({ compact = false }: { compact?: boolean }) {
-  const { schedules, loading, updatedAt } = useOperationalLive();
+interface RunningJourneysProps {
+  compact?: boolean;
+  liveData?: Pick<ReturnType<typeof useOperationalLive>, 'schedules' | 'loading' | 'updatedAt'>;
+}
+
+export function RunningJourneys({ compact = false, liveData }: RunningJourneysProps) {
+  const ownData = useOperationalLive(undefined, undefined, !liveData);
+  const { schedules, loading, updatedAt } = liveData ?? ownData;
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);

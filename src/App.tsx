@@ -7,12 +7,11 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import SuperAdminProtectedRoute from "@/components/SuperAdminProtectedRoute";
-import CollapsibleSidebar from "@/components/layout/CollapsibleSidebar";
-import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
-import { GuidedTourButton } from "@/components/GuidedTour";
+const CollapsibleSidebar = React.lazy(() => import("@/components/layout/CollapsibleSidebar"));
+const SuperAdminLayout = React.lazy(() => import("@/components/layout/SuperAdminLayout"));
+const GuidedTourButton = React.lazy(() => import("@/components/GuidedTour").then((module) => ({ default: module.GuidedTourButton })));
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { GlobalWatermark } from "@/components/GlobalWatermark";
-import { WhatsNewPopup } from "@/components/WhatsNewPopup";
 import { HolidayThemeProvider } from "@/components/HolidayThemeProvider";
 import { HolidayBanner } from "@/components/HolidayBanner";
 import React, { Suspense } from "react";
@@ -28,7 +27,7 @@ const PageLoader = () => (
 // Auth (eager - needed immediately)
 import Auth from "@/pages/Auth";
 const KioskTerminal = React.lazy(() => import("@/pages/KioskTerminal"));
-import SuperAdminAuth from "@/pages/SuperAdminAuth";
+const SuperAdminAuth = React.lazy(() => import("@/pages/SuperAdminAuth"));
 import NotFound from "@/pages/NotFound";
 
 // Core pages - lazy loaded
@@ -213,7 +212,6 @@ const App = () => (
               <MaintenanceBanner />
               <GlobalWatermark />
               <HolidayBanner />
-              <WhatsNewPopup />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                 <Route path="/" element={<Navigate to="/home" replace />} />

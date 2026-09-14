@@ -12,7 +12,7 @@ import { WhatsNewPopup } from '@/components/WhatsNewPopup';
 import { MenuPositionSelector } from '@/components/MenuPositionSelector';
 import { useMenuPosition, MenuPosition } from '@/hooks/useMenuPosition';
 import { getVersionString, APP_NAME } from '@/lib/version';
-import superpontoLogo from '@/assets/pontomax-logo.png';
+import superpontoLogo from '@/assets/pontomax-logo.webp';
 import {
   DropdownMenu,
   DropdownMenuContent,
