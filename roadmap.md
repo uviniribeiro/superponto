@@ -7,4 +7,4 @@
 - [x] Restringir ações sensíveis por perfil e registrar o operador.
 - [x] Adicionar confirmação de adoção e teste simulado de rotação de token.
 - [x] Exibir ator, motivo e resultado no histórico de tokens.
-- [ ] Otimizar carregamento, responsividade e compilação de produção.
+- [x] Otimizar carregamento, responsividade e compilação de produção.
