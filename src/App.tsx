@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,7 +15,6 @@ import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { GlobalWatermark } from "@/components/GlobalWatermark";
 import { HolidayThemeProvider } from "@/components/HolidayThemeProvider";
 import { HolidayBanner } from "@/components/HolidayBanner";
-import React, { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 
 // Lazy loading fallback
