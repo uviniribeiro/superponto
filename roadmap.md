@@ -10,4 +10,4 @@
 - [x] Otimizar carregamento, responsividade e compilação de produção.
 - [x] Unificar o terminal do motorista em uma tela operacional.
 - [x] Criar supervisão móvel em tempo real com GPS, trajetos e alertas de parada.
-- [ ] Corrigir avisos do sistema, atualizar a versão e validar a compilação.
+- [x] Corrigir avisos do sistema, atualizar a versão e validar a compilação.
