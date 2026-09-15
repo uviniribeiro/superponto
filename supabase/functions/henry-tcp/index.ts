@@ -52,10 +52,11 @@ serve(async (req) => {
     const userId = userData.user.id;
 
     const admin = createClient(supabaseUrl, serviceKey);
-    const [{ data: roles }, { data: companyId }] = await Promise.all([
+    const [{ data: roles }, { data: profile }] = await Promise.all([
       admin.from("user_roles").select("role").eq("user_id", userId),
-      admin.rpc("get_user_company_id", { _user_id: userId }),
+      admin.from("profiles").select("company_id").eq("user_id", userId).maybeSingle(),
     ]);
+    const companyId = profile?.company_id ?? null;
     const roleList = (roles ?? []).map((r: { role: string }) => r.role);
     const isAdmin = roleList.includes("admin");
     if (!isAdmin && !roleList.includes("manager")) {
