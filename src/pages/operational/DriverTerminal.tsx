@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Bus, LogOut, RefreshCw } from 'lucide-react';
+import { Bus, CalendarClock, Clock3, LogOut, MapPin, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
@@ -103,6 +103,12 @@ export default function DriverTerminal() {
       </header>
 
       <div className="mx-auto max-w-3xl space-y-4">
+        <section className="grid grid-cols-2 gap-3 rounded-lg border bg-card p-3 sm:grid-cols-4">
+          <div><p className="text-xs text-muted-foreground">Escalas hoje</p><p className="text-xl font-semibold">{schedules.length}</p></div>
+          <div><p className="text-xs text-muted-foreground">Próximo horário</p><p className="flex items-center gap-1 font-semibold"><Clock3 className="h-4 w-4" /> {activeSchedule?.startTime ?? schedules[0]?.startTime ?? '—'}</p></div>
+          <div><p className="text-xs text-muted-foreground">Operação</p><p className="font-semibold">{activeSchedule ? 'Em andamento' : 'A iniciar'}</p></div>
+          <div><p className="text-xs text-muted-foreground">Localização</p><p className="flex items-center gap-1 font-semibold"><MapPin className="h-4 w-4" /> {gpsError ? 'Indisponível' : activeSchedule ? 'Ativa' : 'Aguardando'}</p></div>
+        </section>
         {activeSchedule && (
           <Card>
             <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
@@ -121,9 +127,9 @@ export default function DriverTerminal() {
         )}
         {schedules.map((s) => (
           <div key={s.id} className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Badge variant="outline">Previsto {s.startTime} – {s.endTime}</Badge>
-              <Badge variant="outline">{s.status}</Badge>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="outline"><CalendarClock className="mr-1 h-3.5 w-3.5" /> Previsto {s.startTime} – {s.endTime}</Badge>
+              <Badge variant={s.actualStartAt && !s.actualEndAt ? 'default' : 'outline'}>{s.actualEndAt ? 'Concluída' : s.actualStartAt ? 'Em andamento' : s.status}</Badge>
             </div>
             <JourneyTimer schedule={s} profileId={profileId} onChange={() => void refetch()} />
           </div>

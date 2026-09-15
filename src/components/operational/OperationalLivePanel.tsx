@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useOperationalLive } from '@/hooks/useOperationalLive';
 import { RunningJourneys } from '@/components/operational/RunningJourneys';
+import { OperationalRouteMap } from '@/components/operational/OperationalRouteMap';
 
 /**
  * Painel de operação em tempo real: escalas do dia com horário previsto,
@@ -14,6 +15,7 @@ export function OperationalLivePanel() {
   return (
     <div className="space-y-4">
       <RunningJourneys compact liveData={liveData} />
+      <OperationalRouteMap positions={positions} schedules={liveData.schedules} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

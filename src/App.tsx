@@ -207,7 +207,7 @@ const App = () => (
         <HolidayThemeProvider>
           <Toaster />
           <Sonner position="top-right" richColors closeButton />
-          <BrowserRouter>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
               <MaintenanceBanner />
               <GlobalWatermark />

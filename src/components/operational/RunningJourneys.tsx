@@ -28,12 +28,12 @@ function elapsed(s: LiveSchedule, now: number) {
 /** Lista das jornadas do dia com horário previsto, horário real e status. */
 interface RunningJourneysProps {
   compact?: boolean;
-  liveData?: Pick<ReturnType<typeof useOperationalLive>, 'schedules' | 'loading' | 'updatedAt'>;
+  liveData?: Pick<ReturnType<typeof useOperationalLive>, 'schedules' | 'positions' | 'loading' | 'updatedAt'>;
 }
 
 export function RunningJourneys({ compact = false, liveData }: RunningJourneysProps) {
   const ownData = useOperationalLive(undefined, undefined, !liveData);
-  const { schedules, loading, updatedAt } = liveData ?? ownData;
+  const { schedules, positions, loading, updatedAt } = liveData ?? ownData;
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -59,7 +59,29 @@ export function RunningJourneys({ compact = false, liveData }: RunningJourneysPr
           <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma escala para hoje.</p>
         )}
         {rows.length > 0 && (
-          <Table>
+          <div className="space-y-3 sm:hidden">
+            {rows.map((s) => {
+              const latestGps = positions.find((position) => position.scheduleId === s.id);
+              const diff = startDiffMinutes(s);
+              return (
+                <div key={s.id} className="space-y-2 rounded-lg border p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div><p className="font-medium">{s.driverName}</p><p className="text-xs text-muted-foreground">{s.vehicleLabel} · {s.lineLabel}</p></div>
+                    <Badge variant={s.actualStartAt && !s.actualEndAt ? 'default' : 'secondary'}>{s.actualEndAt ? 'Concluída' : s.actualStartAt ? 'Em andamento' : 'Não iniciada'}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="text-muted-foreground">Previsto</span><p>{s.startTime} – {s.endTime}</p></div>
+                    <div><span className="text-muted-foreground">Cronômetro</span><p className="font-mono tabular-nums">{elapsed(s, now)}</p></div>
+                    <div><span className="text-muted-foreground">Início real</span><p>{time(s.actualStartAt)} {diff != null && `(${diff > 0 ? '+' : ''}${diff} min)`}</p></div>
+                    <div><span className="text-muted-foreground">GPS</span><p>{latestGps ? `${Math.round(latestGps.speedKmh ?? 0)} km/h · ${new Date(latestGps.recordedAt).toLocaleTimeString('pt-BR')}` : 'Sem sinal'}</p></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {rows.length > 0 && (
+          <div className="hidden overflow-x-auto sm:block"><Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Motorista</TableHead>
@@ -68,12 +90,14 @@ export function RunningJourneys({ compact = false, liveData }: RunningJourneysPr
                 <TableHead>Previsto</TableHead>
                 <TableHead>Real</TableHead>
                 <TableHead>Cronômetro</TableHead>
+                <TableHead>GPS</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((s) => {
                 const diff = startDiffMinutes(s);
+                const latestGps = positions.find((position) => position.scheduleId === s.id);
                 return (
                   <TableRow key={s.id}>
                     <TableCell className="font-medium">{s.driverName}</TableCell>
@@ -90,6 +114,7 @@ export function RunningJourneys({ compact = false, liveData }: RunningJourneysPr
                       )}
                     </TableCell>
                     <TableCell className="font-mono tabular-nums">{elapsed(s, now)}</TableCell>
+                    <TableCell>{latestGps ? `${Math.round(latestGps.speedKmh ?? 0)} km/h` : 'Sem sinal'}</TableCell>
                     <TableCell>
                       <Badge variant={s.actualStartAt && !s.actualEndAt ? 'default' : 'secondary'}>
                         {s.actualEndAt ? 'Concluída' : s.actualStartAt ? 'Em andamento' : 'Não iniciada'}
@@ -99,7 +124,7 @@ export function RunningJourneys({ compact = false, liveData }: RunningJourneysPr
                 );
               })}
             </TableBody>
-          </Table>
+          </Table></div>
         )}
       </CardContent>
     </Card>

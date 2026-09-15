@@ -1,6 +1,6 @@
 // Application version configuration
-export const APP_VERSION = '3.0.0';
-export const APP_BUILD_DATE = '2026-08-17';
+export const APP_VERSION = '3.1.0';
+export const APP_BUILD_DATE = '2026-09-15';
 export const APP_NAME = 'Ponto Max';
 
 // Changelog entries
@@ -13,6 +13,19 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '3.1.0',
+    date: '2026-09-15',
+    title: 'Operação Móvel em Tempo Real',
+    type: 'minor',
+    changes: [
+      'Terminal do motorista reunido em uma tela única com escalas, horários, cronômetro e status',
+      'Nova supervisão móvel com jornadas, GPS e atrasos atualizados automaticamente',
+      'Trajeto, velocidade e última posição dos veículos exibidos durante a operação',
+      'Alertas automáticos para veículos parados por tempo anormal',
+      'Carregamento mais rápido e melhor adaptação para celulares e computadores',
+    ],
+  },
   {
     version: '3.0.0',
     date: '2026-08-17',
