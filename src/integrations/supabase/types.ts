@@ -8693,8 +8693,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_profile_id: { Args: { _user_id: string }; Returns: string }
-      get_user_company_id: { Args: { _user_id: string }; Returns: string }
       get_visible_profile_fields: {
         Args: {
           target_profile: Database["public"]["Tables"]["profiles"]["Row"]
@@ -8702,14 +8700,6 @@ export type Database = {
         }
         Returns: Json
       }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_valid_cnpj: { Args: { _cnpj: string }; Returns: boolean }
       log_2fa_attempt: {
         Args: {
@@ -8733,8 +8723,6 @@ export type Database = {
         }
         Returns: string
       }
-      op_can: { Args: { _flag: string }; Returns: boolean }
-      op_company_id: { Args: never; Returns: string }
       purge_old_location_data: { Args: never; Returns: number }
       record_failed_login: { Args: { _user_id: string }; Returns: Json }
       reset_failed_login: { Args: { _user_id: string }; Returns: undefined }
