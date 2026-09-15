@@ -29,6 +29,9 @@ export interface LiveSchedule {
 
 export interface LivePosition {
   id: string;
+  vehicleId: string | null;
+  scheduleId: string | null;
+  profileId: string | null;
   vehicleLabel: string;
   driverName: string;
   latitude: number;
@@ -145,6 +148,9 @@ export function useOperationalLive(dateISO?: string, onlyProfileId?: string | nu
       schedules,
       positions: (gpsRes.data ?? []).map((p) => ({
         id: p.id,
+        vehicleId: p.vehicle_id ?? null,
+        scheduleId: p.schedule_id ?? null,
+        profileId: p.profile_id ?? null,
         vehicleLabel: p.vehicle_id ? vehOf.get(p.vehicle_id) ?? '—' : '—',
         driverName: p.profile_id ? nameOf.get(p.profile_id) ?? '—' : '—',
         latitude: Number(p.latitude), longitude: Number(p.longitude),

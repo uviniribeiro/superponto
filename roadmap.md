@@ -8,3 +8,6 @@
 - [x] Adicionar confirmação de adoção e teste simulado de rotação de token.
 - [x] Exibir ator, motivo e resultado no histórico de tokens.
 - [x] Otimizar carregamento, responsividade e compilação de produção.
+- [ ] Unificar o terminal do motorista em uma tela operacional.
+- [ ] Criar supervisão móvel em tempo real com GPS, trajetos e alertas de parada.
+- [ ] Corrigir avisos do sistema, atualizar a versão e validar a compilação.

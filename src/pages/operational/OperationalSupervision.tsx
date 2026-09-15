@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Activity, MapPin, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useOperationalLive } from '@/hooks/useOperationalLive';
 import { RunningJourneys } from '@/components/operational/RunningJourneys';
+import { OperationalRouteMap, detectAbnormalStops } from '@/components/operational/OperationalRouteMap';
 
 /** Supervisão em tempo real: jornadas em andamento, GPS dos veículos e atrasos. */
 export default function OperationalSupervision() {
@@ -16,6 +17,7 @@ export default function OperationalSupervision() {
   const finished = schedules.filter((s) => s.actualEndAt);
   const late = schedules.filter((s) => s.situation === 'Atrasado');
   const notStarted = schedules.filter((s) => !s.actualStartAt && !s.actualEndAt);
+  const stopAlerts = detectAbnormalStops(positions, schedules);
 
   const duration = (start: string) => {
     const mins = Math.floor((Date.now() - new Date(start).getTime()) / 60000);
@@ -30,11 +32,11 @@ export default function OperationalSupervision() {
     { label: 'Jornadas em andamento', value: running.length, icon: Activity },
     { label: 'Ainda não iniciadas', value: notStarted.length, icon: AlertTriangle },
     { label: 'Atrasos no ponto', value: late.length, icon: AlertTriangle },
-    { label: 'Veículos com GPS', value: latestByVehicle.length, icon: MapPin },
+    { label: 'Alertas de parada', value: stopAlerts.length, icon: MapPin },
   ];
 
   return (
-    <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto max-w-7xl px-3 py-4 sm:px-4 sm:py-6">
       <PageHeader
         title="Supervisão Operacional"
         description="Jornadas em andamento, posição dos veículos e atrasos, atualizando em tempo real."
@@ -50,16 +52,16 @@ export default function OperationalSupervision() {
         {loading ? 'Carregando operação...' : `Última atualização: ${updatedAt?.toLocaleTimeString('pt-BR') ?? '—'}`}
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {cards.map(({ label, value, icon: Icon }) => (
           <Card key={label}>
-            <CardContent className="flex items-center gap-3 py-5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[image:var(--gradient-brand)]">
+            <CardContent className="flex min-h-24 items-center gap-2 p-3 sm:gap-3 sm:p-5">
+              <div className="hidden h-11 w-11 items-center justify-center rounded-lg bg-[image:var(--gradient-brand)] sm:flex">
                 <Icon className="h-5 w-5 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-semibold">{value}</p>
-                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="text-xl font-semibold sm:text-2xl">{value}</p>
+                <p className="text-xs text-muted-foreground sm:text-sm">{label}</p>
               </div>
             </CardContent>
           </Card>
@@ -70,6 +72,10 @@ export default function OperationalSupervision() {
         <RunningJourneys liveData={liveData} />
       </div>
 
+      <div className="mt-6">
+        <OperationalRouteMap positions={positions} schedules={schedules} />
+      </div>
+
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>Jornadas do dia</CardTitle>
@@ -78,7 +84,7 @@ export default function OperationalSupervision() {
         <CardContent>
           {schedules.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma escala hoje.</p>}
           {schedules.length > 0 && (
-            <Table>
+            <div className="overflow-x-auto"><Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Motorista</TableHead>
@@ -111,7 +117,7 @@ export default function OperationalSupervision() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+            </Table></div>
           )}
           {finished.length > 0 && (
             <p className="mt-3 text-sm text-muted-foreground">{finished.length} jornada(s) já encerrada(s) hoje.</p>
