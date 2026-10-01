@@ -261,7 +261,8 @@ const menuCategories: MenuCategory[] = [
       { title: 'Veículos', icon: Bus, href: '/operational/vehicles', roles: ['admin', 'manager'] },
       { title: 'Linhas e Serviços', icon: RouteIcon, href: '/operational/lines', roles: ['admin', 'manager'] },
       { title: 'Ponto x Escala', icon: Clock, href: '/operational/time-check', roles: ['admin', 'manager'] },
-
+      { title: 'Alertas Operacionais', icon: AlertCircle, href: '/operational/alerts', roles: ['admin', 'manager'] },
+      { title: 'Jornadas por Linha', icon: FileSpreadsheet, href: '/operational/line-report', roles: ['admin', 'manager'] },
       { title: 'Permissões', icon: ShieldCheck, href: '/operational/permissions', roles: ['admin'] },
     ]
   },

@@ -163,6 +163,8 @@ const OperationalTimeComparison = React.lazy(() => import("@/pages/operational/O
 const OperationalMyDay = React.lazy(() => import("@/pages/operational/OperationalMyDay"));
 const OperationalSupervision = React.lazy(() => import("@/pages/operational/OperationalSupervision"));
 const DriverTerminal = React.lazy(() => import("@/pages/operational/DriverTerminal"));
+const OperationalAlerts = React.lazy(() => import("@/pages/operational/OperationalAlerts"));
+const OperationalLineReport = React.lazy(() => import("@/pages/operational/OperationalLineReport"));
 
 
 
@@ -375,6 +377,8 @@ const App = () => (
                   <Route path="operational/time-check" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalTimeComparison /></ProtectedRoute>} />
                   <Route path="operational/my-day" element={<ProtectedRoute><OperationalMyDay /></ProtectedRoute>} />
                   <Route path="operational/supervision" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalSupervision /></ProtectedRoute>} />
+                  <Route path="operational/alerts" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalAlerts /></ProtectedRoute>} />
+                  <Route path="operational/line-report" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OperationalLineReport /></ProtectedRoute>} />
 
 
 
