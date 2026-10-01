@@ -37,6 +37,7 @@ import {
   LayoutDashboard,
   Users,
   FileText,
+  FileSpreadsheet,
   Settings,
   LogOut,
   ClipboardCheck,
