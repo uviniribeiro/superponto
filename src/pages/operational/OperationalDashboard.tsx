@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Bus, CalendarClock, Gauge, Route, ShieldCheck, Users } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Bus, CalendarClock, FileSpreadsheet, Gauge, Route, ShieldCheck, Users } from 'lucide-react';
 import { useOperationalStore } from '@/hooks/useOperationalStore';
 import { OperationalLivePanel } from '@/components/operational/OperationalLivePanel';
 
@@ -56,6 +56,8 @@ export default function OperationalDashboard() {
     { title: 'Veículos', description: 'Frota, garagem e disponibilidade.', icon: Bus, to: '/operational/vehicles' },
     { title: 'Linhas e Serviços', description: 'Itinerários, horários e viagens.', icon: Route, to: '/operational/lines' },
     { title: 'Permissões', description: 'Quem pode escalar, trocar e alterar ocorrências.', icon: ShieldCheck, to: '/operational/permissions' },
+    { title: 'Alertas Operacionais', description: 'Bloqueios, permissões e falhas de comunicação.', icon: AlertCircle, to: '/operational/alerts' },
+    { title: 'Jornadas por Linha', description: 'Horários, distância, paradas e exportação Excel.', icon: FileSpreadsheet, to: '/operational/line-report' },
   ];
 
 
