@@ -11,8 +11,8 @@
 - [x] Unificar o terminal do motorista em uma tela operacional.
 - [x] Criar supervisão móvel em tempo real com GPS, trajetos e alertas de parada.
 - [x] Corrigir avisos do sistema, atualizar a versão e validar a compilação.
-- [ ] Criar alertas operacionais em tempo real para bloqueios, permissões e comunicação.
-- [ ] Criar relatório de jornadas por linha com distância, paradas e exportação Excel.
-- [ ] Publicar o backend e disponibilizar o instalador Windows validado.
+- [x] Criar alertas operacionais em tempo real para bloqueios, permissões e comunicação.
+- [x] Criar relatório de jornadas por linha com distância, paradas e exportação Excel.
+- [ ] Publicar o backend e disponibilizar o instalador Windows validado (backend pausado e compilação Windows indisponível neste ambiente).
 - [ ] Cadastrar empresa, linhas, rotas, escalas e pontos reais (aguarda dados fornecidos).
 - [ ] Validar o wizard em rede Windows e relógio físicos (aguarda acesso ao ambiente real).
