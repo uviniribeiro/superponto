@@ -17,3 +17,5 @@
 - [ ] Cadastrar empresa, linhas, rotas, escalas e pontos reais (aguarda dados fornecidos).
 - [ ] Validar o wizard em rede Windows e relógio físicos (aguarda acesso ao ambiente real).
 - [ ] Reativar `admin`, `suporte` e `viniciusacacio1@gmail.com`; congelar e-mail/usuário das contas atuais e todos os dados das empresas atuais (bloqueado: banco pausado e reativação automática desabilitada).
+- [ ] Conferir a exportação Excel de jornadas por linha e validar horários, distância e tempo parado.
+- [ ] Exibir empresa, linha e rota da jornada em andamento no terminal do motorista.
