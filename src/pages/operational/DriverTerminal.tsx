@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Bus, CalendarClock, Clock3, LogOut, MapPin, RefreshCw } from 'lucide-react';
+import { Building2, Bus, CalendarClock, Clock3, LogOut, MapPin, Navigation, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
@@ -16,7 +16,7 @@ import { toast } from 'sonner';
  * previsto, status e cronômetro da jornada. Não depende do robô local.
  */
 export default function DriverTerminal() {
-  const { user, profile, loading, signIn, signOut } = useAuth();
+  const { user, profile, company, loading, signIn, signOut } = useAuth();
   const [form, setForm] = useState({ username: '', password: '', companyCode: '' });
   const [busy, setBusy] = useState(false);
 
@@ -103,6 +103,20 @@ export default function DriverTerminal() {
       </header>
 
       <div className="mx-auto max-w-3xl space-y-4">
+        <section className="rounded-lg border bg-card p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><Building2 className="h-5 w-5" /></div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Empresa</p>
+              <h2 className="truncate font-heading text-lg font-semibold">{company?.name ?? 'Empresa vinculada'}</h2>
+              <p className="text-sm text-muted-foreground">Código {company?.company_code ?? '—'}</p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-2">
+            <div><p className="text-xs text-muted-foreground">Linha em andamento</p><p className="mt-1 flex items-center gap-2 font-semibold"><Bus className="h-4 w-4 text-primary" />{activeSchedule?.lineLabel ?? 'Nenhuma jornada iniciada'}</p></div>
+            <div><p className="text-xs text-muted-foreground">Rota</p><p className="mt-1 flex items-start gap-2 font-semibold"><Navigation className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{activeSchedule ? [activeSchedule.lineOrigin, activeSchedule.lineDestination].filter(Boolean).join(' → ') || 'Rota não informada' : 'Aguardando início'}</p></div>
+          </div>
+        </section>
         <section className="grid grid-cols-2 gap-3 rounded-lg border bg-card p-3 sm:grid-cols-4">
           <div><p className="text-xs text-muted-foreground">Escalas hoje</p><p className="text-xl font-semibold">{schedules.length}</p></div>
           <div><p className="text-xs text-muted-foreground">Próximo horário</p><p className="flex items-center gap-1 font-semibold"><Clock3 className="h-4 w-4" /> {activeSchedule?.startTime ?? schedules[0]?.startTime ?? '—'}</p></div>
