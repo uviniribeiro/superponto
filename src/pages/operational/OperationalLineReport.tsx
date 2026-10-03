@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useOperationalStore } from '@/hooks/useOperationalStore';
 import { useOperationalPermissions } from '@/hooks/useOperationalPermissions';
+import { createJourneyWorkbook } from '@/lib/operationalJourneyExcel';
 
 interface GpsPoint { schedule_id: string | null; latitude: number; longitude: number; speed_kmh: number | null; recorded_at: string }
 interface ActualTimes { actual_start_at: string | null; actual_end_at: string | null }
@@ -75,10 +76,15 @@ export default function OperationalLineReport() {
 
   const exportExcel = async () => {
     const XLSX = await import('xlsx');
-    const sheet = XLSX.utils.json_to_sheet(rows.map((row) => ({ Data: row.date, Linha: row.lineName, Motorista: row.driverName, Veículo: row.vehicleName, 'Início previsto': row.startTime, 'Fim previsto': row.endTime, 'Início real': clock(row.actualStart), 'Fim real': clock(row.actualEnd), 'Distância (km)': Number(row.distanceKm.toFixed(2)), 'Tempo parado (min)': row.stoppedMinutes, Status: row.status })));
-    sheet['!cols'] = [12, 24, 28, 14, 15, 15, 13, 13, 16, 19, 14].map((wch) => ({ wch }));
-    const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, sheet, 'Jornadas por linha');
+    const label = (value: string, items: { id: string; name?: string; code?: string; number?: string; plate?: string }[]) => {
+      if (value === ALL) return 'Todos';
+      const item = items.find((candidate) => candidate.id === value);
+      return item ? [item.code || item.number, item.name || item.plate].filter(Boolean).join(' — ') : 'Todos';
+    };
+    const book = createJourneyWorkbook(XLSX, {
+      companyName: company?.name ?? 'Empresa atual', start, end, rows,
+      filters: `Linha: ${label(line, data.lines)} | Motorista: ${label(driver, data.drivers)} | Veículo: ${label(vehicle, data.vehicles)}`,
+    });
     XLSX.writeFile(book, `jornadas-por-linha-${start}-${end}.xlsx`);
   };
 

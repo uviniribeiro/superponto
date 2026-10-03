@@ -15,6 +15,8 @@ export interface LiveSchedule {
   vehicleId: string | null;
   vehicleLabel: string;
   lineLabel: string;
+  lineOrigin: string;
+  lineDestination: string;
   serviceLabel: string;
   startTime: string;
   endTime: string;
@@ -89,7 +91,7 @@ export function useOperationalLive(dateISO?: string, onlyProfileId?: string | nu
       supabase.from('op_schedules').select('*').eq('company_id', companyId).eq('work_date', day).order('start_time'),
       supabase.from('profiles').select('id, full_name').eq('company_id', companyId),
       supabase.from('op_vehicles').select('id, plate, number').eq('company_id', companyId),
-      supabase.from('op_lines').select('id, code, name').eq('company_id', companyId),
+      supabase.from('op_lines').select('id, code, name, origin, destination').eq('company_id', companyId),
       supabase.from('op_services').select('id, code, name').eq('company_id', companyId),
       supabase.from('time_records').select('id, profile_id, recorded_at').eq('company_id', companyId)
         .gte('recorded_at', `${day}T00:00:00`).lte('recorded_at', `${day}T23:59:59`).order('recorded_at'),
@@ -103,6 +105,7 @@ export function useOperationalLive(dateISO?: string, onlyProfileId?: string | nu
     const nameOf = new Map((profRes.data ?? []).map((p) => [p.id, p.full_name ?? '']));
     const vehOf = new Map((vehRes.data ?? []).map((v) => [v.id, `${v.number ?? ''} ${v.plate ?? ''}`.trim()]));
     const lineOf = new Map((lineRes.data ?? []).map((l) => [l.id, `${l.code ?? ''} ${l.name ?? ''}`.trim()]));
+    const routeOf = new Map((lineRes.data ?? []).map((l) => [l.id, { origin: l.origin ?? '', destination: l.destination ?? '' }]));
     const servOf = new Map((servRes.data ?? []).map((s) => [s.id, `${s.code ?? ''} ${s.name ?? ''}`.trim()]));
 
     const punches = new Map<string, string>();
@@ -131,6 +134,8 @@ export function useOperationalLive(dateISO?: string, onlyProfileId?: string | nu
           vehicleId: s.vehicle_id ?? null,
           vehicleLabel: s.vehicle_id ? vehOf.get(s.vehicle_id) ?? '—' : '—',
           lineLabel: s.line_id ? lineOf.get(s.line_id) ?? '—' : '—',
+          lineOrigin: s.line_id ? routeOf.get(s.line_id)?.origin ?? '' : '',
+          lineDestination: s.line_id ? routeOf.get(s.line_id)?.destination ?? '' : '',
           serviceLabel: s.service_id ? servOf.get(s.service_id) ?? '—' : '—',
           startTime: hhmm(s.start_time),
           endTime: hhmm(s.end_time),
