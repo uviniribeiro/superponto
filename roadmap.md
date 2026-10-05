@@ -19,3 +19,4 @@
 - [ ] Reativar `admin`, `suporte` e `viniciusacacio1@gmail.com`; congelar e-mail/usuário das contas atuais e todos os dados das empresas atuais; validar os logins reais sem alterar senhas.
 - [x] Conferir a exportação Excel de jornadas por linha e validar horários, distância e tempo parado.
 - [x] Exibir empresa, linha e rota da jornada em andamento no terminal do motorista.
+- [ ] Migrar integralmente estrutura, contas, dados, arquivos e funções para o Supabase externo; trocar aplicativo e instalador somente após validação paralela (bloqueado: banco de origem pausado e conexão externa indisponível enquanto Cloud estiver vinculada).
