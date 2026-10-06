@@ -42,7 +42,7 @@ Function ConfigPage
 
     ${NSD_CreateLabel} 0 0 100% 12u "Backend Supabase (URL do agent-gateway):"
     Pop $0
-    ${NSD_CreateText} 0 14u 100% 12u "https://example.supabase.co/functions/v1/agent-gateway"
+    ${NSD_CreateText} 0 14u 100% 12u ""
     Pop $GatewayBox
 
     ${NSD_CreateLabel} 0 34u 100% 12u "Token do agente (gerado em Equipamentos > Robo de Comunicacao):"
