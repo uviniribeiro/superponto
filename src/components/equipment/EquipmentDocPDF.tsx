@@ -412,7 +412,7 @@ export const generateEquipmentDocPDF = () => {
   addSpacer();
   
   addCode(`{
-  "cloud_endpoint": "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync",
+  "cloud_endpoint": "${import.meta.env.VITE_SUPABASE_URL}/functions/v1/equipment-sync",
   "company_code": "SEU_CODIGO_AQUI",
   "scan_interval": 300,
   "dashboard_port": 8765,

@@ -99,7 +99,8 @@ SOLUÇÃO DE PROBLEMAS
 
 ENDPOINT DO SERVIDOR
 --------------------
-https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync
+Informe no assistente o endereço HTTPS do backend Supabase fornecido pelo gestor.
+O endereço termina em /functions/v1/agent-gateway.
 
 SUPORTE
 -------
