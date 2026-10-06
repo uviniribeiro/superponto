@@ -7,9 +7,6 @@ on:
         description: URL HTTPS do agent-gateway no Supabase de destino
         required: true
         type: string
-  push:
-    tags:
-      - 'agent-v*'
 
 jobs:
   build-and-test-service:

@@ -1495,6 +1495,9 @@ def main():
     if not cfg.get("agent_token"):
         log("Agente sem token. Execute: pontomax-agent --configure", "ERROR")
         return 1
+    if not cfg.get("gateway_url"):
+        log("Agente sem backend configurado. Execute: pontomax-agent --configure", "ERROR")
+        return 1
 
     agent = Agent(cfg)
     if args.daemon or args.service:
