@@ -31,7 +31,7 @@ USER_CONFIG_DIR = Path.home() / ".config" / "equipment-agent"
 USER_DATA_DIR = Path.home() / ".local" / "share" / "equipment-agent"
 USER_LOG_DIR = Path.home() / ".local" / "share" / "equipment-agent" / "logs"
 
-CLOUD_ENDPOINT = "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync"
+CLOUD_ENDPOINT = os.environ.get("PONTOMAX_EQUIPMENT_SYNC_URL", "").strip()
 DASHBOARD_PORT = 8765
 
 EQUIPMENT_PORTS = [80, 443, 3000, 4370, 5005, 8080, 8443, 9922]

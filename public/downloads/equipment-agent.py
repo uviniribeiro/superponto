@@ -31,8 +31,8 @@ except ImportError:
     os.system(f"{sys.executable} -m pip install requests")
     import requests
 
-# Configuração do servidor cloud
-CLOUD_ENDPOINT = "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync"
+# Configuração do servidor cloud (defina no ambiente antes de iniciar o agente)
+CLOUD_ENDPOINT = os.environ.get("PONTOMAX_EQUIPMENT_SYNC_URL", "").strip()
 
 # Portas comuns de relógios de ponto por fabricante
 EQUIPMENT_PORTS = {

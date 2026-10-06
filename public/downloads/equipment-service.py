@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 # Configuração padrão
 DEFAULT_CONFIG = {
-    'cloud_endpoint': 'https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync',
+    'cloud_endpoint': os.environ.get('PONTOMAX_EQUIPMENT_SYNC_URL', '').strip(),
     'company_code': '',
     'scan_interval': 300,
     'sync_interval': 60,
