@@ -49,7 +49,7 @@ LOG_PATH = os.path.join(BASE_DIR, "controlid-agent.log")
 STATE_PATH = os.path.join(BASE_DIR, "controlid-state.json")
 
 DEFAULT_CONFIG = {
-    "cloud_url": "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync",
+    "cloud_url": os.environ.get("PONTOMAX_EQUIPMENT_SYNC_URL", "").strip(),
     "cloud_api_key": "",              # chave do equipamento/empresa gerada no Ponto Max
     "company_id": "",
     "poll_interval_seconds": 60,

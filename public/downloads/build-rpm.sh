@@ -77,7 +77,7 @@ DATA_DIR = Path("/var/lib/equipment-sync")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_CONFIG = {
-    "cloud_endpoint": "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync",
+    "cloud_endpoint": "",
     "company_code": "",
     "scan_interval": 300,
     "dashboard_port": 8765,
@@ -403,7 +403,7 @@ PYTHON_EOF
 # Criar config.json
 cat > "$BUILD_ROOT/SOURCES/$PACKAGE_NAME-$VERSION/config.json" << EOF
 {
-  "cloud_endpoint": "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync",
+  "cloud_endpoint": "",
   "company_code": "",
   "scan_interval": 300,
   "dashboard_port": 8765,

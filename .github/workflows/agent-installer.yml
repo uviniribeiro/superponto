@@ -2,9 +2,11 @@ name: Robo de Comunicacao - Instalador Windows
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'agent-v*'
+    inputs:
+      gateway_url:
+        description: URL HTTPS do agent-gateway no Supabase de destino
+        required: true
+        type: string
 
 jobs:
   build-and-test-service:
@@ -28,7 +30,9 @@ jobs:
         run: python build-pontomax-installer.py
 
       - name: Gerar o script NSIS do wizard
-        run: python build-pontomax-installer.py --nsis
+        env:
+          PONTOMAX_GATEWAY_URL: ${{ inputs.gateway_url }}
+        run: python build-pontomax-installer.py --nsis --gateway-default "$env:PONTOMAX_GATEWAY_URL"
 
       - name: Compilar o instalador NSIS
         run: |
@@ -38,9 +42,12 @@ jobs:
       - name: Testar o wizard silencioso (token, empresa e faixas)
         run: |
           .\dist\PontoMaxAgent.exe --configure --sim --sem-validacao `
+            --gateway "${{ inputs.gateway_url }}" `
             --token "ci-token-sha256" --empresa "Ponto Max CI" --cnpj "12ABC34501DE35" `
             --ranges "192.168.0.0/24"
           Get-Content "$env:ProgramData\PontoMaxAgent\config.json"
+          $config = Get-Content "$env:ProgramData\PontoMaxAgent\config.json" | ConvertFrom-Json
+          if ($config.gateway_url -ne "${{ inputs.gateway_url }}") { throw "Gateway do destino nao foi gravado no wizard" }
 
       - name: Testar registro como servico do Windows
         run: |

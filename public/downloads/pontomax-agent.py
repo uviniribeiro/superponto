@@ -96,7 +96,7 @@ def collect_metrics():
             pass
     return metrics
 
-DEFAULT_GATEWAY = "https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/agent-gateway"
+DEFAULT_GATEWAY = os.environ.get("PONTOMAX_GATEWAY_URL", "").strip()
 
 if platform.system() == "Windows":
     CONFIG_DIR = os.path.join(os.environ.get("PROGRAMDATA", "C:\\ProgramData"), "PontoMaxAgent")
@@ -1413,12 +1413,15 @@ def configure(args=None):
     if not token:
         print("Token obrigatorio. Gere um token em Equipamentos > Robo de Comunicacao.")
         return 1
+    if not gateway or not re.match(r"^https://[^/]+/functions/v1/agent-gateway/?$", gateway):
+        print("URL do gateway invalida. Informe a URL HTTPS terminada em /functions/v1/agent-gateway.")
+        return 1
 
     cfg.update({
         "agent_token": token,
         "company_name": company,
         "company_cnpj": re.sub(r"[^0-9A-Za-z]", "", cnpj or "").upper(),
-        "gateway_url": gateway,
+        "gateway_url": gateway.rstrip("/"),
         "discovery_ranges": [r.strip() for r in str(ranges).split(",") if r.strip()],
         "sync_interval_seconds": int(str(interval) or 60),
     })
@@ -1491,6 +1494,9 @@ def main():
 
     if not cfg.get("agent_token"):
         log("Agente sem token. Execute: pontomax-agent --configure", "ERROR")
+        return 1
+    if not cfg.get("gateway_url"):
+        log("Agente sem backend configurado. Execute: pontomax-agent --configure", "ERROR")
         return 1
 
     agent = Agent(cfg)

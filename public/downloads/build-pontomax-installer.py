@@ -27,7 +27,7 @@ HERE = Path(__file__).resolve().parent
 AGENT = HERE / "pontomax-agent.py"
 SERVICE = HERE / "pontomax-agent-service.py"
 APP_NAME = "PontoMaxAgent"
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 
 
 def ensure_pyinstaller():
@@ -93,10 +93,12 @@ Var TokenBox
 Var EmpresaBox
 Var CnpjBox
 Var RangesBox
+Var GatewayBox
 Var Token
 Var Empresa
 Var Cnpj
 Var Ranges
+Var Gateway
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
@@ -109,41 +111,51 @@ Page custom ConfigPage ConfigPageLeave
 !insertmacro MUI_LANGUAGE "PortugueseBR"
 
 Function ConfigPage
-    !insertmacro MUI_HEADER_TEXT "Configuracao do robo" "Informe o token, a empresa e as faixas de rede."
+    !insertmacro MUI_HEADER_TEXT "Configuracao do robo" "Informe o backend, o token, a empresa e as faixas de rede."
     nsDialogs::Create 1018
     Pop $Dialog
     ${If} $Dialog == error
         Abort
     ${EndIf}
 
-    ${NSD_CreateLabel} 0 0 100% 12u "Token do agente (gerado em Equipamentos > Robo de Comunicacao):"
+    ${NSD_CreateLabel} 0 0 100% 12u "Backend Supabase (URL do agent-gateway):"
     Pop $0
-    ${NSD_CreateText} 0 14u 100% 12u ""
-    Pop $TokenBox
+    ${NSD_CreateText} 0 14u 100% 12u "__GATEWAY__"
+    Pop $GatewayBox
 
-    ${NSD_CreateLabel} 0 34u 100% 12u "Empresa (razao social):"
+    ${NSD_CreateLabel} 0 34u 100% 12u "Token do agente (gerado em Equipamentos > Robo de Comunicacao):"
     Pop $0
     ${NSD_CreateText} 0 48u 100% 12u ""
-    Pop $EmpresaBox
+    Pop $TokenBox
 
-    ${NSD_CreateLabel} 0 68u 100% 12u "CNPJ (aceita formato alfanumerico):"
+    ${NSD_CreateLabel} 0 68u 100% 12u "Empresa (razao social):"
     Pop $0
     ${NSD_CreateText} 0 82u 100% 12u ""
-    Pop $CnpjBox
+    Pop $EmpresaBox
 
-    ${NSD_CreateLabel} 0 102u 100% 12u "Faixas de rede a varrer (ex: 192.168.0.0/24, 10.0.1.0/24):"
+    ${NSD_CreateLabel} 0 102u 100% 12u "CNPJ (aceita formato alfanumerico):"
     Pop $0
     ${NSD_CreateText} 0 116u 100% 12u ""
+    Pop $CnpjBox
+
+    ${NSD_CreateLabel} 0 136u 100% 12u "Faixas de rede a varrer (ex: 192.168.0.0/24, 10.0.1.0/24):"
+    Pop $0
+    ${NSD_CreateText} 0 150u 100% 12u ""
     Pop $RangesBox
 
     nsDialogs::Show
 FunctionEnd
 
 Function ConfigPageLeave
+    ${NSD_GetText} $GatewayBox $Gateway
     ${NSD_GetText} $TokenBox $Token
     ${NSD_GetText} $EmpresaBox $Empresa
     ${NSD_GetText} $CnpjBox $Cnpj
     ${NSD_GetText} $RangesBox $Ranges
+    ${If} $Gateway == ""
+        MessageBox MB_ICONEXCLAMATION "Informe o endereço do backend Supabase para continuar."
+        Abort
+    ${EndIf}
     ${If} $Token == ""
         MessageBox MB_ICONEXCLAMATION "Informe o token do agente para continuar."
         Abort
@@ -156,8 +168,8 @@ Section "Principal"
     File /nonfatal "pontomax-agent.py"
     File /nonfatal "README.txt"
 
-    ; Grava a configuracao (token, empresa e faixas) sem perguntas
-    nsExec::ExecToLog '"$INSTDIR\__APP__.exe" --configure --sim --token "$Token" --empresa "$Empresa" --cnpj "$Cnpj" --ranges "$Ranges"'
+    ; Grava a configuracao (backend, token, empresa e faixas) sem perguntas
+    nsExec::ExecToLog '"$INSTDIR\__APP__.exe" --configure --sim --gateway "$Gateway" --token "$Token" --empresa "$Empresa" --cnpj "$Cnpj" --ranges "$Ranges"'
     Pop $0
 
     CreateDirectory "$SMPROGRAMS\Ponto Max Agent"
@@ -188,8 +200,10 @@ SectionEnd
 '''
 
 
-def write_nsis():
-    script = NSIS_TEMPLATE.replace("__APP__", APP_NAME).replace("__VERSION__", VERSION)
+def write_nsis(gateway_default=""):
+    script = (NSIS_TEMPLATE.replace("__APP__", APP_NAME)
+              .replace("__VERSION__", VERSION)
+              .replace("__GATEWAY__", gateway_default))
     path = HERE / "pontomax-agent-installer.nsi"
     path.write_text(script, encoding="utf-8")
     print(f"Script NSIS gerado: {path}")
@@ -199,14 +213,16 @@ def write_nsis():
 def main():
     parser = argparse.ArgumentParser(description="Gerar instalador do Robo Ponto Max")
     parser.add_argument("--nsis", action="store_true", help="apenas gerar o script NSIS")
+    parser.add_argument("--gateway-default", default=os.environ.get("PONTOMAX_GATEWAY_URL", ""),
+                        help="URL inicial do agent-gateway exibida pelo wizard")
     args = parser.parse_args()
 
     if args.nsis:
-        write_nsis()
+        write_nsis(args.gateway_default)
         return
 
     if build_executable() and platform.system() == "Windows":
-        write_nsis()
+        write_nsis(args.gateway_default)
 
 
 if __name__ == "__main__":

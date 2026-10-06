@@ -780,7 +780,7 @@ class EquipmentAgent:
                 self.config = json.load(f)
                 
         # Set defaults
-        self.config.setdefault('api_url', 'https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync')
+        self.config.setdefault('api_url', os.environ.get('PONTOMAX_EQUIPMENT_SYNC_URL', '').strip())
         self.config.setdefault('api_key', '')
         self.config.setdefault('company_id', '')
         self.config.setdefault('sync_interval', 60)

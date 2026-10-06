@@ -11,7 +11,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function EquipmentHelp() {
   const [copied, setCopied] = useState<string | null>(null);
-  const serverUrl = 'https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync';
+  const serverUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/equipment-sync`;
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);

@@ -78,8 +78,8 @@ logger = logging.getLogger('SuperPontoCommunicator')
 DEFAULT_CONFIG = {
     'version': VERSION,
     'cloud': {
-        'api_url': 'https://sfbyujjvfxicuuafjtoy.supabase.co/functions/v1/equipment-sync',
-        'anon_key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYnl1amp2ZnhpY3V1YWZqdG95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwODg0NzksImV4cCI6MjA4MjY2NDQ3OX0.p6O1t2YgUNiRY-Vr38Rh2qWPh0zC6TqA5RIJpUnx5pU',
+        'api_url': os.environ.get('PONTOMAX_EQUIPMENT_SYNC_URL', '').strip(),
+        'anon_key': os.environ.get('PONTOMAX_SUPABASE_ANON_KEY', '').strip(),
     },
     'server': {
         'ip': '',  # IPv4 do servidor onde o comunicador está rodando
