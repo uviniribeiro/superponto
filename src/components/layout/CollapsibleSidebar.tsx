@@ -12,7 +12,7 @@ import { WhatsNewPopup } from '@/components/WhatsNewPopup';
 import { MenuPositionSelector } from '@/components/MenuPositionSelector';
 import { useMenuPosition, MenuPosition } from '@/hooks/useMenuPosition';
 import { getVersionString, APP_NAME } from '@/lib/version';
-import clockAsset from '@/assets/pontomax-blueprint-clock.png.asset.json';
+import clockAsset from '@/assets/pontomax-blueprint-clock-complete.png.asset.json';
 import { PontoMaxLogo } from '@/components/PontoMaxLogo';
 const superpontoLogo = clockAsset.url;
 import {
@@ -158,6 +158,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Minhas Ocorrências', icon: AlertCircle, href: '/point-occurrences', roles: ['admin', 'manager', 'employee'] },
       { title: 'Minhas Férias', icon: CalendarDays, href: '/vacations', roles: ['admin', 'manager', 'employee'] },
       { title: 'Sugestões', icon: Bell, href: '/suggestions', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Esqueci minha senha', icon: Key, href: '/forgot-password', roles: ['admin', 'manager', 'employee'] },
       { title: 'Minha Conta', icon: UserCog, href: '/account-settings', roles: ['admin', 'manager', 'employee'] },
     ]
   },

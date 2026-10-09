@@ -1,4 +1,4 @@
-import clockAsset from '@/assets/pontomax-blueprint-clock.png.asset.json';
+import clockAsset from '@/assets/pontomax-blueprint-clock-complete.png.asset.json';
 import { cn } from '@/lib/utils';
 
 export function PontoMaxLogo({ compact = false, inverse = false, className }: { compact?: boolean; inverse?: boolean; className?: string }) {
