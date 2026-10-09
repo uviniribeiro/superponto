@@ -17,7 +17,7 @@
 - [ ] Cadastrar empresa, linhas, rotas, escalas e pontos reais (aguarda dados fornecidos).
 - [ ] Validar o wizard em rede Windows e relógio físicos (aguarda acesso ao ambiente real).
 - [ ] Reativar `admin`, `suporte` e `viniciusacacio1@gmail.com`; congelar e-mail/usuário das contas atuais e todos os dados das empresas atuais; validar os logins reais sem alterar senhas.
-- [ ] Reativar os usuários existentes e restabelecer as conexões de autenticação, dados e agentes sem alterar senhas (bloqueado: banco hospedado pausado; ferramenta de reativação desabilitada, requer suporte Lovable).
+- [ ] Validar login real e conexões dos agentes sem alterar senhas (09/10/2026: autenticação e banco respondendo; Admin e Suporte inativos reativados, SUPER ADMIN já ativo; validação por senha e agentes físicos ainda pendente).
 - [x] Conferir a exportação Excel de jornadas por linha e validar horários, distância e tempo parado.
 - [x] Exibir empresa, linha e rota da jornada em andamento no terminal do motorista.
-- [ ] Recuperar e migrar integralmente estrutura, contas, dados, arquivos e funções para o Supabase externo, incluindo jornadas, escalas e GPS reais; manter a origem conectada até conferir cópia, contagens e leitura/gravação do aplicativo e instalador (bloqueado: origem ainda iniciando nas duas verificações de 09/10/2026; destino externo sem acesso configurado nesta sessão).
+- [ ] Recuperar e migrar integralmente estrutura, contas, dados, arquivos e funções para o Supabase externo, incluindo jornadas, escalas e GPS reais; manter a origem conectada até conferir cópia, contagens e leitura/gravação do aplicativo e instalador (09/10/2026: origem acessível novamente; bloqueado: destino externo sem acesso configurado nesta sessão).
