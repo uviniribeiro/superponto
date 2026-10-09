@@ -20,4 +20,4 @@
 - [ ] Reativar os usuários existentes e restabelecer as conexões de autenticação, dados e agentes sem alterar senhas (bloqueado: banco hospedado pausado; ferramenta de reativação desabilitada, requer suporte Lovable).
 - [x] Conferir a exportação Excel de jornadas por linha e validar horários, distância e tempo parado.
 - [x] Exibir empresa, linha e rota da jornada em andamento no terminal do motorista.
-- [ ] Migrar integralmente estrutura, contas, dados, arquivos e funções para o Supabase externo; trocar aplicativo e instalador somente após validação paralela (bloqueado: banco de origem pausado e conexão externa indisponível enquanto Cloud estiver vinculada).
+- [ ] Recuperar e migrar integralmente estrutura, contas, dados, arquivos e funções para o Supabase externo, incluindo jornadas, escalas e GPS reais; manter a origem conectada até conferir cópia, contagens e leitura/gravação do aplicativo e instalador (bloqueado: origem ainda iniciando nas duas verificações de 09/10/2026; destino externo sem acesso configurado nesta sessão).
