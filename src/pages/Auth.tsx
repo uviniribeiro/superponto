@@ -93,7 +93,7 @@ export default function Auth() {
         navigate('/settings');
         return;
       }
-      navigate('/dashboard');
+      navigate(isSuperAdmin ? '/super-admin' : '/dashboard');
     }
   }, [user, loading, navigate, mustChangePassword, isSuperAdmin]);
 
@@ -298,7 +298,7 @@ export default function Auth() {
             {roleTiles.map(({ type, label, icon: Icon }) => {
               const active = loginType === type;
               return (
-                <button
+                <Button variant="ghost"
                   key={type}
                   type="button"
                   onClick={() => selectRole(type)}
@@ -312,7 +312,7 @@ export default function Auth() {
                 >
                   <Icon className={cn('h-4 w-4', active ? 'text-accent' : 'text-muted-foreground')} />
                   <span className="text-sm font-semibold">{label}</span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -474,14 +474,14 @@ export default function Auth() {
                       touched.password && !passwordError && 'border-success',
                     )}
                   />
-                  <button
+                  <Button variant="ghost" size="icon"
                     type="button"
                     aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                  </Button>
                 </div>
                 <p id="login-password-feedback" aria-live="polite" className="min-h-[1rem] text-xs text-destructive">
                   {touched.password && passwordError ? passwordError : ''}
@@ -490,7 +490,7 @@ export default function Auth() {
 
               <Button
                 type="submit"
-                variant="accent"
+                variant="default"
                 size="lg"
                 className="w-full"
                 disabled={isLoading || !formIsValid}
@@ -505,7 +505,7 @@ export default function Auth() {
                 )}
               </Button>
 
-              {isSuperAdminLogin && <Button variant="link" className="w-full" onClick={() => navigate('/forgot-password')}>Esqueci minha senha</Button>}
+              {isSuperAdminLogin && <Button type="button" variant="link" className="w-full" onClick={() => navigate('/forgot-password')}>Esqueci minha senha</Button>}
               <p className="pt-2 text-center text-xs text-muted-foreground">
                 Conexão protegida e registros com assinatura criptográfica.
               </p>

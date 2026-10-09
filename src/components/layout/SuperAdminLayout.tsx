@@ -43,7 +43,7 @@ export default function SuperAdminLayout() {
 
           <nav className="hidden md:flex items-center gap-1 rounded-2xl border border-sidebar-border bg-sidebar-accent/50 p-1">
             {navItems.map(({ label, icon: Icon, path, exact }) => (
-              <button
+              <Button variant="ghost"
                 key={path}
                 onClick={() => navigate(path)}
                 className={cn(
@@ -82,7 +82,7 @@ export default function SuperAdminLayout() {
       <div className="md:hidden border-b border-border/60 bg-background/90 backdrop-blur">
         <div className="container flex gap-1.5 overflow-x-auto py-2.5">
           {navItems.map(({ label, icon: Icon, path, exact }) => (
-            <button
+            <Button variant="ghost"
               key={path}
               onClick={() => navigate(path)}
               className={cn(
