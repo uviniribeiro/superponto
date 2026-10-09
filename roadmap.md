@@ -1,6 +1,8 @@
 # Roadmap
 
-- [ ] Atender a solicitação de 09/10/2026: conferir origem e destino para migrar jornadas, escalas e GPS; publicar instalador com destino validado; verificar leitura/gravação em tempo real; aplicar proteção de e-mail e empresa sem alterar senhas.
+- [ ] Migrar para destino externo e publicar instalador Windows com dados reais (09/10/2026: origem responde; 11 empresas, 28 perfis, 12 pontos, 0 linhas, 0 escalas e 0 GPS; acesso ao destino e executor Windows não disponíveis).
+- [x] Aplicar e verificar proteção dos e-mails, usuários, vínculos de empresa e empresas existentes na origem sem alterar senhas (28 perfis e 11 empresas; tentativas de alteração rejeitadas, desbloqueio permitido em teste revertido).
+- [ ] Validar leitura/gravação em tempo real dos painéis no destino externo (aguarda acesso autorizado ao destino e dados operacionais reais; painéis permanecem conectados à origem).
 
 - [x] Consolidar a interface do robô em `/equipment/agents`.
 - [x] Adicionar filtros, seleção e reexecução em lote na fila de comandos.
@@ -15,10 +17,10 @@
 - [x] Corrigir avisos do sistema, atualizar a versão e validar a compilação.
 - [x] Criar alertas operacionais em tempo real para bloqueios, permissões e comunicação.
 - [x] Criar relatório de jornadas por linha com distância, paradas e exportação Excel.
-- [ ] Publicar o backend e disponibilizar o instalador Windows validado (backend pausado e compilação Windows indisponível neste ambiente).
+- [ ] Publicar o backend no destino e disponibilizar o instalador Windows validado (origem acessível; acesso ao destino e compilação Windows indisponíveis neste ambiente).
 - [ ] Cadastrar empresa, linhas, rotas, escalas e pontos reais (aguarda dados fornecidos).
 - [ ] Validar o wizard em rede Windows e relógio físicos (aguarda acesso ao ambiente real).
-- [ ] Reativar `admin`, `suporte` e `viniciusacacio1@gmail.com`; congelar e-mail/usuário das contas atuais e todos os dados das empresas atuais; validar os logins reais sem alterar senhas.
+- [x] Reativar `admin`, `suporte` e `viniciusacacio1@gmail.com`; proteger e-mail/usuário das contas atuais e dados das empresas atuais sem alterar senhas (login com senha permanece na tarefa seguinte).
 - [ ] Validar login real e conexões dos agentes sem alterar senhas (09/10/2026: autenticação e banco respondendo; Admin e Suporte inativos reativados, SUPER ADMIN já ativo; validação por senha e agentes físicos ainda pendente).
 - [x] Conferir a exportação Excel de jornadas por linha e validar horários, distância e tempo parado.
 - [x] Exibir empresa, linha e rota da jornada em andamento no terminal do motorista.
