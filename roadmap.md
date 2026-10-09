@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Criar recuperação de senha segura do SUPER ADMIN e verificar preservação de e-mail/permissões.
+- [ ] Aplicar identidade visual da blueprint no login e nas telas autenticadas; verificar navegação e apresentação.
+
 - [ ] Migrar para destino externo e publicar instalador Windows com dados reais (09/10/2026: origem responde; 11 empresas, 28 perfis, 12 pontos, 0 linhas, 0 escalas e 0 GPS; acesso ao destino e executor Windows não disponíveis).
 - [x] Aplicar e verificar proteção dos e-mails, usuários, vínculos de empresa e empresas existentes na origem sem alterar senhas (28 perfis e 11 empresas; tentativas de alteração rejeitadas, desbloqueio permitido em teste revertido).
 - [ ] Validar leitura/gravação em tempo real dos painéis no destino externo (aguarda acesso autorizado ao destino e dados operacionais reais; painéis permanecem conectados à origem).
