@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Criar recuperação de senha segura do SUPER ADMIN e verificar preservação de e-mail/permissões.
-- [ ] Aplicar identidade visual da blueprint no login e nas telas autenticadas; verificar navegação e apresentação.
+- [x] Criar recuperação de senha segura do SUPER ADMIN: solicitação real aceita pelo backend (HTTP 200), links sem token rejeitados e testes confirmam atualização somente da senha; conclusão pelo link recebido permanece com o titular.
+- [x] Aplicar identidade visual da blueprint ao login, marca compartilhada, menu, painel SUPER ADMIN e marca d’água; login verificado visualmente e build automático aprovado. Verificação visual autenticada pendente: sessão de teste redirecionou ao login, sem acesso ao painel.
 
 - [ ] Migrar para destino externo e publicar instalador Windows com dados reais (09/10/2026: origem responde; 11 empresas, 28 perfis, 12 pontos, 0 linhas, 0 escalas e 0 GPS; acesso ao destino e executor Windows não disponíveis).
 - [x] Aplicar e verificar proteção dos e-mails, usuários, vínculos de empresa e empresas existentes na origem sem alterar senhas (28 perfis e 11 empresas; tentativas de alteração rejeitadas, desbloqueio permitido em teste revertido).
