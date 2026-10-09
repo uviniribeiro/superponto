@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Atender a solicitação de 09/10/2026: conferir origem e destino para migrar jornadas, escalas e GPS; publicar instalador com destino validado; verificar leitura/gravação em tempo real; aplicar proteção de e-mail e empresa sem alterar senhas.
+
 - [x] Consolidar a interface do robô em `/equipment/agents`.
 - [x] Adicionar filtros, seleção e reexecução em lote na fila de comandos.
 - [x] Adicionar exportação CSV/PDF dos comandos e da auditoria.
