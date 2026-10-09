@@ -6,7 +6,13 @@ const sql = connection ? postgres(connection, { max: 1, connect_timeout: 15, onn
 
 afterAll(async () => { await sql?.end(); });
 
-describe.skipIf(!sql)('Existing login and company protection', () => {
+const [permissions] = sql ? await sql`select
+  has_schema_privilege(current_user, 'private', 'USAGE') as private_access,
+  has_table_privilege(current_user, 'public.profiles', 'UPDATE') as can_update` : [];
+const canExerciseWrites = Boolean(permissions?.private_access && permissions?.can_update);
+
+// Mutation tests require a privileged test connection, never widen sandbox grants.
+describe.skipIf(!canExerciseWrites)('Existing login and company protection', () => {
   it('snapshots all 28 existing profiles and 11 existing companies', async () => {
     if (!sql) throw new Error('Database connection required');
     const [row] = await sql`select
@@ -54,5 +60,17 @@ describe.skipIf(!sql)('Existing login and company protection', () => {
       expect(rows.length).toBe(1);
       throw rollback;
     })).rejects.toBe(rollback);
+  });
+});
+
+describe.skipIf(!sql)('Deployed protection triggers', () => {
+  it('enables email and company protection on both existing application tables', async () => {
+    if (!sql) throw new Error('Database connection required');
+    const rows = await sql`select tgname from pg_trigger where
+      tgname in ('protect_locked_profile_login_trg', 'protect_locked_company_trg')
+      and tgenabled = 'O' and not tgisinternal`;
+    expect(rows.map(row => row.tgname).sort()).toEqual([
+      'protect_locked_company_trg', 'protect_locked_profile_login_trg',
+    ]);
   });
 });
