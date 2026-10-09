@@ -15,7 +15,7 @@ export default {
   	extend: {
   		fontFamily: {
   			heading: [
-  				'Syne',
+  				'Plus Jakarta Sans',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif'

@@ -89,6 +89,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (event === 'PASSWORD_RECOVERY' && session?.user) {
+          sessionStorage.setItem('pontomax.password-recovery-user', session.user.id);
+          if (window.location.pathname !== '/reset-password') window.location.replace('/reset-password');
+        }
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -97,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setTimeout(() => {
             fetchUserData(session.user.id);
           }, 0);
-        } else {
+        } else if (!session?.user) {
           loadedUserId.current = null;
           setProfile(null);
           setCompany(null);

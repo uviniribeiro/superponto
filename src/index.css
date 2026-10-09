@@ -20,7 +20,7 @@
 
 @layer base {
   :root {
-    /* Ponto Max 5.0 — Architectural Bento (Midnight & Coral) */
+    /* PontoMax — Blueprint navy, cyan and clear operational surfaces */
     --background: 223 43% 97%;
     --foreground: 224 60% 12%;
 
@@ -31,18 +31,18 @@
     --popover-foreground: 224 60% 12%;
 
     /* Azul meia-noite institucional */
-    --primary: 224 60% 12%;
+    --primary: 215 100% 45%;
     --primary-foreground: 223 43% 97%;
 
     /* Azul profundo de apoio */
-    --brand: 231 61% 22%;
+    --brand: 209 80% 18%;
     --brand-foreground: 0 0% 100%;
-    --brand-deep: 224 60% 12%;
+    --brand-deep: 209 80% 12%;
 
     /* Coral (acento exclusivo) */
-    --accent: 6 100% 68%;
+    --accent: 199 100% 44%;
     --accent-foreground: 0 0% 100%;
-    --accent-soft: 6 100% 96%;
+    --accent-soft: 199 90% 95%;
 
     --secondary: 223 38% 94%;
     --secondary-foreground: 231 61% 22%;
@@ -64,38 +64,38 @@
 
     --border: 223 28% 89%;
     --input: 223 28% 89%;
-    --ring: 6 100% 68%;
+    --ring: 215 100% 45%;
 
-    --radius: 1rem;
+    --radius: 0.5rem;
 
     /* Sidebar meia-noite */
-    --sidebar-background: 224 60% 12%;
+    --sidebar-background: 209 80% 12%;
     --sidebar-foreground: 223 38% 92%;
-    --sidebar-primary: 6 100% 68%;
+    --sidebar-primary: 215 100% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 231 61% 22%;
+    --sidebar-accent: 209 75% 20%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 231 40% 24%;
-    --sidebar-ring: 6 100% 68%;
+    --sidebar-ring: 215 100% 45%;
 
     /* Charts */
-    --chart-1: 6 100% 68%;
-    --chart-2: 231 61% 22%;
+    --chart-1: 215 100% 45%;
+    --chart-2: 158 62% 34%;
     --chart-3: 224 60% 12%;
     --chart-4: 38 92% 45%;
     --chart-5: 158 62% 34%;
 
     /* Fonts */
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-    --font-heading: 'Syne', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     /* Gradientes de marca (Midnight & Coral) */
     --gradient-brand: linear-gradient(140deg, hsl(224 60% 12%) 0%, hsl(231 61% 22%) 60%, hsl(231 55% 30%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(6 100% 68%) 0%, hsl(14 92% 62%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(199 100% 44%) 0%, hsl(215 100% 45%) 100%);
     --gradient-surface: linear-gradient(160deg, hsl(223 43% 98%) 0%, hsl(223 38% 94%) 100%);
     --shadow-brand: 0 20px 44px -20px hsl(224 60% 12% / 0.45);
-    --shadow-accent: 0 16px 34px -16px hsl(6 100% 68% / 0.55);
+    --shadow-accent: 0 16px 34px -16px hsl(215 100% 45% / 0.35);
 
     /* Sombras discretas */
     --shadow-sm: 0 1px 2px 0 hsl(224 40% 11% / 0.05);
@@ -281,12 +281,12 @@
     --popover: 224 52% 11%;
     --popover-foreground: 223 38% 94%;
 
-    --primary: 6 100% 68%;
-    --primary-foreground: 224 60% 12%;
+    --primary: 211 95% 58%;
+    --primary-foreground: 0 0% 100%;
 
     --brand: 231 55% 34%;
     --brand-foreground: 0 0% 100%;
-    --brand-deep: 224 60% 12%;
+    --brand-deep: 209 80% 12%;
 
     --secondary: 228 34% 17%;
     --secondary-foreground: 223 38% 94%;
@@ -294,9 +294,9 @@
     --muted: 228 34% 17%;
     --muted-foreground: 223 18% 66%;
 
-    --accent: 6 100% 68%;
-    --accent-foreground: 224 60% 12%;
-    --accent-soft: 6 60% 18%;
+    --accent: 199 100% 44%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 199 60% 18%;
 
     --destructive: 0 63% 40%;
     --destructive-foreground: 0 0% 98%;
@@ -312,18 +312,18 @@
 
     --border: 228 34% 18%;
     --input: 228 34% 18%;
-    --ring: 6 100% 68%;
+    --ring: 215 100% 45%;
 
     --sidebar-background: 224 60% 6%;
     --sidebar-foreground: 223 38% 94%;
-    --sidebar-primary: 6 100% 68%;
-    --sidebar-primary-foreground: 224 60% 12%;
+    --sidebar-primary: 215 100% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 228 38% 15%;
     --sidebar-accent-foreground: 223 38% 94%;
     --sidebar-border: 228 38% 15%;
-    --sidebar-ring: 6 100% 68%;
+    --sidebar-ring: 215 100% 45%;
 
-    --chart-1: 6 100% 68%;
+    --chart-1: 215 100% 45%;
     --chart-2: 231 60% 50%;
     --chart-3: 223 30% 82%;
     --chart-4: 38 92% 55%;
@@ -355,7 +355,8 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+    @apply font-semibold;
+    letter-spacing: 0;
     font-family: var(--font-heading);
   }
 
@@ -415,7 +416,7 @@
   }
 
   .bento-card {
-    @apply rounded-3xl border border-border bg-card p-6 transition-all duration-200;
+    @apply rounded-lg border border-border bg-card p-6 transition-all duration-200;
   }
   .bento-card:hover {
     @apply shadow-lg -translate-y-0.5;
@@ -423,11 +424,11 @@
 
   /* Superfícies de conteúdo modernas */
   .surface-panel {
-    @apply rounded-2xl border border-border/60 bg-card/80 backdrop-blur;
+    @apply rounded-lg border border-border/60 bg-card/80 backdrop-blur;
   }
 
   .stat-tile {
-    @apply rounded-2xl border border-border/60 bg-card p-5 transition-all duration-300;
+    @apply rounded-lg border border-border/60 bg-card p-5 transition-all duration-300;
   }
   .stat-tile:hover {
     @apply -translate-y-0.5 border-ring/40 shadow-md;

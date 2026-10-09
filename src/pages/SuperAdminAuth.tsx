@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Shield, Lock } from 'lucide-react';
 import { z } from 'zod';
+import { RecoveryShell } from '@/components/auth/RecoveryShell';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -25,12 +26,12 @@ export default function SuperAdminAuth() {
   useEffect(() => {
     // Check if already logged in as super admin
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', session.user.id)
+          .eq('user_id', user.id)
           .eq('role', 'super_admin')
           .maybeSingle();
 
@@ -90,8 +91,8 @@ export default function SuperAdminAuth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-primary/20">
+    <RecoveryShell>
+      <div className="w-full">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <Shield className="h-8 w-8 text-primary" />
@@ -140,6 +141,7 @@ export default function SuperAdminAuth() {
               )}
             </Button>
           </form>
+          <Button variant="link" className="mt-4 w-full" onClick={() => navigate('/forgot-password')}>Esqueci minha senha</Button>
           <div className="mt-4 text-center">
             <Button
               variant="link"
@@ -150,7 +152,7 @@ export default function SuperAdminAuth() {
             </Button>
           </div>
         </CardContent>
-      </Card>
-    </div>
+      </div>
+    </RecoveryShell>
   );
 }

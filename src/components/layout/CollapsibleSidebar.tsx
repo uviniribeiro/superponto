@@ -12,7 +12,9 @@ import { WhatsNewPopup } from '@/components/WhatsNewPopup';
 import { MenuPositionSelector } from '@/components/MenuPositionSelector';
 import { useMenuPosition, MenuPosition } from '@/hooks/useMenuPosition';
 import { getVersionString, APP_NAME } from '@/lib/version';
-import superpontoLogo from '@/assets/pontomax-logo.webp';
+import clockAsset from '@/assets/pontomax-blueprint-clock-complete.png.asset.json';
+import { PontoMaxLogo } from '@/components/PontoMaxLogo';
+const superpontoLogo = clockAsset.url;
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +32,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Clock,
+  Key,
   Bus,
   Route as RouteIcon,
   Gauge,
@@ -156,6 +159,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Minhas Ocorrências', icon: AlertCircle, href: '/point-occurrences', roles: ['admin', 'manager', 'employee'] },
       { title: 'Minhas Férias', icon: CalendarDays, href: '/vacations', roles: ['admin', 'manager', 'employee'] },
       { title: 'Sugestões', icon: Bell, href: '/suggestions', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Esqueci minha senha', icon: Key, href: '/forgot-password', roles: ['admin', 'manager', 'employee'] },
       { title: 'Minha Conta', icon: UserCog, href: '/account-settings', roles: ['admin', 'manager', 'employee'] },
     ]
   },
@@ -752,21 +756,8 @@ export default function CollapsibleSidebar() {
         {/* Logo/Brand */}
         <div className="p-3 border-b border-sidebar-border/60">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
-              <img 
-                src={companySettings?.logo_url || superpontoLogo} 
-                alt={companySettings?.company_name || APP_NAME} 
-                className="h-7 w-7 object-contain"
-              />
-            </div>
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0">
-                <h1 className="font-heading font-semibold text-sm text-white truncate tracking-tight">
-                  {companySettings?.company_name || APP_NAME}
-                </h1>
-                <p className="text-[10px] uppercase tracking-[0.16em] text-white/50">Gestão de Ponto</p>
-              </div>
-            )}
+            {companySettings?.logo_url ? <><img src={companySettings.logo_url} alt="Empresa" className="h-10 w-10 object-contain" />{!isCollapsed && <span className="truncate text-sm font-semibold text-sidebar-foreground">{companySettings.company_name}</span>}</> : <PontoMaxLogo inverse compact={isCollapsed} />}
+
           </div>
         </div>
 

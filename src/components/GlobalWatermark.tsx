@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import superpontoLogo from '@/assets/pontomax-logo.webp';
+import clockAsset from '@/assets/pontomax-blueprint-clock-complete.png.asset.json';
+const superpontoLogo = clockAsset.url;
 
 export function GlobalWatermark() {
   const { user } = useAuth();

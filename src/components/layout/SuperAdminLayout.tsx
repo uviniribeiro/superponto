@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useTheme } from 'next-themes';
 import { getVersionString } from '@/lib/version';
 import { cn } from '@/lib/utils';
+import { PontoMaxLogo } from '@/components/PontoMaxLogo';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/super-admin', exact: true },
@@ -33,35 +34,28 @@ export default function SuperAdminLayout() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-sidebar text-sidebar-foreground">
         <div className="container flex h-[68px] items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="brand-gradient flex h-11 w-11 items-center justify-center rounded-2xl shadow-brand">
-              <Shield className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="font-heading text-base font-bold tracking-tight leading-none">Ponto Max</h1>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Super Admin • {getVersionString()}
-              </p>
-            </div>
+            <PontoMaxLogo inverse />
+            <span className="hidden text-xs text-sidebar-foreground/70 xl:block">Super Admin · {getVersionString()}</span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1 rounded-2xl border border-border/70 bg-muted/50 p-1">
+          <nav className="hidden md:flex items-center gap-1 rounded-2xl border border-sidebar-border bg-sidebar-accent/50 p-1">
             {navItems.map(({ label, icon: Icon, path, exact }) => (
-              <button
+              <Button variant="ghost"
                 key={path}
                 onClick={() => navigate(path)}
                 className={cn(
                   'flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200',
                   isActive(path, exact)
-                    ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-card/60'
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
+                    : 'text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
               >
                 <Icon className="h-4 w-4" />
                 {label}
-              </button>
+              </Button>
             ))}
           </nav>
 
@@ -69,14 +63,14 @@ export default function SuperAdminLayout() {
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-xl"
+              className="rounded-lg hover:bg-sidebar-accent"
               aria-label="Alternar tema"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
               <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             </Button>
-            <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 rounded-xl">
+            <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 rounded-lg bg-sidebar text-sidebar-foreground border-sidebar-border hover:bg-sidebar-accent">
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Sair</span>
             </Button>
@@ -88,7 +82,7 @@ export default function SuperAdminLayout() {
       <div className="md:hidden border-b border-border/60 bg-background/90 backdrop-blur">
         <div className="container flex gap-1.5 overflow-x-auto py-2.5">
           {navItems.map(({ label, icon: Icon, path, exact }) => (
-            <button
+            <Button variant="ghost"
               key={path}
               onClick={() => navigate(path)}
               className={cn(
@@ -100,7 +94,7 @@ export default function SuperAdminLayout() {
             >
               <Icon className="h-4 w-4" />
               {label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

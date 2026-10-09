@@ -27,6 +27,8 @@ const PageLoader = () => (
 // Auth (eager - needed immediately)
 import Auth from "@/pages/Auth";
 const KioskTerminal = React.lazy(() => import("@/pages/KioskTerminal"));
+const ForgotPassword = React.lazy(() => import("@/pages/ForgotPassword"));
+const ResetPassword = React.lazy(() => import("@/pages/ResetPassword"));
 const SuperAdminAuth = React.lazy(() => import("@/pages/SuperAdminAuth"));
 import NotFound from "@/pages/NotFound";
 
@@ -218,6 +220,8 @@ const App = () => (
                 <Routes>
                 <Route path="/" element={<Navigate to="/home" replace />} />
                 <Route path="/auth" element={<Auth />} />
+                 <Route path="/forgot-password" element={<ForgotPassword />} />
+                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/terminal" element={<Suspense fallback={<PageLoader />}><KioskTerminal /></Suspense>} />
                 <Route path="/terminal/motorista" element={<Suspense fallback={<PageLoader />}><DriverTerminal /></Suspense>} />
 

@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { CnpjInput } from '@/components/shared/CnpjInput';
 import { getCNPJFeedback, cleanCNPJ } from '@/lib/validators';
 import { cn } from '@/lib/utils';
-import superpontoLogo from '@/assets/pontomax-logo.webp';
+import { PontoMaxLogo } from '@/components/PontoMaxLogo';
 
 
 type LoginType = 'company' | 'city_hall' | 'super_admin';
@@ -93,7 +93,7 @@ export default function Auth() {
         navigate('/settings');
         return;
       }
-      navigate('/dashboard');
+      navigate(isSuperAdmin ? '/super-admin' : '/dashboard');
     }
   }, [user, loading, navigate, mustChangePassword, isSuperAdmin]);
 
@@ -283,82 +283,36 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background p-4 md:p-6">
-      <div className="grid w-full max-w-5xl animate-fade-in grid-cols-1 gap-4 md:grid-cols-12">
-        {/* Bento: marca e informações */}
-        <aside className="relative flex flex-col justify-between overflow-hidden rounded-3xl bg-primary p-8 text-primary-foreground md:col-span-5 lg:p-10">
-          <div className="relative z-10">
-            <div className="mb-10 flex items-center gap-3">
-              <span className="flex h-10 w-10 rotate-12 items-center justify-center rounded-xl bg-accent">
-                <img src={superpontoLogo} alt="Ponto Max" className="h-6 w-6 -rotate-12" />
-              </span>
-              <span className="font-heading text-xl font-extrabold uppercase tracking-tight">
-                Ponto Max
-              </span>
-            </div>
-
-            <h1 className="font-heading text-4xl font-extrabold leading-[1.05] lg:text-5xl">
-              Gestão de <span className="text-accent">tempo</span> levada a sério.
-            </h1>
-            <p className="mt-5 max-w-xs text-sm leading-relaxed text-primary-foreground/65">
-              Conformidade total com a Portaria 671 do MTE. Simples, seguro e escalável.
-            </p>
-
-            <ul className="mt-8 hidden space-y-3 md:block">
-              {[
-                { icon: Fingerprint, label: 'Biometria, facial e QR Code' },
-                { icon: MapPin, label: 'Geolocalização e postos monitorados' },
-                { icon: FileCheck2, label: 'AFD, AFDT e ACJEF homologados' },
-              ].map(({ icon: Icon, label }) => (
-                <li key={label} className="flex items-center gap-3 text-sm text-primary-foreground/80">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5">
-                    <Icon className="h-4 w-4 text-accent" />
-                  </span>
-                  {label}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="relative z-10 mt-10">
-            <a
-              href="/terminal"
-              className="inline-flex items-center gap-3 text-sm font-medium transition-colors hover:text-accent"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5">
-                <MonitorSmartphone className="h-4 w-4 text-accent" />
-              </span>
-              Acessar Terminal de Ponto
-            </a>
-            <p className="mt-6 text-[11px] uppercase tracking-[0.2em] text-primary-foreground/40">
-              Ponto Max © 2026
-            </p>
-          </div>
-
-          <div className="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-brand opacity-60 blur-3xl" />
-        </aside>
-
-        {/* Bento: formulário */}
-        <div className="flex flex-col rounded-3xl border border-border/60 bg-card p-2 shadow-xl md:col-span-7">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-sidebar-border bg-sidebar px-5 py-5 md:px-10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6">
+          <PontoMaxLogo inverse />
+          <p className="hidden text-sm text-sidebar-foreground/80 md:block">Mais controle, menos burocracia.</p>
+          <Button variant="ghost" asChild className="text-sidebar-foreground hover:bg-sidebar-accent"><a href="/terminal"><MonitorSmartphone />Terminal de Ponto</a></Button>
+        </div>
+      </header>
+      <div className="mx-auto w-full max-w-lg px-5 py-9 md:py-14">
+        <div className="mb-8 text-center"><h1 className="text-3xl font-bold">Acesse o PontoMax</h1><p className="mt-3 text-sm text-muted-foreground">Gestão de ponto, jornadas e operações.</p></div>
+        <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-lg">
           <div className="grid grid-cols-3 gap-2 p-2">
             {roleTiles.map(({ type, label, icon: Icon }) => {
               const active = loginType === type;
               return (
-                <button
+                <Button variant="ghost"
                   key={type}
                   type="button"
                   onClick={() => selectRole(type)}
                   aria-pressed={active}
                   className={cn(
-                    'flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-4 transition-all',
+                    'flex flex-col items-center justify-center gap-1 h-auto rounded-md px-2 py-3 transition-all',
                     active
-                      ? 'bg-primary text-primary-foreground ring-2 ring-accent ring-offset-2 ring-offset-card'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
                       : 'bg-secondary text-secondary-foreground hover:bg-muted',
                   )}
                 >
                   <Icon className={cn('h-4 w-4', active ? 'text-accent' : 'text-muted-foreground')} />
                   <span className="text-sm font-semibold">{label}</span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -520,14 +474,14 @@ export default function Auth() {
                       touched.password && !passwordError && 'border-success',
                     )}
                   />
-                  <button
+                  <Button variant="ghost" size="icon"
                     type="button"
                     aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                  </Button>
                 </div>
                 <p id="login-password-feedback" aria-live="polite" className="min-h-[1rem] text-xs text-destructive">
                   {touched.password && passwordError ? passwordError : ''}
@@ -536,7 +490,7 @@ export default function Auth() {
 
               <Button
                 type="submit"
-                variant="accent"
+                variant="default"
                 size="lg"
                 className="w-full"
                 disabled={isLoading || !formIsValid}
@@ -551,6 +505,7 @@ export default function Auth() {
                 )}
               </Button>
 
+              {isSuperAdminLogin && <Button type="button" variant="link" className="w-full" onClick={() => navigate('/forgot-password')}>Esqueci minha senha</Button>}
               <p className="pt-2 text-center text-xs text-muted-foreground">
                 Conexão protegida e registros com assinatura criptográfica.
               </p>
