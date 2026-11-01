@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Reativar Cloud e todos os usuários sem alterar e-mails, senhas ou permissões (01/11/2026: reativação recusada por falta de saldo Cloud; banco indisponível para verificar ou atualizar usuários).
+- [ ] Aplicar anexo de recuperação com validação segura de PKCE e tokens, sem depender da aba original; validar testes e tela.
+- [ ] Manter Cloud disponível: nunca pausar manualmente; suspensão por saldo não pode ser impedida pelo código.
+
 - [x] Criar recuperação de senha segura do SUPER ADMIN: solicitação real aceita pelo backend (HTTP 200), links sem token rejeitados e testes confirmam atualização somente da senha; conclusão pelo link recebido permanece com o titular.
 - [x] Aplicar identidade visual da blueprint ao login, marca compartilhada, menu, painel SUPER ADMIN e marca d’água; login verificado visualmente e build automático aprovado. Verificação visual autenticada pendente: sessão de teste redirecionou ao login, sem acesso ao painel.
 
