@@ -21,6 +21,12 @@ export async function finishPasswordRecovery(auth: RecoveryAuth, password: strin
 }
 
 interface RecoverySession { access_token: string; user: { id: string } }
+let verifiedRecoveryUserId: string | null = null;
+
+// Captured by the global listener even when the lazy reset page has not loaded.
+export function recordPasswordRecoveryEvent(userId: string | null) {
+  verifiedRecoveryUserId = userId;
+}
 interface RecoveryValidationAuth {
   getSession: () => Promise<{ data: { session: RecoverySession | null }; error: { message: string } | null }>;
   exchangeCodeForSession: (code: string) => Promise<{ data: { session: RecoverySession | null }; error: { message: string } | null }>;
@@ -38,7 +44,7 @@ export async function validatePasswordRecovery(
     const initial = await auth.getSession();
     if (initial.error) return 'invalid';
     let session = initial.data.session;
-    let recovery = hasRecoveryEvent() || (
+    let recovery = hasRecoveryEvent() || (session !== null && verifiedRecoveryUserId === session.user.id) || (
       hash.get('type') === 'recovery' && !!hash.get('access_token') &&
       hash.get('access_token') === session?.access_token
     );

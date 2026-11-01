@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { finishPasswordRecovery, requestPasswordRecovery, validatePasswordRecovery } from './passwordRecovery';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { finishPasswordRecovery, recordPasswordRecoveryEvent, requestPasswordRecovery, validatePasswordRecovery } from './passwordRecovery';
 
 describe('secure password recovery', () => {
   it('sends recovery to the public same-origin reset page', async () => {
@@ -21,6 +21,7 @@ describe('secure password recovery', () => {
 });
 
 describe('recovery link validation', () => {
+  beforeEach(() => recordPasswordRecoveryEvent(null));
   const session = { access_token: 'test-token', user: { id: 'test-user' } };
   const makeAuth = () => ({
     getSession: vi.fn().mockResolvedValue({ data: { session }, error: null }),
@@ -37,6 +38,14 @@ describe('recovery link validation', () => {
     expect(await validatePasswordRecovery(makeAuth(), 'https://app.example/reset-password#type=recovery&access_token=test-token', () => false)).toBe('ready');
   });
   it('does not accept an ordinary signed-in session without recovery proof', async () => {
+    expect(await validatePasswordRecovery(makeAuth(), 'https://app.example/reset-password', () => false)).toBe('invalid');
+  });
+  it('accepts the recovery event captured before the lazy reset page loads', async () => {
+    recordPasswordRecoveryEvent('test-user');
+    expect(await validatePasswordRecovery(makeAuth(), 'https://app.example/reset-password', () => false)).toBe('ready');
+  });
+  it('does not reuse recovery authorization for another user', async () => {
+    recordPasswordRecoveryEvent('another-user');
     expect(await validatePasswordRecovery(makeAuth(), 'https://app.example/reset-password', () => false)).toBe('invalid');
   });
   it('rejects a fake recovery hash', async () => {

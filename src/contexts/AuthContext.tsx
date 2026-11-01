@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { validateCNPJ, cleanCNPJ } from '@/lib/validators';
+import { recordPasswordRecoveryEvent } from '@/lib/passwordRecovery';
 
 type AppRole = 'admin' | 'manager' | 'employee' | 'super_admin';
 
@@ -90,9 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === 'PASSWORD_RECOVERY' && session?.user) {
-          sessionStorage.setItem('pontomax.password-recovery-user', session.user.id);
+          recordPasswordRecoveryEvent(session.user.id);
           if (window.location.pathname !== '/reset-password') window.location.replace('/reset-password');
         }
+        if (event === 'SIGNED_OUT') recordPasswordRecoveryEvent(null);
         setSession(session);
         setUser(session?.user ?? null);
         
