@@ -19,3 +19,49 @@ export async function finishPasswordRecovery(auth: RecoveryAuth, password: strin
   const valid = recoveryPasswordSchema.parse({ password, confirmation });
   return auth.updateUser({ password: valid.password });
 }
+
+interface RecoverySession { access_token: string; user: { id: string } }
+let verifiedRecoveryUserId: string | null = null;
+
+// Captured by the global listener even when the lazy reset page has not loaded.
+export function recordPasswordRecoveryEvent(userId: string | null) {
+  verifiedRecoveryUserId = userId;
+}
+interface RecoveryValidationAuth {
+  getSession: () => Promise<{ data: { session: RecoverySession | null }; error: { message: string } | null }>;
+  exchangeCodeForSession: (code: string) => Promise<{ data: { session: RecoverySession | null }; error: { message: string } | null }>;
+  getUser: () => Promise<{ data: { user: { id: string } | null }; error: { message: string } | null }>;
+}
+
+export async function validatePasswordRecovery(
+  auth: RecoveryValidationAuth, url: string, hasRecoveryEvent: () => boolean,
+): Promise<'ready' | 'invalid' | 'unavailable'> {
+  const location = new URL(url);
+  const hash = new URLSearchParams(location.hash.slice(1));
+  if (hash.has('error') || location.searchParams.has('error')) return 'invalid';
+  try {
+    // Wait for the client's automatic token processing before judging the link.
+    const initial = await auth.getSession();
+    if (initial.error) return 'invalid';
+    let session = initial.data.session;
+    let recovery = hasRecoveryEvent() || (session !== null && verifiedRecoveryUserId === session.user.id) || (
+      hash.get('type') === 'recovery' && !!hash.get('access_token') &&
+      hash.get('access_token') === session?.access_token
+    );
+    const code = location.searchParams.get('code');
+    if (code && !recovery) {
+      const exchanged = await auth.exchangeCodeForSession(code);
+      if (exchanged.error) return 'invalid';
+      session = exchanged.data.session;
+      recovery = !!session;
+    }
+    if (!recovery || !session) return 'invalid';
+    const validated = await auth.getUser();
+    if (validated.error) {
+      return /fetch|network|load failed|timeout/i.test(validated.error.message) ? 'unavailable' : 'invalid';
+    }
+    return validated.data.user?.id === session.user.id ? 'ready' : 'invalid';
+  } catch {
+    return 'unavailable';
+  }
+}
