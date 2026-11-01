@@ -1,5 +1,8 @@
 # Roadmap
 
+- [ ] Ampliar gestão do SUPER ADMIN para cadastro, edição, exclusão e permissões reais em serviço externo seguro (escolha confirmada; nenhum serviço de autenticação externo acessível nesta sessão). Preservar contas existentes; não substituir por permissões locais.
+- [ ] Confirmar login do titular no painel: `/super-admin-auth` abre com o e-mail informado; painel redireciona ao login sem sessão. Cloud pausado impede autenticação e teste com a nova senha; não reutilizar senhas antigas do chat.
+
 - [ ] Reativar Cloud e todos os usuários sem alterar e-mails, senhas ou permissões (01/11/2026: reativação recusada por falta de saldo Cloud; banco indisponível para verificar ou atualizar usuários).
 - [x] Adaptar anexo de recuperação com validação segura de PKCE e tokens, sem depender da aba original; 12 testes aprovados e tela sem link validada no navegador. Recuperação real pelo e-mail aguarda Cloud ativo e participação do titular.
 - [ ] Manter Cloud disponível: nunca pausar manualmente; suspensão por saldo não pode ser impedida pelo código.
