@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CnpjInput } from '@/components/shared/CnpjInput';
-import { PontoMaxLogo } from '@/components/shared/PontoMaxLogo';
+import { PontoMaxLogo } from '@/components/PontoMaxLogo';
 import { toast } from 'sonner';
 import { Building2, FlaskConical, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 
