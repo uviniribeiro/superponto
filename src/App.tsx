@@ -186,6 +186,7 @@ const SuperAdminDashboard = React.lazy(() => import("@/pages/superadmin/Dashboar
 const SuperAdminCompanies = React.lazy(() => import("@/pages/superadmin/Companies"));
 const SuperAdminCityHalls = React.lazy(() => import("@/pages/superadmin/CityHalls"));
 const SuperAdminLicenses = React.lazy(() => import("@/pages/superadmin/Licenses"));
+const SuperAdminCompaniesSandbox = React.lazy(() => import("@/pages/superadmin/CompaniesSandbox"));
 const SuperAdminUsers = React.lazy(() => import("@/pages/superadmin/SuperAdminUsers"));
 
 // Legal pages
@@ -226,6 +227,7 @@ const App = () => (
                 <Route path="/terminal/motorista" element={<Suspense fallback={<PageLoader />}><DriverTerminal /></Suspense>} />
 
                 <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
+                <Route path="/super-admin-teste/empresas" element={<Suspense fallback={<PageLoader />}><SuperAdminCompaniesSandbox /></Suspense>} />
                 
                 {/* Public Legal Pages */}
                 <Route path="/legal/privacy" element={<PrivacyPolicy />} />
