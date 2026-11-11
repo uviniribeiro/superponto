@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { Download, FileText, Building2, Loader2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, parse, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { buildAfdLines } from '@/lib/afd';
 
 interface CompanySettings {
   id: string;
@@ -74,32 +75,6 @@ export default function AFDExportPortaria671() {
     );
   };
 
-  const padLeft = (value: string | number, length: number, char: string = '0'): string => {
-    return String(value).padStart(length, char);
-  };
-
-  const padRight = (value: string, length: number, char: string = ' '): string => {
-    return value.slice(0, length).padEnd(length, char);
-  };
-
-  const formatDateAFD = (date: Date): string => {
-    return format(date, 'ddMMyyyy');
-  };
-
-  const formatTimeAFD = (date: Date): string => {
-    return format(date, 'HHmm');
-  };
-
-  const cleanCNPJ = (cnpj: string | null): string => {
-    if (!cnpj) return ''.padStart(14, '0');
-    return cnpj.replace(/\D/g, '').padStart(14, '0');
-  };
-
-  const cleanPIS = (pis: string | null): string => {
-    if (!pis) return ''.padStart(11, '0');
-    return pis.replace(/\D/g, '').padStart(11, '0');
-  };
-
   const generateAFDPortaria671 = async () => {
     if (!companySettings) {
       toast.error('Configurações da empresa não encontradas');
@@ -129,67 +104,15 @@ export default function AFDExportPortaria671() {
 
       if (error) throw error;
 
-      const lines: string[] = [];
       const now = new Date();
-      let sequenceNumber = 1;
-
-      // ========== TIPO 1 - CABEÇALHO ==========
-      // Layout Portaria 671 (igual à 1510 para compatibilidade)
-      const header = [
-        '1',                                                    // Tipo de registro
-        '1',                                                    // Tipo de identificador do empregador (1=CNPJ)
-        cleanCNPJ(companySettings.cnpj),                       // CNPJ (14 posições)
-        padRight(companySettings.cei || '', 12),               // CEI (12 posições)
-        padRight(companySettings.company_name || '', 150),     // Razão social (150 posições)
-        padLeft(companySettings.rep_number || '0', 17),        // Número de fabricação do REP (17 posições)
-        formatDateAFD(parse(startDate, 'yyyy-MM-dd', new Date())), // Data início (8 posições)
-        formatDateAFD(parse(endDate, 'yyyy-MM-dd', new Date())),   // Data fim (8 posições)
-        formatDateAFD(now),                                    // Data de geração (8 posições)
-        formatTimeAFD(now),                                    // Hora de geração (4 posições)
-      ].join('');
-      lines.push(header);
-
-      // ========== TIPO 2 - INCLUSÃO/ALTERAÇÃO DE EMPREGADO ==========
-      for (const profile of profilesToExport) {
-        sequenceNumber++;
-        const employeeRecord = [
-          '2',                                                  // Tipo de registro
-          padLeft(sequenceNumber, 9),                          // NSR (9 posições)
-          'I',                                                  // Tipo de operação (I=Inclusão)
-          '1',                                                  // Tipo de identificador (1=PIS)
-          cleanPIS(profile.pis),                               // PIS (11 posições)
-          padRight(profile.full_name || '', 52),               // Nome do trabalhador (52 posições)
-        ].join('');
-        lines.push(employeeRecord);
-      }
-
-      // ========== TIPO 3 - MARCAÇÃO DE PONTO ==========
-      const profileMap = new Map(profilesToExport.map(p => [p.id, p]));
-
-      for (const record of timeRecords || []) {
-        const profile = profileMap.get(record.profile_id);
-        if (!profile) continue;
-
-        sequenceNumber++;
-        const recordedAt = new Date(record.recorded_at);
-        
-        const pointRecord = [
-          '3',                                                  // Tipo de registro
-          padLeft(sequenceNumber, 9),                          // NSR (9 posições)
-          '1',                                                  // Tipo de identificação (1=PIS)
-          cleanPIS(profile.pis),                               // PIS (11 posições)
-          formatDateAFD(recordedAt),                           // Data (8 posições)
-          formatTimeAFD(recordedAt),                           // Hora (4 posições)
-        ].join('');
-        lines.push(pointRecord);
-      }
-
-      // ========== TIPO 9 - TRAILER ==========
-      const trailer = [
-        '9',                                                    // Tipo de registro
-        padLeft(lines.length + 1, 9),                          // Total de registros no arquivo
-      ].join('');
-      lines.push(trailer);
+      const lines = buildAfdLines({
+        company: companySettings,
+        employees: profilesToExport,
+        punches: timeRecords || [],
+        periodStart: parse(startDate, 'yyyy-MM-dd', new Date()),
+        periodEnd: parse(endDate, 'yyyy-MM-dd', new Date()),
+        generatedAt: now,
+      });
 
       // Generate file
       const content = lines.join('\r\n');

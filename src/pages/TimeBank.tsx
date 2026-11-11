@@ -15,6 +15,7 @@ import { HelpButton } from '@/components/HelpButton';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 import { TimeBankAdjustmentDialog } from '@/components/timebank/TimeBankAdjustmentDialog';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { expectedHoursForSchedule, workedHoursFromPunches } from '@/lib/timeBank';
 
 interface Profile {
   id: string;
@@ -121,13 +122,7 @@ const TimeBank = () => {
     const start = schedule[`${day}_start` as keyof WorkSchedule] as string | null;
     const end = schedule[`${day}_end` as keyof WorkSchedule] as string | null;
 
-    if (!start || !end) return 0;
-
-    const [startHour, startMin] = start.split(':').map(Number);
-    const [endHour, endMin] = end.split(':').map(Number);
-    
-    const totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin) - (schedule.break_duration_minutes || 0);
-    return totalMinutes / 60;
+    return expectedHoursForSchedule({ start, end, breakMinutes: schedule.break_duration_minutes });
   };
 
   const calculateTimeBank = async () => {
@@ -195,20 +190,8 @@ const TimeBank = () => {
         }
 
         // Calculate worked hours
-        let worked = 0;
         const dayRecords = recordsByDate[dateStr] || [];
-        
-        // Pair entries and exits to calculate worked time
-        let entryTime: Date | null = null;
-        dayRecords.forEach(record => {
-          if (record.record_type === 'entry' || record.record_type === 'break_end') {
-            entryTime = parseISO(record.recorded_at);
-          } else if ((record.record_type === 'exit' || record.record_type === 'break_start') && entryTime) {
-            const exitTime = parseISO(record.recorded_at);
-            worked += (exitTime.getTime() - entryTime.getTime()) / (1000 * 60 * 60);
-            entryTime = null;
-          }
-        });
+        const worked = workedHoursFromPunches(dayRecords);
 
         const balance = worked - expected;
         
