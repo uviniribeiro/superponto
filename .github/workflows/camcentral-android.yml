@@ -1,0 +1,28 @@
+name: CamCentral Android
+
+on:
+  push:
+    paths:
+      - 'camcentral/**'
+      - '.github/workflows/camcentral-android.yml'
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: camcentral
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Testes e APK
+        run: ./gradlew testDebugUnitTest assembleRelease --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CamCentral-apk
+          path: camcentral/app/build/outputs/apk/release/app-release.apk

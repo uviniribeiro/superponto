@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- corpo da câmera -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M34,40h30a4,4 0,0 1,4 4v20a4,4 0,0 1,-4 4h-30a4,4 0,0 1,-4 -4v-20a4,4 0,0 1,4 -4z"/>
+    <!-- lente lateral -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M70,48l10,-6v24l-10,-6z"/>
+    <!-- ponto "ao vivo" -->
+    <path android:fillColor="#FFE53935"
+        android:pathData="M41,47m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0"/>
+</vector>
