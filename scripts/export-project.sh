@@ -104,11 +104,9 @@ cat > "$TEMP_DIR/superponto/README-DEPLOY.md" << 'EOF'
 
 Consulte `docs/LOCAL_DEPLOYMENT.md` para instruções detalhadas.
 
-## Credenciais Padrão
+## Credenciais Iniciais
 
-- **Super Admin**: superadmin@superponto.local / Super@Admin2024
-- **Suporte**: suporte@{company_code}.pontomax.local / Super@26
-- **Admin**: admin@{company_code}.pontomax.local / Admin@26
+Nenhuma senha padrão é publicada. Na instalação local, `scripts/setup-database.sql` gera uma senha aleatória para o Super Admin e a exibe uma única vez no log. Contas de Admin e Suporte de cada empresa são criadas pelo painel do Super Admin.
 EOF
 
 # Criar arquivo com lista de arquivos

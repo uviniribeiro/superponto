@@ -108,14 +108,24 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA auth GRANT ALL PRIVILEGES ON TABLES TO superp
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO superponto_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA auth GRANT ALL PRIVILEGES ON SEQUENCES TO superponto_user;
 
--- 14. Criar super admin inicial
-INSERT INTO auth.users (email, encrypted_password, email_confirmed_at, is_super_admin)
-VALUES (
-    'superadmin@superponto.local',
-    auth.hash_password('Super@Admin2024'),
-    NOW(),
-    TRUE
-) ON CONFLICT (email) DO NOTHING;
+-- 14. Criar super admin inicial com senha aleatória (exibida uma única vez)
+-- Defina sua própria senha depois do primeiro acesso. Nenhuma senha fica gravada neste arquivo.
+DO $$
+DECLARE
+    initial_password TEXT := replace(replace(encode(gen_random_bytes(18), 'base64'), '/', 'x'), '+', 'y');
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'superadmin@superponto.local') THEN
+        INSERT INTO auth.users (email, encrypted_password, email_confirmed_at, is_super_admin)
+        VALUES ('superadmin@superponto.local', auth.hash_password(initial_password), NOW(), TRUE);
+        RAISE NOTICE '';
+        RAISE NOTICE ' Super Admin criado:';
+        RAISE NOTICE '   Email: superadmin@superponto.local';
+        RAISE NOTICE '   Senha inicial (anote agora, não será exibida de novo): %', initial_password;
+    ELSE
+        RAISE NOTICE ' Super Admin já existe; senha mantida.';
+    END IF;
+END
+$$;
 
 -- ============================================
 -- Mensagem de conclusão
@@ -130,10 +140,6 @@ BEGIN
     RAISE NOTICE ' Banco: superponto';
     RAISE NOTICE ' Usuário: superponto_user';
     RAISE NOTICE ' Senha: SuperPonto@2024';
-    RAISE NOTICE '';
-    RAISE NOTICE ' Super Admin:';
-    RAISE NOTICE '   Email: superadmin@superponto.local';
-    RAISE NOTICE '   Senha: Super@Admin2024';
     RAISE NOTICE '';
     RAISE NOTICE ' Próximos passos:';
     RAISE NOTICE ' 1. Execute as migrações: ./scripts/run-migrations.sh';
