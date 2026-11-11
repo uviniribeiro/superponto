@@ -1,6 +1,7 @@
 # Roadmap
 
 - [ ] Ampliar gestão do SUPER ADMIN para cadastro, edição, exclusão e permissões reais em serviço externo seguro (escolha confirmada; nenhum serviço de autenticação externo acessível nesta sessão). Preservar contas existentes; não substituir por permissões locais.
+  - [x] Código pronto: criar, promover conta existente, editar nome/status e remover permissão, com regra de ao menos um super admin ativo no servidor, desfazer cadastro em falha, senha forte e registro em `security_logs`; 10 testes. Publicação da função `manage-super-admin` e teste real aguardam Cloud ativo.
 - [ ] Confirmar login do titular no painel: `/super-admin-auth` abre com o e-mail informado; painel redireciona ao login sem sessão. Cloud pausado impede autenticação e teste com a nova senha; não reutilizar senhas antigas do chat.
 
 - [ ] Reativar Cloud e todos os usuários sem alterar e-mails, senhas ou permissões (01/11/2026: reativação recusada por falta de saldo Cloud; banco indisponível para verificar ou atualizar usuários).
