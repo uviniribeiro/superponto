@@ -40,7 +40,7 @@ A redação hoje é por regras (sem IA) e nada sai do aparelho. Próximos passos
 
 ## App Android (.apk)
 
-`PresencaViva.apk` é o app pronto para instalar (Android 7 ou mais novo). Ele leva o `index.html` dentro e funciona sem internet; com internet, carrega as fontes da marca.
+`PresencaViva.apk` é o app pronto para instalar (Android 8 ou mais novo). Ele leva o `index.html` dentro e funciona sem internet; com internet, carrega as fontes da marca.
 
 Instalar: copie o APK para o celular, abra e permita “instalar apps desta fonte”.
 
