@@ -1,0 +1,36 @@
+plugins { id "com.android.application" }
+
+android {
+    namespace "br.com.presencaviva"
+    compileSdk 35
+    defaultConfig {
+        applicationId "br.com.presencaviva"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "0.1.0"
+    }
+    signingConfigs {
+        // Chave de teste versionada para que novas versões instalem por cima da anterior.
+        // Para publicar na Play Store, troque por uma chave de release guardada fora do repositório.
+        shared {
+            storeFile file("../debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.shared }
+        release { minifyEnabled false; signingConfig signingConfigs.shared }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    sourceSets { main { assets.srcDirs += "$buildDir/webassets" } }
+}
+
+// O app web (../../index.html) é copiado para dentro do APK a cada build.
+tasks.register("copyWeb", Copy) {
+    from("$rootDir/../index.html")
+    into("$buildDir/webassets")
+}
+preBuild.dependsOn("copyWeb")

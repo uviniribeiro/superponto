@@ -37,3 +37,17 @@ A redação hoje é por regras (sem IA) e nada sai do aparelho. Próximos passos
 2. Redação com modelo de linguagem, preso à Memória da marca.
 3. Integrações: Instagram (publicação e Direct), WhatsApp Business, checkout com webhook de pagamento, e-mail de entrega do kit.
 4. Transcrição automática de áudio.
+
+## App Android (.apk)
+
+`PresencaViva.apk` é o app pronto para instalar (Android 7 ou mais novo). Ele leva o `index.html` dentro e funciona sem internet; com internet, carrega as fontes da marca.
+
+Instalar: copie o APK para o celular, abra e permita “instalar apps desta fonte”.
+
+Gerar de novo depois de mudar `index.html` (precisa de Java 17+ e Android SDK em `android/local.properties`):
+
+```bash
+cd presenca-viva/android && ./gradlew assembleRelease && cp app/build/outputs/apk/release/app-release.apk ../PresencaViva.apk
+```
+
+A assinatura usa `android/debug.keystore`, uma chave de teste versionada para que cada versão nova instale por cima da anterior sem perder dados. Para publicar na Play Store, crie uma chave de release e guarde-a fora do repositório.
