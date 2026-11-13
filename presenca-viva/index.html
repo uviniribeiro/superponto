@@ -1,0 +1,675 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Presença Viva</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: caderno de revelação — uma faixa de modo no topo, abas como envelopes de negativo, conteúdo em coluna única legível no celular */
+:root{
+  --bg:#F6F4F2; --surface:#FFFFFF; --sunk:#EEEAE6; --line:#DCD5CF;
+  --ink:#221D1F; --muted:#6B6164;
+  --accent:#8C3B4F; --accent-ink:#FFFFFF; --accent-soft:#F3E3E7;
+  --presenca:#3F7A5C; --presenca-soft:#E2EFE7;
+  --reserva:#A26A12; --reserva-soft:#F6EBD6;
+  --protecao:#3E5B86; --protecao-soft:#E2E9F4;
+  --danger:#A8322D; --danger-soft:#F7E1DF;
+  --f-display:"Instrument Serif", Georgia, "Times New Roman", serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#18151A; --surface:#221E24; --sunk:#141116; --line:#38313A;
+  --ink:#EFE9EC; --muted:#A79CA2;
+  --accent:#E08AA0; --accent-ink:#1B1316; --accent-soft:#3A2129;
+  --presenca:#7FC39E; --presenca-soft:#1F3328;
+  --reserva:#E2B45E; --reserva-soft:#3A2D14;
+  --protecao:#8FB0E0; --protecao-soft:#1E2A3E;
+  --danger:#F08A82; --danger-soft:#3E1C1A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#18151A; --surface:#221E24; --sunk:#141116; --line:#38313A;
+  --ink:#EFE9EC; --muted:#A79CA2;
+  --accent:#E08AA0; --accent-ink:#1B1316; --accent-soft:#3A2129;
+  --presenca:#7FC39E; --presenca-soft:#1F3328;
+  --reserva:#E2B45E; --reserva-soft:#3A2D14;
+  --protecao:#8FB0E0; --protecao-soft:#1E2A3E;
+  --danger:#F08A82; --danger-soft:#3E1C1A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 64px;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font:400 2.4rem/1 var(--f-display);letter-spacing:-.01em}
+h1 em{color:var(--accent)}
+h2{font:400 1.7rem/1.1 var(--f-display)}
+h3{font:600 1rem/1.3 var(--f-body)}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.eyebrow{font:500 .72rem/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.tag{font:500 .72rem/1 var(--f-mono);padding:5px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap;letter-spacing:.03em}
+.tag.ok{background:var(--presenca-soft);color:var(--presenca)}
+.tag.warn{background:var(--reserva-soft);color:var(--reserva)}
+.tag.bad{background:var(--danger-soft);color:var(--danger)}
+.tag.info{background:var(--protecao-soft);color:var(--protecao)}
+.tag.acc{background:var(--accent-soft);color:var(--accent)}
+
+/* Faixa de modo */
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mode{border:1.5px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px;text-align:left;cursor:pointer;color:var(--ink);font:inherit;display:flex;flex-direction:column;gap:4px;min-width:0}
+.mode b{font:400 1.35rem/1 var(--f-display)}
+.mode span{font-size:.8rem;color:var(--muted)}
+.mode[aria-pressed="true"][data-mode="presenca"]{border-color:var(--presenca);background:var(--presenca-soft)}
+.mode[aria-pressed="true"][data-mode="reserva"]{border-color:var(--reserva);background:var(--reserva-soft)}
+.mode[aria-pressed="true"][data-mode="protecao"]{border-color:var(--protecao);background:var(--protecao-soft)}
+.mode[aria-pressed="true"] b{color:var(--ink)}
+.rules{font-size:.86rem;color:var(--muted);padding:10px 12px;border-left:3px solid var(--line)}
+.rules[data-mode="presenca"]{border-color:var(--presenca)}
+.rules[data-mode="reserva"]{border-color:var(--reserva)}
+.rules[data-mode="protecao"]{border-color:var(--protecao)}
+
+/* Abas */
+nav.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:none}
+nav.tabs a{padding:10px 12px;color:var(--muted);text-decoration:none;font-weight:600;font-size:.9rem;border-bottom:2px solid transparent;white-space:nowrap;display:flex;gap:6px;align-items:center}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-color:var(--accent)}
+.count{font:500 .7rem/1 var(--f-mono);background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:3px 6px}
+
+section.view{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.between{justify-content:space-between}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.kpi b{display:block;font:400 2rem/1 var(--f-display);font-variant-numeric:tabular-nums}
+.kpi span{font-size:.78rem;color:var(--muted)}
+label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:600;color:var(--muted)}
+input,select,textarea{font:inherit;font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:84px}
+input[type=checkbox]{width:auto}
+.check{flex-direction:row;align-items:center;gap:8px;font-weight:500;color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{display:inline-flex;align-items:center;text-decoration:none;font:600 .88rem/1 var(--f-body);padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.primary:hover{filter:brightness(1.08);border-color:var(--accent)}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:6px 8px}
+button.ghost:hover{color:var(--ink);border-color:transparent}
+button:disabled{opacity:.45;cursor:not-allowed}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{border:1px solid var(--line);border-radius:var(--r);padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:8px;min-width:0}
+.item pre{white-space:pre-wrap;word-break:break-word;font:inherit;margin:0;background:var(--sunk);padding:10px;border-radius:8px;font-size:.92rem}
+.empty{padding:20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--r)}
+.banner{padding:12px 14px;border-radius:var(--r);background:var(--reserva-soft);color:var(--ink);font-size:.9rem;display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.banner.info{background:var(--protecao-soft)}
+.banner.bad{background:var(--danger-soft)}
+
+/* Chat */
+.chat{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;padding:4px}
+.msg{max-width:85%;padding:9px 12px;border-radius:14px;font-size:.93rem;white-space:pre-wrap;word-break:break-word}
+.msg.cli{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--sunk);border-bottom-left-radius:4px}
+.msg .meta{display:block;font:500 .68rem/1.4 var(--f-mono);opacity:.75;margin-top:4px}
+
+/* Teste 72h */
+.meter{height:10px;background:var(--sunk);border-radius:999px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.timeline{display:flex;flex-direction:column;gap:6px;font-size:.85rem}
+.timeline div{display:grid;grid-template-columns:auto 1fr;gap:10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:.88rem;z-index:20;max-width:calc(100% - 32px)}
+@media (max-width:520px){.modes{grid-template-columns:1fr}.mode{flex-direction:row;align-items:baseline;gap:10px}h1{font-size:2rem}}
+@media (prefers-reduced-motion:no-preference){.mode,button.btn{transition:border-color .15s,background .15s}}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow" id="brandLine">Sua marca · assistente</p>
+      <h1>Presença <em>Viva</em></h1>
+      <p class="muted small">Sua experiência continua trabalhando enquanto você vive.</p>
+    </div>
+    <span class="tag" id="saveTag">salvo neste aparelho</span>
+  </header>
+
+  <div class="modes" role="group" aria-label="Modo de autonomia">
+    <button class="mode" data-mode="presenca" aria-pressed="false"><b>Presença</b><span>Posso criar e atender</span></button>
+    <button class="mode" data-mode="reserva" aria-pressed="false"><b>Reserva</b><span>Semana apertada</span></button>
+    <button class="mode" data-mode="protecao" aria-pressed="false"><b>Proteção</b><span>Preciso me afastar</span></button>
+  </div>
+  <p class="rules" id="modeRules"></p>
+
+  <nav class="tabs" id="tabs">
+    <a href="#resumo">Resumo</a>
+    <a href="#entrada">Entrada</a>
+    <a href="#producao">Produção <span class="count" id="cDrafts" hidden></span></a>
+    <a href="#atendimento">Atendimento</a>
+    <a href="#operacao">Operação <span class="count" id="cExc" hidden></span></a>
+    <a href="#memoria">Memória da marca</a>
+  </nav>
+
+  <main id="view"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+const KEY = "presenca-viva:v1";
+const uid = () => Math.random().toString(36).slice(2,9);
+const now = () => new Date().toISOString();
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtDate = iso => { try { return new Date(iso).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}); } catch(e){ return iso; } };
+const brl = v => (v === "" || v == null || isNaN(Number(v))) ? null : Number(v).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const norm = s => String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+
+/* ---------- Estado inicial (exemplos marcados) ---------- */
+function seed(){
+  const kit = uid();
+  const s = {
+    mode: "presenca",
+    brand: {
+      marca: "Sua marca",
+      profissional: "Você",
+      voz: "Acolhedora, direta, prática. Fala de mãe para mãe, sem culpa e sem exagero.",
+      estetica: "Luz natural, cenas reais da casa, cores suaves, nada encenado.",
+      pilares: ["Fotografia afetiva", "Fotografe antes que mude", "Transformações da casa", "Design", "Identidade e Posicionamento"],
+      nomesProtegidos: ["Pedro"],
+      temasProibidos: ["rotina íntima dos filhos", "saúde dos filhos", "escola e endereço"],
+      descontoMax: 0,
+      prazoServicoDias: 15
+    },
+    offers: [
+      { id: kit, nome: "Kit Celular na Mão, Memórias do Coração", tipo: "produto", preco: "", entregaAuto: true, link: "", vagas: 0, fase: 1, ativo: true },
+      { id: uid(), nome: "Identidade e Posicionamento", tipo: "servico", preco: "", entregaAuto: false, link: "", vagas: 0, fase: 2, ativo: false },
+      { id: uid(), nome: "Ensaio de Branding com IA", tipo: "servico", preco: "", entregaAuto: false, link: "", vagas: 0, fase: 2, ativo: false }
+    ],
+    faqs: [
+      { id: uid(), q: "Como recebo o kit?", kw: "receb, entrega, chega, acesso, enviad", a: "Assim que o pagamento é confirmado, o acesso chega automaticamente no seu e-mail.", ok: false },
+      { id: uid(), q: "Preciso de câmera profissional?", kw: "camera, profissional, celular, equipamento", a: "Não. O kit foi pensado para fotografar com o celular que você já tem.", ok: false },
+      { id: uid(), q: "Por quanto tempo tenho acesso?", kw: "tempo, acesso, vitalicio, expira, prazo", a: "", ok: false }
+    ],
+    inbox: [], drafts: [], chat: [], exceptions: [], interest: [], briefings: [], orders: [], log: [],
+    test: { inicio: null, minutos: 0 },
+    sample: true
+  };
+  s.chat.push({ who: "bot", t: now(), text: `Olá! Sou a assistente da ${s.brand.marca}. Posso tirar dúvidas sobre o Kit Celular na Mão e te mostrar como comprar.` });
+  return s;
+}
+
+let S;
+let storageOk = true;
+function load(){
+  try { const raw = localStorage.getItem(KEY); if (raw) { S = JSON.parse(raw); return; } } catch(e){ storageOk = false; }
+  S = seed();
+  ingest({ tipo: "audio", texto: "Hoje percebi que quase não tenho fotos minhas com o Pedro. Estou sempre atrás da câmera.", privado: false, arquivo: "audio-exemplo.m4a" }, true);
+}
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(S)); storageOk = true; } catch(e){ storageOk = false; }
+  const tag = document.getElementById("saveTag");
+  tag.textContent = storageOk ? "salvo neste aparelho" : "sem armazenamento: exporte antes de sair";
+  tag.className = "tag " + (storageOk ? "" : "warn");
+}
+function log(tipo, texto, extra){ S.log.unshift({ id: uid(), t: now(), tipo, texto, ...(extra||{}) }); if (S.log.length > 400) S.log.length = 400; }
+function toast(msg){ const el = document.getElementById("toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => el.hidden = true, 2600); }
+
+/* ---------- Regras de modo ---------- */
+const MODE_RULES = {
+  presenca: "Aproveita materiais novos da Entrada, gera rascunhos e abre briefing de serviços até o limite de vagas. Produtos com entrega automática seguem vendendo.",
+  reserva: "Materiais novos ficam guardados. A produção usa só o acervo aprovado. Serviços só com vaga registrada; sem vaga, vai para a lista de interesse.",
+  protecao: "Mantém atendimento e venda de produtos com entrega automática. Nenhum serviço é prometido: todo pedido personalizado entra na lista de interesse."
+};
+const kitOffer = () => S.offers.find(o => o.tipo === "produto" && o.ativo);
+function vagasLivres(o){
+  const usadas = S.briefings.filter(b => b.oferta === o.id && b.status !== "recusado").length;
+  return Math.max(0, Number(o.vagas||0) - usadas);
+}
+
+/* ---------- Motor de redação (regras, sem inventar) ---------- */
+const PILAR_KW = {
+  "Fotografe antes que mude": ["foto", "fotos", "camera", "fase", "cresc", "muda", "memoria", "registr", "filho", "filha", "bebe"],
+  "Fotografia afetiva": ["afeto", "afetiv", "lembranc", "album", "familia", "momento"],
+  "Transformações da casa": ["casa", "reforma", "sala", "quarto", "cozinha", "decor", "antes e depois", "moveis"],
+  "Design": ["design", "cor", "paleta", "tipografia", "layout", "composic"],
+  "Identidade e Posicionamento": ["marca", "posicionamento", "identidade", "cliente", "nicho", "branding"]
+};
+const DICAS = {
+  "Fotografe antes que mude": [
+    "Apoie o celular numa superfície firme e use o temporizador de 10 segundos.",
+    "Ative o modo sequência: entre várias fotos, uma vai pegar o olhar de verdade.",
+    "Fique de lado para a janela. A luz natural suaviza o rosto e não exige edição.",
+    "Antes de entregar o celular a alguém, enquadre a cena e mostre só onde tocar."
+  ],
+  "Fotografia afetiva": [
+    "Fotografe as mãos, os pés, o detalhe. É o que muda primeiro.",
+    "Registre a rotina comum: o café, o banho de sol, a bagunça do chão.",
+    "Faça uma foto por semana no mesmo lugar e veja a mudança em um ano."
+  ],
+  "Transformações da casa": [
+    "Fotografe o antes do mesmo ângulo que vai usar no depois.",
+    "Use a altura do peito e mantenha as linhas verticais retas.",
+    "Mostre um detalhe que conta a história da mudança."
+  ],
+  "Design": ["Escolha uma cor dominante e use as outras só para apoiar.", "Deixe espaço vazio. Ele dá descanso ao olhar.", "Repita o mesmo elemento para criar unidade."],
+  "Identidade e Posicionamento": ["Diga para quem você é, antes de dizer o que faz.", "Uma promessa clara vence uma lista de serviços.", "Mostre o processo, não só o resultado."]
+};
+function detectPilar(t){
+  const n = norm(t); let best = "Fotografia afetiva", score = 0;
+  for (const [p, kws] of Object.entries(PILAR_KW)) { const sc = kws.filter(k => n.includes(norm(k))).length; if (sc > score) { score = sc; best = p; } }
+  return best;
+}
+function protect(text){
+  let out = text; const found = [];
+  for (const nome of S.brand.nomesProtegidos.filter(Boolean)) {
+    const re = new RegExp("\\b(o |a |do |da |com o |com a )?" + nome.replace(/[.*+?^${}()|[\]\\]/g,"\\$&") + "\\b", "gi");
+    if (re.test(out)) { found.push(nome); out = out.replace(re, (m, art) => { const a = norm(art||""); return a.startsWith("com") ? "com meu filho" : a.startsWith("d") ? "do meu filho" : "meu filho"; }); }
+  }
+  const temas = S.brand.temasProibidos.filter(t => t && norm(text).includes(norm(t)));
+  return { text: out, found, temas };
+}
+function firstSentences(t, n){ return (t.match(/[^.!?]+[.!?]?/g) || [t]).slice(0, n).join(" ").trim(); }
+
+function makeDrafts(entry){
+  const pilar = detectPilar(entry.texto);
+  const p = protect(entry.texto);
+  const relato = firstSentences(p.text, 2);
+  const dicas = DICAS[pilar] || DICAS["Fotografia afetiva"];
+  const kit = kitOffer();
+  const isCliente = entry.tipo === "duvida";
+  const base = { origem: entry.id, pilar, status: "aguardando", criado: now(), reusos: 0, agendado: null, avisos: [] };
+  if (p.found.length) base.avisos.push(`Nome protegido trocado: ${p.found.join(", ")}`);
+  if (p.temas.length) base.avisos.push(`Tema fora dos limites: ${p.temas.join(", ")}. Revise antes de aprovar.`);
+  if (isCliente) {
+    return [{ ...base, id: uid(), formato: "Resposta frequente", titulo: "Nova pergunta para confirmar",
+      texto: `Pergunta recebida:\n"${p.text}"\n\nEscreva a resposta confirmada na Memória da marca. Até lá, a assistente encaminha essa dúvida para você.` }];
+  }
+  const out = [];
+  out.push({ ...base, id: uid(), formato: "Roteiro curto", titulo: `${pilar}: roteiro`,
+    texto: `GANCHO (0–3s)\n${pilar === "Fotografe antes que mude" ? "Quantas fotos você tem com seu filho em que você também aparece?" : "Uma coisa que eu percebi e quero dividir com você."}\n\nRELATO (suas palavras)\n"${relato}"\n\nVIRADA\n${dicas[0]}\n\nFECHAMENTO\n${pilar === "Fotografe antes que mude" ? "A fase passa. A foto fica. Fotografe antes que mude." : "Salva para lembrar quando precisar."}`});
+  out.push({ ...base, id: uid(), formato: "Sequência de stories", titulo: `${pilar}: stories`,
+    texto: `1. Enquete: "${pilar === "Fotografe antes que mude" ? "Você aparece nas fotos com seus filhos? Sim / Quase nunca" : "Isso acontece com você? Sim / Não"}"\n2. Dica prática: ${dicas[1 % dicas.length]}\n3. Dica prática: ${dicas[2 % dicas.length]}\n4. ${dicas[3 % dicas.length] || dicas[0]}`});
+  if (kit && (pilar === "Fotografe antes que mude" || pilar === "Fotografia afetiva")) {
+    out.push({ ...base, id: uid(), formato: "Conexão com oferta", titulo: `Ponte para o ${kit.nome}`,
+      texto: `Story final / legenda:\n"Se você também está sempre atrás da câmera, o ${kit.nome} mostra passo a passo como aparecer nas fotos usando só o celular."\n\nCTA: "Responda KIT que eu te mando o link."\n\nRegra: a assistente responde com preço e link apenas se estiverem aprovados na Memória da marca.`});
+  }
+  out.push({ ...base, id: uid(), formato: "Legenda de post", titulo: `${pilar}: legenda`,
+    texto: `${relato}\n\n${dicas.slice(0,3).map((d,i)=>`${i+1}. ${d}`).join("\n")}\n\nSalve este post e mande para uma mãe que vive atrás da câmera.`});
+  return out;
+}
+
+function ingest(entry, silent){
+  const e = { id: uid(), t: now(), status: "novo", ...entry };
+  S.inbox.unshift(e);
+  if (e.privado) { e.status = "privado"; log("entrada", "Material marcado como privado. Não será usado."); return e; }
+  if (S.mode !== "presenca" && e.tipo !== "duvida") { e.status = "guardado"; log("entrada", `Material guardado (modo ${S.mode}). Será usado quando voltar ao modo Presença.`); return e; }
+  const ds = makeDrafts(e);
+  S.drafts.unshift(...ds);
+  e.status = "organizado";
+  e.pilar = ds[0]?.pilar;
+  if (!silent) log("producao", `${ds.length} rascunho(s) gerados a partir de ${labelTipo(e.tipo)}.`);
+  return e;
+}
+const labelTipo = t => ({ audio: "áudio", foto: "fotografia", video: "trecho de vídeo", duvida: "dúvida de cliente", trabalho: "trabalho realizado", texto: "nota" }[t] || t);
+
+/* ---------- Atendimento ---------- */
+function intent(msg){
+  const n = norm(msg);
+  if (/(reclam|nao chegou|nao recebi|problema|errado|insatisf|reembolso|devolu|cancel)/.test(n)) return "reclamacao";
+  if (/(desconto|cupom|mais barato|promoc|abaix)/.test(n)) return "desconto";
+  if (/(personaliz|ensaio|identidade|posicionamento|branding|servico|sessao|contratar voce|atendimento individual)/.test(n)) return "servico";
+  if (/(quero|comprar|link|pagar|pagamento|pix|cartao|^kit$|\bkit\b.*quero)/.test(n)) return "compra";
+  if (/(quanto|preco|valor|custa)/.test(n)) return "preco";
+  return "duvida";
+}
+function botReply(msg){
+  const it = intent(msg); const kit = kitOffer(); const m = S.brand.marca;
+  const exc = (motivo, detalhe) => { S.exceptions.unshift({ id: uid(), t: now(), motivo, detalhe, status: "aberta" }); log("excecao", `${motivo}: ${detalhe}`); };
+  if (it === "reclamacao") { exc("Reclamação", msg); return { text: `Sinto muito por isso. Vou levar agora para ${S.brand.profissional} com prioridade. Você vai receber retorno direto dela.`, auto: false }; }
+  if (it === "desconto") {
+    if (Number(S.brand.descontoMax) > 0) { log("auto", "Desconto dentro da regra informado."); return { text: `Posso aplicar até ${S.brand.descontoMax}% de desconto, que é o máximo autorizado.`, auto: true }; }
+    exc("Desconto fora da regra", msg); return { text: "Não tenho autorização para oferecer desconto. Encaminhei seu pedido e, se houver possibilidade, você recebe a resposta por aqui.", auto: false };
+  }
+  if (it === "servico") {
+    const svc = S.offers.filter(o => o.tipo === "servico" && o.ativo);
+    const comVaga = S.mode !== "protecao" ? svc.find(o => vagasLivres(o) > 0) : null;
+    if (comVaga) {
+      S.briefings.unshift({ id: uid(), t: now(), oferta: comVaga.id, cliente: msg, status: "briefing" });
+      log("auto", `Briefing aberto para ${comVaga.nome}.`);
+      return { text: `Temos vaga para ${comVaga.nome}. Para preparar seu briefing, me conte:\n1. Qual é o seu trabalho e para quem?\n2. O que você quer que as pessoas sintam ao ver sua marca?\n3. Para quando você precisa?\nO prazo de entrega é de até ${S.brand.prazoServicoDias} dias após a confirmação.`, auto: true };
+    }
+    S.interest.unshift({ id: uid(), t: now(), pedido: msg, modo: S.mode });
+    log("auto", "Pedido personalizado foi para a lista de interesse.");
+    return { text: "Os serviços personalizados estão sem vagas abertas agora. Coloquei você na lista de interesse e você será avisada primeiro quando abrir.\n\nSe quiser começar hoje, o Kit Celular na Mão tem entrega automática.", auto: true };
+  }
+  if (it === "compra" || it === "preco") {
+    if (!kit) { exc("Sem produto ativo", msg); return { text: "Vou confirmar essa informação e te respondo.", auto: false }; }
+    const p = brl(kit.preco);
+    if (!p) { exc("Preço não confirmado", `Cliente pediu preço/compra do ${kit.nome}`); return { text: `O valor do ${kit.nome} ainda não está confirmado por aqui. Encaminhei para ${S.brand.profissional} e te aviso assim que tiver.`, auto: false }; }
+    if (it === "preco") { log("auto", "Preço vigente informado."); return { text: `O ${kit.nome} custa ${p}${kit.entregaAuto ? ", com entrega automática logo após o pagamento" : ""}. Quer o link?`, auto: true }; }
+    if (!kit.link) { exc("Link de pagamento ausente", kit.nome); return { text: "Estou confirmando o link de pagamento e te mando em seguida.", auto: false }; }
+    S.orders.unshift({ id: uid(), t: now(), oferta: kit.id, status: "link enviado" });
+    log("venda", `Link de pagamento enviado (${kit.nome}).`);
+    return { text: `Aqui está o link para comprar o ${kit.nome} por ${p}:\n${kit.link}\n\nDepois do pagamento, o acesso chega automaticamente.`, auto: true };
+  }
+  const n = norm(msg);
+  const hit = S.faqs.find(f => f.ok && f.a && f.kw.split(",").map(k => norm(k.trim())).filter(Boolean).some(k => n.includes(k)));
+  if (hit) { log("auto", `Dúvida respondida: ${hit.q}`); return { text: hit.a, auto: true }; }
+  exc("Dúvida sem resposta confirmada", msg);
+  ingest({ tipo: "duvida", texto: msg, privado: false }, true);
+  return { text: `Boa pergunta. Ainda não tenho essa resposta confirmada, então encaminhei para ${S.brand.profissional}. Prefiro te responder certo do que rápido.`, auto: false };
+}
+
+/* ---------- Render ---------- */
+const TABS = ["resumo","entrada","producao","atendimento","operacao","memoria"];
+const current = () => { const h = location.hash.slice(1); return TABS.includes(h) ? h : "resumo"; };
+
+function render(){
+  document.querySelectorAll(".mode").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === S.mode)));
+  const r = document.getElementById("modeRules"); r.textContent = MODE_RULES[S.mode]; r.dataset.mode = S.mode;
+  document.getElementById("brandLine").textContent = `${S.brand.marca} · assistente da marca`;
+  const tab = current();
+  document.querySelectorAll("#tabs a").forEach(a => { if (a.getAttribute("href") === "#" + tab) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+  const pend = S.drafts.filter(d => d.status === "aguardando").length;
+  const exc = S.exceptions.filter(e => e.status === "aberta").length;
+  const cd = document.getElementById("cDrafts"); cd.hidden = !pend; cd.textContent = pend;
+  const ce = document.getElementById("cExc"); ce.hidden = !exc; ce.textContent = exc;
+  document.getElementById("view").innerHTML = `<section class="view">${VIEWS[tab]()}</section>`;
+  if (tab === "atendimento") { const c = document.querySelector(".chat"); if (c) c.scrollTop = c.scrollHeight; }
+  save();
+}
+
+function sampleBanner(){
+  return S.sample ? `<div class="banner info"><span>Os dados abaixo são <b>exemplos</b> para mostrar o fluxo. Ajuste a Memória da marca com suas informações reais.</span><button class="btn" data-act="clear-sample">Entendi</button></div>` : "";
+}
+function setupBanner(){
+  const kit = kitOffer(); const faltas = [];
+  if (kit && !brl(kit.preco)) faltas.push("preço aprovado do kit");
+  if (kit && !kit.link) faltas.push("link de pagamento");
+  if (!S.faqs.some(f => f.ok)) faltas.push("respostas frequentes confirmadas");
+  return faltas.length ? `<div class="banner"><span>Para vender sem você, falta: <b>${faltas.join(", ")}</b>.</span><a class="btn" href="#memoria" style="text-decoration:none">Completar</a></div>` : "";
+}
+
+const VIEWS = {
+resumo(){
+  const pend = S.drafts.filter(d => d.status === "aguardando").length;
+  const aprov = S.drafts.filter(d => ["aprovado","programado"].includes(d.status)).length;
+  const exc = S.exceptions.filter(e => e.status === "aberta");
+  const conf = S.orders.filter(o => o.status === "confirmado").length;
+  const prox = S.drafts.filter(d => d.status === "programado").sort((a,b) => a.agendado.localeCompare(b.agendado)).slice(0,3);
+  return `${sampleBanner()}${setupBanner()}
+  <div class="kpis">
+    <div class="kpi"><b>${pend}</b><span>rascunhos para aprovar</span></div>
+    <div class="kpi"><b>${aprov}</b><span>no acervo aprovado</span></div>
+    <div class="kpi"><b>${exc.length}</b><span>exceções para você</span></div>
+    <div class="kpi"><b>${conf}</b><span>vendas confirmadas</span></div>
+  </div>
+  <div class="card">
+    <div class="row between"><h2>O que precisa de você</h2><span class="eyebrow">${exc.length + pend} itens</span></div>
+    ${exc.length + pend === 0 ? `<p class="muted">Nada pendente. O sistema segue dentro das regras.</p>` : `<div class="list">
+      ${pend ? `<a class="item" href="#producao" style="text-decoration:none;color:inherit"><div class="row between"><b>${pend} rascunho(s) aguardando aprovação</b><span class="tag acc">produção</span></div><span class="muted small">Depois de aprovados, entram no acervo e podem ser reaproveitados sem nova gravação.</span></a>` : ""}
+      ${exc.slice(0,4).map(e => `<a class="item" href="#operacao" style="text-decoration:none;color:inherit"><div class="row between"><b>${esc(e.motivo)}</b><span class="tag bad">exceção</span></div><span class="muted small">${esc(e.detalhe)}</span></a>`).join("")}
+    </div>`}
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>Próximas publicações</h3>${prox.length ? `<div class="timeline">${prox.map(d => `<div><span class="mono muted">${fmtDate(d.agendado)}</span><span>${esc(d.titulo)}</span></div>`).join("")}</div>` : `<p class="muted small">Nenhuma programada. Aprove rascunhos e use “Programar semana” na Produção.</p>`}</div>
+    <div class="card"><h3>Jornada 1</h3><p class="small muted">Conteúdo de memória afetiva → Kit Celular na Mão → pagamento → entrega automática → suporte básico.</p>
+      <div class="row"><span class="tag ${S.drafts.some(d=>d.status!=="rejeitado")?"ok":""}">conteúdo</span><span class="tag ${brl(kitOffer()?.preco)?"ok":"warn"}">preço</span><span class="tag ${kitOffer()?.link?"ok":"warn"}">pagamento</span><span class="tag ${kitOffer()?.entregaAuto?"ok":"warn"}">entrega auto</span><span class="tag ${S.faqs.some(f=>f.ok)?"ok":"warn"}">suporte</span></div></div>
+  </div>
+  <div class="card"><h3>Atividade recente</h3>${S.log.length ? `<div class="timeline">${S.log.slice(0,6).map(l => `<div><span class="mono muted">${fmtDate(l.t)}</span><span>${esc(l.texto)}</span></div>`).join("")}</div>` : `<p class="muted small">Sem atividade ainda.</p>`}</div>`;
+},
+entrada(){
+  return `<div class="card">
+    <div><h2>Caixa de entrada</h2><p class="muted small">Um áudio, uma foto, um vídeo, uma dúvida de cliente ou um trabalho realizado. Escreva o que foi dito ou o contexto; o sistema organiza.</p></div>
+    <form id="fIn" class="list">
+      <div class="grid2">
+        <label for="inTipo">Tipo de material<select id="inTipo">
+          <option value="audio">Áudio (transcrição)</option><option value="foto">Fotografia</option><option value="video">Trecho de vídeo</option>
+          <option value="duvida">Dúvida de cliente</option><option value="trabalho">Trabalho realizado</option><option value="texto">Nota</option></select></label>
+        <label for="inArq">Arquivo (opcional)<input id="inArq" type="file" accept="audio/*,image/*,video/*"></label>
+      </div>
+      <label for="inTxt">O que foi dito ou o contexto<textarea id="inTxt" required placeholder="Ex.: Hoje terminei a sala da cliente. Antes era escura, agora tem luz de manhã."></textarea></label>
+      <label class="check" for="inPriv"><input id="inPriv" type="checkbox"> Privado: envolve a intimidade dos meus filhos, não usar no negócio</label>
+      <div class="row"><button class="btn primary" type="submit">Enviar para organizar</button><span class="muted small">${S.mode === "presenca" ? "Modo Presença: vira rascunho agora." : "Modo " + (S.mode==="reserva"?"Reserva":"Proteção") + ": fica guardado para depois."}</span></div>
+    </form>
+  </div>
+  <div class="card"><div class="row between"><h3>Recebidos</h3>${S.inbox.some(i=>i.status==="guardado") && S.mode==="presenca" ? `<button class="btn" data-act="process-saved">Organizar guardados</button>` : ""}</div>
+    ${S.inbox.length ? `<div class="list">${S.inbox.map(i => `<div class="item">
+      <div class="row between"><span class="eyebrow">${labelTipo(i.tipo)} · ${fmtDate(i.t)}</span>
+      <span class="tag ${i.status==="organizado"?"ok":i.status==="privado"?"info":i.status==="guardado"?"warn":""}">${i.status}</span></div>
+      <p>${esc(i.texto)}</p>${i.arquivo ? `<span class="muted small mono">${esc(i.arquivo)}</span>` : ""}
+      ${i.pilar ? `<span class="small muted">Pilar: ${esc(i.pilar)}</span>` : ""}</div>`).join("")}</div>` : `<div class="empty">Nada recebido ainda. Envie o primeiro material acima.</div>`}
+  </div>`;
+},
+producao(){
+  const groups = [["aguardando","Aguardando sua aprovação"],["aprovado","Acervo aprovado"],["programado","Programados"],["rejeitado","Descartados"]];
+  const approved = S.drafts.filter(d => d.status === "aprovado").length;
+  return `<div class="card"><div class="row between"><div><h2>Redação e produção</h2><p class="muted small">Nada é publicado sem aprovação inicial. Depois, o acervo trabalha sozinho dentro das regras.</p></div>
+    <div class="row"><button class="btn" data-act="reuse" ${S.drafts.some(d=>["aprovado","programado"].includes(d.status))?"":"disabled"}>Reaproveitar acervo</button><button class="btn primary" data-act="schedule" ${approved?"":"disabled"}>Programar semana</button></div></div>
+    <p class="small muted">Publicação real depende da integração com Instagram. Até lá, “programado” significa pronto e com data.</p></div>
+  ${groups.map(([st, label]) => { const ds = S.drafts.filter(d => d.status === st); if (!ds.length && st !== "aguardando") return "";
+    return `<div class="card"><div class="row between"><h3>${label}</h3><span class="eyebrow">${ds.length}</span></div>
+    ${ds.length ? `<div class="list">${ds.map(d => `<div class="item" data-id="${d.id}">
+      <div class="row between"><b>${esc(d.titulo)}</b><div class="row"><span class="tag acc">${esc(d.formato)}</span>${d.reusos?`<span class="tag">reuso ${d.reusos}</span>`:""}${d.agendado?`<span class="tag info mono">${fmtDate(d.agendado)}</span>`:""}</div></div>
+      ${d.avisos?.length ? d.avisos.map(a => `<span class="tag warn" style="white-space:normal">${esc(a)}</span>`).join("") : ""}
+      ${d.editing ? `<textarea id="ed-${d.id}" rows="8">${esc(d.texto)}</textarea>` : `<pre>${esc(d.texto)}</pre>`}
+      <div class="row">${st === "aguardando" ? (d.editing ? `<button class="btn primary" data-act="save-edit">Salvar e aprovar</button>` : `<button class="btn primary" data-act="approve">Aprovar</button><button class="btn" data-act="edit">Editar</button><button class="btn ghost" data-act="reject">Descartar</button>`)
+        : st === "aprovado" || st === "programado" ? `<button class="btn" data-act="copy">Copiar texto</button>${st==="programado"?`<button class="btn" data-act="published">Marcar publicado</button>`:""}<button class="btn ghost" data-act="unapprove">Voltar para revisão</button>`
+        : `<button class="btn ghost" data-act="restore">Recuperar</button>`}</div>
+    </div>`).join("")}</div>` : `<div class="empty">Nenhum rascunho aguardando. Envie material na Entrada.</div>`}</div>`; }).join("")}`;
+},
+atendimento(){
+  return `${setupBanner()}<div class="card">
+    <div><h2>Atendimento comercial</h2><p class="muted small">Simule uma conversa de cliente. A assistente se apresenta como assistente da marca, responde só com informação confirmada e encaminha exceções.</p></div>
+    <div class="chat" aria-live="polite">${S.chat.map(m => `<div class="msg ${m.who}">${esc(m.text)}<span class="meta">${fmtDate(m.t)}${m.who==="bot" && m.auto===false ? " · encaminhado a você" : ""}</span></div>`).join("")}</div>
+    <form id="fChat" class="row"><input id="chatIn" placeholder="Mensagem da cliente…" autocomplete="off" style="flex:1 1 200px" required><button class="btn primary" type="submit">Enviar</button></form>
+    <div class="row small"><span class="muted">Teste:</span>${["Quanto custa o kit?","Quero comprar","Tem desconto?","Preciso de câmera profissional?","Quero um ensaio de branding","Não recebi o acesso"].map(q => `<button class="btn ghost" data-act="quick" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+    <div class="row"><button class="btn ghost" data-act="reset-chat">Nova conversa</button></div>
+  </div>`;
+},
+operacao(){
+  const t = S.test; const start = t.inicio ? new Date(t.inicio) : null;
+  const horas = start ? Math.min(72, (Date.now() - start) / 36e5) : 0;
+  const since = l => start && new Date(l.t) >= start;
+  const L = S.log.filter(since);
+  const m = {
+    auto: L.filter(l => l.tipo === "auto").length,
+    exc: L.filter(l => l.tipo === "excecao").length,
+    inesperadas: L.filter(l => l.tipo === "excecao" && /sem resposta|ausente|não confirmado|Sem produto/.test(l.texto)).length,
+    pedidos: L.filter(l => l.tipo === "venda").length,
+    vendas: L.filter(l => l.tipo === "confirmada").length
+  };
+  const open = S.exceptions.filter(e => e.status === "aberta");
+  const svc = S.offers.filter(o => o.tipo === "servico");
+  return `<div class="card">
+    <div class="row between"><div><h2>Teste das 72 horas</h2><p class="muted small">Ele opera 72 horas sem sua intervenção, mantendo conteúdo, atendimento e entrega do kit, sem criar pendências inesperadas? É um critério de validação, não uma garantia.</p></div>
+    ${start ? `<button class="btn ghost" data-act="stop-test">Encerrar teste</button>` : `<button class="btn primary" data-act="start-test">Iniciar teste</button>`}</div>
+    ${start ? `<div class="row between small"><span class="mono">${horas.toFixed(1)} h de 72 h</span><span class="muted">início ${fmtDate(t.inicio)}</span></div><div class="meter"><i style="width:${(horas/72*100).toFixed(1)}%"></i></div>
+    <div class="kpis">
+      <div class="kpi"><b>${t.minutos}</b><span>minutos seus</span></div>
+      <div class="kpi"><b>${m.auto}</b><span>resolvidas sozinho</span></div>
+      <div class="kpi"><b>${m.exc}</b><span>exceções</span></div>
+      <div class="kpi"><b>${m.inesperadas}</b><span>pendências inesperadas</span></div>
+      <div class="kpi"><b>${m.pedidos}</b><span>links enviados</span></div>
+      <div class="kpi"><b>${m.vendas}</b><span>vendas confirmadas</span></div>
+    </div>
+    <div class="row"><span class="small muted">Registrar meu tempo:</span>${[5,15,30].map(n => `<button class="btn" data-act="min" data-n="${n}">+${n} min</button>`).join("")}</div>
+    ${horas >= 72 ? `<div class="banner ${m.inesperadas ? "bad" : "info"}"><span>${m.inesperadas ? `Teste concluído com ${m.inesperadas} pendência(s) inesperada(s). Corrija a Memória da marca e repita.` : "Teste concluído sem pendências inesperadas."}</span></div>` : ""}` : `<p class="small muted">Ao iniciar, contamos o tempo que você precisou dedicar, dúvidas resolvidas, falhas, pedidos e vendas confirmadas.</p>`}
+  </div>
+  <div class="card"><div class="row between"><h3>Exceções encaminhadas para você</h3><span class="eyebrow">${open.length} abertas</span></div>
+    ${open.length ? `<div class="list">${open.map(e => `<div class="item" data-id="${e.id}"><div class="row between"><b>${esc(e.motivo)}</b><span class="mono muted small">${fmtDate(e.t)}</span></div><p class="small">${esc(e.detalhe)}</p><div class="row"><button class="btn" data-act="resolve">Resolvida</button>${/Dúvida/.test(e.motivo)?`<a class="btn" href="#memoria" style="text-decoration:none">Criar resposta</a>`:""}</div></div>`).join("")}</div>` : `<div class="empty">Nenhuma exceção aberta.</div>`}
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>Vendas do kit</h3>
+      ${S.orders.length ? `<div class="list">${S.orders.slice(0,8).map(o => `<div class="row between small" data-id="${o.id}"><span class="mono muted">${fmtDate(o.t)}</span><span class="tag ${o.status==="confirmado"?"ok":""}">${o.status}</span>${o.status!=="confirmado"?`<button class="btn ghost" data-act="confirm-order">Confirmar pagamento</button>`:""}</div>`).join("")}</div>` : `<p class="muted small">Nenhum link enviado ainda.</p>`}
+      <p class="small muted">Com integração de pagamento, a confirmação e a entrega acontecem sozinhas.</p></div>
+    <div class="card"><h3>Capacidade de serviços</h3>
+      ${svc.map(o => `<div class="row between small"><span>${esc(o.nome)}</span><span class="tag ${o.ativo && vagasLivres(o)?"ok":"warn"}">${o.ativo ? vagasLivres(o) + " vaga(s)" : "fase 2"}</span></div>`).join("")}
+      <p class="small muted">Lista de interesse: <b>${S.interest.length}</b> · briefings: <b>${S.briefings.length}</b></p>
+      ${S.interest.length ? `<div class="timeline">${S.interest.slice(0,4).map(i => `<div><span class="mono muted">${fmtDate(i.t)}</span><span>${esc(i.pedido)}</span></div>`).join("")}</div>` : ""}</div>
+  </div>
+  <div class="card"><h3>Integrações</h3><p class="small muted">O desenho funciona aqui. A operação 24 horas depende destas conexões.</p>
+    <div class="list">${[["Publicação","Instagram / agendador"],["Atendimento","Direct e WhatsApp Business"],["Pagamento","Checkout com link e confirmação"],["Entrega","E-mail automático com acesso ao kit"]].map(([a,b]) => `<div class="row between small"><span><b>${a}</b> <span class="muted">${b}</span></span><span class="tag">não conectado</span></div>`).join("")}</div></div>
+  <div class="card"><h3>Registro</h3>${S.log.length ? `<div class="timeline">${S.log.slice(0,15).map(l => `<div><span class="mono muted">${fmtDate(l.t)}</span><span>${esc(l.texto)}</span></div>`).join("")}</div>` : `<p class="muted small">Vazio.</p>`}</div>`;
+},
+memoria(){
+  const b = S.brand;
+  return `<form id="fBrand" class="card">
+    <div><h2>Memória da marca</h2><p class="muted small">Tudo que a assistente pode dizer vem daqui. O que não está confirmado, ela encaminha para você.</p></div>
+    <div class="grid2">
+      <label for="bMarca">Nome da marca<input id="bMarca" value="${esc(b.marca)}"></label>
+      <label for="bProf">Como a assistente se refere a você<input id="bProf" value="${esc(b.profissional)}"></label>
+    </div>
+    <label for="bVoz">Voz<textarea id="bVoz" rows="2">${esc(b.voz)}</textarea></label>
+    <label for="bEst">Estética<textarea id="bEst" rows="2">${esc(b.estetica)}</textarea></label>
+    <label for="bPil">Pilares de conteúdo (um por linha)<textarea id="bPil" rows="4">${esc(b.pilares.join("\n"))}</textarea></label>
+    <h3>Limites de exposição</h3>
+    <div class="grid2">
+      <label for="bNomes">Nomes protegidos (trocados por “meu filho”)<input id="bNomes" value="${esc(b.nomesProtegidos.join(", "))}"></label>
+      <label for="bTemas">Temas que nunca entram<input id="bTemas" value="${esc(b.temasProibidos.join(", "))}"></label>
+    </div>
+    <h3>Regras de autonomia</h3>
+    <div class="grid2">
+      <label for="bDesc">Desconto máximo sem perguntar (%)<input id="bDesc" type="number" min="0" max="100" value="${esc(b.descontoMax)}"></label>
+      <label for="bPrazo">Prazo de serviço prometido (dias)<input id="bPrazo" type="number" min="1" value="${esc(b.prazoServicoDias)}"></label>
+    </div>
+    <p class="small muted">A assistente nunca inventa depoimentos, resultados, cenas da sua rotina ou experiências em primeira pessoa.</p>
+    <div class="row"><button class="btn primary" type="submit">Salvar memória</button></div>
+  </form>
+  <div class="card"><h3>Ofertas e preços aprovados</h3>
+    <div class="list">${S.offers.map(o => `<div class="item" data-id="${o.id}">
+      <div class="row between"><b>${esc(o.nome)}</b><div class="row"><span class="tag ${o.tipo==="produto"?"acc":"info"}">${o.tipo==="produto"?"produto pronto":"serviço"}</span><span class="tag">fase ${o.fase}</span></div></div>
+      <div class="grid2">
+        <label for="op-${o.id}">Preço aprovado (R$)<input id="op-${o.id}" data-f="preco" type="number" min="0" step="0.01" value="${esc(o.preco)}" placeholder="não definido"></label>
+        ${o.tipo==="produto" ? `<label for="ol-${o.id}">Link de pagamento<input id="ol-${o.id}" data-f="link" type="url" value="${esc(o.link)}" placeholder="https://"></label>`
+          : `<label for="ov-${o.id}">Vagas nesta semana<input id="ov-${o.id}" data-f="vagas" type="number" min="0" value="${esc(o.vagas)}"></label>`}
+      </div>
+      <div class="row">
+        <label class="check" for="oa-${o.id}"><input id="oa-${o.id}" data-f="ativo" type="checkbox" ${o.ativo?"checked":""}> Ativa</label>
+        ${o.tipo==="produto" ? `<label class="check" for="oe-${o.id}"><input id="oe-${o.id}" data-f="entregaAuto" type="checkbox" ${o.entregaAuto?"checked":""}> Entrega automática</label>` : ""}
+      </div></div>`).join("")}</div>
+  </div>
+  <div class="card"><div class="row between"><h3>Respostas confirmadas</h3><button class="btn" data-act="add-faq">Nova resposta</button></div>
+    <div class="list">${S.faqs.map(f => `<div class="item" data-id="${f.id}">
+      <div class="row between"><input data-ff="q" id="fq-${f.id}" value="${esc(f.q)}" aria-label="Pergunta" style="flex:1 1 200px;font-weight:600"><span class="tag ${f.ok?"ok":"warn"}">${f.ok?"confirmada":"rascunho"}</span></div>
+      <textarea data-ff="a" id="fa-${f.id}" rows="2" aria-label="Resposta" placeholder="Escreva a resposta confirmada">${esc(f.a)}</textarea>
+      <label for="fk-${f.id}">Palavras que ativam (separadas por vírgula)<input data-ff="kw" id="fk-${f.id}" value="${esc(f.kw)}"></label>
+      <div class="row">${f.ok ? `<button class="btn ghost" data-act="faq-unconfirm">Voltar a rascunho</button>` : `<button class="btn primary" data-act="faq-confirm">Confirmar</button>`}<button class="btn ghost" data-act="faq-del">Excluir</button></div>
+    </div>`).join("")}</div>
+  </div>
+  <div class="card"><h3>Backup</h3><p class="small muted">Os dados ficam só neste navegador. Copie o backup para guardar ou levar para outro aparelho.</p>
+    <textarea id="bk" rows="4" placeholder="Cole aqui um backup para restaurar"></textarea>
+    <div class="row"><button class="btn" data-act="export">Gerar e copiar backup</button><button class="btn" data-act="import">Restaurar backup</button><button class="btn ghost" data-act="reset">Recomeçar do zero</button></div>
+    <div id="resetConfirm" hidden class="banner bad"><span>Apagar todos os dados deste aparelho?</span><div class="row"><button class="btn" data-act="reset-yes">Apagar</button><button class="btn ghost" data-act="reset-no">Cancelar</button></div></div>
+  </div>`;
+}
+};
+
+/* ---------- Eventos ---------- */
+document.querySelector(".modes").addEventListener("click", e => {
+  const b = e.target.closest(".mode"); if (!b) return;
+  if (S.mode === b.dataset.mode) return;
+  S.mode = b.dataset.mode; log("modo", `Modo alterado para ${b.querySelector("b").textContent}.`); render(); toast(`Modo ${b.querySelector("b").textContent} ativado`);
+});
+window.addEventListener("hashchange", render);
+
+document.addEventListener("submit", e => {
+  e.preventDefault();
+  if (e.target.id === "fIn") {
+    const txt = document.getElementById("inTxt").value.trim(); if (!txt) return;
+    const f = document.getElementById("inArq").files[0];
+    const ent = ingest({ tipo: document.getElementById("inTipo").value, texto: txt, privado: document.getElementById("inPriv").checked, arquivo: f ? f.name : "" });
+    render(); toast(ent.status === "organizado" ? "Organizado. Veja os rascunhos na Produção." : ent.status === "privado" ? "Guardado como privado" : "Guardado para o modo Presença");
+  }
+  if (e.target.id === "fChat") {
+    const inp = document.getElementById("chatIn"); const msg = inp.value.trim(); if (!msg) return;
+    sendChat(msg);
+  }
+  if (e.target.id === "fBrand") {
+    const g = id => document.getElementById(id).value;
+    const list = (v, sep) => v.split(sep).map(s => s.trim()).filter(Boolean);
+    Object.assign(S.brand, { marca: g("bMarca").trim() || "Sua marca", profissional: g("bProf").trim() || "Você", voz: g("bVoz"), estetica: g("bEst"),
+      pilares: list(g("bPil"), "\n"), nomesProtegidos: list(g("bNomes"), ","), temasProibidos: list(g("bTemas"), ","),
+      descontoMax: Math.max(0, Number(g("bDesc"))||0), prazoServicoDias: Math.max(1, Number(g("bPrazo"))||1) });
+    log("memoria", "Memória da marca atualizada."); render(); toast("Memória salva");
+  }
+});
+function sendChat(msg){
+  S.chat.push({ who: "cli", t: now(), text: msg });
+  const r = botReply(msg);
+  S.chat.push({ who: "bot", t: now(), text: r.text, auto: r.auto });
+  render();
+  const inp = document.getElementById("chatIn"); if (inp) inp.focus();
+}
+
+document.addEventListener("change", e => {
+  const off = e.target.closest("[data-f]");
+  if (off) { const o = S.offers.find(x => x.id === off.closest(".item").dataset.id); const f = off.dataset.f;
+    o[f] = off.type === "checkbox" ? off.checked : (f === "vagas" ? Math.max(0, Number(off.value)||0) : off.value.trim());
+    log("memoria", `Oferta ${o.nome}: ${f} atualizado.`); save(); toast("Oferta salva"); return; }
+  const ff = e.target.closest("[data-ff]");
+  if (ff) { const fq = S.faqs.find(x => x.id === ff.closest(".item").dataset.id); fq[ff.dataset.ff] = ff.value; save(); }
+});
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act; const item = b.closest("[data-id]"); const id = item?.dataset.id;
+  const d = id && S.drafts.find(x => x.id === id);
+  switch (act) {
+    case "clear-sample": S.sample = false; break;
+    case "approve": d.status = "aprovado"; log("producao", `Aprovado: ${d.titulo}`); toast("Aprovado e no acervo"); break;
+    case "edit": d.editing = true; break;
+    case "save-edit": d.texto = document.getElementById("ed-" + id).value; d.editing = false; d.status = "aprovado"; log("producao", `Editado e aprovado: ${d.titulo}`); toast("Salvo e aprovado"); break;
+    case "reject": d.status = "rejeitado"; break;
+    case "restore": case "unapprove": d.status = "aguardando"; d.agendado = null; break;
+    case "published": d.status = "aprovado"; d.agendado = null; d.reusos++; log("producao", `Publicado: ${d.titulo}`); break;
+    case "copy": copy(d.texto); return;
+    case "schedule": {
+      const ap = S.drafts.filter(x => x.status === "aprovado").sort((a,b) => a.reusos - b.reusos).slice(0, 7);
+      const base = new Date(); base.setHours(19, 0, 0, 0);
+      ap.forEach((x, i) => { const dt = new Date(base); dt.setDate(base.getDate() + i + 1); x.agendado = dt.toISOString(); x.status = "programado"; });
+      log("producao", `${ap.length} publicação(ões) programadas para os próximos dias.`); toast(`${ap.length} programadas`); break;
+    }
+    case "reuse": {
+      const pool = S.drafts.filter(x => ["aprovado","programado"].includes(x.status));
+      const src = pool.sort((a,b) => a.reusos - b.reusos)[0]; if (!src) break;
+      const dicas = DICAS[src.pilar] || DICAS["Fotografia afetiva"];
+      const nova = { ...src, id: uid(), status: S.mode === "presenca" ? "aguardando" : "aprovado", agendado: null, reusos: 0, criado: now(), editing: false,
+        titulo: `${src.pilar}: nova versão`, formato: "Reaproveitamento",
+        texto: `Baseado em conteúdo aprovado (“${src.titulo}”).\n\nNovo ângulo: ${dicas[(src.reusos + 1) % dicas.length]}\n\n${src.texto.split("\n").slice(0, 6).join("\n")}` };
+      src.reusos++;
+      S.drafts.unshift(nova);
+      log("producao", `Reaproveitado do acervo: ${src.titulo}${S.mode !== "presenca" ? " (aprovado pela regra do acervo)" : ""}`); toast("Nova versão criada"); break;
+    }
+    case "process-saved": {
+      let n = 0; S.inbox.filter(i => i.status === "guardado").forEach(i => { const ds = makeDrafts(i); S.drafts.unshift(...ds); i.status = "organizado"; i.pilar = ds[0]?.pilar; n += ds.length; });
+      log("producao", `${n} rascunho(s) gerados de materiais guardados.`); toast(`${n} rascunhos gerados`); break;
+    }
+    case "quick": sendChat(b.dataset.q); return;
+    case "reset-chat": S.chat = [{ who: "bot", t: now(), text: `Olá! Sou a assistente da ${S.brand.marca}. Como posso ajudar?` }]; break;
+    case "resolve": { const ex = S.exceptions.find(x => x.id === id); ex.status = "resolvida"; log("operacao", `Exceção resolvida: ${ex.motivo}`); break; }
+    case "confirm-order": { const o = S.orders.find(x => x.id === id); o.status = "confirmado"; log("confirmada", "Pagamento confirmado. Entrega automática liberada."); toast("Venda confirmada"); break; }
+    case "start-test": S.test = { inicio: now(), minutos: 0 }; log("operacao", "Teste de 72 horas iniciado."); break;
+    case "stop-test": S.test = { inicio: null, minutos: 0 }; log("operacao", "Teste de 72 horas encerrado."); break;
+    case "min": S.test.minutos += Number(b.dataset.n); break;
+    case "add-faq": S.faqs.push({ id: uid(), q: "Nova pergunta", kw: "", a: "", ok: false }); break;
+    case "faq-confirm": { const f = S.faqs.find(x => x.id === id); if (!f.a.trim()) { toast("Escreva a resposta antes de confirmar"); return; } f.ok = true; log("memoria", `Resposta confirmada: ${f.q}`); break; }
+    case "faq-unconfirm": S.faqs.find(x => x.id === id).ok = false; break;
+    case "faq-del": S.faqs = S.faqs.filter(x => x.id !== id); break;
+    case "export": { const t = JSON.stringify(S); document.getElementById("bk").value = t; copy(t); return; }
+    case "import": { try { const v = JSON.parse(document.getElementById("bk").value); if (!v.brand || !v.offers) throw 0; S = v; toast("Backup restaurado"); } catch(err){ toast("Backup inválido: cole o texto completo gerado aqui"); return; } break; }
+    case "reset": document.getElementById("resetConfirm").hidden = false; return;
+    case "reset-no": document.getElementById("resetConfirm").hidden = true; return;
+    case "reset-yes": S = seed(); S.sample = false; S.chat = [S.chat[0]]; toast("Dados apagados"); break;
+  }
+  render();
+});
+function copy(t){
+  try { navigator.clipboard.writeText(t).then(() => toast("Copiado"), () => toast("Selecione e copie manualmente")); }
+  catch(e){ toast("Selecione e copie manualmente"); }
+}
+
+load(); render();
+})();
+</script>
+</body></html>
