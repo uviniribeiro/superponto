@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { guardRoles } from "../_shared/auth.ts";
 
 // Brazilian national holidays - fixed dates
 const getFixedHolidays = (year: number) => [
@@ -105,6 +106,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const denied = await guardRoles(req, ['super_admin', 'admin'], corsHeaders);
+  if (denied) return denied;
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

@@ -50,19 +50,29 @@ serve(async (req) => {
     });
 
     const listAdmins = async () => {
-      const { data, error } = await admin
+      // user_roles e profiles não têm chave estrangeira entre si: busca em duas etapas.
+      const { data: roles, error: rolesError } = await admin
         .from("user_roles")
-        .select("user_id, profiles!inner(id, full_name, email, is_active, created_at)")
+        .select("user_id")
         .eq("role", "super_admin");
-      if (error) throw error;
+      if (rolesError) throw rolesError;
+      const ids = (roles ?? []).map((r: { user_id: string }) => r.user_id);
+      if (ids.length === 0) return [];
+
+      const { data: profiles, error: profilesError } = await admin
+        .from("profiles")
+        .select("id, user_id, full_name, email, is_active, created_at")
+        .in("user_id", ids);
+      if (profilesError) throw profilesError;
+
       // deno-lint-ignore no-explicit-any
-      return (data ?? []).map((row: any) => ({
-        user_id: row.user_id as string,
-        profile_id: row.profiles.id as string,
-        full_name: row.profiles.full_name as string,
-        email: row.profiles.email as string,
-        is_active: row.profiles.is_active !== false,
-        created_at: row.profiles.created_at as string,
+      return (profiles ?? []).map((p: any) => ({
+        user_id: p.user_id as string,
+        profile_id: p.id as string,
+        full_name: p.full_name as string,
+        email: p.email as string,
+        is_active: p.is_active !== false,
+        created_at: p.created_at as string,
       }));
     };
 
@@ -210,7 +220,9 @@ serve(async (req) => {
     if (authResponse) return authResponse;
     console.error("Error:", error);
     const status = error instanceof RequestError ? error.status : 400;
-    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    const message = error instanceof Error
+      ? error.message
+      : (error as { message?: string } | null)?.message ?? "Erro desconhecido";
     return json({ error: message }, status);
   }
 });

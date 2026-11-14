@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.23.8";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { clientIpFromHeaders, isIpAllowed, parseAllowlist } from "../_shared/ipAllowlist.ts";
 
 /**
  * Gateway do Robô de Comunicação (agente local instalado na máquina/servidor do cliente).
@@ -66,6 +67,8 @@ const BodySchema = z.object({
     "records",
     "log",
     "update_status",
+    "gps",
+    "telemetry",
   ]),
   hostname: z.string().trim().max(120).optional(),
   os_info: z.string().trim().max(160).optional(),
@@ -95,6 +98,11 @@ const BodySchema = z.object({
   // Telemetria do robô local (CPU, memória, disco, uptime) exibida em tempo real.
   metrics: z.record(z.unknown()).optional(),
   limit: z.number().int().min(1).max(200).optional(),
+  // GPS e telemetria da frota recebidos pelo robô (UDP) e repassados em lote.
+  positions: z.array(z.record(z.unknown())).max(1000).optional(),
+  position: z.record(z.unknown()).optional(),
+  events: z.array(z.record(z.unknown())).max(500).optional(),
+  event: z.record(z.unknown()).optional(),
 });
 
 /** Compara versões semânticas simples ("3.1.0"). Retorna >0 se a > b. */
@@ -123,6 +131,14 @@ serve(async (req) => {
 
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método não permitido" }, 405);
+
+  // Restringe o gateway ao(s) servidor(es) de comunicação quando AGENT_GATEWAY_ALLOWED_IPS estiver definido.
+  const allowlist = parseAllowlist(Deno.env.get("AGENT_GATEWAY_ALLOWED_IPS"));
+  const callerIp = clientIpFromHeaders(req.headers);
+  if (!isIpAllowed(callerIp, allowlist)) {
+    console.warn(`agent-gateway: IP não autorizado ${callerIp ?? "desconhecido"}`);
+    return json({ error: "Origem não autorizada para o gateway de comunicação" }, 403);
+  }
 
   const token = req.headers.get("x-agent-token") ?? "";
   if (token.length < 16 || token.length > 200) {
@@ -792,7 +808,7 @@ serve(async (req) => {
             recorded_at: String(p.recorded_at ?? now),
             source: String(p.source ?? "agent"),
           };
-        }).filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude));
+        }).filter((r: { latitude: number; longitude: number }) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude));
 
         if (rows.length) {
           const { error } = await supabase.from("op_gps_positions").insert(rows);

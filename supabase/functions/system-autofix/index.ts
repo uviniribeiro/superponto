@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
 
-let corsHeaders: Record<string, string> = getCorsHeaders(new Request("https://superponto.lovable.app"));
+let corsHeaders: Record<string, string> = getCorsHeaders(new Request("http://localhost"));
 
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

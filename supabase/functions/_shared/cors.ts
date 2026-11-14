@@ -1,8 +1,8 @@
 // Shared CORS handling with an origin allowlist.
 // Avoids the wildcard `*` origin so arbitrary websites cannot invoke our endpoints.
 
+// The production domain comes from ALLOWED_ORIGINS (set by the VPS installer from APP_DOMAIN).
 const STATIC_ALLOWED_ORIGINS = [
-  "https://superponto.lovable.app",
   "https://maxponto.srv.br",
   "https://www.maxponto.srv.br",
   "http://localhost:8080",
@@ -11,12 +11,8 @@ const STATIC_ALLOWED_ORIGINS = [
   "http://localhost",
 ];
 
-// Allow the project's own preview/sandbox domains and any extra origin configured via secret.
-const ALLOWED_ORIGIN_PATTERNS = [
-  /^https:\/\/[a-z0-9-]+\.lovable\.app$/i,
-  /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/i,
-  /^https:\/\/[a-z0-9-]+\.sandbox\.lovable\.dev$/i,
-];
+// Extra origin patterns (none by default); exact origins come from ALLOWED_ORIGINS.
+const ALLOWED_ORIGIN_PATTERNS: RegExp[] = [];
 
 function envOrigins(): string[] {
   const raw = Deno.env.get("ALLOWED_ORIGINS") ?? Deno.env.get("ALLOWED_ORIGIN") ?? "";
@@ -33,11 +29,11 @@ export function isAllowedOrigin(origin: string | null): boolean {
 /** Build CORS headers for a request, echoing only allowlisted origins. */
 export function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("Origin");
-  const allowed = isAllowedOrigin(origin) ? origin! : STATIC_ALLOWED_ORIGINS[0];
+  const allowed = isAllowedOrigin(origin) ? origin! : (envOrigins()[0] ?? STATIC_ALLOWED_ORIGINS[0]);
   return {
     "Access-Control-Allow-Origin": allowed,
     "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type, x-terminal-token",
+      "authorization, x-client-info, apikey, content-type, x-terminal-token, x-agent-token",
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
     "Access-Control-Max-Age": "86400",
     "Vary": "Origin",

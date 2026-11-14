@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { aiChat, aiConfig } from "../_shared/ai.ts";
 
 const SYSTEM_PROMPT = `Você é o assistente de suporte técnico 24/7 do Sistema de Ponto Eletrônico. Você tem conhecimento completo sobre todas as funcionalidades do sistema.
 
@@ -126,26 +127,17 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const ai = aiConfig();
+    if (!ai) {
+      throw new Error("Assistente indisponível: configure AI_API_KEY no servidor");
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+    const response = await aiChat(ai, {
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           ...messages,
         ],
         stream: true,
-      }),
     });
 
     if (!response.ok) {

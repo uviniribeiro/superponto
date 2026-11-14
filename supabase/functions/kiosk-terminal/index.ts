@@ -3,9 +3,10 @@ import { cleanCNPJ, validateCNPJ } from "../_shared/cnpj.ts";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { aiChat, aiConfig } from "../_shared/ai.ts";
 
 
-let corsHeaders: Record<string, string> = getCorsHeaders(new Request("https://superponto.lovable.app"));
+let corsHeaders: Record<string, string> = getCorsHeaders(new Request("http://localhost"));
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -418,8 +419,8 @@ Deno.serve(async (req) => {
         return json({ success: false, error: 'Nenhuma foto cadastrada para reconhecimento facial neste terminal.' }, 404);
       }
 
-      const apiKey = Deno.env.get('LOVABLE_API_KEY');
-      if (!apiKey) return json({ success: false, error: 'Reconhecimento facial indisponível no momento.' }, 500);
+      const ai = aiConfig();
+      if (!ai) return json({ success: false, error: 'Reconhecimento facial indisponível no momento.' }, 500);
 
       const content: unknown[] = [
         {
@@ -440,14 +441,7 @@ Deno.serve(async (req) => {
       }
 
 
-      const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [{ role: 'user', content }],
-        }),
-      });
+      const aiRes = await aiChat(ai, { messages: [{ role: 'user', content }] });
 
       if (!aiRes.ok) {
         console.error('face ai error', aiRes.status, await aiRes.text());

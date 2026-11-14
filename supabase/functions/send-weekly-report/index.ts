@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { guardRoles } from "../_shared/auth.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -27,6 +28,9 @@ const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const denied = await guardRoles(req, ['super_admin', 'admin', 'manager'], corsHeaders);
+  if (denied) return denied;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

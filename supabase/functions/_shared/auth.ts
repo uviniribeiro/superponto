@@ -110,3 +110,24 @@ export function generateSecurePassword(length = 20): string {
     special[extra[3] % special.length]
   );
 }
+
+/**
+ * Guard for scheduled/administrative functions: returns an error Response when the caller
+ * lacks the roles (service role always passes, e.g. the VPS scheduler), or null when allowed.
+ */
+export async function guardRoles(
+  req: Request,
+  roles: string[],
+  corsHeaders: Record<string, string>,
+): Promise<Response | null> {
+  try {
+    await requireRole(req, roles);
+    return null;
+  } catch (error) {
+    return authErrorResponse(error, corsHeaders) ??
+      new Response(JSON.stringify({ error: "Falha de autenticação" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+  }
+}

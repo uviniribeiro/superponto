@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { aiChat, aiConfig } from "../_shared/ai.ts";
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -25,9 +26,9 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
+    const ai = aiConfig();
+    if (!ai) {
+      console.error("AI_API_KEY not configured");
       return new Response(
         JSON.stringify({ 
           error: "Serviço de validação não configurado",
@@ -65,14 +66,7 @@ serve(async (req) => {
     console.log("Sending images to AI for face comparison...");
 
     // Use Gemini with vision to compare faces
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+    const response = await aiChat(ai, {
         messages: [
           {
             role: "system",
@@ -122,7 +116,6 @@ IMPORTANTE:
         ],
         max_tokens: 500,
         temperature: 0.1
-      }),
     });
 
     if (!response.ok) {
