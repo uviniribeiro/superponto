@@ -1,0 +1,15 @@
+#!/bin/sh
+# Wrapper do Docker Compose do PontoMax. Exemplos:
+#   ./pontomax up -d          sobe tudo
+#   ./pontomax ps             status dos serviços
+#   ./pontomax logs -f web    logs do site/proxy
+#   ./pontomax down           para tudo (os dados ficam preservados)
+set -e
+DIR="$(cd "$(dirname "$0")" && pwd)"
+[ -f "$DIR/.env" ] || { echo "Arquivo $DIR/.env não encontrado. Rode ./install.sh primeiro." >&2; exit 1; }
+exec docker compose \
+  --project-directory "$DIR/supabase" \
+  --env-file "$DIR/.env" \
+  -f "$DIR/supabase/docker-compose.yml" \
+  -f "$DIR/docker-compose.pontomax.yml" \
+  "$@"

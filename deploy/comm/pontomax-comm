@@ -1,0 +1,63 @@
+#!/bin/sh
+# Gerencia as instâncias do robô no servidor de comunicação (uma por empresa).
+#   pontomax-comm add <nome> --token <TOKEN> [--empresa "Razão"] [--cnpj X] [--gps-porta 5515]
+#   pontomax-comm list | status <nome> | logs <nome> | restart <nome> | remove <nome>
+#   pontomax-comm test                  testa a conexão com a VPS principal
+set -e
+BASE=/etc/pontomax-agent
+AGENT=/opt/pontomax-comm/pontomax-agent.py
+CONF=/etc/pontomax-comm.conf
+[ -f "$CONF" ] && . "$CONF"
+
+need_root() { [ "$(id -u)" = 0 ] || { echo "Execute como root (sudo)." >&2; exit 1; }; }
+valid_name() { echo "$1" | grep -Eq '^[a-z0-9][a-z0-9-]{1,40}$' || { echo "Nome inválido: use letras minúsculas, números e hífen (ex.: prefeitura-x)." >&2; exit 1; }; }
+
+cmd="$1"; shift || true
+case "$cmd" in
+  add)
+    need_root; name="$1"; shift || true; valid_name "$name"
+    token=""; empresa="$name"; cnpj=""; gps="0"
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --token) token="$2"; shift 2 ;;
+        --empresa) empresa="$2"; shift 2 ;;
+        --cnpj) cnpj="$2"; shift 2 ;;
+        --gps-porta) gps="$2"; shift 2 ;;
+        *) echo "Opção desconhecida: $1" >&2; exit 1 ;;
+      esac
+    done
+    [ -n "$token" ] || { echo "Informe --token (gerado no sistema em Equipamentos > Robô de Comunicação)." >&2; exit 1; }
+    mkdir -p "$BASE/$name"
+    PONTOMAX_AGENT_CONFIG_DIR="$BASE/$name" python3 "$AGENT" --configure --sim --sem-varredura \
+      --gateway "$GATEWAY_URL" --token "$token" --empresa "$empresa" --cnpj "$cnpj" --gps-porta "$gps"
+    chown -R pontomax:pontomax "$BASE/$name"; chmod 700 "$BASE/$name"
+    if [ "$gps" != "0" ] && command -v ufw >/dev/null 2>&1; then ufw allow "$gps"/udp >/dev/null; fi
+    systemctl enable --now "pontomax-agent@$name" >/dev/null
+    echo "Instância '$name' ativa. Logs: pontomax-comm logs $name"
+    ;;
+  list)
+    for d in "$BASE"/*/; do
+      [ -d "$d" ] || continue; n=$(basename "$d")
+      printf '%-30s %s\n' "$n" "$(systemctl is-active "pontomax-agent@$n" 2>/dev/null || true)"
+    done
+    ;;
+  status) systemctl status "pontomax-agent@$1" --no-pager ;;
+  logs) journalctl -u "pontomax-agent@$1" -f ;;
+  restart) need_root; systemctl restart "pontomax-agent@$1" ;;
+  remove)
+    need_root; valid_name "$1"
+    systemctl disable --now "pontomax-agent@$1" 2>/dev/null || true
+    rm -rf "${BASE:?}/$1"; echo "Instância '$1' removida."
+    ;;
+  test)
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY_URL" \
+      -H 'Content-Type: application/json' -H 'x-agent-token: teste-de-conectividade-0000' -d '{"action":"handshake"}' || true)
+    case "$code" in
+      401) echo "OK: a VPS respondeu e este servidor está autorizado ($GATEWAY_URL)." ;;
+      403) echo "BLOQUEADO: a VPS recusou este IP. Inclua o IPv4 deste servidor em COMM_SERVER_IPS no .env da VPS." ; exit 1 ;;
+      000) echo "SEM CONEXÃO com $GATEWAY_URL (DNS, firewall ou HTTPS)."; exit 1 ;;
+      *) echo "Resposta inesperada HTTP $code de $GATEWAY_URL"; exit 1 ;;
+    esac
+    ;;
+  *) sed -n 2,6p "$0"; exit 1 ;;
+esac

@@ -1,0 +1,24 @@
+[Unit]
+Description=PontoMax - Robô de Comunicação (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PONTOMAX_AGENT_CONFIG_DIR=/etc/pontomax-agent/%i
+ExecStart=/usr/bin/python3 /opt/pontomax-comm/pontomax-agent.py --daemon
+Restart=always
+RestartSec=15
+SyslogIdentifier=pontomax-agent-%i
+User=pontomax
+Group=pontomax
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/etc/pontomax-agent/%i /opt/pontomax-comm
+LimitNOFILE=65536
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

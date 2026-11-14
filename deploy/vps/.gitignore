@@ -1,0 +1,5 @@
+.env
+backups/
+supabase/volumes/db/data/
+supabase/volumes/storage/
+supabase/volumes/snippets/

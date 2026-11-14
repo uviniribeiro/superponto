@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       gateway_url:
-        description: URL HTTPS do agent-gateway no Supabase de destino
+        description: URL HTTPS do agent-gateway na VPS (https://SEU_DOMINIO/functions/v1/agent-gateway)
         required: true
         type: string
 

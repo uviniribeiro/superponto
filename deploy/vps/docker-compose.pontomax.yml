@@ -1,0 +1,123 @@
+# Camada PontoMax sobre o Supabase auto-hospedado (supabase/docker-compose.yml).
+# Use sempre pelo wrapper ./pontomax (ele aplica os dois arquivos e o .env corretos).
+#
+# Caminhos relativos aqui partem de deploy/vps/supabase (diretório do projeto compose).
+
+name: pontomax
+
+services:
+  # Painel do banco: acessível só pelo próprio servidor (túnel SSH), nunca pela internet.
+  studio:
+    environment:
+      DEFAULT_ORGANIZATION_NAME: PontoMax
+      DEFAULT_PROJECT_NAME: PontoMax
+      OPENAI_API_KEY: ""
+
+  # Gateway da API: escuta só em 127.0.0.1; o acesso externo passa pelo Caddy (serviço web).
+  api-gw:
+    ports: !override
+      - "127.0.0.1:${API_GW_HTTP_PORT:-8000}:8000/tcp"
+
+  # Pooler do Postgres: desnecessário para o PontoMax (nenhum cliente externo usa o banco).
+  # Ative com: ./pontomax --profile pooler up -d
+  supavisor:
+    profiles: ["pooler"]
+    ports: !override
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+      - "127.0.0.1:${POOLER_PROXY_PORT_TRANSACTION}:6543"
+
+  auth:
+    environment:
+      # Links de e-mail (recuperação de senha) voltam para o próprio domínio.
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_SMS_AUTOCONFIRM: "false"
+      GOTRUE_PASSWORD_MIN_LENGTH: "8"
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: "30"
+
+  # Edge Functions do PontoMax (pasta supabase/functions do repositório).
+  functions:
+    volumes: !override
+      - ../../../supabase/functions:/home/deno/functions:ro,z
+      - ./volumes/functions/main:/home/deno/main:ro,z
+      - deno-cache:/root/.cache/deno
+    command:
+      [
+        "start",
+        "--user-worker-request-idle-timeout",
+        "150000",
+        "--main-service",
+        "/home/deno/main"
+      ]
+    environment:
+      PUBLIC_APP_URL: https://${APP_DOMAIN}
+      ALLOWED_ORIGINS: https://${APP_DOMAIN},https://localhost,capacitor://localhost${EXTRA_ALLOWED_ORIGINS:+,}${EXTRA_ALLOWED_ORIGINS:-}
+      WEBAUTHN_RP_ID: ${APP_DOMAIN}
+      WEBAUTHN_ORIGIN: https://${APP_DOMAIN}
+      # Servidor(es) de comunicação autorizados a usar o agent-gateway (vazio = qualquer IP).
+      AGENT_GATEWAY_ALLOWED_IPS: ${COMM_SERVER_IPS:-}
+      SETUP_BOOTSTRAP_TOKEN: ${SETUP_BOOTSTRAP_TOKEN:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      ZAPI_INSTANCE_ID: ${ZAPI_INSTANCE_ID:-}
+      ZAPI_TOKEN: ${ZAPI_TOKEN:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_API_URL: ${AI_API_URL:-}
+      AI_MODEL: ${AI_MODEL:-}
+
+  # Site (app web compilado) + proxy HTTPS com certificado automático (Let's Encrypt).
+  web:
+    container_name: pontomax-web
+    build:
+      context: ../../..
+      dockerfile: deploy/vps/web/Dockerfile
+      args:
+        VITE_SUPABASE_URL: https://${APP_DOMAIN}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
+        VITE_SUPABASE_PROJECT_ID: pontomax
+    image: pontomax/web:local
+    restart: unless-stopped
+    depends_on:
+      api-gw:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      SITE_ADDRESS: ${SITE_ADDRESS:-${APP_DOMAIN}}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ../web/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      - ../../../public/downloads:/srv/downloads:ro
+
+  # Tarefas agendadas (substitui o agendador do Supabase Cloud) e backups diários.
+  scheduler:
+    container_name: pontomax-scheduler
+    image: postgres:17-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/scheduler/entrypoint.sh"]
+    environment:
+      TZ: America/Sao_Paulo
+      API_URL: http://api-gw:8000
+      SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      PGHOST: ${POSTGRES_HOST}
+      PGPORT: ${POSTGRES_PORT}
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ../scheduler:/scheduler:ro
+      - ../backups:/backups
+      - ./volumes/storage:/storage:ro
+
+volumes:
+  caddy-data:
+  caddy-config:

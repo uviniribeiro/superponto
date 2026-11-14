@@ -7,13 +7,14 @@ Sistema completo de gestão de ponto eletrônico desenvolvido com React, TypeScr
 ## Tecnologias
 
 - **Frontend**: React 18, TypeScript, Vite, TailwindCSS, shadcn/ui
-- **Backend**: Supabase (Edge Functions) ou Express.js (alternativo)
-- **Banco de Dados**: PostgreSQL
-- **Autenticação**: Supabase Auth ou JWT local
+- **Backend**: Supabase de código aberto auto-hospedado (Auth, PostgREST, Realtime, Storage, Edge Functions)
+- **Banco de Dados**: PostgreSQL 17
+- **Apps**: Capacitor (app do funcionário e app do terminal)
 
 ## Documentação
 
-- [Deploy Local](docs/LOCAL_DEPLOYMENT.md) - Guia completo para deploy em servidor próprio
+- [Implantação em servidores próprios](deploy/README.md) — VPS principal, servidor de comunicação e apps
+- [Servidor de comunicação](deploy/comm/README.md)
 
 ## Scripts Disponíveis
 
@@ -26,7 +27,7 @@ npm run build            # Compila para produção
 npm run preview          # Visualiza build de produção
 
 # Scripts personalizados
-./scripts/build-production.sh   # Build completo com verificações
+./scripts/build-mobile.sh funcionario|terminal   # APKs dos apps
 ./scripts/run-migrations.sh     # Executar migrações do banco
 ./scripts/export-project.sh     # Exportar projeto para ZIP
 ```
@@ -53,7 +54,7 @@ npm run preview          # Visualiza build de produção
 ## Configuração Rápida
 
 1. Clone o repositório
-2. Copie `.env.local.example` para `.env.local` e configure
+2. Crie `.env.local` com `VITE_SUPABASE_URL=https://SEU_DOMINIO` e `VITE_SUPABASE_PUBLISHABLE_KEY=<ANON_KEY do deploy/vps/.env>`
 3. Execute `npm install --legacy-peer-deps`
 4. Execute `npm run dev`
 
@@ -71,11 +72,13 @@ npm run preview          # Visualiza build de produção
 
 ## Deploy
 
-### Lovable/Vercel
-Acesse [Lovable](https://lovable.dev) e clique em Share → Publish.
+Tudo roda em servidores próprios, sem Lovable e sem Supabase Cloud:
 
-### Servidor Local
-Consulte a [documentação de deploy local](docs/LOCAL_DEPLOYMENT.md).
+```bash
+cd deploy/vps && sudo ./install.sh
+```
+
+Detalhes, migração dos dados do Cloud, servidor de comunicação e apps: [deploy/README.md](deploy/README.md).
 
 ## Credenciais Iniciais
 
