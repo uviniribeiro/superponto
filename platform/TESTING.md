@@ -19,3 +19,11 @@ cd platform && npm install
 docker run -d --name sp2-pg -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=superponto -p 127.0.0.1:55432:5432 postgres:17-alpine
 npm run db:migrate && npm test
 ```
+
+## Situação atual
+
+| Suíte | Testes | Resultado |
+|---|---|---|
+| `packages/time-engine` | 26 | passando |
+| `apps/api` — contrato do store de autenticação (oficial, com concorrência) | 24 | passando |
+| `apps/api` — ponta a ponta (auth, multi-tenant, permissões, auditoria, plataforma) | 21 | passando |

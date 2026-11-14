@@ -1,0 +1,78 @@
+# SuperPonto v2 — Situação do projeto
+
+Atualizado em 14/11/2026. A v1 (raiz do repositório) segue em produção; a v2 é construída em
+`platform/` e substitui a v1 na fase 10.
+
+## Fases
+
+| Fase | Escopo | Situação |
+|---|---|---|
+| 1. Auditoria e planejamento | Inventário da v1, arquitetura, modelo de dados, módulos, riscos | **Concluída** — ARCHITECTURE.md, DATABASE.md, COMMUNICATION_SERVER.md, DEVICE_INTEGRATIONS.md |
+| 2. Infraestrutura e base | Monorepo, API NestJS, Prisma, autenticação, multi-tenant, permissões, auditoria | **Em andamento** — base da API pronta e testada (detalhes abaixo); falta o app web (Next.js) e MFA nas rotas |
+| 3. Núcleo de gestão | Pessoas, empresas, unidades, funcionários, matrículas, vínculos, jornadas, escalas | Não iniciada (modelo de dados pronto) |
+| 4. Módulos especializados | Educação, saúde, operacional | Não iniciada (modelo de dados pronto) |
+| 5. Controle de ponto | Marcações, apuração, banco de horas, solicitações, aprovações, relatórios | Motor de cálculo pronto e testado; API e telas não iniciadas |
+| 6. Equipamentos | Cadastro, adaptadores, sincronização, homologação | Não iniciada (projeto em DEVICE_INTEGRATIONS.md) |
+| 7. Communication Server | Serviço independente em Node.js, filas, protocolos, painel | Não iniciada (projeto em COMMUNICATION_SERVER.md) |
+| 8. SaaS e SuperAdmin | Planos, assinaturas, cobrança, limites | Criação de clientes pelo SuperAdmin pronta; resto não iniciado |
+| 9. Testes e homologação | Ampliação contínua a cada fase | Em andamento |
+| 10. Produção | Docker, servidores, migração de dados da v1, virada | Não iniciada |
+
+## O que já funciona (verificado por testes)
+
+**Banco (PostgreSQL 17, Prisma 7)** — 82 tabelas; RLS por tenant em 64 delas; marcações, auditoria e
+eventos de equipamento imutáveis; pessoas e vínculos sem exclusão física; período fechado protegido.
+
+**Motor de jornada** (`packages/time-engine`, 26 testes) — jornada fixa e flexível, escalas 12x36,
+6x1, 5x2, 4x2 e rotativas por ciclo, plantão noturno atravessando a meia-noite, atribuição de
+marcações ao dia da jornada, tolerância da CLT (5 min por marcação / 10 min no dia), extras por
+percentual (normal, noturna, folga, feriado, intervalo), hora noturna reduzida, faltas, afastamentos,
+banco de horas com vencimento FIFO e multiplicadores, resumo do período.
+
+**API** (`apps/api`, 45 testes contra PostgreSQL real com o papel sujeito à RLS):
+- Autenticação com `@nestjs/authentication`: login por sessão (cookie `__Host-sid` httpOnly) e por
+  token (JWT 15 min + refresh rotativo com detecção de reuso), saída, `/me`, esqueci minha senha
+  (link de uso único, 1 h, mesma resposta para e-mail inexistente), scrypt (OWASP), limite de
+  tentativas, CSRF. Store em Prisma aprovado na **suíte oficial de contrato do pacote, com testes de
+  concorrência**.
+- Multi-tenant: tenant vem da sessão/token; só o SuperAdmin escolhe outro (`X-Tenant-Id`); a
+  transação fixa `app.tenant_id` e o banco recusa o resto. Teste: o cliente B não lê, não edita e não
+  exclui dados do cliente A, nem trocando o cabeçalho.
+- Permissões: 50 permissões `modulo.recurso:acao`, 15 perfis de sistema (SuperAdmin, Administrador,
+  Diretor, RH, Gestor, Supervisor, Coordenadores escolar/médico/operacional, Responsáveis por escalas e
+  equipamentos, Funcionário, Professor, Médico, Profissional da saúde), escopo por tenant, empresa,
+  unidade ou departamento; verificadas na API.
+- Auditoria na mesma transação da alteração (antes/depois, ator, IP, navegador).
+- Empresas: listar (busca, paginação), detalhar, cadastrar, editar, excluir logicamente (bloqueia com
+  vínculos ativos), CNPJ normalizado e único por cliente.
+- SuperAdmin: listar e criar clientes; o primeiro administrador recebe e-mail para definir a senha.
+- Health check, Swagger em `/docs`, CI dedicado (`.github/workflows/platform-ci.yml`).
+
+## Próximos passos (fase 2 → 3)
+
+1. App web Next.js com a identidade visual (tema escuro grafite, amarelo SuperPonto), login,
+   recuperação de senha, seleção de empresa e layout com sidebar.
+2. MFA (TOTP) nas rotas administrativas e de SuperAdmin.
+3. Unidades, departamentos, cargos, usuários e perfis personalizados (API + telas).
+4. Pessoas e vínculos com múltiplas matrículas; jornadas e escalas usando o motor.
+
+## Decisões que aguardam validação
+
+1. **Hospedagem da API** (NestJS + Redis precisam de processo contínuo): VPS própria
+   (recomendado) ou PaaS.
+2. **Banco**: Supabase como PostgreSQL gerenciado (recomendado) ou PostgreSQL na VPS.
+3. **Repositório independente** do Communication Server: criar `superponto-communication-server`
+   no GitHub (esta sessão não cria repositórios).
+4. **Migração dos dados da v1**: depende do backup do Lovable Cloud (função `migration-export`
+   aguardando publicação pelo Lovable).
+
+## Riscos técnicos
+
+| Risco | Impacto | Mitigação |
+|---|---|---|
+| Escopo total (19 módulos, 26 grupos de telas) | Prazo longo | Entregas por fase, cada uma testada e utilizável |
+| `@nestjs/authentication` em versão 0.x | Mudanças de API | Versão fixada; store validado pela suíte oficial; atualização com os testes |
+| Protocolos proprietários de relógios | Integração sem equipamento real é especulativa | Adaptadores portados do robô v1 e homologação só com equipamento real |
+| Conformidade (Portaria 671, AFD/AEJ, LGPD) | Comercialização como "homologado" | Validação técnica e jurídica por modalidade antes da venda |
+| Migração da v1 (132 tabelas, dados reais) | Perda ou inconsistência de dados | ETL com contagens e conferência; v1 ativa até a virada |
+| Dados do Lovable Cloud | Sem backup, a migração começa vazia | Exportação pronta; depende do Lovable publicar a função |

@@ -1813,61 +1813,91 @@ model User {
   tenant        Tenant?                  @relation(fields: [tenantId], references: [id])
   person        Person?                  @relation(fields: [personId], references: [id])
   roles         UserRole[]
-  sessions      Session[]
-  mfaFactors    MfaFactor[]
-  resetTokens   PasswordResetToken[]
   notifications Notification[]
   preferences   NotificationPreference[]
 
   @@map("users")
 }
 
-model Session {
-  id               String    @id @default(uuid()) @db.Uuid
-  userId           String    @db.Uuid @map("user_id")
-  refreshTokenHash String    @unique @map("refresh_token_hash")
-  familyId         String    @db.Uuid @map("family_id")
-  userAgent        String? @map("user_agent")
-  ip               String?
-  expiresAt        DateTime  @db.Timestamptz(6) @map("expires_at")
-  revokedAt        DateTime? @db.Timestamptz(6) @map("revoked_at")
-  replacedById     String?   @db.Uuid @map("replaced_by_id")
-  createdAt        DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+// -----------------------------------------------------------------------------
+// Estado de autenticação (@nestjs/authentication). Tokens, sessões e links são
+// guardados como SHA-256; segredos TOTP chegam cifrados (AES-256-GCM).
+// -----------------------------------------------------------------------------
+
+model AuthSession {
+  id           String    @id
+  userId       String @map("user_id")
+  createdAt    DateTime  @db.Timestamptz(6) @map("created_at")
+  expiresAt    DateTime  @db.Timestamptz(6) @map("expires_at")
+  lastActiveAt DateTime  @db.Timestamptz(6) @map("last_active_at")
+  mfa          String?
+  metadata     Json?
 
   @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model RefreshToken {
+  id              String    @id
+  familyId        String @map("family_id")
+  userId          String @map("user_id")
+  createdAt       DateTime  @db.Timestamptz(6) @map("created_at")
+  expiresAt       DateTime  @db.Timestamptz(6) @map("expires_at")
+  familyExpiresAt DateTime  @db.Timestamptz(6) @map("family_expires_at")
+  usedAt          DateTime? @db.Timestamptz(6) @map("used_at")
+  claims          Json?
+  revoked         Boolean   @default(false)
+
   @@index([familyId])
-
-  @@map("sessions")
-}
-
-model MfaFactor {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @db.Uuid @map("user_id")
-  type        String    @default("TOTP")
-  secretEnc   String @map("secret_enc")
-  verifiedAt  DateTime? @db.Timestamptz(6) @map("verified_at")
-  createdAt   DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   @@index([userId])
-
-  @@map("mfa_factors")
+  @@index([familyExpiresAt])
+  @@map("auth_refresh_tokens")
 }
 
-model PasswordResetToken {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @db.Uuid @map("user_id")
-  tokenHash String    @unique @map("token_hash")
-  expiresAt DateTime  @db.Timestamptz(6) @map("expires_at")
-  usedAt    DateTime? @db.Timestamptz(6) @map("used_at")
-  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+model MfaAuthenticator {
+  userId        String  @id @map("user_id")
+  secret        String
+  confirmed     Boolean
+  pendingSecret String? @map("pending_secret")
+  lastUsedStep  Int? @map("last_used_step")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("auth_mfa_authenticators")
+}
 
-  @@map("password_reset_tokens")
+model MfaRecoveryCode {
+  userId   String @map("user_id")
+  codeHash String @map("code_hash")
+
+  @@id([userId, codeHash])
+  @@map("auth_mfa_recovery_codes")
+}
+
+model MfaFailure {
+  id       Int      @id @default(autoincrement())
+  userId   String @map("user_id")
+  failedAt DateTime @db.Timestamptz(6) @map("failed_at")
+
+  @@index([userId, failedAt])
+  @@index([failedAt])
+  @@map("auth_mfa_failures")
+}
+
+model EmailToken {
+  id          String   @id
+  purpose     String
+  userId      String @map("user_id")
+  email       String
+  fingerprint String?
+  createdAt   DateTime @db.Timestamptz(6) @map("created_at")
+  expiresAt   DateTime @db.Timestamptz(6) @map("expires_at")
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+  @@map("auth_email_tokens")
 }
 
 /// Perfil: tenantId nulo = perfil de sistema (modelo), copiado/usado por todos.

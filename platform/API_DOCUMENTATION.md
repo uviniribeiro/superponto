@@ -15,10 +15,12 @@ Base: `/v1`. Documentação interativa gerada pelo Swagger em `/docs` (OpenAPI 3
 
 | Módulo | Situação |
 |---|---|
-| `auth` (login, refresh, logout, recuperação de senha, MFA) | fase 2 |
-| `tenants`, `companies`, `units`, `departments` | fase 2/3 |
-| `users`, `roles`, `permissions` | fase 2 |
-| `audit` | fase 2 |
+| `auth`: `POST /v1/auth/sign-in` (sessão), `POST /v1/auth/token`, `POST /v1/auth/token/refresh`, `POST /v1/auth/sign-out`, `GET /v1/auth/me`, `POST /v1/auth/password/forgot`, `POST /v1/auth/password/reset` | **pronto** (MFA: próximo passo) |
+| `companies`: `GET/POST /v1/companies`, `GET/PATCH/DELETE /v1/companies/:id` | **pronto** |
+| `platform`: `GET/POST /v1/platform/tenants` | **pronto** |
+| `health`: `GET /health` | **pronto** |
+| `units`, `departments`, `users`, `roles` | fase 2/3 |
+| `audit` (consulta) | fase 3 (gravação já ativa) |
 | `people`, `employments` | fase 3 |
 | `schedules`, `time`, `bank-hours`, `requests` | fases 3 e 5 |
 | `education`, `health`, `operational` | fase 4 |

@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "tenant_status" AS ENUM ('TRIAL', 'ACTIVE', 'SUSPENDED', 'CANCELLED');
 
@@ -1109,43 +1112,72 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
-CREATE TABLE "sessions" (
-    "id" UUID NOT NULL,
-    "user_id" UUID NOT NULL,
-    "refresh_token_hash" TEXT NOT NULL,
-    "family_id" UUID NOT NULL,
-    "user_agent" TEXT,
-    "ip" TEXT,
+CREATE TABLE "auth_sessions" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ(6) NOT NULL,
     "expires_at" TIMESTAMPTZ(6) NOT NULL,
-    "revoked_at" TIMESTAMPTZ(6),
-    "replaced_by_id" UUID,
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "last_active_at" TIMESTAMPTZ(6) NOT NULL,
+    "mfa" TEXT,
+    "metadata" JSONB,
 
-    CONSTRAINT "sessions_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "auth_sessions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "mfa_factors" (
-    "id" UUID NOT NULL,
-    "user_id" UUID NOT NULL,
-    "type" TEXT NOT NULL DEFAULT 'TOTP',
-    "secret_enc" TEXT NOT NULL,
-    "verified_at" TIMESTAMPTZ(6),
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "mfa_factors_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "password_reset_tokens" (
-    "id" UUID NOT NULL,
-    "user_id" UUID NOT NULL,
-    "token_hash" TEXT NOT NULL,
+CREATE TABLE "auth_refresh_tokens" (
+    "id" TEXT NOT NULL,
+    "family_id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ(6) NOT NULL,
     "expires_at" TIMESTAMPTZ(6) NOT NULL,
+    "family_expires_at" TIMESTAMPTZ(6) NOT NULL,
     "used_at" TIMESTAMPTZ(6),
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "claims" JSONB,
+    "revoked" BOOLEAN NOT NULL DEFAULT false,
 
-    CONSTRAINT "password_reset_tokens_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "auth_refresh_tokens_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "auth_mfa_authenticators" (
+    "user_id" TEXT NOT NULL,
+    "secret" TEXT NOT NULL,
+    "confirmed" BOOLEAN NOT NULL,
+    "pending_secret" TEXT,
+    "last_used_step" INTEGER,
+
+    CONSTRAINT "auth_mfa_authenticators_pkey" PRIMARY KEY ("user_id")
+);
+
+-- CreateTable
+CREATE TABLE "auth_mfa_recovery_codes" (
+    "user_id" TEXT NOT NULL,
+    "code_hash" TEXT NOT NULL,
+
+    CONSTRAINT "auth_mfa_recovery_codes_pkey" PRIMARY KEY ("user_id","code_hash")
+);
+
+-- CreateTable
+CREATE TABLE "auth_mfa_failures" (
+    "id" SERIAL NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "failed_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "auth_mfa_failures_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "auth_email_tokens" (
+    "id" TEXT NOT NULL,
+    "purpose" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "fingerprint" TEXT,
+    "created_at" TIMESTAMPTZ(6) NOT NULL,
+    "expires_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "auth_email_tokens_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1565,19 +1597,31 @@ CREATE UNIQUE INDEX "users_person_id_key" ON "users"("person_id");
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "sessions_refresh_token_hash_key" ON "sessions"("refresh_token_hash");
+CREATE INDEX "auth_sessions_user_id_idx" ON "auth_sessions"("user_id");
 
 -- CreateIndex
-CREATE INDEX "sessions_user_id_idx" ON "sessions"("user_id");
+CREATE INDEX "auth_sessions_expires_at_idx" ON "auth_sessions"("expires_at");
 
 -- CreateIndex
-CREATE INDEX "sessions_family_id_idx" ON "sessions"("family_id");
+CREATE INDEX "auth_refresh_tokens_family_id_idx" ON "auth_refresh_tokens"("family_id");
 
 -- CreateIndex
-CREATE INDEX "mfa_factors_user_id_idx" ON "mfa_factors"("user_id");
+CREATE INDEX "auth_refresh_tokens_user_id_idx" ON "auth_refresh_tokens"("user_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "password_reset_tokens_token_hash_key" ON "password_reset_tokens"("token_hash");
+CREATE INDEX "auth_refresh_tokens_family_expires_at_idx" ON "auth_refresh_tokens"("family_expires_at");
+
+-- CreateIndex
+CREATE INDEX "auth_mfa_failures_user_id_failed_at_idx" ON "auth_mfa_failures"("user_id", "failed_at");
+
+-- CreateIndex
+CREATE INDEX "auth_mfa_failures_failed_at_idx" ON "auth_mfa_failures"("failed_at");
+
+-- CreateIndex
+CREATE INDEX "auth_email_tokens_user_id_purpose_idx" ON "auth_email_tokens"("user_id", "purpose");
+
+-- CreateIndex
+CREATE INDEX "auth_email_tokens_expires_at_idx" ON "auth_email_tokens"("expires_at");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "roles_tenant_id_key_key" ON "roles"("tenant_id", "key");
@@ -1883,15 +1927,6 @@ ALTER TABLE "users" ADD CONSTRAINT "users_tenant_id_fkey" FOREIGN KEY ("tenant_i
 ALTER TABLE "users" ADD CONSTRAINT "users_person_id_fkey" FOREIGN KEY ("person_id") REFERENCES "people"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "mfa_factors" ADD CONSTRAINT "mfa_factors_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "roles" ADD CONSTRAINT "roles_tenant_id_fkey" FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1929,3 +1964,4 @@ ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_plan_id_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "billing_events" ADD CONSTRAINT "billing_events_subscription_id_fkey" FOREIGN KEY ("subscription_id") REFERENCES "subscriptions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
