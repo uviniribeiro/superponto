@@ -10,24 +10,30 @@ import {
 import { APP_VERSION } from '@/lib/version';
 import { PageHeader } from '@/components/shared/PageHeader';
 
-const APK_PATH = '/downloads/ponto-max-terminal.apk';
+const APK_PATH = '/downloads/pontomax-terminal.apk';
+const EMPLOYEE_APK_PATH = '/downloads/pontomax-funcionario.apk';
 
-export default function TerminalApp() {
-  const [apkAvailable, setApkAvailable] = useState<boolean | null>(null);
-
+function useFileAvailable(path: string) {
+  const [available, setAvailable] = useState<boolean | null>(null);
   useEffect(() => {
     let active = true;
-    fetch(APK_PATH, { method: 'HEAD' })
-      .then((r) => active && setApkAvailable(r.ok))
-      .catch(() => active && setApkAvailable(false));
+    fetch(path, { method: 'HEAD' })
+      .then((r) => active && setAvailable(r.ok && !(r.headers.get('content-type') ?? '').includes('text/html')))
+      .catch(() => active && setAvailable(false));
     return () => { active = false; };
-  }, []);
+  }, [path]);
+  return available;
+}
+
+export default function TerminalApp() {
+  const apkAvailable = useFileAvailable(APK_PATH);
+  const employeeApkAvailable = useFileAvailable(EMPLOYEE_APK_PATH);
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
       <PageHeader
-          title="App do Terminal"
-          description="Aplicativo dedicado ao registro de ponto: abre direto no login do terminal, sem acesso ao restante do sistema." icon={Smartphone}
+          title="Apps de Ponto"
+          description="Aplicativos de registro de ponto: terminal fixo da empresa e app no celular do funcionário." icon={Smartphone}
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
         />
 
@@ -35,7 +41,7 @@ export default function TerminalApp() {
         <CardHeader className="pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <CardTitle className="text-base">Ponto Max Terminal — Android</CardTitle>
+              <CardTitle className="text-base">PontoMax Terminal — Android</CardTitle>
               <CardDescription>Versão {APP_VERSION} • Android 8.0 ou superior</CardDescription>
             </div>
             <Badge variant={apkAvailable ? 'default' : 'secondary'}>
@@ -64,8 +70,8 @@ export default function TerminalApp() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Instalador ainda não publicado</AlertTitle>
               <AlertDescription className="text-sm">
-                O arquivo do aplicativo é gerado pelo build Android do projeto. Assim que o
-                <code className="mx-1 px-1 rounded bg-muted text-xs">ponto-max-terminal.apk</code>
+                O arquivo do aplicativo é gerado na VPS com <code className="px-1 rounded bg-muted text-xs">scripts/build-mobile.sh terminal</code>. Assim que o
+                <code className="mx-1 px-1 rounded bg-muted text-xs">pontomax-terminal.apk</code>
                 for publicado em <code className="px-1 rounded bg-muted text-xs">public/downloads/</code>,
                 o download é liberado automaticamente nesta tela.
               </AlertDescription>
@@ -100,6 +106,40 @@ export default function TerminalApp() {
               <li>Cada registro recebe assinatura própria, impedindo duplicidade no envio da fila.</li>
             </ul>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">PontoMax — app do funcionário (Android)</CardTitle>
+              <CardDescription>
+                Registro de ponto no celular de cada funcionário, com localização e selfie conforme as regras da empresa.
+              </CardDescription>
+            </div>
+            <Badge variant={employeeApkAvailable ? 'default' : 'secondary'}>
+              {employeeApkAvailable === null ? 'Verificando...' : employeeApkAvailable ? 'Disponível' : 'Aguardando publicação'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <Button asChild disabled={!employeeApkAvailable}>
+            <a href={EMPLOYEE_APK_PATH} download>
+              <Download className="h-4 w-4 mr-2" />
+              Baixar .apk do funcionário
+            </a>
+          </Button>
+          <ol className="list-decimal pl-5 space-y-1.5 text-muted-foreground">
+            <li>Envie o link de download aos funcionários (ou distribua pela loja/MDM da empresa).</li>
+            <li>No primeiro acesso, o funcionário entra com o código da empresa, usuário e senha.</li>
+            <li>Permita câmera e localização quando o app pedir — são usadas apenas no registro do ponto.</li>
+          </ol>
+          {employeeApkAvailable === false && (
+            <p className="text-muted-foreground">
+              Gere o arquivo na VPS com <code className="px-1 rounded bg-muted text-xs">scripts/build-mobile.sh funcionario</code>.
+            </p>
+          )}
         </CardContent>
       </Card>
 

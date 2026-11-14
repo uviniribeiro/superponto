@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+android*
+ios*
+.git
+.env
+.env.*
+!.env.*.example
+deploy/vps/.env
+deploy/vps/backups
+deploy/vps/supabase/volumes/db/data
+deploy/vps/supabase/volumes/storage

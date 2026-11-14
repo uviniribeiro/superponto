@@ -112,13 +112,14 @@ def build_executable():
 def create_inno_setup_script():
     """Cria script Inno Setup para instalador Windows profissional"""
     
+    site = os.environ.get('PONTOMAX_URL', 'https://maxponto.srv.br')
     iss_content = '''[Setup]
 AppName=SuperPonto
 AppVersion=1.0.0
 AppPublisher=SuperPonto
-AppPublisherURL=https://superponto.lovable.app
-AppSupportURL=https://superponto.lovable.app
-AppUpdatesURL=https://superponto.lovable.app
+AppPublisherURL=''' + site + '''
+AppSupportURL=''' + site + '''
+AppUpdatesURL=''' + site + '''
 DefaultDirName={autopf}\\SuperPonto
 DefaultGroupName=SuperPonto
 AllowNoIcons=yes

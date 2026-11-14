@@ -98,7 +98,10 @@ def collect_metrics():
 
 DEFAULT_GATEWAY = os.environ.get("PONTOMAX_GATEWAY_URL", "").strip()
 
-if platform.system() == "Windows":
+if os.environ.get("PONTOMAX_AGENT_CONFIG_DIR", "").strip():
+    # Servidor de comunicacao dedicado: uma pasta por instancia (uma instancia por empresa).
+    CONFIG_DIR = os.environ["PONTOMAX_AGENT_CONFIG_DIR"].strip()
+elif platform.system() == "Windows":
     CONFIG_DIR = os.path.join(os.environ.get("PROGRAMDATA", "C:\\ProgramData"), "PontoMaxAgent")
 else:
     CONFIG_DIR = "/etc/pontomax-agent"
@@ -117,6 +120,9 @@ DEFAULT_CONFIG = {
     "discovery_ranges": [],
     "sync_interval_seconds": 60,
     "discovery_interval_seconds": 900,
+    # Desligue em servidores publicos (servidor de comunicacao dedicado): sem varredura de rede,
+    # o robo gerencia apenas os relogios cadastrados no sistema pelo IP/porta.
+    "discovery_enabled": True,
     "auto_update": True,
     "verify_ssl": True,
     # Recepcao de GPS/telemetria da frota (rastreadores enviam JSON por UDP).
@@ -1334,7 +1340,8 @@ class Agent:
                     restart_process()
                     return 0
                 self.refresh_equipment()
-                if self.remote.get("auto_discovery", True) and \
+                if self.cfg.get("discovery_enabled", True) and \
+                        self.remote.get("auto_discovery", True) and \
                         time.time() - last_discovery > discovery_every:
                     self.run_discovery()
                     last_discovery = time.time()
@@ -1402,13 +1409,20 @@ def configure(args=None):
                getattr(args, "cnpj", None), cfg.get("company_cnpj", ""))
     gateway = ask("URL do gateway [%s]" % cfg["gateway_url"],
                   getattr(args, "gateway", None), cfg["gateway_url"])
-    detected = ", ".join(local_networks())
-    ranges = ask("Faixas de rede para varredura [%s]" % detected,
+    no_scan = bool(getattr(args, "no_scan", False))
+    detected = "nenhuma" if no_scan else ", ".join(local_networks())
+    ranges = "nenhuma" if no_scan else ask("Faixas de rede para varredura [%s]" % detected,
                  getattr(args, "ranges", None),
                  ", ".join(cfg.get("discovery_ranges") or []) or detected)
     interval = ask("Intervalo de sincronizacao em segundos [60]",
                    getattr(args, "intervalo", None),
                    str(cfg.get("sync_interval_seconds") or 60))
+
+    scan_disabled = str(ranges).strip().lower() in ("nenhuma", "nenhum", "none", "-")
+    gps_port = getattr(args, "gps_port", None)
+    if gps_port:
+        cfg["gps_udp_port"] = int(gps_port)
+        cfg["gps_enabled"] = int(gps_port) > 0
 
     if not token:
         print("Token obrigatorio. Gere um token em Equipamentos > Robo de Comunicacao.")
@@ -1422,7 +1436,8 @@ def configure(args=None):
         "company_name": company,
         "company_cnpj": re.sub(r"[^0-9A-Za-z]", "", cnpj or "").upper(),
         "gateway_url": gateway.rstrip("/"),
-        "discovery_ranges": [r.strip() for r in str(ranges).split(",") if r.strip()],
+        "discovery_ranges": [] if scan_disabled else [r.strip() for r in str(ranges).split(",") if r.strip()],
+        "discovery_enabled": not scan_disabled,
         "sync_interval_seconds": int(str(interval) or 60),
     })
     save_config(cfg)
@@ -1436,6 +1451,9 @@ def configure(args=None):
     data = gw.call("handshake", local_ip=Agent._local_ip())
     if data and data.get("success"):
         print("Conexao validada. Agente: %s" % (data.get("agent") or {}).get("name"))
+        if not cfg.get("discovery_enabled", True):
+            print("Varredura de rede desativada: o robo gerencia os relogios cadastrados no sistema.")
+            return 0
         print("Executando varredura inicial da rede...")
         devices = scan_network(cfg["discovery_ranges"])
         if devices:
@@ -1461,6 +1479,10 @@ def main():
     parser.add_argument("--ranges", help="faixas de rede separadas por virgula (ex: 192.168.0.0/24)")
     parser.add_argument("--gateway", help="URL do agent-gateway")
     parser.add_argument("--intervalo", help="intervalo de sincronizacao em segundos")
+    parser.add_argument("--sem-varredura", dest="no_scan", action="store_true",
+                        help="nao varrer a rede (servidor de comunicacao em IP publico)")
+    parser.add_argument("--gps-porta", dest="gps_port",
+                        help="porta UDP para GPS/telemetria (0 desativa)")
     parser.add_argument("--sim", "--yes", dest="yes", action="store_true",
                         help="nao faz perguntas: usa parametros e valores atuais")
     parser.add_argument("--sem-validacao", dest="skip_validation", action="store_true",

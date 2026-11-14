@@ -29,3 +29,10 @@ __pycache__/
 
 # Test coverage
 coverage
+
+# Projetos nativos gerados pelo Capacitor (scripts/build-mobile.sh)
+android-funcionario/
+android-terminal/
+ios-funcionario/
+ios-terminal/
+public/downloads/*.apk

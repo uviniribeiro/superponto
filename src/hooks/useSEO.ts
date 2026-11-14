@@ -15,7 +15,7 @@ const defaultSEO: SEOProps = {
   title: 'Ponto Max - Sistema de Ponto Eletrônico',
   description: 'Sistema completo de gestão de ponto eletrônico para prefeituras e empresas. Controle de jornada, espelho de ponto, banco de horas e muito mais.',
   keywords: 'ponto eletrônico, gestão de funcionários, controle de ponto, prefeitura, empresa, REP, Portaria 671, banco de horas, espelho de ponto',
-  ogImage: 'https://storage.googleapis.com/gpt-engineer-file-uploads/2mLjcyuYfya3CwaY6yN4bUirDmO2/uploads/1767114614759-imagem_2025-12-30_141014740.png',
+  ogImage: '/apple-touch-icon.png',
   ogType: 'website'
 };
 

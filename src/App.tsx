@@ -31,6 +31,7 @@ const ForgotPassword = React.lazy(() => import("@/pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("@/pages/ResetPassword"));
 const SuperAdminAuth = React.lazy(() => import("@/pages/SuperAdminAuth"));
 import NotFound from "@/pages/NotFound";
+import { APP_MODE, startPathFor } from "@/lib/appMode";
 
 // Core pages - lazy loaded
 const Dashboard = React.lazy(() => import("@/pages/Dashboard"));
@@ -219,7 +220,7 @@ const App = () => (
               <HolidayBanner />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
-                <Route path="/" element={<Navigate to="/home" replace />} />
+                <Route path="/" element={<Navigate to={startPathFor(APP_MODE)} replace />} />
                 <Route path="/auth" element={<Auth />} />
                  <Route path="/forgot-password" element={<ForgotPassword />} />
                  <Route path="/reset-password" element={<ResetPassword />} />

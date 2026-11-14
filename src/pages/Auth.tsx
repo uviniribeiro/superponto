@@ -14,6 +14,7 @@ import { CnpjInput } from '@/components/shared/CnpjInput';
 import { getCNPJFeedback, cleanCNPJ } from '@/lib/validators';
 import { cn } from '@/lib/utils';
 import { PontoMaxLogo } from '@/components/PontoMaxLogo';
+import { APP_MODE, homePathFor } from '@/lib/appMode';
 
 
 type LoginType = 'company' | 'city_hall' | 'super_admin';
@@ -93,7 +94,7 @@ export default function Auth() {
         navigate('/settings');
         return;
       }
-      navigate(isSuperAdmin ? '/super-admin' : '/dashboard');
+      navigate(isSuperAdmin ? '/super-admin' : homePathFor(APP_MODE));
     }
   }, [user, loading, navigate, mustChangePassword, isSuperAdmin]);
 

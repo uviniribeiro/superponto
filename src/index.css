@@ -526,16 +526,6 @@
   }
 }
 
-/* Hide external branding */
-a[href*="lovable.dev"], 
-iframe[src*="lovable.dev"],
-.lovable-badge {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-
 /* Print styles */
 @media print {
   .no-print {

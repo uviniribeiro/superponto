@@ -12,9 +12,9 @@ import { WhatsNewPopup } from '@/components/WhatsNewPopup';
 import { MenuPositionSelector } from '@/components/MenuPositionSelector';
 import { useMenuPosition, MenuPosition } from '@/hooks/useMenuPosition';
 import { getVersionString, APP_NAME } from '@/lib/version';
-import clockAsset from '@/assets/pontomax-blueprint-clock-complete.png.asset.json';
+import { pontoMaxClockIcon } from '@/components/PontoMaxLogo';
 import { PontoMaxLogo } from '@/components/PontoMaxLogo';
-const superpontoLogo = clockAsset.url;
+const superpontoLogo = pontoMaxClockIcon;
 import {
   DropdownMenu,
   DropdownMenuContent,
