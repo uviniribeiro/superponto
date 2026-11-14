@@ -13,6 +13,7 @@ Sistema completo de gestão de ponto eletrônico desenvolvido com React, TypeScr
 
 ## Documentação
 
+- [Publicação automática no seu Supabase + Vercel](deploy/SUPABASE.md)
 - [Implantação em servidores próprios](deploy/README.md) — VPS principal, servidor de comunicação e apps
 - [Servidor de comunicação](deploy/comm/README.md)
 
@@ -72,7 +73,10 @@ npm run preview          # Visualiza build de produção
 
 ## Deploy
 
-Tudo roda em servidores próprios, sem Lovable e sem Supabase Cloud:
+**Padrão: seu próprio projeto Supabase + Vercel, publicados automaticamente a cada push na `main`.**
+Configuração única em [deploy/SUPABASE.md](deploy/SUPABASE.md).
+
+Alternativa: tudo numa VPS própria (Supabase auto-hospedado):
 
 ```bash
 cd deploy/vps && sudo ./install.sh

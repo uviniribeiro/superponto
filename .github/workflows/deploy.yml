@@ -1,0 +1,149 @@
+name: Publicar sistema (Supabase + site)
+
+# Cada alteração na main publica tudo automaticamente, sem Lovable:
+#  1. migrações do banco no seu projeto Supabase
+#  2. site na Vercel, apontando para o seu Supabase
+#  3. Edge Functions e seus segredos
+#  4. "Esqueci minha senha" (URL do site, links de retorno e SMTP) e o Super Admin único
+#
+# Configuração única: Settings > Secrets and variables > Actions (veja deploy/SUPABASE.md).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  SUPER_ADMIN_EMAIL: ${{ vars.SUPER_ADMIN_EMAIL || 'viniciusacacio1@gmail.com' }}
+  SUPER_ADMIN_ONLY: ${{ vars.SUPER_ADMIN_ONLY || 'true' }}
+
+jobs:
+  deploy:
+    name: Publicar
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir configuração
+        id: check
+        run: |
+          missing=""
+          for v in SUPABASE_PROJECT_REF SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD VERCEL_TOKEN; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::warning::Publicação automática aguardando configuração. Cadastre os secrets:$missing (veja deploy/SUPABASE.md)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+
+      - uses: supabase/setup-cli@v1
+        if: steps.check.outputs.ready == 'true'
+        with:
+          version: latest
+
+      - name: Banco de dados (migrações)
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase db push --include-all --password "$SUPABASE_DB_PASSWORD" --yes
+
+      - name: Chaves do projeto
+        id: keys
+        if: steps.check.outputs.ready == 'true'
+        run: node scripts/deploy/supabase-setup.mjs keys
+
+      - name: Site (Vercel)
+        id: site
+        if: steps.check.outputs.ready == 'true'
+        env:
+          SITE_URL_OVERRIDE: ${{ vars.SITE_URL }}
+          SUPABASE_URL: ${{ steps.keys.outputs.supabase_url }}
+          ANON_KEY: ${{ steps.keys.outputs.anon_key }}
+        run: |
+          deployment=$(npx -y vercel@65 deploy --prod --yes --token "$VERCEL_TOKEN" \
+            --build-env VITE_SUPABASE_URL="$SUPABASE_URL" \
+            --build-env VITE_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+            --build-env VITE_SUPABASE_PROJECT_ID="$SUPABASE_PROJECT_REF")
+          echo "Implantação: $deployment"
+          site="$SITE_URL_OVERRIDE"
+          if [ -z "$site" ]; then
+            site=$(node scripts/deploy/vercel-domain.mjs)
+          fi
+          site="${site%/}"
+          echo "Site: $site"
+          echo "url=$site" >> "$GITHUB_OUTPUT"
+
+      - name: Edge Functions
+        if: steps.check.outputs.ready == 'true'
+        env:
+          SITE: ${{ steps.site.outputs.url }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_API_URL: ${{ vars.AI_API_URL }}
+          AI_MODEL: ${{ vars.AI_MODEL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ZAPI_INSTANCE_ID: ${{ secrets.ZAPI_INSTANCE_ID }}
+          ZAPI_TOKEN: ${{ secrets.ZAPI_TOKEN }}
+          COMM_SERVER_IPS: ${{ vars.COMM_SERVER_IPS }}
+        run: |
+          host="${SITE#https://}"; host="${host%%/*}"
+          {
+            echo "ALLOWED_ORIGINS=$SITE,https://localhost,capacitor://localhost"
+            echo "PUBLIC_APP_URL=$SITE"
+            echo "WEBAUTHN_RP_ID=$host"
+            echo "WEBAUTHN_ORIGIN=$SITE"
+            for v in AI_API_KEY AI_API_URL AI_MODEL RESEND_API_KEY ZAPI_INSTANCE_ID ZAPI_TOKEN; do
+              [ -n "${!v}" ] && echo "$v=${!v}"
+            done
+            echo "AGENT_GATEWAY_ALLOWED_IPS=${COMM_SERVER_IPS}"
+          } > /tmp/functions.env
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --env-file /tmp/functions.env
+          rm -f /tmp/functions.env
+          supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF" --use-api
+
+      - name: Esqueci minha senha e e-mail
+        if: steps.check.outputs.ready == 'true'
+        env:
+          SITE_URL: ${{ steps.site.outputs.url }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_SENDER_EMAIL: ${{ vars.SMTP_SENDER_EMAIL }}
+          SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
+        run: node scripts/deploy/supabase-setup.mjs auth
+
+      - name: Super Admin
+        if: steps.check.outputs.ready == 'true'
+        env:
+          SITE_URL: ${{ steps.site.outputs.url }}
+        run: node scripts/deploy/supabase-setup.mjs admin
+
+      - name: Resumo
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          {
+            echo "### Sistema publicado"
+            echo "- Site: ${{ steps.site.outputs.url }}"
+            echo "- Supabase: ${{ steps.keys.outputs.supabase_url }}"
+            echo "- Super Admin: ${SUPER_ADMIN_EMAIL}"
+            echo "- Recuperação de senha: ${{ steps.site.outputs.url }}/forgot-password"
+          } >> "$GITHUB_STEP_SUMMARY"

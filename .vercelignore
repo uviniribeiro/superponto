@@ -1,0 +1,7 @@
+android-*
+ios-*
+deploy/vps/supabase/volumes
+deploy/vps/backups
+server
+coverage
+*.dump
