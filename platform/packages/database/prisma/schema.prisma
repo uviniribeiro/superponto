@@ -1,0 +1,2075 @@
+// =============================================================================
+// SuperPonto v2 — modelo de dados (PostgreSQL + Prisma 7)
+//
+// Convenções
+//  - Chaves primárias: UUID técnico (id). Matrícula, CPF, PIS, CRM nunca são PK.
+//  - Multi-tenant: toda tabela de dados de cliente tem tenantId (isolamento por RLS
+//    no PostgreSQL + filtro obrigatório na API). Tabelas globais: planos, fabricantes,
+//    modelos de equipamento, permissões.
+//  - Exclusão lógica: deletedAt nas entidades cadastrais.
+//  - Marcações de ponto são imutáveis: correções são TimeRecordAdjustment.
+//  - Colunas/tabelas em snake_case no banco (@map/@@map gerados por scripts/snake-case.mjs).
+// =============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+
+  @@map("tenant_status")
+}
+
+enum CompanySegment {
+  GENERAL
+  EDUCATION
+  HEALTH
+  PUBLIC_SECTOR
+  INDUSTRY
+  RETAIL
+  SERVICES
+
+  @@map("company_segment")
+}
+
+enum UnitType {
+  HEADQUARTERS
+  BRANCH
+  SCHOOL
+  HOSPITAL
+  CLINIC
+  UPA
+  UBS
+  LABORATORY
+  OFFICE
+  OPERATIONAL_SITE
+  OTHER
+
+  @@map("unit_type")
+}
+
+enum PersonStatus {
+  ACTIVE
+  INACTIVE
+
+  @@map("person_status")
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  SUSPENDED
+  TERMINATED
+
+  @@map("employment_status")
+}
+
+enum ContractType {
+  CLT
+  STATUTORY
+  TEMPORARY
+  INTERN
+  APPRENTICE
+  CONTRACTOR
+  SERVICE_PROVIDER
+  VOLUNTEER
+  OTHER
+
+  @@map("contract_type")
+}
+
+enum ProfessionalCategory {
+  GENERAL
+  TEACHER
+  PHYSICIAN
+  NURSE
+  NURSING_TECHNICIAN
+  NURSING_ASSISTANT
+  PHYSIOTHERAPIST
+  PSYCHOLOGIST
+  PHARMACIST
+  DENTIST
+  NUTRITIONIST
+  SOCIAL_WORKER
+  OTHER_HEALTH
+
+  @@map("professional_category")
+}
+
+enum ScheduleType {
+  FIXED
+  FLEXIBLE
+  SHIFT_12X36
+  SHIFT_6X1
+  SHIFT_5X2
+  SHIFT_4X2
+  ROTATING
+  CUSTOM
+  ON_CALL
+  TEACHING
+
+  @@map("schedule_type")
+}
+
+enum TimeRecordType {
+  ENTRY
+  BREAK_START
+  BREAK_END
+  EXIT
+  EXTRA
+  UNCLASSIFIED
+
+  @@map("time_record_type")
+}
+
+enum TimeRecordSource {
+  WEB
+  MOBILE
+  KIOSK
+  DEVICE
+  COMMUNICATION_SERVER
+  IMPORT
+  MANUAL_ADJUSTMENT
+
+  @@map("time_record_source")
+}
+
+enum AdjustmentKind {
+  INCLUDE
+  DISREGARD
+  RECLASSIFY
+
+  @@map("adjustment_kind")
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_INFO
+  CANCELLED
+
+  @@map("approval_status")
+}
+
+enum RequestType {
+  RECORD_CORRECTION
+  ABSENCE_JUSTIFICATION
+  SCHEDULE_ADJUSTMENT
+  COMPENSATION
+  ALLOWANCE
+  SCHEDULE_CHANGE
+  OTHER
+
+  @@map("request_type")
+}
+
+enum OccurrenceType {
+  ABSENCE
+  LATE
+  EARLY_LEAVE
+  MISSING_RECORD
+  OVERTIME
+  INSUFFICIENT_BREAK
+  UNCOVERED_SHIFT
+  SHIFT_NOT_STARTED
+  SHIFT_NOT_CLOSED
+  SCHEDULE_CONFLICT
+  INCOMPLETE_TEAM
+  OPERATIONAL_ISSUE
+  PROFESSIONAL_SWAP
+  SCHEDULE_CHANGE
+  EQUIPMENT_UNAVAILABLE
+  OTHER
+
+  @@map("occurrence_type")
+}
+
+enum OccurrenceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  DISMISSED
+
+  @@map("occurrence_status")
+}
+
+enum BankHourTransactionType {
+  CREDIT
+  DEBIT
+  COMPENSATION
+  ADJUSTMENT
+  PAYOUT
+  EXPIRATION
+
+  @@map("bank_hour_transaction_type")
+}
+
+enum ClosingStatus {
+  OPEN
+  CLOSED
+  REOPENED
+
+  @@map("closing_status")
+}
+
+enum ShiftKind {
+  DAY
+  NIGHT
+  H12
+  H24
+  ON_CALL
+  EXTRA
+  COVERAGE
+
+  @@map("shift_kind")
+}
+
+enum ShiftAssignmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  ABSENT
+  SUBSTITUTED
+  CANCELLED
+
+  @@map("shift_assignment_status")
+}
+
+enum ClassSessionStatus {
+  SCHEDULED
+  HELD
+  NOT_HELD
+  SUBSTITUTED
+  CANCELLED
+
+  @@map("class_session_status")
+}
+
+enum CalendarEventType {
+  HOLIDAY
+  RECESS
+  SCHOOL_VACATION
+  ACADEMIC_TERM
+  MEETING
+  PLANNING_DAY
+  EVENT
+  OPTIONAL_DAY
+
+  @@map("calendar_event_type")
+}
+
+enum DeviceCategory {
+  TIME_CLOCK
+  BIOMETRIC_READER
+  FINGERPRINT_READER
+  FACIAL_RECOGNITION
+  RFID_READER
+  CARD_READER
+  ACCESS_CONTROLLER
+  TURNSTILE
+  GATE
+  ELECTRONIC_LOCK
+  DOOR_CONTROLLER
+  IDENTIFICATION_TERMINAL
+
+  @@map("device_category")
+}
+
+enum DeviceStatus {
+  PENDING
+  ONLINE
+  OFFLINE
+  ERROR
+  DISABLED
+
+  @@map("device_status")
+}
+
+enum HomologationStatus {
+  NOT_TESTED
+  IN_TESTING
+  HOMOLOGATED
+  PARTIAL
+  REJECTED
+
+  @@map("homologation_status")
+}
+
+enum DeviceIdentifierType {
+  REGISTRATION
+  CARD
+  RFID
+  PIN
+  BIOMETRIC_REFERENCE
+  FACIAL_REFERENCE
+
+  @@map("device_identifier_type")
+}
+
+enum DeviceEventKind {
+  TIME_RECORD
+  ACCESS_GRANTED
+  ACCESS_DENIED
+  DOOR_OPENED
+  TURNSTILE_PASS
+  STATUS
+  ALARM
+  OTHER
+
+  @@map("device_event_kind")
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+
+  @@map("job_status")
+}
+
+enum ServerStatus {
+  PENDING
+  ONLINE
+  DEGRADED
+  OFFLINE
+  DISABLED
+
+  @@map("server_status")
+}
+
+enum PermissionScope {
+  PLATFORM
+  TENANT
+  COMPANY
+  UNIT
+  DEPARTMENT
+  SELF
+
+  @@map("permission_scope")
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  WHATSAPP
+  PUSH
+
+  @@map("notification_channel")
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELLED
+
+  @@map("subscription_status")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  APPROVE
+  REJECT
+  EXPORT
+  CLOSE_PERIOD
+  REOPEN_PERIOD
+  PERMISSION_CHANGE
+  OTHER
+
+  @@map("audit_action")
+}
+
+// -----------------------------------------------------------------------------
+// Estrutura organizacional
+// -----------------------------------------------------------------------------
+
+model Tenant {
+  id            String       @id @default(uuid()) @db.Uuid
+  name          String
+  slug          String       @unique
+  status        TenantStatus @default(TRIAL)
+  document      String?
+  contactEmail  String? @map("contact_email")
+  contactPhone  String? @map("contact_phone")
+  settings      Json         @default("{}")
+  createdAt     DateTime     @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt     DateTime?    @db.Timestamptz(6) @map("deleted_at")
+
+  companies      Company[]
+  users          User[]
+  roles          Role[]
+  people         Person[]
+  subscriptions  Subscription[]
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+  commServers    CommunicationServer[]
+
+  @@map("tenants")
+}
+
+model Company {
+  id            String         @id @default(uuid()) @db.Uuid
+  tenantId      String         @db.Uuid @map("tenant_id")
+  legalName     String @map("legal_name")
+  tradeName     String? @map("trade_name")
+  cnpj          String?
+  segment       CompanySegment @default(GENERAL)
+  timezone      String         @default("America/Sao_Paulo")
+  settings      Json           @default("{}")
+  createdAt     DateTime       @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt     DateTime?      @db.Timestamptz(6) @map("deleted_at")
+
+  tenant        Tenant          @relation(fields: [tenantId], references: [id])
+  units         CompanyUnit[]
+  departments   Department[]
+  positions     JobPosition[]
+  employments   Employment[]
+  schedules     WorkSchedule[]
+  ruleSets      AttendanceRuleSet[]
+  calendars     Calendar[]
+  devices       Device[]
+  closings      TimeClosing[]
+  approvalFlows ApprovalFlow[]
+
+  @@unique([tenantId, cnpj])
+  @@index([tenantId])
+
+  @@map("companies")
+}
+
+model CompanyUnit {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid @map("tenant_id")
+  companyId  String    @db.Uuid @map("company_id")
+  parentId   String?   @db.Uuid @map("parent_id")
+  name       String
+  code       String?
+  type       UnitType  @default(OFFICE)
+  cnpj       String?
+  address    Json?
+  latitude   Decimal?  @db.Decimal(10, 7)
+  longitude  Decimal?  @db.Decimal(10, 7)
+  geofenceM  Int? @map("geofence_m")
+  timezone   String?
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt  DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  company     Company        @relation(fields: [companyId], references: [id])
+  parent      CompanyUnit?   @relation("UnitTree", fields: [parentId], references: [id])
+  children    CompanyUnit[]  @relation("UnitTree")
+  departments Department[]
+  employments Employment[]
+  devices     Device[]
+  classrooms  Classroom[]
+  rooms       ConsultationRoom[]
+  shifts      MedicalShift[]
+  teams       OperationalTeam[]
+
+  @@unique([companyId, code])
+  @@index([tenantId, companyId])
+
+  @@map("company_units")
+}
+
+model Department {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid @map("tenant_id")
+  companyId  String    @db.Uuid @map("company_id")
+  unitId     String?   @db.Uuid @map("unit_id")
+  parentId   String?   @db.Uuid @map("parent_id")
+  name       String
+  code       String?
+  managerEmploymentId String? @db.Uuid @map("manager_employment_id")
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt  DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  company     Company       @relation(fields: [companyId], references: [id])
+  unit        CompanyUnit?  @relation(fields: [unitId], references: [id])
+  parent      Department?   @relation("DepartmentTree", fields: [parentId], references: [id])
+  children    Department[]  @relation("DepartmentTree")
+  sectors     Sector[]
+  employments Employment[]
+
+  @@unique([companyId, code])
+  @@index([tenantId, companyId])
+
+  @@map("departments")
+}
+
+model Sector {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid @map("tenant_id")
+  departmentId String    @db.Uuid @map("department_id")
+  name         String
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  deletedAt    DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  department Department @relation(fields: [departmentId], references: [id])
+
+  @@index([tenantId, departmentId])
+
+  @@map("sectors")
+}
+
+model OperationalTeam {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid @map("tenant_id")
+  unitId      String    @db.Uuid @map("unit_id")
+  name        String
+  minMembers  Int       @default(1) @map("min_members")
+  supervisorEmploymentId String? @db.Uuid @map("supervisor_employment_id")
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  deletedAt   DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  unit        CompanyUnit             @relation(fields: [unitId], references: [id])
+  assignments OperationalAssignment[]
+
+  @@index([tenantId, unitId])
+
+  @@map("operational_teams")
+}
+
+// -----------------------------------------------------------------------------
+// Pessoas e vínculos
+// -----------------------------------------------------------------------------
+
+model Person {
+  id          String       @id @default(uuid()) @db.Uuid
+  tenantId    String       @db.Uuid @map("tenant_id")
+  fullName    String @map("full_name")
+  socialName  String? @map("social_name")
+  email       String?
+  phone       String?
+  // Dados pessoais sensíveis: acesso restrito por permissão; nunca chave primária.
+  cpf         String?
+  pis         String?
+  birthDate   DateTime?    @db.Date @map("birth_date")
+  address     Json?
+  photoPath   String? @map("photo_path")
+  status      PersonStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt   DateTime?    @db.Timestamptz(6) @map("deleted_at")
+
+  tenant        Tenant                   @relation(fields: [tenantId], references: [id])
+  employments   Employment[]
+  documents     PersonDocument[]
+  registrations ProfessionalRegistration[]
+  user          User?
+
+  @@unique([tenantId, cpf])
+  @@index([tenantId, fullName])
+
+  @@map("people")
+}
+
+model PersonDocument {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid @map("tenant_id")
+  personId   String    @db.Uuid @map("person_id")
+  kind       String
+  number     String?
+  filePath   String? @map("file_path")
+  issuedAt   DateTime? @db.Date @map("issued_at")
+  expiresAt  DateTime? @db.Date @map("expires_at")
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  deletedAt  DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  person Person @relation(fields: [personId], references: [id])
+
+  @@index([tenantId, personId])
+
+  @@map("person_documents")
+}
+
+/// Registro em conselho profissional (CRM, COREN, CRP, CRF, CRO...).
+model ProfessionalRegistration {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid @map("tenant_id")
+  personId   String    @db.Uuid @map("person_id")
+  council    String
+  number     String
+  state      String
+  rqe        String?
+  validUntil DateTime? @db.Date @map("valid_until")
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  deletedAt  DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  person Person @relation(fields: [personId], references: [id])
+
+  @@unique([tenantId, council, state, number])
+  @@index([tenantId, personId])
+
+  @@map("professional_registrations")
+}
+
+model JobPosition {
+  id         String               @id @default(uuid()) @db.Uuid
+  tenantId   String               @db.Uuid @map("tenant_id")
+  companyId  String               @db.Uuid @map("company_id")
+  name       String
+  category   ProfessionalCategory @default(GENERAL)
+  cbo        String?
+  createdAt  DateTime             @default(now()) @db.Timestamptz(6) @map("created_at")
+  deletedAt  DateTime?            @db.Timestamptz(6) @map("deleted_at")
+
+  company     Company      @relation(fields: [companyId], references: [id])
+  employments Employment[]
+
+  @@unique([companyId, name])
+  @@index([tenantId])
+
+  @@map("job_positions")
+}
+
+model Specialty {
+  id        String               @id @default(uuid()) @db.Uuid
+  tenantId  String               @db.Uuid @map("tenant_id")
+  name      String
+  category  ProfessionalCategory @default(PHYSICIAN)
+  parentId  String?              @db.Uuid @map("parent_id")
+  createdAt DateTime             @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  parent      Specialty?            @relation("SpecialtyTree", fields: [parentId], references: [id])
+  children    Specialty[]           @relation("SpecialtyTree")
+  employments EmploymentSpecialty[]
+  shifts      MedicalShift[]
+
+  @@unique([tenantId, name])
+
+  @@map("professional_specialties")
+}
+
+/// Vínculo funcional: uma pessoa pode ter vários (escolas, hospitais, contratos).
+/// A matrícula é o identificador operacional, única dentro da empresa.
+model Employment {
+  id                 String               @id @default(uuid()) @db.Uuid
+  tenantId           String               @db.Uuid @map("tenant_id")
+  personId           String               @db.Uuid @map("person_id")
+  companyId          String               @db.Uuid @map("company_id")
+  unitId             String?              @db.Uuid @map("unit_id")
+  departmentId       String?              @db.Uuid @map("department_id")
+  positionId         String?              @db.Uuid @map("position_id")
+  registration       String
+  category           ProfessionalCategory @default(GENERAL)
+  contractType       ContractType         @default(CLT) @map("contract_type")
+  function           String?
+  status             EmploymentStatus     @default(ACTIVE)
+  hiredAt            DateTime             @db.Date @map("hired_at")
+  terminatedAt       DateTime?            @db.Date @map("terminated_at")
+  weeklyHours        Decimal?             @db.Decimal(5, 2) @map("weekly_hours")
+  supervisorId       String?              @db.Uuid @map("supervisor_id")
+  ruleSetId          String?              @db.Uuid @map("rule_set_id")
+  createdAt          DateTime             @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt          DateTime             @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt          DateTime?            @db.Timestamptz(6) @map("deleted_at")
+
+  person       Person              @relation(fields: [personId], references: [id])
+  company      Company             @relation(fields: [companyId], references: [id])
+  unit         CompanyUnit?        @relation(fields: [unitId], references: [id])
+  department   Department?         @relation(fields: [departmentId], references: [id])
+  position     JobPosition?        @relation(fields: [positionId], references: [id])
+  supervisor   Employment?         @relation("Supervision", fields: [supervisorId], references: [id])
+  supervised   Employment[]        @relation("Supervision")
+  ruleSet      AttendanceRuleSet?  @relation(fields: [ruleSetId], references: [id])
+
+  history             EmploymentHistory[]
+  specialties         EmploymentSpecialty[]
+  scheduleAssignments ScheduleAssignment[]
+  timeRecords         TimeRecord[]
+  calculations        TimeCalculation[]
+  bankAccount         BankHourAccount?
+  occurrences         AttendanceOccurrence[]
+  requests            TimeRequest[]
+  deviceIdentifiers   DeviceIdentifier[]
+  teachingAssignments TeachingAssignment[]
+  shiftAssignments    MedicalShiftAssignment[]
+  availability        ProfessionalAvailability[]
+  operationalAssignments OperationalAssignment[]
+  accessEvents        AccessEvent[]
+
+  @@unique([companyId, registration])
+  @@index([tenantId, personId])
+  @@index([tenantId, companyId, status])
+  @@index([tenantId, unitId])
+
+  @@map("employment_relationships")
+}
+
+/// Histórico funcional: cada alteração relevante do vínculo (cargo, unidade, jornada, situação).
+model EmploymentHistory {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid @map("tenant_id")
+  employmentId String   @db.Uuid @map("employment_id")
+  field        String
+  oldValue     Json? @map("old_value")
+  newValue     Json? @map("new_value")
+  effectiveAt  DateTime @db.Date @map("effective_at")
+  reason       String?
+  actorUserId  String?  @db.Uuid @map("actor_user_id")
+  createdAt    DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  employment Employment @relation(fields: [employmentId], references: [id])
+
+  @@index([tenantId, employmentId, effectiveAt])
+
+  @@map("employment_history")
+}
+
+model EmploymentSpecialty {
+  employmentId String @db.Uuid @map("employment_id")
+  specialtyId  String @db.Uuid @map("specialty_id")
+  tenantId     String @db.Uuid @map("tenant_id")
+
+  employment Employment @relation(fields: [employmentId], references: [id])
+  specialty  Specialty  @relation(fields: [specialtyId], references: [id])
+
+  @@id([employmentId, specialtyId])
+
+  @@map("employment_specialties")
+}
+
+// -----------------------------------------------------------------------------
+// Jornadas, escalas e calendário
+// -----------------------------------------------------------------------------
+
+/// Regras de apuração (tolerâncias, extras, noturno, banco de horas) por empresa/vínculo.
+model AttendanceRuleSet {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid @map("tenant_id")
+  companyId  String    @db.Uuid @map("company_id")
+  name       String
+  isDefault  Boolean   @default(false) @map("is_default")
+  rules      Json
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt  DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  company     Company      @relation(fields: [companyId], references: [id])
+  employments Employment[]
+  schedules   WorkSchedule[]
+
+  @@index([tenantId, companyId])
+
+  @@map("attendance_rule_sets")
+}
+
+/// Jornada/escala modelo. Para escalas cíclicas (12x36, 6x1, rotativas), `cycle` define a sequência.
+model WorkSchedule {
+  id            String       @id @default(uuid()) @db.Uuid
+  tenantId      String       @db.Uuid @map("tenant_id")
+  companyId     String       @db.Uuid @map("company_id")
+  name          String
+  type          ScheduleType
+  weeklyMinutes Int? @map("weekly_minutes")
+  cycleDays     Int? @map("cycle_days")
+  cycle         Json?
+  ruleSetId     String?      @db.Uuid @map("rule_set_id")
+  createdAt     DateTime     @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt     DateTime?    @db.Timestamptz(6) @map("deleted_at")
+
+  company     Company              @relation(fields: [companyId], references: [id])
+  ruleSet     AttendanceRuleSet?   @relation(fields: [ruleSetId], references: [id])
+  days        WorkScheduleDay[]
+  assignments ScheduleAssignment[]
+
+  @@unique([companyId, name])
+  @@index([tenantId])
+
+  @@map("work_schedules")
+}
+
+/// Dia de uma jornada: dia da semana (0-6) para jornadas semanais ou posição no ciclo.
+model WorkScheduleDay {
+  id           String  @id @default(uuid()) @db.Uuid
+  tenantId     String  @db.Uuid @map("tenant_id")
+  scheduleId   String  @db.Uuid @map("schedule_id")
+  dayIndex     Int @map("day_index")
+  isWorkday    Boolean @default(true) @map("is_workday")
+  startTime    String? @map("start_time")
+  endTime      String? @map("end_time")
+  breakMinutes Int     @default(0) @map("break_minutes")
+  breakStart   String? @map("break_start")
+  expectedMinutes Int  @default(0) @map("expected_minutes")
+
+  schedule WorkSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, dayIndex])
+
+  @@map("work_schedule_days")
+}
+
+/// Atribuição de jornada a um vínculo, com vigência (histórico preservado).
+model ScheduleAssignment {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid @map("tenant_id")
+  employmentId String    @db.Uuid @map("employment_id")
+  scheduleId   String    @db.Uuid @map("schedule_id")
+  validFrom    DateTime  @db.Date @map("valid_from")
+  validTo      DateTime? @db.Date @map("valid_to")
+  cycleStart   DateTime? @db.Date @map("cycle_start")
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  employment Employment   @relation(fields: [employmentId], references: [id])
+  schedule   WorkSchedule @relation(fields: [scheduleId], references: [id])
+
+  @@index([tenantId, employmentId, validFrom])
+
+  @@map("schedule_assignments")
+}
+
+model Calendar {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid @map("tenant_id")
+  companyId  String    @db.Uuid @map("company_id")
+  unitId     String?   @db.Uuid @map("unit_id")
+  name       String
+  isAcademic Boolean   @default(false) @map("is_academic")
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  deletedAt  DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  company Company         @relation(fields: [companyId], references: [id])
+  events  CalendarEvent[]
+  periods AcademicPeriod[]
+
+  @@index([tenantId, companyId])
+
+  @@map("calendars")
+}
+
+model CalendarEvent {
+  id         String            @id @default(uuid()) @db.Uuid
+  tenantId   String            @db.Uuid @map("tenant_id")
+  calendarId String            @db.Uuid @map("calendar_id")
+  type       CalendarEventType
+  title      String
+  startsOn   DateTime          @db.Date @map("starts_on")
+  endsOn     DateTime          @db.Date @map("ends_on")
+  isWorkday  Boolean           @default(false) @map("is_workday")
+  createdAt  DateTime          @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  calendar Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, calendarId, startsOn])
+
+  @@map("calendar_events")
+}
+
+// -----------------------------------------------------------------------------
+// Ponto eletrônico, apuração e banco de horas
+// -----------------------------------------------------------------------------
+
+/// Marcação ORIGINAL. Imutável (gatilho no banco bloqueia UPDATE/DELETE).
+model TimeRecord {
+  id              String           @id @default(uuid()) @db.Uuid
+  tenantId        String           @db.Uuid @map("tenant_id")
+  employmentId    String           @db.Uuid @map("employment_id")
+  recordedAt      DateTime         @db.Timestamptz(6) @map("recorded_at")
+  timezone        String           @default("America/Sao_Paulo")
+  type            TimeRecordType   @default(UNCLASSIFIED)
+  source          TimeRecordSource
+  deviceId        String?          @db.Uuid @map("device_id")
+  deviceNsr       BigInt? @map("device_nsr")
+  commEventId     String?          @db.Uuid @map("comm_event_id")
+  latitude        Decimal?         @db.Decimal(10, 7)
+  longitude       Decimal?         @db.Decimal(10, 7)
+  accuracyM       Int? @map("accuracy_m")
+  capturedOffline Boolean          @default(false) @map("captured_offline")
+  syncedAt        DateTime?        @db.Timestamptz(6) @map("synced_at")
+  // Integridade: hash encadeado (registro anterior do mesmo vínculo + conteúdo).
+  hash            String
+  previousHash    String? @map("previous_hash")
+  idempotencyKey  String @map("idempotency_key")
+  receivedAt      DateTime         @default(now()) @db.Timestamptz(6) @map("received_at")
+
+  employment  Employment             @relation(fields: [employmentId], references: [id])
+  device      Device?                @relation(fields: [deviceId], references: [id])
+  adjustments TimeRecordAdjustment[]
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, employmentId, recordedAt])
+  @@index([tenantId, deviceId, deviceNsr])
+
+  @@map("time_records")
+}
+
+/// Correção auditável: inclui marcação, desconsidera ou reclassifica, sempre com justificativa.
+model TimeRecordAdjustment {
+  id            String         @id @default(uuid()) @db.Uuid
+  tenantId      String         @db.Uuid @map("tenant_id")
+  employmentId  String         @db.Uuid @map("employment_id")
+  timeRecordId  String?        @db.Uuid @map("time_record_id")
+  kind          AdjustmentKind
+  recordedAt    DateTime?      @db.Timestamptz(6) @map("recorded_at")
+  newType       TimeRecordType? @map("new_type")
+  justification String
+  status        ApprovalStatus @default(PENDING)
+  requestId     String?        @db.Uuid @map("request_id")
+  createdById   String         @db.Uuid @map("created_by_id")
+  decidedById   String?        @db.Uuid @map("decided_by_id")
+  decidedAt     DateTime?      @db.Timestamptz(6) @map("decided_at")
+  createdAt     DateTime       @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  timeRecord TimeRecord?  @relation(fields: [timeRecordId], references: [id])
+  request    TimeRequest? @relation(fields: [requestId], references: [id])
+
+  @@index([tenantId, employmentId, createdAt])
+
+  @@map("time_record_adjustments")
+}
+
+/// Resultado da apuração diária por vínculo (recalculável a partir das marcações + ajustes).
+model TimeCalculation {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @db.Uuid @map("tenant_id")
+  employmentId     String   @db.Uuid @map("employment_id")
+  workDate         DateTime @db.Date @map("work_date")
+  expectedMinutes  Int @map("expected_minutes")
+  workedMinutes    Int @map("worked_minutes")
+  balanceMinutes   Int @map("balance_minutes")
+  overtime         Json
+  nightMinutes     Int      @default(0) @map("night_minutes")
+  lateMinutes      Int      @default(0) @map("late_minutes")
+  earlyLeaveMinutes Int     @default(0) @map("early_leave_minutes")
+  absenceMinutes   Int      @default(0) @map("absence_minutes")
+  breakMinutes     Int      @default(0) @map("break_minutes")
+  flags            Json     @default("[]")
+  engineVersion    String @map("engine_version")
+  calculatedAt     DateTime @default(now()) @db.Timestamptz(6) @map("calculated_at")
+
+  employment Employment @relation(fields: [employmentId], references: [id])
+
+  @@unique([employmentId, workDate])
+  @@index([tenantId, workDate])
+
+  @@map("time_calculations")
+}
+
+model BankHourAccount {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid @map("tenant_id")
+  employmentId   String   @unique @db.Uuid @map("employment_id")
+  balanceMinutes Int      @default(0) @map("balance_minutes")
+  expirationDays Int? @map("expiration_days")
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  employment   Employment              @relation(fields: [employmentId], references: [id])
+  transactions BankHourTransaction[]
+
+  @@index([tenantId])
+
+  @@map("bank_hours")
+}
+
+model BankHourTransaction {
+  id          String                  @id @default(uuid()) @db.Uuid
+  tenantId    String                  @db.Uuid @map("tenant_id")
+  accountId   String                  @db.Uuid @map("account_id")
+  type        BankHourTransactionType
+  minutes     Int
+  refDate     DateTime                @db.Date @map("ref_date")
+  expiresOn   DateTime?               @db.Date @map("expires_on")
+  description String?
+  closingId   String?                 @db.Uuid @map("closing_id")
+  createdById String?                 @db.Uuid @map("created_by_id")
+  createdAt   DateTime                @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  account BankHourAccount @relation(fields: [accountId], references: [id])
+
+  @@index([tenantId, accountId, refDate])
+
+  @@map("bank_hour_transactions")
+}
+
+model AttendanceOccurrence {
+  id           String           @id @default(uuid()) @db.Uuid
+  tenantId     String           @db.Uuid @map("tenant_id")
+  employmentId String           @db.Uuid @map("employment_id")
+  workDate     DateTime         @db.Date @map("work_date")
+  type         OccurrenceType
+  minutes      Int?
+  status       OccurrenceStatus @default(OPEN)
+  notes        String?
+  createdAt    DateTime         @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  employment Employment @relation(fields: [employmentId], references: [id])
+
+  @@index([tenantId, employmentId, workDate])
+  @@index([tenantId, status])
+
+  @@map("attendance_occurrences")
+}
+
+/// Fechamento de período: congela apuração e banco de horas.
+model TimeClosing {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenantId    String        @db.Uuid @map("tenant_id")
+  companyId   String        @db.Uuid @map("company_id")
+  periodStart DateTime      @db.Date @map("period_start")
+  periodEnd   DateTime      @db.Date @map("period_end")
+  status      ClosingStatus @default(OPEN)
+  closedById  String?       @db.Uuid @map("closed_by_id")
+  closedAt    DateTime?     @db.Timestamptz(6) @map("closed_at")
+  reopenReason String? @map("reopen_reason")
+  createdAt   DateTime      @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, periodStart, periodEnd])
+
+  @@map("time_closings")
+}
+
+// -----------------------------------------------------------------------------
+// Solicitações e aprovações
+// -----------------------------------------------------------------------------
+
+model ApprovalFlow {
+  id          String      @id @default(uuid()) @db.Uuid
+  tenantId    String      @db.Uuid @map("tenant_id")
+  companyId   String      @db.Uuid @map("company_id")
+  unitId      String?     @db.Uuid @map("unit_id")
+  requestType RequestType @map("request_type")
+  steps       Json
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  company  Company       @relation(fields: [companyId], references: [id])
+  requests TimeRequest[]
+
+  @@index([tenantId, companyId, requestType])
+
+  @@map("approval_flows")
+}
+
+model TimeRequest {
+  id           String         @id @default(uuid()) @db.Uuid
+  tenantId     String         @db.Uuid @map("tenant_id")
+  employmentId String         @db.Uuid @map("employment_id")
+  flowId       String?        @db.Uuid @map("flow_id")
+  type         RequestType
+  status       ApprovalStatus @default(PENDING)
+  currentStep  Int            @default(0) @map("current_step")
+  refDate      DateTime?      @db.Date @map("ref_date")
+  payload      Json
+  justification String
+  attachmentPath String? @map("attachment_path")
+  createdById  String         @db.Uuid @map("created_by_id")
+  createdAt    DateTime       @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt    DateTime       @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  employment  Employment             @relation(fields: [employmentId], references: [id])
+  flow        ApprovalFlow?          @relation(fields: [flowId], references: [id])
+  decisions   RequestDecision[]
+  adjustments TimeRecordAdjustment[]
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, employmentId])
+
+  @@map("time_requests")
+}
+
+model RequestDecision {
+  id         String         @id @default(uuid()) @db.Uuid
+  tenantId   String         @db.Uuid @map("tenant_id")
+  requestId  String         @db.Uuid @map("request_id")
+  step       Int
+  decision   ApprovalStatus
+  comment    String?
+  deciderId  String         @db.Uuid @map("decider_id")
+  createdAt  DateTime       @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  request TimeRequest @relation(fields: [requestId], references: [id])
+
+  @@index([tenantId, requestId])
+
+  @@map("request_decisions")
+}
+
+// -----------------------------------------------------------------------------
+// Educação
+// -----------------------------------------------------------------------------
+
+model AcademicPeriod {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @db.Uuid @map("tenant_id")
+  calendarId String   @db.Uuid @map("calendar_id")
+  name       String
+  startsOn   DateTime @db.Date @map("starts_on")
+  endsOn     DateTime @db.Date @map("ends_on")
+
+  calendar Calendar @relation(fields: [calendarId], references: [id])
+  classes  SchoolClass[]
+
+  @@index([tenantId, calendarId])
+
+  @@map("academic_periods")
+}
+
+model Course {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid @map("tenant_id")
+  companyId String    @db.Uuid @map("company_id")
+  name      String
+  level     String?
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  classes  SchoolClass[]
+  subjects Subject[]
+
+  @@unique([companyId, name])
+
+  @@map("courses")
+}
+
+model Subject {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid @map("tenant_id")
+  companyId String    @db.Uuid @map("company_id")
+  courseId  String?   @db.Uuid @map("course_id")
+  name      String
+  code      String?
+  weeklyLessons Int? @map("weekly_lessons")
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  course      Course?              @relation(fields: [courseId], references: [id])
+  assignments TeachingAssignment[]
+
+  @@index([tenantId, companyId])
+
+  @@map("subjects")
+}
+
+/// Turma
+model SchoolClass {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid @map("tenant_id")
+  unitId    String    @db.Uuid @map("unit_id")
+  periodId  String    @db.Uuid @map("period_id")
+  courseId  String?   @db.Uuid @map("course_id")
+  name      String
+  grade     String?
+  shift     String?
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  period      AcademicPeriod       @relation(fields: [periodId], references: [id])
+  course      Course?              @relation(fields: [courseId], references: [id])
+  assignments TeachingAssignment[]
+
+  @@index([tenantId, unitId, periodId])
+
+  @@map("classes")
+}
+
+model Classroom {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid @map("tenant_id")
+  unitId    String    @db.Uuid @map("unit_id")
+  name      String
+  capacity  Int?
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  unit  CompanyUnit     @relation(fields: [unitId], references: [id])
+  slots ClassSchedule[]
+
+  @@unique([unitId, name])
+
+  @@map("classrooms")
+}
+
+/// Alocação professor (vínculo) × disciplina × turma.
+model TeachingAssignment {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid @map("tenant_id")
+  employmentId String    @db.Uuid @map("employment_id")
+  subjectId    String    @db.Uuid @map("subject_id")
+  classId      String    @db.Uuid @map("class_id")
+  weeklyLessons Int? @map("weekly_lessons")
+  validFrom    DateTime  @db.Date @map("valid_from")
+  validTo      DateTime? @db.Date @map("valid_to")
+
+  employment Employment      @relation(fields: [employmentId], references: [id])
+  subject    Subject         @relation(fields: [subjectId], references: [id])
+  schoolClass SchoolClass    @relation(fields: [classId], references: [id])
+  slots      ClassSchedule[]
+
+  @@index([tenantId, employmentId])
+
+  @@map("teaching_assignments")
+}
+
+/// Horário recorrente de aula (grade).
+model ClassSchedule {
+  id           String  @id @default(uuid()) @db.Uuid
+  tenantId     String  @db.Uuid @map("tenant_id")
+  assignmentId String  @db.Uuid @map("assignment_id")
+  classroomId  String? @db.Uuid @map("classroom_id")
+  weekday      Int
+  startTime    String @map("start_time")
+  endTime      String @map("end_time")
+
+  assignment TeachingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  classroom  Classroom?         @relation(fields: [classroomId], references: [id])
+  sessions   ClassSession[]
+
+  @@index([tenantId, weekday])
+
+  @@map("class_schedules")
+}
+
+/// Aula em uma data: realizada, não realizada, substituída.
+model ClassSession {
+  id             String             @id @default(uuid()) @db.Uuid
+  tenantId       String             @db.Uuid @map("tenant_id")
+  scheduleId     String             @db.Uuid @map("schedule_id")
+  sessionDate    DateTime           @db.Date @map("session_date")
+  status         ClassSessionStatus @default(SCHEDULED)
+  isExtra        Boolean            @default(false) @map("is_extra")
+  substituteEmploymentId String?    @db.Uuid @map("substitute_employment_id")
+  notes          String?
+  createdAt      DateTime           @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  schedule ClassSchedule @relation(fields: [scheduleId], references: [id])
+
+  @@unique([scheduleId, sessionDate])
+  @@index([tenantId, sessionDate])
+
+  @@map("class_sessions")
+}
+
+// -----------------------------------------------------------------------------
+// Saúde (sem dados clínicos de pacientes)
+// -----------------------------------------------------------------------------
+
+model MedicalShift {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid @map("tenant_id")
+  unitId      String    @db.Uuid @map("unit_id")
+  specialtyId String?   @db.Uuid @map("specialty_id")
+  kind        ShiftKind
+  startsAt    DateTime  @db.Timestamptz(6) @map("starts_at")
+  endsAt      DateTime  @db.Timestamptz(6) @map("ends_at")
+  requiredProfessionals Int @default(1) @map("required_professionals")
+  notes       String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  deletedAt   DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  unit        CompanyUnit              @relation(fields: [unitId], references: [id])
+  specialty   Specialty?               @relation(fields: [specialtyId], references: [id])
+  assignments MedicalShiftAssignment[]
+  handovers   ShiftHandoverEvent[]
+
+  @@index([tenantId, unitId, startsAt])
+
+  @@map("medical_shifts")
+}
+
+model MedicalShiftAssignment {
+  id           String                @id @default(uuid()) @db.Uuid
+  tenantId     String                @db.Uuid @map("tenant_id")
+  shiftId      String                @db.Uuid @map("shift_id")
+  employmentId String                @db.Uuid @map("employment_id")
+  status       ShiftAssignmentStatus @default(SCHEDULED)
+  checkInAt    DateTime?             @db.Timestamptz(6) @map("check_in_at")
+  checkOutAt   DateTime?             @db.Timestamptz(6) @map("check_out_at")
+  createdAt    DateTime              @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  shift         MedicalShift      @relation(fields: [shiftId], references: [id])
+  employment    Employment        @relation(fields: [employmentId], references: [id])
+  substitutions ShiftSubstitution[]
+
+  @@unique([shiftId, employmentId])
+  @@index([tenantId, employmentId])
+
+  @@map("medical_shift_assignments")
+}
+
+model ShiftSubstitution {
+  id                 String         @id @default(uuid()) @db.Uuid
+  tenantId           String         @db.Uuid @map("tenant_id")
+  assignmentId       String         @db.Uuid @map("assignment_id")
+  substituteEmploymentId String     @db.Uuid @map("substitute_employment_id")
+  reason             String
+  status             ApprovalStatus @default(PENDING)
+  decidedById        String?        @db.Uuid @map("decided_by_id")
+  createdAt          DateTime       @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  assignment MedicalShiftAssignment @relation(fields: [assignmentId], references: [id])
+
+  @@index([tenantId, assignmentId])
+
+  @@map("shift_substitutions")
+}
+
+/// Passagem de plantão (evento administrativo; sem informação clínica).
+model ShiftHandoverEvent {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @db.Uuid @map("tenant_id")
+  shiftId           String   @db.Uuid @map("shift_id")
+  fromEmploymentId  String?  @db.Uuid @map("from_employment_id")
+  toEmploymentId    String?  @db.Uuid @map("to_employment_id")
+  occurredAt        DateTime @db.Timestamptz(6) @map("occurred_at")
+  notes             String?
+
+  shift MedicalShift @relation(fields: [shiftId], references: [id])
+
+  @@index([tenantId, shiftId])
+
+  @@map("shift_handover_events")
+}
+
+model ProfessionalAvailability {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid @map("tenant_id")
+  employmentId String    @db.Uuid @map("employment_id")
+  kind         String
+  startsAt     DateTime  @db.Timestamptz(6) @map("starts_at")
+  endsAt       DateTime  @db.Timestamptz(6) @map("ends_at")
+  recurrence   Json?
+  notes        String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  employment Employment @relation(fields: [employmentId], references: [id])
+
+  @@index([tenantId, employmentId, startsAt])
+
+  @@map("professional_availability")
+}
+
+model ConsultationRoom {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid @map("tenant_id")
+  unitId    String    @db.Uuid @map("unit_id")
+  name      String
+  deletedAt DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  unit         CompanyUnit             @relation(fields: [unitId], references: [id])
+  appointments AdministrativeAppointment[]
+
+  @@unique([unitId, name])
+
+  @@map("consultation_rooms")
+}
+
+/// Agenda administrativa de salas/consultórios (sem prontuário nem dados clínicos).
+model AdministrativeAppointment {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid @map("tenant_id")
+  roomId       String    @db.Uuid @map("room_id")
+  employmentId String?   @db.Uuid @map("employment_id")
+  startsAt     DateTime  @db.Timestamptz(6) @map("starts_at")
+  endsAt       DateTime  @db.Timestamptz(6) @map("ends_at")
+  title        String
+  status       String    @default("SCHEDULED")
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  room ConsultationRoom @relation(fields: [roomId], references: [id])
+
+  @@index([tenantId, roomId, startsAt])
+
+  @@map("medical_appointments")
+}
+
+// -----------------------------------------------------------------------------
+// Gestão operacional
+// -----------------------------------------------------------------------------
+
+model OperationalActivity {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid @map("tenant_id")
+  unitId      String    @db.Uuid @map("unit_id")
+  title       String
+  description String?
+  startsAt    DateTime  @db.Timestamptz(6) @map("starts_at")
+  endsAt      DateTime? @db.Timestamptz(6) @map("ends_at")
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  assignments OperationalAssignment[]
+
+  @@index([tenantId, unitId, startsAt])
+
+  @@map("operational_activities")
+}
+
+model OperationalAssignment {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid @map("tenant_id")
+  employmentId String    @db.Uuid @map("employment_id")
+  teamId       String?   @db.Uuid @map("team_id")
+  activityId   String?   @db.Uuid @map("activity_id")
+  workDate     DateTime  @db.Date @map("work_date")
+  startsAt     DateTime? @db.Timestamptz(6) @map("starts_at")
+  endsAt       DateTime? @db.Timestamptz(6) @map("ends_at")
+
+  employment Employment           @relation(fields: [employmentId], references: [id])
+  team       OperationalTeam?     @relation(fields: [teamId], references: [id])
+  activity   OperationalActivity? @relation(fields: [activityId], references: [id])
+
+  @@index([tenantId, workDate])
+
+  @@map("operational_assignments")
+}
+
+model OperationalOccurrence {
+  id            String           @id @default(uuid()) @db.Uuid
+  tenantId      String           @db.Uuid @map("tenant_id")
+  unitId        String           @db.Uuid @map("unit_id")
+  type          OccurrenceType
+  title         String
+  description   String?
+  occurredAt    DateTime         @db.Timestamptz(6) @map("occurred_at")
+  status        OccurrenceStatus @default(OPEN)
+  responsibleId String?          @db.Uuid @map("responsible_id")
+  employmentId  String?          @db.Uuid @map("employment_id")
+  createdById   String           @db.Uuid @map("created_by_id")
+  createdAt     DateTime         @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt     DateTime         @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  events OperationalEvent[]
+
+  @@index([tenantId, unitId, status])
+
+  @@map("operational_occurrences")
+}
+
+/// Histórico de tratamento de uma ocorrência operacional.
+model OperationalEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid @map("tenant_id")
+  occurrenceId String   @db.Uuid @map("occurrence_id")
+  action       String
+  notes        String?
+  actorUserId  String   @db.Uuid @map("actor_user_id")
+  createdAt    DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  occurrence OperationalOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurrenceId])
+
+  @@map("operational_events")
+}
+
+// -----------------------------------------------------------------------------
+// Equipamentos (catálogo global + dispositivos do cliente)
+// -----------------------------------------------------------------------------
+
+model DeviceManufacturer {
+  id      String        @id @default(uuid()) @db.Uuid
+  name    String        @unique
+  website String?
+
+  models DeviceModel[]
+
+  @@map("device_manufacturers")
+}
+
+model DeviceModel {
+  id             String         @id @default(uuid()) @db.Uuid
+  manufacturerId String         @db.Uuid @map("manufacturer_id")
+  name           String
+  category       DeviceCategory
+  protocols      String[]
+  capabilities   Json           @default("{}")
+
+  manufacturer  DeviceManufacturer   @relation(fields: [manufacturerId], references: [id])
+  adapters      DeviceAdapter[]
+  homologations DeviceHomologation[]
+  devices       Device[]
+
+  @@unique([manufacturerId, name])
+
+  @@map("device_models")
+}
+
+model DeviceAdapter {
+  id        String  @id @default(uuid()) @db.Uuid
+  modelId   String  @db.Uuid @map("model_id")
+  key       String
+  version   String
+  transport String
+
+  model DeviceModel @relation(fields: [modelId], references: [id])
+
+  @@unique([modelId, key, version])
+
+  @@map("device_adapters")
+}
+
+/// Matriz de compatibilidade: só "HOMOLOGATED" após teste com equipamento real.
+model DeviceHomologation {
+  id             String             @id @default(uuid()) @db.Uuid
+  modelId        String             @db.Uuid @map("model_id")
+  firmware       String
+  adapterKey     String @map("adapter_key")
+  adapterVersion String @map("adapter_version")
+  connection     String
+  features       Json               @default("{}")
+  status         HomologationStatus @default(NOT_TESTED)
+  testedAt       DateTime?          @db.Timestamptz(6) @map("tested_at")
+  limitations    String?
+
+  model DeviceModel @relation(fields: [modelId], references: [id])
+
+  @@unique([modelId, firmware, adapterKey, adapterVersion])
+
+  @@map("device_homologations")
+}
+
+model Device {
+  id               String         @id @default(uuid()) @db.Uuid
+  tenantId         String         @db.Uuid @map("tenant_id")
+  companyId        String         @db.Uuid @map("company_id")
+  unitId           String?        @db.Uuid @map("unit_id")
+  modelId          String?        @db.Uuid @map("model_id")
+  commServerId     String?        @db.Uuid @map("comm_server_id")
+  name             String
+  serialNumber     String? @map("serial_number")
+  firmware         String?
+  host             String?
+  port             Int?
+  protocol         String?
+  internalCode     String? @map("internal_code")
+  usage            String[]       @default(["TIME"])
+  status           DeviceStatus   @default(PENDING)
+  lastSeenAt       DateTime?      @db.Timestamptz(6) @map("last_seen_at")
+  lastSyncAt       DateTime?      @db.Timestamptz(6) @map("last_sync_at")
+  adapterVersion   String? @map("adapter_version")
+  // Credenciais do equipamento ficam cifradas (nunca retornam ao frontend).
+  credentialsEnc   String? @map("credentials_enc")
+  createdAt        DateTime       @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt        DateTime       @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt        DateTime?      @db.Timestamptz(6) @map("deleted_at")
+
+  company     Company              @relation(fields: [companyId], references: [id])
+  unit        CompanyUnit?         @relation(fields: [unitId], references: [id])
+  model       DeviceModel?         @relation(fields: [modelId], references: [id])
+  commServer  CommunicationServer? @relation(fields: [commServerId], references: [id])
+  identifiers DeviceIdentifier[]
+  events      DeviceEvent[]
+  logs        DeviceLog[]
+  syncJobs    DeviceSyncJob[]
+  timeRecords TimeRecord[]
+  accessEvents AccessEvent[]
+
+  @@unique([tenantId, serialNumber])
+  @@index([tenantId, companyId, status])
+  @@index([commServerId])
+
+  @@map("devices")
+}
+
+/// Identificador do vínculo no equipamento (matrícula, cartão, RFID, referência biométrica).
+/// Templates biométricos não são armazenados aqui: apenas a referência no equipamento.
+model DeviceIdentifier {
+  id           String               @id @default(uuid()) @db.Uuid
+  tenantId     String               @db.Uuid @map("tenant_id")
+  employmentId String               @db.Uuid @map("employment_id")
+  deviceId     String?              @db.Uuid @map("device_id")
+  type         DeviceIdentifierType
+  value        String
+  isActive     Boolean              @default(true) @map("is_active")
+  createdAt    DateTime             @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  employment Employment @relation(fields: [employmentId], references: [id])
+  device     Device?    @relation(fields: [deviceId], references: [id])
+
+  @@unique([tenantId, type, value, deviceId])
+  @@index([tenantId, employmentId])
+
+  @@map("device_identifiers")
+}
+
+/// Evento bruto recebido do equipamento (ponto, acesso, status). Ponto ≠ acesso físico.
+model DeviceEvent {
+  id          String          @id @default(uuid()) @db.Uuid
+  tenantId    String          @db.Uuid @map("tenant_id")
+  deviceId    String          @db.Uuid @map("device_id")
+  kind        DeviceEventKind
+  occurredAt  DateTime        @db.Timestamptz(6) @map("occurred_at")
+  identifier  String?
+  nsr         BigInt?
+  payload     Json
+  processedAt DateTime?       @db.Timestamptz(6) @map("processed_at")
+  commEventId String?         @db.Uuid @map("comm_event_id")
+  createdAt   DateTime        @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@unique([deviceId, kind, nsr, occurredAt])
+  @@index([tenantId, deviceId, occurredAt])
+
+  @@map("device_events")
+}
+
+model DeviceLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @db.Uuid @map("tenant_id")
+  deviceId  String   @db.Uuid @map("device_id")
+  level     String
+  message   String
+  details   Json?
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@index([tenantId, deviceId, createdAt])
+
+  @@map("device_logs")
+}
+
+/// Comando/sincronização para o equipamento (enviado via Communication Server).
+model DeviceSyncJob {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid @map("tenant_id")
+  deviceId    String    @db.Uuid @map("device_id")
+  action      String
+  payload     Json      @default("{}")
+  status      JobStatus @default(QUEUED)
+  attempts    Int       @default(0)
+  lastError   String? @map("last_error")
+  scheduledAt DateTime  @default(now()) @db.Timestamptz(6) @map("scheduled_at")
+  finishedAt  DateTime? @db.Timestamptz(6) @map("finished_at")
+  createdById String?   @db.Uuid @map("created_by_id")
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@index([tenantId, deviceId, status])
+
+  @@map("device_sync_jobs")
+}
+
+/// Evento de acesso físico (porta, catraca). Separado de TimeRecord por finalidade.
+model AccessEvent {
+  id           String          @id @default(uuid()) @db.Uuid
+  tenantId     String          @db.Uuid @map("tenant_id")
+  deviceId     String          @db.Uuid @map("device_id")
+  employmentId String?         @db.Uuid @map("employment_id")
+  kind         DeviceEventKind
+  occurredAt   DateTime        @db.Timestamptz(6) @map("occurred_at")
+  granted      Boolean
+  direction    String?
+  createdAt    DateTime        @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  device     Device      @relation(fields: [deviceId], references: [id])
+  employment Employment? @relation(fields: [employmentId], references: [id])
+
+  @@index([tenantId, deviceId, occurredAt])
+
+  @@map("access_events")
+}
+
+// -----------------------------------------------------------------------------
+// Communication Server
+// -----------------------------------------------------------------------------
+
+model CommunicationServer {
+  id            String       @id @default(uuid()) @db.Uuid
+  tenantId      String?      @db.Uuid @map("tenant_id")
+  name          String
+  identifier    String       @unique
+  publicIp      String? @map("public_ip")
+  domain        String?
+  port          Int?
+  protocol      String       @default("https")
+  status        ServerStatus @default(PENDING)
+  version       String?
+  lastSeenAt    DateTime?    @db.Timestamptz(6) @map("last_seen_at")
+  allowedCompanyIds String[] @db.Uuid @map("allowed_company_ids")
+  allowedUnitIds    String[] @db.Uuid @map("allowed_unit_ids")
+  createdAt     DateTime     @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt     DateTime?    @db.Timestamptz(6) @map("deleted_at")
+
+  tenant      Tenant?                         @relation(fields: [tenantId], references: [id])
+  credentials CommunicationServerCredential[]
+  devices     Device[]
+  events      CommunicationEvent[]
+  history     CommunicationSyncHistory[]
+  logs        CommunicationLog[]
+
+  @@map("communication_servers")
+}
+
+/// Credencial do servidor: só o hash do segredo; rotação com validade.
+model CommunicationServerCredential {
+  id          String    @id @default(uuid()) @db.Uuid
+  serverId    String    @db.Uuid @map("server_id")
+  keyId       String    @unique @map("key_id")
+  secretHash  String @map("secret_hash")
+  certFingerprint String? @map("cert_fingerprint")
+  expiresAt   DateTime? @db.Timestamptz(6) @map("expires_at")
+  revokedAt   DateTime? @db.Timestamptz(6) @map("revoked_at")
+  lastUsedAt  DateTime? @db.Timestamptz(6) @map("last_used_at")
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  server CommunicationServer @relation(fields: [serverId], references: [id])
+
+  @@map("communication_server_credentials")
+}
+
+/// Lote recebido do Communication Server; idempotente por (serverId, batchId).
+model CommunicationEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  serverId    String    @db.Uuid @map("server_id")
+  tenantId    String?   @db.Uuid @map("tenant_id")
+  batchId     String @map("batch_id")
+  kind        String
+  itemCount   Int @map("item_count")
+  acceptedCount Int     @default(0) @map("accepted_count")
+  duplicateCount Int    @default(0) @map("duplicate_count")
+  rejectedCount Int     @default(0) @map("rejected_count")
+  receivedAt  DateTime  @default(now()) @db.Timestamptz(6) @map("received_at")
+  processedAt DateTime? @db.Timestamptz(6) @map("processed_at")
+  errors      Json      @default("[]")
+
+  server CommunicationServer @relation(fields: [serverId], references: [id])
+
+  @@unique([serverId, batchId])
+  @@index([serverId, receivedAt])
+
+  @@map("communication_events")
+}
+
+model CommunicationSyncHistory {
+  id          String   @id @default(uuid()) @db.Uuid
+  serverId    String   @db.Uuid @map("server_id")
+  direction   String
+  summary     Json
+  createdAt   DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  server CommunicationServer @relation(fields: [serverId], references: [id])
+
+  @@index([serverId, createdAt])
+
+  @@map("communication_sync_history")
+}
+
+model CommunicationLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  serverId  String   @db.Uuid @map("server_id")
+  level     String
+  message   String
+  details   Json?
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  server CommunicationServer @relation(fields: [serverId], references: [id])
+
+  @@index([serverId, createdAt])
+
+  @@map("communication_logs")
+}
+
+// -----------------------------------------------------------------------------
+// Usuários, perfis, permissões e auditoria
+// -----------------------------------------------------------------------------
+
+model User {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String?   @db.Uuid @map("tenant_id")
+  personId       String?   @unique @db.Uuid @map("person_id")
+  email          String    @unique
+  passwordHash   String? @map("password_hash")
+  displayName    String @map("display_name")
+  isPlatformAdmin Boolean  @default(false) @map("is_platform_admin")
+  isActive       Boolean   @default(true) @map("is_active")
+  mustChangePassword Boolean @default(false) @map("must_change_password")
+  lastLoginAt    DateTime? @db.Timestamptz(6) @map("last_login_at")
+  failedLogins   Int       @default(0) @map("failed_logins")
+  lockedUntil    DateTime? @db.Timestamptz(6) @map("locked_until")
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  deletedAt      DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  tenant        Tenant?                  @relation(fields: [tenantId], references: [id])
+  person        Person?                  @relation(fields: [personId], references: [id])
+  roles         UserRole[]
+  sessions      Session[]
+  mfaFactors    MfaFactor[]
+  resetTokens   PasswordResetToken[]
+  notifications Notification[]
+  preferences   NotificationPreference[]
+
+  @@map("users")
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid @map("user_id")
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  familyId         String    @db.Uuid @map("family_id")
+  userAgent        String? @map("user_agent")
+  ip               String?
+  expiresAt        DateTime  @db.Timestamptz(6) @map("expires_at")
+  revokedAt        DateTime? @db.Timestamptz(6) @map("revoked_at")
+  replacedById     String?   @db.Uuid @map("replaced_by_id")
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+
+  @@map("sessions")
+}
+
+model MfaFactor {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid @map("user_id")
+  type        String    @default("TOTP")
+  secretEnc   String @map("secret_enc")
+  verifiedAt  DateTime? @db.Timestamptz(6) @map("verified_at")
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+
+  @@map("mfa_factors")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @db.Timestamptz(6) @map("expires_at")
+  usedAt    DateTime? @db.Timestamptz(6) @map("used_at")
+  createdAt DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+/// Perfil: tenantId nulo = perfil de sistema (modelo), copiado/usado por todos.
+model Role {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String?   @db.Uuid @map("tenant_id")
+  key         String
+  name        String
+  description String?
+  isSystem    Boolean   @default(false) @map("is_system")
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  deletedAt   DateTime? @db.Timestamptz(6) @map("deleted_at")
+
+  tenant      Tenant?          @relation(fields: [tenantId], references: [id])
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@unique([tenantId, key])
+
+  @@map("roles")
+}
+
+/// Permissão global no formato "modulo.recurso:acao" (ex.: "time.records:approve").
+model Permission {
+  id          String @id @default(uuid()) @db.Uuid
+  key         String @unique
+  module      String
+  description String
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @db.Uuid @map("role_id")
+  permissionId String @db.Uuid @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+
+  @@map("role_permissions")
+}
+
+/// Papel do usuário com escopo (tenant inteiro, empresa, unidade ou departamento).
+model UserRole {
+  id           String          @id @default(uuid()) @db.Uuid
+  userId       String          @db.Uuid @map("user_id")
+  roleId       String          @db.Uuid @map("role_id")
+  tenantId     String?         @db.Uuid @map("tenant_id")
+  scope        PermissionScope @default(TENANT)
+  companyId    String?         @db.Uuid @map("company_id")
+  unitId       String?         @db.Uuid @map("unit_id")
+  departmentId String?         @db.Uuid @map("department_id")
+  createdAt    DateTime        @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, scope, companyId, unitId, departmentId])
+  @@index([tenantId, userId])
+
+  @@map("user_roles")
+}
+
+/// Trilha de auditoria (somente inserção; gatilho bloqueia alteração e exclusão).
+model AuditLog {
+  id         String      @id @default(uuid()) @db.Uuid
+  tenantId   String?     @db.Uuid @map("tenant_id")
+  actorUserId String?    @db.Uuid @map("actor_user_id")
+  action     AuditAction
+  entity     String
+  entityId   String? @map("entity_id")
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String? @map("user_agent")
+  requestId  String? @map("request_id")
+  createdAt  DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, entity, entityId])
+
+  @@map("audit_logs")
+}
+
+// -----------------------------------------------------------------------------
+// Notificações
+// -----------------------------------------------------------------------------
+
+model Notification {
+  id        String              @id @default(uuid()) @db.Uuid
+  tenantId  String              @db.Uuid @map("tenant_id")
+  userId    String              @db.Uuid @map("user_id")
+  type      String
+  title     String
+  body      String
+  link      String?
+  channel   NotificationChannel @default(IN_APP)
+  readAt    DateTime?           @db.Timestamptz(6) @map("read_at")
+  sentAt    DateTime?           @db.Timestamptz(6) @map("sent_at")
+  createdAt DateTime            @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId, readAt])
+
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id       String              @id @default(uuid()) @db.Uuid
+  userId   String              @db.Uuid @map("user_id")
+  type     String
+  channel  NotificationChannel
+  enabled  Boolean             @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, channel])
+
+  @@map("notification_preferences")
+}
+
+// -----------------------------------------------------------------------------
+// SaaS: planos, assinaturas e cobrança
+// -----------------------------------------------------------------------------
+
+model Plan {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  name        String
+  priceCents  Int @map("price_cents")
+  currency    String   @default("BRL")
+  interval    String   @default("month")
+  isPublic    Boolean  @default(true) @map("is_public")
+  createdAt   DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+/// Limite ou módulo do plano (ex.: "limit.employments" = 100, "module.health" = true).
+model PlanFeature {
+  id      String @id @default(uuid()) @db.Uuid
+  planId  String @db.Uuid @map("plan_id")
+  key     String
+  value   Json
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, key])
+
+  @@map("plan_features")
+}
+
+model Subscription {
+  id                 String             @id @default(uuid()) @db.Uuid
+  tenantId           String             @db.Uuid @map("tenant_id")
+  planId             String             @db.Uuid @map("plan_id")
+  status             SubscriptionStatus @default(TRIALING)
+  trialEndsAt        DateTime?          @db.Timestamptz(6) @map("trial_ends_at")
+  currentPeriodStart DateTime           @db.Timestamptz(6) @map("current_period_start")
+  currentPeriodEnd   DateTime           @db.Timestamptz(6) @map("current_period_end")
+  cancelAt           DateTime?          @db.Timestamptz(6) @map("cancel_at")
+  addons             Json               @default("[]")
+  overrides          Json               @default("{}")
+  externalId         String? @map("external_id")
+  createdAt          DateTime           @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt          DateTime           @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  tenant Tenant         @relation(fields: [tenantId], references: [id])
+  plan   Plan           @relation(fields: [planId], references: [id])
+  events BillingEvent[]
+
+  @@index([tenantId, status])
+
+  @@map("subscriptions")
+}
+
+model BillingEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  subscriptionId String?  @db.Uuid @map("subscription_id")
+  tenantId       String?  @db.Uuid @map("tenant_id")
+  provider       String
+  externalId     String @map("external_id")
+  type           String
+  amountCents    Int? @map("amount_cents")
+  payload        Json
+  processedAt    DateTime? @db.Timestamptz(6) @map("processed_at")
+  createdAt      DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@unique([provider, externalId])
+
+  @@map("billing_events")
+}

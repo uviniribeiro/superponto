@@ -1,0 +1,16 @@
+{
+  "name": "superponto-platform",
+  "private": true,
+  "version": "2.0.0-alpha.0",
+  "description": "SuperPonto v2 — plataforma SaaS de gestão de pessoas, jornadas, ponto e equipamentos",
+  "workspaces": ["packages/*", "apps/*"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "db:generate": "npm run generate -w @superponto/database",
+    "db:migrate": "npm run migrate:deploy -w @superponto/database",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

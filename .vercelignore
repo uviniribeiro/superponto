@@ -5,3 +5,4 @@ deploy/vps/backups
 server
 coverage
 *.dump
+platform
