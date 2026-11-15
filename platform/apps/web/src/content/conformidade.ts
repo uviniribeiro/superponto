@@ -167,7 +167,7 @@ export const GROUPS: RequirementGroup[] = [
         rule: 'A cada marcação o trabalhador deve ter acesso ao comprovante, com os campos definidos na portaria (empregador com CNPJ/CPF, local, nome e CPF do trabalhador, data, hora e NSR). No REP-P o comprovante é eletrônico.',
         basis: 'Portaria MTP nº 671/2021',
         status: 'andamento',
-        howWe: 'Cada marcação pelo navegador mostra o comprovante na tela (funcionário, empresa, CNPJ, data, hora e código de integridade). Envio por e-mail e consulta pública de autenticidade ainda faltam.',
+        howWe: 'Cada marcação pelo navegador mostra o comprovante na tela (funcionário, empresa, CNPJ, data, hora, código de integridade, aparelho liberado quando a marcação vem do app e o rodapé definido pela empresa). Envio por e-mail e consulta pública de autenticidade ainda faltam.',
       },
       {
         id: 'afd',
@@ -191,7 +191,7 @@ export const GROUPS: RequirementGroup[] = [
         rule: 'O programa de tratamento emite o espelho de ponto do período, com identificação do empregador e do trabalhador, horário contratual, marcações originais e tratadas, e indicação de cada tratamento.',
         basis: 'Portaria MTP nº 671/2021',
         status: 'andamento',
-        howWe: 'Espelho mensal na tela (Ponto › Espelho de ponto) com marcações originais, incluídas e desconsideradas, saldo, extras, noturno e ocorrências, e impressão pelo navegador. PDF assinado e ciência eletrônica do trabalhador ainda faltam.',
+        howWe: 'Espelho mensal na tela (Ponto › Espelho de ponto) com marcações originais, incluídas e desconsideradas, saldo, extras, noturno e ocorrências, impressão pelo navegador com rodapé da empresa, versão no leiaute da Portaria (Relatórios › Espelho de ponto 1.510/671, por PIS, com (I) incluída e (D) desconsiderada) e ciência eletrônica do trabalhador: depois do fim do período, o funcionário dá ciência de acordo ou com ressalva; a ciência grava o resumo, um código (SHA-256) do espelho visto, IP e navegador, não pode ser alterada nem apagada (bloqueio no banco) e o RH vê quem deu ciência e se o espelho mudou depois (Relatórios › Ciência eletrônica do espelho). PDF com assinatura digital ICP-Brasil ainda falta.',
       },
       {
         id: 'tratamento',
@@ -308,8 +308,8 @@ export const GROUPS: RequirementGroup[] = [
         title: 'Integração com folha e eSocial',
         rule: 'Horas extras, adicional noturno, faltas e DSR viram rubricas da folha, informadas no eSocial (eventos de remuneração) pelo empregador.',
         basis: 'Decreto nº 8.373/2014 (eSocial) e leiautes vigentes',
-        status: 'planejado',
-        howWe: 'Exportação de eventos de folha por rubrica configurável; o envio ao eSocial continua com o sistema de folha do cliente.',
+        status: 'feito',
+        howWe: 'Relatórios › Exportação para a folha: layout por empresa com o código de evento (rubrica) de cada verba (horas normais, extras por percentual, noturno, faltas, atrasos, abonos, sobreaviso), funcionário por matrícula ou CPF, separador e formato da quantidade; gera o arquivo do período para importar no sistema de folha. O SuperPonto não envia dados a outros sistemas; o envio ao eSocial continua com o sistema de folha do cliente.',
       },
     ],
   },

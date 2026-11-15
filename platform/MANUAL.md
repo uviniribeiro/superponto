@@ -29,15 +29,24 @@ _V2 — versão de 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › 
 20. [Equipamentos (relógios de ponto)](#20-equipamentos)
 21. [Agente local](#21-agente-local)
 22. [Relatórios](#22-relatorios)
-23. [Feriados](#23-feriados)
-24. [Clientes da plataforma](#24-clientes)
-25. [Usuários](#25-usuarios)
-26. [Dias de acesso, bloqueios e troca de senha](#26-acesso)
-27. [Login pela rede da organização (LDAP / Active Directory)](#27-ldap)
-28. [Perfis e permissões](#28-perfis)
-29. [Segurança, auditoria e privacidade](#29-seguranca)
-30. [Módulos em construção](#30-construcao)
-31. [Suporte](#31-suporte)
+23. [Painel ao vivo](#23-painel-ao-vivo)
+24. [Ciência do espelho](#24-ciencia-espelho)
+25. [Avisos aos funcionários](#25-avisos)
+26. [E-mails agendados](#26-emails-agendados)
+27. [Aparelhos do app](#27-aparelhos-app)
+28. [Textos personalizados](#28-textos)
+29. [Central de ajuda](#29-ajuda)
+30. [Exportação para a folha](#30-folha)
+31. [Importar marcações por planilha](#31-importar-marcacoes)
+32. [Feriados](#32-feriados)
+33. [Clientes da plataforma](#33-clientes)
+34. [Usuários](#34-usuarios)
+35. [Dias de acesso, bloqueios e troca de senha](#35-acesso)
+36. [Login pela rede da organização (LDAP / Active Directory)](#36-ldap)
+37. [Perfis e permissões](#37-perfis)
+38. [Segurança, auditoria e privacidade](#38-seguranca)
+39. [Módulos em construção](#39-construcao)
+40. [Suporte](#40-suporte)
 
 <a id="1-visao"></a>
 ## 1. O que é o SuperPonto
@@ -381,12 +390,16 @@ Na aba "Agente local" do equipamento, gere a chave e informe-a no agente. A chav
 
 O agente avisa que está vivo, busca a fila de comandos (já com os dados prontos para o relógio: empregador, PIS ou CPF conforme a portaria, nome e digitais), devolve o resultado de cada comando e envia os registros coletados (AFD) no intervalo de coleta.
 
+O programa do agente (pasta apps/agent) roda em Windows (como serviço) ou Linux (systemd), com um arquivo de configuração que traz o endereço da API, a chave de cada relógio e o usuário e a senha do relógio (que nunca saem da rede do cliente). Ele lembra o último NSR enviado para não reenviar marcações e, em falha de rede, tenta de novo esperando 15 s, 30 s, 1 min… até 5 min.
+
+Fabricantes: Control iD (REP iDClass e linha iDAccess/iDFlex/iDFace) pela API local do equipamento, e um relógio simulado para testar a instalação. No Control iD, hora e coleta de AFD seguem a documentação do fabricante; empregador, lista e cadastro de usuários e digitais no REP iDClass estão com homologação pendente em equipamento real. Henry, Topdata, Biomtech, Dahua e RW ainda não têm driver.
+
 <a id="22-relatorios"></a>
 ## 22. Relatórios
 
 **Para:** RH, gestores e administradores
 
-Em Relatórios há 30 relatórios em seis grupos: Ponto (horas trabalhadas, folha de conferência com extras por percentual, cartão ponto em lote, analíticos de extra, falta e atraso, marcações ímpares, déficit de intervalo, interjornada menor que 11 horas, absenteísmo, frequência, adicional noturno e sobreaviso), Movimentações (abonos, afastamentos, ajustes, solicitações, trocas e escala do período), Bancos (saldos e extrato), Cadastros (funcionários, aniversariantes e feriados), Equipamentos e marcações (marcações, marcações pelo navegador e app com localização, eventos dos equipamentos) e Segurança (auditoria e usuários com perfis).
+Em Relatórios há 38 relatórios em seis grupos: Ponto (horas trabalhadas, folha de conferência com extras por percentual, cartão ponto em lote, espelho no leiaute da Portaria por PIS, analíticos de extra, falta e atraso, marcações ímpares, déficit de intervalo, intervalo não calculável, divergências de jornada, interjornada menor que 11 horas, absenteísmo, frequência, adicional noturno, sobreaviso e ciência eletrônica do espelho), Movimentações (abonos, afastamentos, ajustes, solicitações, trocas, escala do período e log do espelho por funcionário), Bancos (saldos e extrato), Cadastros (funcionários, aniversariantes e feriados), Equipamentos e marcações (marcações, marcações pelo navegador e app com localização, eventos dos equipamentos) e Segurança (auditoria, acessos com falhas de login, alterações de senha, usuários com perfis e funcionalidades por perfil).
 
 Todos usam os mesmos filtros: empresa, período (até 93 dias), departamento com ou sem subdepartamentos e agrupamento. Relatórios de cadastro e saldos não pedem período.
 
@@ -394,8 +407,89 @@ O Montador de relatório monta um relatório com os campos que você escolher, u
 
 Exporte em Excel (planilha com cabeçalho e totais) ou CSV (separado por ponto e vírgula, abre direto no Excel em português), ou use "Imprimir / PDF" para salvar em PDF pelo navegador. CPF só aparece completo para quem pode ver dados sensíveis; Auditoria e Usuários exigem permissão própria.
 
-<a id="23-feriados"></a>
-## 23. Feriados
+<a id="23-painel-ao-vivo"></a>
+## 23. Painel ao vivo
+
+**Para:** RH, gestores e supervisores
+
+Em Ponto › Painel ao vivo aparece a situação de cada funcionário da empresa agora: trabalhando, em intervalo, já saiu, ainda vai entrar, atrasado sem marcação (passou o horário previsto mais 10 minutos de tolerância), não veio, de folga, afastado ou abonado, e quem marcou sem ter jornada no dia.
+
+A tela se atualiza sozinha a cada 30 segundos. Clique numa situação para filtrar. Os números vêm da mesma apuração do espelho; nada é estimado.
+
+<a id="24-ciencia-espelho"></a>
+## 24. Ciência do espelho
+
+**Para:** Funcionários e RH
+
+Depois que o período termina, o funcionário abre Meu espelho, confere e clica em "Dar ciência (de acordo)" ou "Dar ciência com ressalva" (explicando o que está diferente). O texto exibido pode ser definido pela empresa em Textos personalizados.
+
+A ciência guarda o resumo do mês e um código do espelho que o funcionário viu, com data, hora, IP e navegador. Ela não pode ser alterada nem apagada. Se depois houver ajuste ou abono no período, o funcionário e o RH veem que o espelho mudou desde a ciência.
+
+O RH acompanha quem já deu ciência em Relatórios › Ciência eletrônica do espelho (informe exatamente o período do espelho).
+
+<a id="25-avisos"></a>
+## 25. Avisos aos funcionários
+
+**Para:** RH e administradores
+
+Em Ferramentas › Avisos publique recados com início e fim, para todas as empresas ou uma só e, se quiser, só para um agrupamento. Avisos importantes aparecem em destaque.
+
+Os avisos aparecem na Visão geral de quem está no público. Com "Pedir confirmação de leitura", o funcionário clica em "Li e entendi" e o RH vê quem leu e quando.
+
+<a id="26-emails-agendados"></a>
+## 26. E-mails agendados
+
+**Para:** RH e administradores
+
+Em Ferramentas › E-mails agendados crie resumos enviados todo dia no horário escolhido (Brasília), nos dias da semana marcados: faltas de ontem, atrasados agora sem marcação de entrada, ajustes aguardando aprovação, solicitações pendentes e relógios sem comunicação.
+
+Use "Prévia" para ver o conteúdo sem enviar e "Enviar agora" para mandar na hora. Cada agendamento é enviado uma vez por dia; se o sistema estiver parado no horário, o envio acontece em até 15 minutos depois de voltar, e não mais tarde que isso.
+
+<a id="27-aparelhos-app"></a>
+## 27. Aparelhos do app
+
+**Para:** Funcionários e administradores
+
+Em Ponto › Meus aparelhos, o funcionário dá um nome ao celular ou tablet e recebe um código de 6 dígitos no e-mail (vale 10 minutos, 5 tentativas). Confirmado o código, aparece um token que é colado no app uma única vez; o sistema guarda só uma impressão dele.
+
+A marcação feita com o token mostra o aparelho no comprovante e fica registrada na auditoria. Aparelho perdido ou trocado é revogado pelo próprio funcionário ou em Administração › Aparelhos do app.
+
+<a id="28-textos"></a>
+## 28. Textos personalizados
+
+**Para:** Administradores da organização
+
+Em Ferramentas › Textos personalizados defina a mensagem no topo da Visão geral, o rodapé do comprovante de marcação, o rodapé do espelho impresso e o termo da ciência do espelho. Texto em branco não aparece.
+
+<a id="29-ajuda"></a>
+## 29. Central de ajuda
+
+**Para:** Todos
+
+Em Ajuda › Central de ajuda há uma calculadora de horas (somar e subtrair durações e calcular as horas trabalhadas a partir das marcações, inclusive virando a meia-noite) e respostas para as dúvidas mais comuns.
+
+<a id="30-folha"></a>
+## 30. Exportação para a folha
+
+**Para:** RH e departamento pessoal
+
+Em Relatórios › Exportação para a folha monte um layout por empresa: o código de evento (rubrica) de cada verba no seu sistema de folha, o funcionário por matrícula ou CPF, o separador e o formato da quantidade (08:30, 8,50 ou 510 minutos).
+
+Escolha o período e clique em "Gerar arquivo": sai uma linha por funcionário e verba (matrícula ou CPF; evento; quantidade; início; fim), sem linhas zeradas. O SuperPonto avisa quem ficou sem CPF/matrícula e quais verbas tinham valor sem código no layout.
+
+Os valores saem da folha de conferência; calcule e feche o período antes. O SuperPonto só gera o arquivo: não envia dados para outros sistemas.
+
+<a id="31-importar-marcacoes"></a>
+## 31. Importar marcações por planilha
+
+**Para:** RH
+
+Em Ponto › Importar marcações envie um arquivo CSV ou TXT (ou cole o conteúdo) com uma marcação por linha: matrícula ou CPF; data (dd/mm/aaaa ou aaaa-mm-dd); hora (hh:mm). Separador ponto e vírgula, vírgula ou tabulação; a primeira linha pode ser cabeçalho.
+
+Clique em "Conferir" para ver o que entra, o que já existe e os erros por linha (funcionário não encontrado, data ou hora inválida, marcação no futuro, fora do vínculo, período fechado ou repetida). Só depois clique em "Importar". Repetir o mesmo arquivo não duplica; a marcação entra com a origem "Importação" e com o código de integridade encadeado.
+
+<a id="32-feriados"></a>
+## 32. Feriados
 
 **Para:** Administradores da organização e RH
 
@@ -415,8 +509,8 @@ A base de feriados municipais começa pelas capitais. Para outras cidades, cadas
 
 > **Dica:** Preencha o CEP da empresa: sem ele, só aparecem os feriados nacionais.
 
-<a id="24-clientes"></a>
-## 24. Clientes da plataforma
+<a id="33-clientes"></a>
+## 33. Clientes da plataforma
 
 **Para:** Equipe SuperPonto (SuperAdmin)
 
@@ -433,8 +527,8 @@ Ao criar um cliente, informe o nome, o identificador (gerado a partir do nome), 
 
 > **Dica:** Clientes novos começam no status "Em teste".
 
-<a id="25-usuarios"></a>
-## 25. Usuários
+<a id="34-usuarios"></a>
+## 34. Usuários
 
 **Para:** Administradores
 
@@ -452,8 +546,8 @@ Novos usuários recebem um convite por e-mail para criar a própria senha. O e-m
 
 > **Dica:** Ninguém pode desativar, bloquear ou limitar os dias do próprio usuário.
 
-<a id="26-acesso"></a>
-## 26. Dias de acesso, bloqueios e troca de senha
+<a id="35-acesso"></a>
+## 35. Dias de acesso, bloqueios e troca de senha
 
 **Para:** Administradores
 
@@ -465,8 +559,8 @@ Em Administração › Bloqueios de acesso ficam os bloqueios vigentes e agendad
 
 "Pedir troca de senha no próximo acesso" leva o usuário direto para Minha conta até ele trocar a senha. Em Conta › Minha conta, qualquer usuário troca a própria senha informando a atual.
 
-<a id="27-ldap"></a>
-## 27. Login pela rede da organização (LDAP / Active Directory)
+<a id="36-ldap"></a>
+## 36. Login pela rede da organização (LDAP / Active Directory)
 
 **Para:** Administradores
 
@@ -486,8 +580,8 @@ Na nuvem, o servidor do diretório precisa ter endereço público com TLS: por s
 
 > **Dica:** Se o diretório ficar fora do ar, os usuários LDAP veem um aviso para tentar de novo; usuários com senha própria continuam entrando normalmente.
 
-<a id="28-perfis"></a>
-## 28. Perfis e permissões
+<a id="37-perfis"></a>
+## 37. Perfis e permissões
 
 **Para:** Administradores
 
@@ -499,8 +593,8 @@ Recursos marcados "módulo em construção na V2" já podem ser incluídos nos p
 
 Mudanças num perfil valem a partir do próximo acesso de cada usuário. Perfis com usuários não podem ser excluídos.
 
-<a id="29-seguranca"></a>
-## 29. Segurança, auditoria e privacidade
+<a id="38-seguranca"></a>
+## 38. Segurança, auditoria e privacidade
 
 **Para:** Todos
 
@@ -510,21 +604,21 @@ Senhas são guardadas apenas como hash forte; ninguém, nem a equipe SuperPonto,
 
 O tratamento de dados segue a LGPD: o empregador é o controlador dos dados dos trabalhadores e a SuperPonto atua como operadora.
 
-<a id="30-construcao"></a>
-## 30. Módulos em construção
+<a id="39-construcao"></a>
+## 39. Módulos em construção
 
 **Para:** Todos
 
-A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, registro de ponto pelo navegador, espelho, ajustes, abonos, afastamentos, fechamento, banco de horas e de compensação, solicitações com aprovação em etapas, equipamentos com agente local e alertas, AEJ e 30 relatórios com exportação e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.
+A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, registro de ponto pelo navegador, espelho, ajustes, abonos, afastamentos, fechamento, banco de horas e de compensação, solicitações com aprovação em etapas, equipamentos com agente local (programa com driver Control iD e simulador) e alertas, AEJ, 38 relatórios com exportação, painel ao vivo, avisos, e-mails agendados, aparelhos do app, textos personalizados, central de ajuda, ciência eletrônica do espelho, exportação para a folha e importação de marcações por planilha e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.
 
 O app do terminal (tablet de ponto) é instalado por APK e abre em tela cheia, com a tela sempre ligada e opção de modo quiosque.
 
-Próximas fases: programa do agente local para cada marca de relógio, app do funcionário na V2, assinatura do AEJ e do espelho, ferramentas, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.
+Próximas fases: drivers do agente para outras marcas de relógio (Henry, Topdata e outras) e homologação do Control iD em equipamento real, app do funcionário na V2, assinatura ICP-Brasil do AEJ e do espelho, módulos de Educação, Saúde e Operações e Servidor de Comunicação.
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 
-<a id="31-suporte"></a>
-## 31. Suporte
+<a id="40-suporte"></a>
+## 40. Suporte
 
 **Para:** Todos
 

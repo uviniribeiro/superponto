@@ -5,6 +5,7 @@ import { ArrowUpRight, BookOpen, Boxes, Building2, CalendarDays, Clock3, FileSpr
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Announcements } from '@/components/announcements';
 import { Page } from '@/components/page';
 import { can, useSession } from '@/components/providers';
 import { TenantPicker, useActiveTenant } from '@/components/tenant-picker';
@@ -263,6 +264,7 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+      <Announcements tenantId={tenantId} />
 
       {!tenantId ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

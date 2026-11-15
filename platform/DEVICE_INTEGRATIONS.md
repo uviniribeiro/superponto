@@ -30,10 +30,11 @@ bruto). A conversão para marcação ou evento de acesso acontece na API, por re
 
 | Fabricante | Protocolo conhecido (v1) | Adaptador v2 | Situação |
 |---|---|---|---|
-| Control iD (iDClass, iDFlex, REP iDX) | REST JSON (`/login.fcgi`, `/load_objects.fcgi`) | `controlid-rest` | a portar do robô Python |
+| Control iD (iDClass, iDFlex, REP iDX) | REST JSON (`/login.fcgi`, `/load_objects.fcgi`) | `apps/agent` driver `controlid` | pronto no agente; homologação em REP real pendente |
 | Henry (Hexa, Prisma, Orion) | TCP ASCII STX/ETX + checksum XOR, porta 3000 | `henry-tcp` | a portar |
 | ZKTeco / Rep iX | TCP/UDP 4370 | `zkteco` | a portar |
 | Topdata (Inner Rep) | TCP binário STX/ETX, porta 3570 | `topdata-tcp` | a portar |
+| Biomtech, Dahua, RW | a levantar com documentação do fabricante | — | não iniciado |
 | Dimep (PrintPoint/MiniPrint) | TCP ASCII, porta 3000 | `dimep-tcp` | a portar |
 | Madis | TCP ASCII compatível Henry | `henry-tcp` (variante) | a portar |
 | Ahgora, Secullum, Hikvision, Intelbras | a levantar com documentação do fabricante | — | não iniciado |
@@ -80,22 +81,24 @@ só tem 14 dígitos). O adaptador Control iD (`controlIdRequests`) traduz cada c
 - Envio de foto para reconhecimento facial exige finalidade registrada, consentimento/base legal
   e política de retenção configurada por empresa.
 
-## Integração com o sistema de ponto Velti/Átomo (servicoponto)
+## Agente local (`apps/agent`)
 
-`packages/integrations` traz o cliente da API REST desse sistema, montado a partir da coleção Postman
-fornecida e do Swagger que o próprio servidor publica em `/servicoponto/documentacao/swagger.json`
-(conferido no servidor de Montes Claros, que responde 401 sem token em `/servicoponto/api/horario`).
+Programa Node.js instalado na rede do cliente (serviço do Windows ou systemd). Faz só conexões de
+saída: para o relógio e para a API (`/v1/agent/*`, chave `spd_` no cabeçalho `X-Device-Key`). Ciclo:
+batimento (recebe leiaute, endereço e intervalo de coleta) → fila de comandos → resultado → coleta
+agendada do AFD a partir do último NSR guardado em arquivo. Drivers: `controlid` (API local `*.fcgi`,
+sessão com novo login quando expira, certificado autoassinado aceito só para o relógio) e
+`simulator`. Testado com um relógio Control iD falso (HTTP) e uma API falsa; ver `apps/agent/README.md`.
 
-- Autenticação por cabeçalho `token` (emitido pelo administrador do sistema de origem).
-- Operações: obter marcações do espelho, ajuste manual, abono de falta e de atraso, importação de
-  afastamentos, apontamento (marcação), escala agendada (um ou vários funcionários), horários,
-  sindicatos (listar e incluir), aprovação de horas extras e banco de compensação.
-- Os caminhos diferem entre a coleção (`/espelho/...`, `/marcacao/...`) e o Swagger (sem prefixo):
-  `routes: 'postman' | 'swagger'`. Os códigos de erro do Swagger (ponto fechado, funcionário inativo,
-  demitido, PIS não encontrado etc.) viram mensagens claras.
+Em 15/11/2026 o cliente enviou os arquivos do serviço de comunicação de outro sistema de ponto
+(AtomoCrab/AtomoOctopusCore). Foram usados **só como referência da lista de fabricantes** que o
+mercado espera (Henry protocolo 8x, Control iD REP iDClass, Topdata, Biomtech 040/060, Dahua, RW);
+nenhum código, biblioteca ou binário de terceiros foi copiado, descompilado ou incluído, e o
+SuperPonto não depende nem se comunica com esse sistema.
 
-**Serve como comunicador?** Não com relógios: é uma API servidor-a-servidor. Serve para conviver com
-clientes que ainda usam esse sistema ou migrar deles: trazer as marcações (identificadas pelo PIS)
-para o SuperPonto e enviar ajustes, abonos, escalas e aprovações. A tela de configuração (endereço e
-token por cliente, testar conexão, importar período) é o próximo passo e precisa de um token real
-para homologação.
+## Sistema de ponto Velti/Átomo (servicoponto): não utilizado
+
+Por decisão do cliente (15/11/2026), o SuperPonto **não se integra nem se comunica** com o Átomo/Velti.
+Os recursos equivalentes foram feitos de forma nativa (exportação para a folha, importação de
+marcações por planilha, relatórios). O pacote `packages/integrations` (cliente da API desse sistema,
+feito antes da decisão) não é usado pela API nem pelo site e pode ser removido.

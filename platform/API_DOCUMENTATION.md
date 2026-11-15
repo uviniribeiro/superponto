@@ -25,4 +25,13 @@ Base: `/v1`. Documentação interativa gerada pelo Swagger em `/docs` (OpenAPI 3
 | `schedules`, `time`, `bank-hours`, `requests` | fases 3 e 5 |
 | `education`, `health`, `operational` | fase 4 |
 | `devices`, `comm` (Communication Server) | fases 6 e 7 |
-| `plans`, `subscriptions`, `billing` | fase 8 |
+| `plans`, `subscriptions`, `billing` | fase 8 (SaaS) |
+| `live`: `GET /v1/live?companyId=` (situação de cada funcionário agora) | **pronto** |
+| `notification-schedules`: CRUD, `GET :id/preview`, `POST :id/send` (agendador a cada minuto) | **pronto** |
+| `announcements`: CRUD, `GET active`, `POST :id/read`, `GET :id/reads` | **pronto** |
+| `app-devices`: `POST request`, `POST :id/confirm`, `GET mine`, `POST mine/:id/revoke`, `GET /`, `POST :id/revoke` | **pronto** |
+| `custom-texts`: `GET /`, `PUT :key` | **pronto** |
+| `timesheet/me/ack` (`GET`/`POST`) e `GET /v1/mirror-acks` (ciência eletrônica do espelho) | **pronto** |
+| `payroll-layouts`: `GET items`, CRUD, `POST :id/export` (arquivo para a folha) | **pronto** |
+| `time-records/import-csv` (importação de marcações, com `dryRun`) | **pronto** |
+| `agent`: `POST heartbeat` (devolve leiaute, endereço e intervalo), `GET jobs`, `POST jobs/:id/result`, `POST afd` | **pronto** |

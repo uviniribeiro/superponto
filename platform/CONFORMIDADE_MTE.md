@@ -11,9 +11,9 @@ _Revisado em 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › Confor
 
 | Situação | Itens |
 |---|---|
-| Atendido no sistema | 11 |
+| Atendido no sistema | 12 |
 | Em desenvolvimento | 11 |
-| Planejado | 8 |
+| Planejado | 7 |
 | Ação da SuperPonto (fornecedor) | 2 |
 | Obrigação do empregador | 2 |
 | **Total** | **34** |
@@ -177,7 +177,7 @@ Documentos que o sistema precisa gerar para o trabalhador, para o empregador e p
 - **O que a norma exige:** A cada marcação o trabalhador deve ter acesso ao comprovante, com os campos definidos na portaria (empregador com CNPJ/CPF, local, nome e CPF do trabalhador, data, hora e NSR). No REP-P o comprovante é eletrônico.
 - **Base legal:** Portaria MTP nº 671/2021
 - **Situação:** Em desenvolvimento
-- **No SuperPonto:** Cada marcação pelo navegador mostra o comprovante na tela (funcionário, empresa, CNPJ, data, hora e código de integridade). Envio por e-mail e consulta pública de autenticidade ainda faltam.
+- **No SuperPonto:** Cada marcação pelo navegador mostra o comprovante na tela (funcionário, empresa, CNPJ, data, hora, código de integridade, aparelho liberado quando a marcação vem do app e o rodapé definido pela empresa). Envio por e-mail e consulta pública de autenticidade ainda faltam.
 
 <a id="afd"></a>
 ### AFD: Arquivo Fonte de Dados
@@ -201,7 +201,7 @@ Documentos que o sistema precisa gerar para o trabalhador, para o empregador e p
 - **O que a norma exige:** O programa de tratamento emite o espelho de ponto do período, com identificação do empregador e do trabalhador, horário contratual, marcações originais e tratadas, e indicação de cada tratamento.
 - **Base legal:** Portaria MTP nº 671/2021
 - **Situação:** Em desenvolvimento
-- **No SuperPonto:** Espelho mensal na tela (Ponto › Espelho de ponto) com marcações originais, incluídas e desconsideradas, saldo, extras, noturno e ocorrências, e impressão pelo navegador. PDF assinado e ciência eletrônica do trabalhador ainda faltam.
+- **No SuperPonto:** Espelho mensal na tela (Ponto › Espelho de ponto) com marcações originais, incluídas e desconsideradas, saldo, extras, noturno e ocorrências, impressão pelo navegador com rodapé da empresa, versão no leiaute da Portaria (Relatórios › Espelho de ponto 1.510/671, por PIS, com (I) incluída e (D) desconsiderada) e ciência eletrônica do trabalhador: depois do fim do período, o funcionário dá ciência de acordo ou com ressalva; a ciência grava o resumo, um código (SHA-256) do espelho visto, IP e navegador, não pode ser alterada nem apagada (bloqueio no banco) e o RH vê quem deu ciência e se o espelho mudou depois (Relatórios › Ciência eletrônica do espelho). PDF com assinatura digital ICP-Brasil ainda falta.
 
 <a id="tratamento"></a>
 ### Tratamento de marcações com justificativa
@@ -298,7 +298,7 @@ Dados que identificam empregador e trabalhador nos arquivos oficiais e nas integ
 | [CNPJ alfanumérico](#cnpj-alfa) | Atendido no sistema | Instrução Normativa RFB nº 2.229/2024 |
 | [Vários CNPJs por cliente (matriz e filiais)](#multi-cnpj) | Atendido no sistema | Portaria MTP nº 671/2021 (identificação do empregador); leiautes do eSocial |
 | [Feriados nacionais, estaduais e municipais](#feriados) | Atendido no sistema | Lei nº 605/1949, arts. 8º e 9º; Lei nº 9.093/1995; Lei nº 662/1949; Lei nº 14.759/2023 |
-| [Integração com folha e eSocial](#esocial) | Planejado | Decreto nº 8.373/2014 (eSocial) e leiautes vigentes |
+| [Integração com folha e eSocial](#esocial) | Atendido no sistema | Decreto nº 8.373/2014 (eSocial) e leiautes vigentes |
 
 <a id="cnpj-alfa"></a>
 ### CNPJ alfanumérico
@@ -329,8 +329,8 @@ Dados que identificam empregador e trabalhador nos arquivos oficiais e nas integ
 
 - **O que a norma exige:** Horas extras, adicional noturno, faltas e DSR viram rubricas da folha, informadas no eSocial (eventos de remuneração) pelo empregador.
 - **Base legal:** Decreto nº 8.373/2014 (eSocial) e leiautes vigentes
-- **Situação:** Planejado
-- **No SuperPonto:** Exportação de eventos de folha por rubrica configurável; o envio ao eSocial continua com o sistema de folha do cliente.
+- **Situação:** Atendido no sistema
+- **No SuperPonto:** Relatórios › Exportação para a folha: layout por empresa com o código de evento (rubrica) de cada verba (horas normais, extras por percentual, noturno, faltas, atrasos, abonos, sobreaviso), funcionário por matrícula ou CPF, separador e formato da quantidade; gera o arquivo do período para importar no sistema de folha. O SuperPonto não envia dados a outros sistemas; o envio ao eSocial continua com o sistema de folha do cliente.
 
 ## Proteção de dados (LGPD) e segurança
 

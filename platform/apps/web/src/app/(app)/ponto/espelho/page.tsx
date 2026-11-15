@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, FileClock, Lock, Plus, Printer, Search, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useDeferredValue, useEffect, useState } from 'react';
+import { MirrorAck, useCustomText } from '@/components/mirror-ack';
 import { Page, PageHeader } from '@/components/page';
 import { can, useSession } from '@/components/providers';
 import { TenantPicker, useActiveTenant } from '@/components/tenant-picker';
@@ -129,6 +130,7 @@ export default function EspelhoPage() {
   const s = m?.summary;
   const shift = (n: number) => { const [y, mm] = month.split('-').map(Number) as [number, number]; const d = new Date(Date.UTC(y, mm - 1 + n, 1)); setMonth(d.toISOString().slice(0, 10)); };
   const monthLabel = month ? new Date(`${month}T12:00:00Z`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
+  const footer = useCustomText('MIRROR_FOOTER', !!tenantId);
   const fresh = open && m ? m.days.find((d) => d.date === open.date) ?? open : open;
 
   return (
@@ -192,7 +194,9 @@ export default function EspelhoPage() {
                   </tbody>
                 </table>
               </div>
+              {footer && <p className="whitespace-pre-line border-t border-line px-5 py-3 text-xs text-muted">{footer}</p>}
             </Card>
+            {!canTeam && range && <MirrorAck from={range.from} to={range.to} employmentId={m.employment.id} />}
           </div>
         )}
       <Sheet open={!!open} onClose={() => setOpen(null)} title={fresh ? `${wd(fresh.date)} ${br(fresh.date)}` : ''}>

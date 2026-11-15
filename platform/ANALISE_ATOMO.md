@@ -1,6 +1,12 @@
 # Análise: Átomo Ponto × SuperPonto
 
 > **Andamento (15/11/2026, V2):**
+> - Fases 8 e 9 concluídas e fase 7 completa: painel ao vivo, e-mails agendados, avisos com
+>   confirmação de leitura, liberação de aparelho do app por código no e-mail, textos personalizados,
+>   central de ajuda com calculadora de horas, ciência eletrônica do espelho, 38 relatórios, layout e
+>   arquivo para a folha e importação de marcações por planilha. **Por decisão do cliente, o
+>   SuperPonto não se comunica com o Átomo/Velti**: os recursos equivalentes foram feitos de forma
+>   nativa. Agente local (programa) pronto com driver Control iD e simulador.
 > - Fase 1 (estrutura) concluída: departamentos em árvore com seções, cargos (CBO), funções, centros
 >   de custo, tipos de funcionário, sindicatos, competências e empresa com inscrição estadual,
 >   CEI/CNO, código externo e logo.
@@ -113,7 +119,8 @@ na última seção.
 | Enviar/receber funcionário (verificar digital, só não salvos) | ✅ envio | ✅ enviar, receber e comparar com o cadastro | — |
 | Equipamento (alertas de energia, conexão, USB fiscal, e-mail) | ✅ | ✅ tela; alerta de conexão por e-mail | Alertas de energia/USB dependem do agente por marca |
 | Exportação de registros (AFD por funcionário/empresa/equipamento) | 🟡 formato com erro | 🟡 linhas originais por equipamento; AEJ gerado | AFD do REP-P com NSR |
-| Exportar empresa / funcionário | ❌ | ❌ | Exportação em arquivo para outros sistemas |
+| Agente de comunicação (Crab/Octopus no Átomo) | 🟡 robô Python | ✅ agente local com driver Control iD e simulador; Henry, Topdata, Biomtech, Dahua e RW pendentes | Driver por marca, com documentação do fabricante e equipamento para homologar |
+| Exportar empresa / funcionário | ❌ | ✅ relatórios Funcionários e Usuários em Excel/CSV | — |
 | Gerenciamento de coleta (agendamentos) | 🟡 | ✅ intervalo por equipamento, executado pelo agente | — |
 | Grupo REP | ❌ | ✅ grupo com comando para todos | — |
 | Gráficos de comunicação | 🟡 saúde do agente | ✅ registros e contatos por dia | — |
@@ -125,7 +132,7 @@ na última seção.
 | Átomo | v1 | V2 | Como incluir |
 |---|---|---|---|
 | Abono em lote | ✅ | ✅ dia inteiro ou minutos, pulando folgas, com limite | — |
-| Afastamento | ✅ | ✅ tela (importação pela integração Átomo na fase 9) | — |
+| Afastamento | ✅ | ✅ tela | — |
 | Cálculo em lote (calcular, abrir e fechar ponto) | 🟡 | ✅ calcular, fechar (lança banco) e reabrir com motivo | — |
 | Espelho ponto | ✅ | ✅ tela e impressão (PDF assinado pendente) | Assinatura e ciência eletrônica |
 | Espelho ponto diário (vários funcionários) | 🟡 | ✅ situação de cada funcionário no dia | — |
@@ -149,12 +156,14 @@ na última seção.
 | Átomo | v1 | V2 | Como incluir |
 |---|---|---|---|
 | Arquivos MTE (AFD, AEJ, ACJEF) | 🟡 | ❌ | Geradores no leiaute oficial da Portaria 671 (e 1.510 para legado) |
-| Exportar ocorrências | ✅ | ❌ | Junto com layouts de folha |
+| Exportar ocorrências | ✅ | ✅ analíticos em Excel/CSV | — |
+| Layout de folha (eventos/rubricas) | 🟡 | ✅ layout por empresa e arquivo do período | — |
 | Importar funcionário | ✅ | ✅ CSV com conferência por linha | — |
 | Importar holerite | 🟡 | ❌ | Importação de arquivo do sistema de folha |
 | Importar registros (AFD) | 🟡 | ✅ | — |
-| Marcação desconsiderada / efetuada | 🟡 | ❌ | Listas com motivo (a marcação original nunca é apagada) |
-| Marcação de ponto web (com captcha) | ✅ sem captcha | ❌ | Registro web com proteção contra robôs |
+| Importar marcações por planilha | ❌ | ✅ CSV/TXT com conferência, sem duplicar | — |
+| Marcação desconsiderada / efetuada | 🟡 | ✅ relatório de ajustes e log do espelho | — |
+| Marcação de ponto web (com captcha) | ✅ sem captcha | ✅ com desafio assinado de uso único | — |
 
 ## Relatórios (41 no Átomo)
 
@@ -169,9 +178,12 @@ frequência sintético, log do espelho, Portaria 1.510, usuários do grupo e fun
 
 **V2 (fase 7):** 30 relatórios com filtros padronizados (empresa, período, departamento com ou sem
 subdepartamentos, agrupamento) e saída em Excel, CSV e PDF pela impressão, mais o montador por campos
-(substitui o "customizado" sem SQL livre). Ainda faltam: clima organizacional, holerite, navegação de
-página, alteração de senha, login e falha (a auditoria já registra), assinatura eletrônica, divergência,
-log do espelho, Portaria 1.510 (espelho no modelo antigo), intervalo não calculável e funcionalidades do grupo.
+(substitui o "customizado" sem SQL livre). Fase 7 completa com 38 relatórios: entraram divergência,
+intervalo não calculável, espelho no leiaute da Portaria (por PIS), ciência eletrônica do espelho
+(assinatura eletrônica), log do espelho, acessos com falhas de login, alterações de senha e
+funcionalidades por perfil. Fora do escopo: holerite (é do sistema de folha), clima organizacional
+(pesquisa de RH, não é ponto) e navegação de página (registrar cada clique gera dados pessoais sem
+necessidade; a auditoria registra as alterações e os acessos).
 
 ## Grupos, segurança e ferramentas
 
@@ -181,18 +193,18 @@ log do espelho, Portaria 1.510 (espelho no modelo antigo), intervalo não calcul
 | Usuário (acesso por dias da semana, troca de senha no login, LDAP) | ✅ | ✅ dias de acesso, troca obrigatória e LDAP/AD | — |
 | Alterar senha | ✅ | ✅ Minha conta | — |
 | Bloqueio de acesso (motivo, período) | ❌ | ✅ | — |
-| Agendamento de notificação (e-mail de ocorrências) | 🟡 | ❌ | Agendador de e-mails |
-| Calculadora de horas | ✅ | ❌ | Ferramenta simples |
+| Agendamento de notificação (e-mail de ocorrências) | 🟡 | ✅ e-mails agendados com prévia e envio imediato | — |
+| Calculadora de horas | ✅ | ✅ central de ajuda | — |
 | Configuração do sistema | ✅ | ❌ | Configurações do cliente |
 | Dashboard (falta, atraso, absenteísmo, abono) | ✅ | 🟡 painel inicial | Indicadores do motor de cálculo |
 | Gerador de relatório (SQL próprio) | ❌ | ❌ | **Com cuidado**: em SaaS multiempresa, SQL livre quebraria o isolamento; oferecer montador de relatório por campos, não SQL |
 | Gerenciar funcionalidades (ativar módulos) | 🟡 licenças | ❌ | Ligado aos planos do SaaS |
-| Informação (mensagem no app) | ❌ | ❌ | Avisos para o app do funcionário |
-| Log de processos / navegação | ❌ | 🟡 auditoria | Registro de processos e acessos |
-| Painel de funcionário (atrasados, ausentes, sem horário) | ✅ | ❌ | Painel ao vivo com alerta por e-mail |
-| Texto customizado | ✅ | ❌ | Textos por cliente |
-| Token do app móvel (liberação por e-mail) | 🟡 | ❌ | Liberação de aparelho com código por e-mail |
-| Dicas, vídeos, novidades, sobre | ❌ | 🟡 manual | Central de ajuda |
+| Informação (mensagem no app) | ❌ | ✅ avisos com público e confirmação de leitura | — |
+| Log de processos / navegação | ❌ | ✅ auditoria, acessos e alterações de senha | — |
+| Painel de funcionário (atrasados, ausentes, sem horário) | ✅ | ✅ painel ao vivo; alerta pelos e-mails agendados | — |
+| Texto customizado | ✅ | ✅ painel, comprovante, espelho e termo de ciência | — |
+| Token do app móvel (liberação por e-mail) | 🟡 | ✅ código por e-mail, token guardado só como hash, revogação | — |
+| Dicas, vídeos, novidades, sobre | ❌ | ✅ central de ajuda e manual | — |
 | Documentação de integração | ❌ | ✅ Swagger da API | — |
 | Justificativa de crédito / Política de hora extra | ❌ | ✅ autorização prévia por solicitação; extra sem autorização apontada | — |
 
@@ -217,8 +229,9 @@ Cada fase entra com API, tela, testes e atualização do manual, na ordem que de
 7. **Relatórios**: os 41, com filtros padronizados e PDF/Excel/CSV; montador de relatórios por campos.
 8. **Ferramentas**: painel de funcionários ao vivo, agendamento de notificações, avisos no app, token
    do app, textos customizados, central de ajuda.
-9. **Integração Átomo** (conector pronto): tela de conexão por cliente para importar marcações e
-   enviar ajustes, abonos, escalas e aprovações (precisa de token do sistema de origem).
+9. **Recursos de troca de arquivos** (redefinida pelo cliente: sem integração nem comunicação com o
+   Átomo/Velti): layout e arquivo para a folha, importação de marcações por planilha, exportação de
+   cadastros em Excel/CSV.
 
 ## Cuidados
 

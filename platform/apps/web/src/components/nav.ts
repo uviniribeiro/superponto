@@ -1,4 +1,4 @@
-import { BarChart3, Router as RouterIcon, CalendarCheck2, ClipboardCheck, FileCheck2, FileClock, Fingerprint, GitBranch, HeartPulse, Lock, MessageSquare, PiggyBank, CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { Activity, Calculator, FileInput, FileOutput, Megaphone, MailCheck, Smartphone, Type, BarChart3, Router as RouterIcon, CalendarCheck2, ClipboardCheck, FileCheck2, FileClock, Fingerprint, GitBranch, HeartPulse, Lock, MessageSquare, PiggyBank, CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -77,6 +77,9 @@ export function buildNav(me: Me | undefined): NavSection[] {
     ...(can(me, 'time.records:create') ? [{ id: 'punch', label: 'Registrar ponto', href: '/ponto/registrar', icon: Fingerprint } satisfies NavItem] : []),
     ...(can(me, 'time.calculations:read') || can(me, 'time.records:create') ? [{ id: 'mirror', label: can(me, 'time.calculations:read') ? 'Espelho de ponto' : 'Meu espelho', href: '/ponto/espelho', icon: FileClock } satisfies NavItem] : []),
     ...(can(me, 'time.calculations:read') ? [{ id: 'daily', label: 'Espelho diário', href: '/ponto/diario', icon: CalendarCheck2 } satisfies NavItem] : []),
+    ...(can(me, 'time.calculations:read') ? [{ id: 'live', label: 'Painel ao vivo', href: '/ferramentas/ao-vivo', icon: Activity } satisfies NavItem] : []),
+    ...(can(me, 'time.records:create') ? [{ id: 'my-devices', label: 'Meus aparelhos', href: '/ponto/aparelhos', icon: Smartphone } satisfies NavItem] : []),
+    ...(can(me, 'time.records:import') ? [{ id: 'import-marks', label: 'Importar marcações', href: '/ponto/importar', icon: FileInput } satisfies NavItem] : []),
     ...(can(me, 'time.records:read') ? [{ id: 'adjustments', label: 'Ajustes de marcação', href: '/ponto/ajustes', icon: ClipboardCheck } satisfies NavItem] : []),
     ...(can(me, 'time.calculations:read') ? [{ id: 'allowances', label: 'Abonos e afastamentos', href: '/ponto/abonos', icon: HeartPulse } satisfies NavItem, { id: 'justifications', label: 'Justificativas', href: '/ponto/justificativas', icon: FileCheck2 } satisfies NavItem, { id: 'closing', label: 'Fechamento', href: '/ponto/fechamento', icon: Lock } satisfies NavItem] : []),
   ];
@@ -88,7 +91,17 @@ export function buildNav(me: Me | undefined): NavSection[] {
     ...(can(me, 'requests.requests:read') ? [{ id: 'flows', label: 'Fluxos de aprovação', href: '/solicitacoes/fluxos', icon: GitBranch } satisfies NavItem] : []),
   ];
   if (bancos.length) sections.push({ id: 'bancos', label: 'Bancos e solicitações', items: bancos });
-  if (can(me, 'reports.reports:read')) sections.push({ id: 'reports', label: 'Relatórios', items: [{ id: 'reports', label: 'Relatórios', href: '/relatorios', icon: BarChart3 }] });
+  const reports: NavItem[] = [
+    ...(can(me, 'reports.reports:read') ? [{ id: 'reports', label: 'Relatórios', href: '/relatorios', icon: BarChart3 } satisfies NavItem] : []),
+    ...(can(me, 'reports.payroll:export') ? [{ id: 'payroll', label: 'Exportação para a folha', href: '/folha', icon: FileOutput } satisfies NavItem] : []),
+  ];
+  if (reports.length) sections.push({ id: 'reports', label: 'Relatórios', items: reports });
+  const tools: NavItem[] = [
+    ...(can(me, 'tools.announcements:manage') ? [{ id: 'announcements', label: 'Avisos', href: '/ferramentas/avisos', icon: Megaphone } satisfies NavItem] : []),
+    ...(can(me, 'tools.notifications:manage') ? [{ id: 'emails', label: 'E-mails agendados', href: '/ferramentas/emails', icon: MailCheck } satisfies NavItem] : []),
+    ...(can(me, 'admin.settings:manage') ? [{ id: 'texts', label: 'Textos personalizados', href: '/ferramentas/textos', icon: Type } satisfies NavItem] : []),
+  ];
+  if (tools.length) sections.push({ id: 'tools', label: 'Ferramentas', items: tools });
   if (can(me, 'devices.devices:read')) sections.push({ id: 'devices', label: 'Equipamentos', items: [{ id: 'devices', label: 'Relógios (REP)', href: '/equipamentos', icon: RouterIcon }] });
   if (can(me, 'admin.users:read')) {
     sections.push({
@@ -98,6 +111,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
         { id: 'users', label: 'Usuários', href: '/usuarios', icon: Users },
         { id: 'roles', label: 'Perfis e permissões', href: '/perfis', icon: KeyRound },
         { id: 'blocks', label: 'Bloqueios de acesso', href: '/bloqueios', icon: ShieldBan },
+        ...(can(me, 'admin.users:manage') ? [{ id: 'app-devices', label: 'Aparelhos do app', href: '/usuarios/aparelhos', icon: Smartphone } satisfies NavItem] : []),
         ...(can(me, 'admin.ldap:manage') ? [{ id: 'ldap', label: 'Login pela rede (LDAP)', href: '/usuarios/ldap', icon: NetworkIcon } satisfies NavItem] : []),
       ],
     });
@@ -114,6 +128,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
     id: 'help',
     label: 'Ajuda',
     items: [
+      { id: 'help-center', label: 'Central de ajuda', href: '/ferramentas/ajuda', icon: Calculator },
       { id: 'manual', label: 'Manual', href: '/manual', icon: BookOpen },
       { id: 'compliance', label: 'Conformidade MTE', href: '/conformidade', icon: Scale },
     ],

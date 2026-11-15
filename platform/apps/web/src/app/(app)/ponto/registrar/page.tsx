@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn';
 import { SOURCE_LABEL } from '@/lib/timesheet';
 
 interface Me { today: string; employments: Array<{ id: string; registration: string; company: string; geofence: { name: string; radiusM: number } | null }>; punches: Array<{ id: string; employmentId: string; time: string; source: string; hash: string }> }
-interface Receipt { id: string; date: string; time: string; hash: string; employee: string; registration: string; company: string; cnpj: string | null }
+interface Receipt { id: string; date: string; time: string; hash: string; employee: string; registration: string; company: string; cnpj: string | null; appDevice?: string | null; footer?: string | null }
 
 function Clock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -90,6 +90,7 @@ export default function RegistrarPage() {
                       ))}
                     </dl>
                     <p className="mt-3 break-all rounded-xl bg-hover p-2 font-mono text-[10px] text-muted">Código: {receipt.hash}</p>
+                    {receipt.footer && <p className="mt-2 whitespace-pre-line text-xs text-muted">{receipt.footer}</p>}
                   </motion.div>
                 )}
               </AnimatePresence>
