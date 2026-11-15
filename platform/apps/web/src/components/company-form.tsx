@@ -17,13 +17,14 @@ export const SEGMENTS: Record<Company['segment'], string> = {
 type Form = {
   cnpj: string; legalName: string; tradeName: string; segment: Company['segment']; timezone: string;
   zipCode: string; street: string; number: string; complement: string; district: string; city: string; state: string; ibgeCode: string;
-  phone: string; email: string;
+  phone: string; email: string; stateRegistration: string; cno: string; externalCode: string;
 };
 
 const fromCompany = (c: Company | null): Form => ({
   cnpj: c?.cnpj ? maskCnpjInput(c.cnpj) : '', legalName: c?.legalName ?? '', tradeName: c?.tradeName ?? '', segment: c?.segment ?? 'GENERAL', timezone: c?.timezone ?? 'America/Sao_Paulo',
   zipCode: c?.zipCode ? maskCep(c.zipCode) : '', street: c?.street ?? '', number: c?.number ?? '', complement: c?.complement ?? '', district: c?.district ?? '', city: c?.city ?? '', state: c?.state ?? '', ibgeCode: c?.ibgeCode ?? '',
   phone: c?.phone ? maskPhone(c.phone) : '', email: c?.email ?? '',
+  stateRegistration: c?.stateRegistration ?? '', cno: c?.cno ?? '', externalCode: c?.externalCode ?? '',
 });
 
 type Status = { kind: 'idle' | 'loading' | 'ok' | 'warn' | 'error'; text?: string };
@@ -138,6 +139,7 @@ export function CompanyForm({ initial, onSaved }: { initial: Company | null; onS
     if (f.zipCode && digits(f.zipCode).length !== 8) next.zipCode = 'CEP deve ter 8 dígitos';
     if (f.phone && ![10, 11].includes(digits(f.phone).length)) next.phone = 'Telefone com DDD: 10 ou 11 dígitos';
     if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) next.email = 'E-mail inválido';
+    if (f.cno && !/^\d{12,14}$/.test(digits(f.cno))) next.cno = 'CEI/CNO: de 12 a 14 dígitos';
     setErrors(next);
     if (Object.keys(next).length) return;
     const opt = (v: string) => (v.trim() ? v.trim() : undefined);
@@ -145,6 +147,7 @@ export function CompanyForm({ initial, onSaved }: { initial: Company | null; onS
       legalName: f.legalName.trim(), tradeName: opt(f.tradeName), cnpj: cnpj || undefined, segment: f.segment, timezone: f.timezone,
       zipCode: opt(digits(f.zipCode)), street: opt(f.street), number: opt(f.number), complement: opt(f.complement), district: opt(f.district),
       city: opt(f.city), state: opt(f.state), ibgeCode: opt(f.ibgeCode), phone: opt(digits(f.phone)), email: opt(f.email),
+      stateRegistration: opt(f.stateRegistration), cno: opt(digits(f.cno)), externalCode: opt(f.externalCode),
     });
   }
 
@@ -163,6 +166,11 @@ export function CompanyForm({ initial, onSaved }: { initial: Company | null; onS
           <Input label="Telefone" name="phone" value={f.phone} onChange={(e) => set('phone', maskPhone(e.target.value))} error={errors.phone} inputMode="tel" placeholder="(31) 99999-0000" className={auto('phone')} />
           <Input label="E-mail" name="email" type="email" value={f.email} onChange={(e) => set('email', e.target.value)} error={errors.email} className={auto('email')} />
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label="Inscrição estadual" name="stateRegistration" value={f.stateRegistration} onChange={(e) => set('stateRegistration', e.target.value.toUpperCase())} placeholder="Número ou ISENTO" className="font-mono" />
+          <Input label="CEI / CNO" name="cno" value={f.cno} onChange={(e) => set('cno', digits(e.target.value).slice(0, 14))} error={errors.cno} inputMode="numeric" hint="Obra ou atividade (vai no AFD)" className="font-mono" />
+        </div>
+        <Input label="Código externo" name="externalCode" value={f.externalCode} onChange={(e) => set('externalCode', e.target.value)} maxLength={30} hint="Código desta empresa no sistema de folha, para exportações" />
       </Section>
 
       <Section title="Endereço">

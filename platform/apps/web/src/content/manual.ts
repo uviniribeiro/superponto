@@ -84,7 +84,7 @@ export const SECTIONS: ManualSection[] = [
     title: 'Empresas e CNPJs',
     audience: 'Administradores da organização e RH',
     body: [
-      'Cadastre a matriz e as filiais da organização. Cada empresa tem CNPJ, razão social, nome fantasia, contato, endereço, segmento e fuso horário (usado no cálculo da jornada).',
+      'Cadastre a matriz e as filiais da organização. Cada empresa tem CNPJ, razão social, nome fantasia, contato, inscrição estadual (ou ISENTO), CEI/CNO, código externo para a folha, endereço, segmento e fuso horário (usado no cálculo da jornada).',
       'Ao digitar um CNPJ válido, o sistema consulta a Receita Federal e preenche razão social, nome fantasia, telefone, e-mail e endereço, e avisa se a situação cadastral não estiver ATIVA. Os campos preenchidos automaticamente ficam destacados em verde e podem ser editados.',
       'Ao digitar o CEP, o endereço, a cidade, a UF e o fuso horário são preenchidos sozinhos. O CEP também identifica o município, que define os feriados estaduais e municipais da empresa.',
       'O campo CNPJ aceita o formato numérico e o novo CNPJ alfanumérico da Receita Federal (ex.: 12.ABC.345/01DE-35). A máscara é aplicada enquanto você digita e os dígitos verificadores são conferidos na hora e de novo no servidor.',
@@ -101,6 +101,24 @@ export const SECTIONS: ManualSection[] = [
       'Remover uma empresa a tira das listas, mas o histórico continua guardado na auditoria.',
       'Os botões só aparecem para quem tem a permissão correspondente; a API também confere a permissão.',
     ],
+  },
+  {
+    id: 'estrutura',
+    title: 'Estrutura da organização',
+    audience: 'Administradores da organização e RH',
+    body: [
+      'Em Organização › Estrutura ficam os cadastros que organizam as pessoas: Departamentos, Cargos, Funções, Centros de custo, Tipos de funcionário e Sindicatos. Em Organização › Competências ficam os períodos com nome usados como filtro.',
+      'Departamentos formam uma árvore sem limite de níveis (ex.: Secretaria de Saúde › UBS Centro › Recepção) e cada departamento pode ter seções. O sistema impede colocar um departamento dentro dele mesmo ou de um subdepartamento seu.',
+      'Cargos pertencem a uma empresa e têm o código CBO usado no eSocial. Funções descrevem o que a pessoa faz, independente do cargo. Centros de custo e códigos externos vão na exportação para a folha.',
+      'Sindicatos guardam sigla, CNPJ (numérico ou alfanumérico), tipo de entidade, se representam empregados ou empregadores e o mês da data-base.',
+      'Nenhum cadastro em uso por funcionário ativo pode ser excluído: o sistema mostra quantos vínculos usam o registro. Nesse caso, desative em vez de excluir.',
+    ],
+    steps: [
+      'Abra o cadastro desejado no menu Estrutura e clique em "Novo".',
+      'Em Departamentos, use o ícone de pasta com "+" para criar um subdepartamento e o campo "+ seção" para adicionar seções.',
+      'Para editar ou excluir, passe o mouse sobre o registro e use o lápis ou a lixeira.',
+    ],
+    tips: ['Comece pela estrutura: funcionários, escalas, relatórios e cálculo em lote usam esses cadastros como filtro.'],
   },
   {
     id: 'feriados',

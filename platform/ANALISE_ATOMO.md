@@ -1,5 +1,10 @@
 # Análise: Átomo Ponto × SuperPonto
 
+> **Andamento:** fase 1 (estrutura) concluída na V2 em 15/11/2026: departamentos em árvore com
+> seções, cargos (CBO), funções, centros de custo, tipos de funcionário, sindicatos, competências e
+> empresa com inscrição estadual, CEI/CNO e código externo. Agrupamento entra com a fase 2, porque
+> vincula funcionários.
+
 Fontes: manual do sistema Átomo (2 PDFs, 162 páginas, 131 funções; inventário com campos em
 `docs/atomo-inventario.json`), Swagger e coleção Postman da API "servicoponto", e tela de login de
 https://ponto.montesclaros.mg.gov.br/atomo. Comparado com a **v1** (sistema no ar; existência de
@@ -11,7 +16,7 @@ Legenda: ✅ tem · 🟡 parcial · ❌ não tem
 
 | | Funções do Átomo | v1 tem tela | V2 pronta |
 |---|---|---|---|
-| Cadastros | 18 | 13 | 2 (empresa, feriado) |
+| Cadastros | 18 | 13 | 11 |
 | Ponto (configuração) | 8 | 5 | 0 (cálculo pronto no motor) |
 | Comunicação com equipamentos | 12 | 6 | 3 (via API) |
 | Movimentação | 16 | 11 | 0 |
@@ -49,22 +54,22 @@ na última seção.
 |---|---|---|---|
 | Agrupamento (vincula funcionários, locais e cargos) | ❌ | ❌ | Nova entidade "Agrupamento" usada como filtro em relatórios, cálculo em lote e permissões |
 | Especialidades | ❌ | 🟡 modelo (especialidade do vínculo) | Tela na fase de Pessoas |
-| Cargo | ✅ | 🟡 modelo | Tela na fase de Estrutura |
-| Centro de custo | ❌ | ❌ | Nova entidade, vinculada ao vínculo e à exportação para folha |
+| Cargo | ✅ | ✅ com CBO e categoria | Tela na fase de Estrutura |
+| Centro de custo | ❌ | ✅ | Nova entidade, vinculada ao vínculo e à exportação para folha |
 | Cidade | ✅ | ✅ automático pelo CEP (IBGE) | Sem cadastro manual: vem do CEP |
-| Competência (períodos nomeados) | ✅ | ❌ | Tela de competências; usada como filtro em todo o sistema |
-| Departamento (com subdepartamentos) | ✅ | 🟡 modelo | Tela com árvore de subdepartamentos |
-| Empresa | ✅ | ✅ com CNPJ/CEP automáticos | Acrescentar Inscrição estadual, CEI/CNO, logo e código externo |
+| Competência (períodos nomeados) | ✅ | ✅ | Tela de competências; usada como filtro em todo o sistema |
+| Departamento (com subdepartamentos) | ✅ | ✅ árvore sem limite de níveis | Tela com árvore de subdepartamentos |
+| Empresa | ✅ | ✅ com CNPJ/CEP automáticos, IE, CEI/CNO e código externo | Falta só o logo |
 | Estado civil | ✅ | ❌ | Lista fixa no cadastro de pessoa (não precisa de tela) |
 | Feriado | ✅ | ✅ (automático, melhor que o Átomo) | — |
-| Função | 🟡 | 🟡 campo do vínculo | Tela simples junto com Cargo |
+| Função | 🟡 | ✅ | Tela simples junto com Cargo |
 | Funcionário (com aba de biometria) | ✅ | 🟡 modelo + digitais na API | Tela na fase de Pessoas, com captura de digital |
 | Justificativa (código, limite de uso, desconsidera débitos) | ✅ | ❌ | Tela de justificativas com limite de uso por período |
 | Local de trabalho | ✅ | 🟡 unidades | Tela de unidades/locais |
 | Local georreferenciado (aprovar mobile automaticamente) | ✅ | 🟡 cerca virtual no modelo | Tela de cercas com aprovação automática dentro do raio |
-| Seção | ❌ | ❌ | Nível opcional abaixo de departamento |
-| Sindicato | ✅ | ❌ | Tela + vínculo com regras da convenção |
-| Tipo de funcionário | ❌ | 🟡 tipo de contrato | Tabela configurável por cliente |
+| Seção | ❌ | ✅ dentro do departamento | Nível opcional abaixo de departamento |
+| Sindicato | ✅ | ✅ com CNPJ e data-base | Tela + vínculo com regras da convenção |
+| Tipo de funcionário | ❌ | ✅ | Tabela configurável por cliente |
 
 ## Ponto (configuração)
 

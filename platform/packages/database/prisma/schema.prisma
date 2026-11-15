@@ -452,28 +452,34 @@ model Tenant {
 }
 
 model Company {
-  id         String         @id @default(uuid()) @db.Uuid
-  tenantId   String         @map("tenant_id") @db.Uuid
-  legalName  String         @map("legal_name")
-  tradeName  String?        @map("trade_name")
-  cnpj       String?
-  segment    CompanySegment @default(GENERAL)
-  timezone   String         @default("America/Sao_Paulo")
-  settings   Json           @default("{}")
+  id                String         @id @default(uuid()) @db.Uuid
+  tenantId          String         @map("tenant_id") @db.Uuid
+  legalName         String         @map("legal_name")
+  tradeName         String?        @map("trade_name")
+  cnpj              String?
+  segment           CompanySegment @default(GENERAL)
+  timezone          String         @default("America/Sao_Paulo")
+  settings          Json           @default("{}")
   // Endereço (preenchido pelo CNPJ ou pelo CEP). O código IBGE define os feriados municipais.
-  zipCode    String?        @map("zip_code")
-  street     String?
-  number     String?
-  complement String?
-  district   String?
-  city       String?
-  state      String?
-  ibgeCode   String?        @map("ibge_code")
-  phone      String?
-  email      String?
-  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt  DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  zipCode           String?        @map("zip_code")
+  street            String?
+  number            String?
+  complement        String?
+  district          String?
+  city              String?
+  state             String?
+  ibgeCode          String?        @map("ibge_code")
+  phone             String?
+  email             String?
+  /// Inscrição estadual ("ISENTO" quando não contribuinte)
+  stateRegistration String?        @map("state_registration")
+  /// CEI (legado) ou CNO/CAEPF: identificação da obra/atividade, usada no AFD
+  cno               String?
+  /// código no sistema de folha/ERP, para exportações
+  externalCode      String?        @map("external_code")
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime?      @map("deleted_at") @db.Timestamptz(6)
 
   tenant           Tenant                   @relation(fields: [tenantId], references: [id])
   holidayRules     CompanyHolidayRule[]
@@ -561,7 +567,8 @@ model Sector {
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  department Department @relation(fields: [departmentId], references: [id])
+  department  Department   @relation(fields: [departmentId], references: [id])
+  employments Employment[]
 
   @@index([tenantId, departmentId])
   @@map("sectors")
@@ -693,35 +700,45 @@ model Specialty {
 /// Vínculo funcional: uma pessoa pode ter vários (escolas, hospitais, contratos).
 /// A matrícula é o identificador operacional, única dentro da empresa.
 model Employment {
-  id           String               @id @default(uuid()) @db.Uuid
-  tenantId     String               @map("tenant_id") @db.Uuid
-  personId     String               @map("person_id") @db.Uuid
-  companyId    String               @map("company_id") @db.Uuid
-  unitId       String?              @map("unit_id") @db.Uuid
-  departmentId String?              @map("department_id") @db.Uuid
-  positionId   String?              @map("position_id") @db.Uuid
-  registration String
-  category     ProfessionalCategory @default(GENERAL)
-  contractType ContractType         @default(CLT) @map("contract_type")
-  function     String?
-  status       EmploymentStatus     @default(ACTIVE)
-  hiredAt      DateTime             @map("hired_at") @db.Date
-  terminatedAt DateTime?            @map("terminated_at") @db.Date
-  weeklyHours  Decimal?             @map("weekly_hours") @db.Decimal(5, 2)
-  supervisorId String?              @map("supervisor_id") @db.Uuid
-  ruleSetId    String?              @map("rule_set_id") @db.Uuid
-  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt    DateTime?            @map("deleted_at") @db.Timestamptz(6)
+  id             String               @id @default(uuid()) @db.Uuid
+  tenantId       String               @map("tenant_id") @db.Uuid
+  personId       String               @map("person_id") @db.Uuid
+  companyId      String               @map("company_id") @db.Uuid
+  unitId         String?              @map("unit_id") @db.Uuid
+  departmentId   String?              @map("department_id") @db.Uuid
+  positionId     String?              @map("position_id") @db.Uuid
+  registration   String
+  category       ProfessionalCategory @default(GENERAL)
+  contractType   ContractType         @default(CLT) @map("contract_type")
+  function       String?
+  status         EmploymentStatus     @default(ACTIVE)
+  hiredAt        DateTime             @map("hired_at") @db.Date
+  terminatedAt   DateTime?            @map("terminated_at") @db.Date
+  weeklyHours    Decimal?             @map("weekly_hours") @db.Decimal(5, 2)
+  supervisorId   String?              @map("supervisor_id") @db.Uuid
+  ruleSetId      String?              @map("rule_set_id") @db.Uuid
+  sectorId       String?              @map("sector_id") @db.Uuid
+  functionId     String?              @map("function_id") @db.Uuid
+  costCenterId   String?              @map("cost_center_id") @db.Uuid
+  employeeTypeId String?              @map("employee_type_id") @db.Uuid
+  unionId        String?              @map("union_id") @db.Uuid
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime?            @map("deleted_at") @db.Timestamptz(6)
 
-  person     Person             @relation(fields: [personId], references: [id])
-  company    Company            @relation(fields: [companyId], references: [id])
-  unit       CompanyUnit?       @relation(fields: [unitId], references: [id])
-  department Department?        @relation(fields: [departmentId], references: [id])
-  position   JobPosition?       @relation(fields: [positionId], references: [id])
-  supervisor Employment?        @relation("Supervision", fields: [supervisorId], references: [id])
-  supervised Employment[]       @relation("Supervision")
-  ruleSet    AttendanceRuleSet? @relation(fields: [ruleSetId], references: [id])
+  person       Person             @relation(fields: [personId], references: [id])
+  company      Company            @relation(fields: [companyId], references: [id])
+  unit         CompanyUnit?       @relation(fields: [unitId], references: [id])
+  department   Department?        @relation(fields: [departmentId], references: [id])
+  position     JobPosition?       @relation(fields: [positionId], references: [id])
+  supervisor   Employment?        @relation("Supervision", fields: [supervisorId], references: [id])
+  supervised   Employment[]       @relation("Supervision")
+  ruleSet      AttendanceRuleSet? @relation(fields: [ruleSetId], references: [id])
+  sector       Sector?            @relation(fields: [sectorId], references: [id])
+  jobFunction  JobFunction?       @relation(fields: [functionId], references: [id])
+  costCenter   CostCenter?        @relation(fields: [costCenterId], references: [id])
+  employeeType EmployeeType?      @relation(fields: [employeeTypeId], references: [id])
+  laborUnion   LaborUnion?        @relation(fields: [unionId], references: [id])
 
   history                EmploymentHistory[]
   specialties            EmploymentSpecialty[]
@@ -2173,4 +2190,111 @@ model CompanyHolidayOverride {
   @@unique([companyId, date])
   @@index([tenantId, companyId])
   @@map("company_holiday_overrides")
+}
+
+// -----------------------------------------------------------------------------
+// Cadastros auxiliares da estrutura (por cliente)
+// -----------------------------------------------------------------------------
+
+/// Função exercida (diferente do cargo): ex. "Recepcionista" num cargo de "Auxiliar administrativo".
+model JobFunction {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  code      String?
+  name      String
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  employments Employment[]
+
+  @@index([tenantId])
+  @@map("job_functions")
+}
+
+model CostCenter {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  code      String?
+  name      String
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  employments Employment[]
+
+  @@index([tenantId])
+  @@map("cost_centers")
+}
+
+/// Classificação configurável pelo cliente (efetivo, comissionado, estagiário, terceirizado…).
+model EmployeeType {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  code      String?
+  name      String
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  employments Employment[]
+
+  @@index([tenantId])
+  @@map("employee_types")
+}
+
+enum UnionEntityType {
+  SINDICATO
+  FEDERACAO
+  CONFEDERACAO
+  CENTRAL
+
+  @@map("union_entity_type")
+}
+
+enum UnionSide {
+  EMPREGADOS
+  EMPREGADORES
+
+  @@map("union_side")
+}
+
+model LaborUnion {
+  id         String          @id @default(uuid()) @db.Uuid
+  tenantId   String          @map("tenant_id") @db.Uuid
+  code       String?
+  name       String
+  acronym    String
+  cnpj       String?
+  entityType UnionEntityType @default(SINDICATO) @map("entity_type")
+  side       UnionSide       @default(EMPREGADOS)
+  /// mês da data-base da categoria (1-12)
+  baseMonth  Int?            @map("base_month") @db.SmallInt
+  active     Boolean         @default(true)
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt  DateTime?       @map("deleted_at") @db.Timestamptz(6)
+
+  employments Employment[]
+
+  @@index([tenantId])
+  @@map("labor_unions")
+}
+
+/// Período nomeado usado como filtro em todo o sistema (ex.: "Janeiro/2027", "1º trimestre").
+model Competence {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  name      String
+  startsOn  DateTime  @map("starts_on") @db.Date
+  endsOn    DateTime  @map("ends_on") @db.Date
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@index([tenantId, startsOn])
+  @@map("competences")
 }

@@ -1,4 +1,4 @@
-import { BookOpen, Building2, CalendarDays, KeyRound, Users, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { BadgeCheck, BookOpen, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -41,9 +41,18 @@ export function buildNav(me: Me | undefined): NavSection[] {
           label: 'Estrutura',
           href: '/empresas',
           icon: Network,
-          children: [{ id: 'companies', label: 'Empresas', href: '/empresas', icon: Building2, dot: '#fcc419' }],
+          children: [
+            { id: 'companies', label: 'Empresas', href: '/empresas', icon: Building2, dot: '#fcc419' },
+            ...(can(me, 'org.departments:read') ? [{ id: 'departments', label: 'Departamentos', href: '/estrutura/departamentos', icon: FolderTree, dot: '#60a5fa' }] : []),
+            ...(can(me, 'org.positions:read') ? [{ id: 'positions', label: 'Cargos', href: '/estrutura/cargos', icon: Briefcase, dot: '#a78bfa' }] : []),
+            ...(can(me, 'org.functions:read') ? [{ id: 'functions', label: 'Funções', href: '/estrutura/funcoes', icon: BadgeCheck, dot: '#34d399' }] : []),
+            ...(can(me, 'org.costcenters:read') ? [{ id: 'costcenters', label: 'Centros de custo', href: '/estrutura/centros-de-custo', icon: Wallet, dot: '#f472b6' }] : []),
+            ...(can(me, 'org.employeetypes:read') ? [{ id: 'employeetypes', label: 'Tipos de funcionário', href: '/estrutura/tipos-de-funcionario', icon: Tags, dot: '#fb923c' }] : []),
+            ...(can(me, 'org.unions:read') ? [{ id: 'unions', label: 'Sindicatos', href: '/estrutura/sindicatos', icon: Landmark, dot: '#22d3ee' }] : []),
+          ],
         },
         ...(can(me, 'org.holidays:read') ? [{ id: 'holidays', label: 'Feriados', href: '/feriados', icon: CalendarDays } satisfies NavItem] : []),
+        ...(can(me, 'org.competences:read') ? [{ id: 'competences', label: 'Competências', href: '/estrutura/competencias', icon: CalendarRange } satisfies NavItem] : []),
       ],
     });
   }

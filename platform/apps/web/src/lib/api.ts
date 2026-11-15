@@ -73,6 +73,9 @@ export interface Company {
   ibgeCode: string | null;
   phone: string | null;
   email: string | null;
+  stateRegistration: string | null;
+  cno: string | null;
+  externalCode: string | null;
   createdAt: string;
 }
 

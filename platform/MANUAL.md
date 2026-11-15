@@ -13,13 +13,14 @@ _V2 — versão de 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › 
 4. [Navegação: barra lateral, busca e modo noturno](#4-navegacao)
 5. [Visão geral (painel)](#5-painel)
 6. [Empresas e CNPJs](#6-empresas)
-7. [Feriados](#7-feriados)
-8. [Clientes da plataforma](#8-clientes)
-9. [Usuários](#9-usuarios)
-10. [Perfis e permissões](#10-perfis)
-11. [Segurança, auditoria e privacidade](#11-seguranca)
-12. [Módulos em construção](#12-construcao)
-13. [Suporte](#13-suporte)
+7. [Estrutura da organização](#7-estrutura)
+8. [Feriados](#8-feriados)
+9. [Clientes da plataforma](#9-clientes)
+10. [Usuários](#10-usuarios)
+11. [Perfis e permissões](#11-perfis)
+12. [Segurança, auditoria e privacidade](#12-seguranca)
+13. [Módulos em construção](#13-construcao)
+14. [Suporte](#14-suporte)
 
 <a id="1-visao"></a>
 ## 1. O que é o SuperPonto
@@ -98,7 +99,7 @@ O quadro "Marcações de hoje" fica vazio até a liberação do módulo de ponto
 
 **Para:** Administradores da organização e RH
 
-Cadastre a matriz e as filiais da organização. Cada empresa tem CNPJ, razão social, nome fantasia, contato, endereço, segmento e fuso horário (usado no cálculo da jornada).
+Cadastre a matriz e as filiais da organização. Cada empresa tem CNPJ, razão social, nome fantasia, contato, inscrição estadual (ou ISENTO), CEI/CNO, código externo para a folha, endereço, segmento e fuso horário (usado no cálculo da jornada).
 
 Ao digitar um CNPJ válido, o sistema consulta a Receita Federal e preenche razão social, nome fantasia, telefone, e-mail e endereço, e avisa se a situação cadastral não estiver ATIVA. Os campos preenchidos automaticamente ficam destacados em verde e podem ser editados.
 
@@ -119,8 +120,31 @@ Não é possível cadastrar o mesmo CNPJ duas vezes na mesma organização.
 > **Dica:** Remover uma empresa a tira das listas, mas o histórico continua guardado na auditoria.
 > **Dica:** Os botões só aparecem para quem tem a permissão correspondente; a API também confere a permissão.
 
-<a id="7-feriados"></a>
-## 7. Feriados
+<a id="7-estrutura"></a>
+## 7. Estrutura da organização
+
+**Para:** Administradores da organização e RH
+
+Em Organização › Estrutura ficam os cadastros que organizam as pessoas: Departamentos, Cargos, Funções, Centros de custo, Tipos de funcionário e Sindicatos. Em Organização › Competências ficam os períodos com nome usados como filtro.
+
+Departamentos formam uma árvore sem limite de níveis (ex.: Secretaria de Saúde › UBS Centro › Recepção) e cada departamento pode ter seções. O sistema impede colocar um departamento dentro dele mesmo ou de um subdepartamento seu.
+
+Cargos pertencem a uma empresa e têm o código CBO usado no eSocial. Funções descrevem o que a pessoa faz, independente do cargo. Centros de custo e códigos externos vão na exportação para a folha.
+
+Sindicatos guardam sigla, CNPJ (numérico ou alfanumérico), tipo de entidade, se representam empregados ou empregadores e o mês da data-base.
+
+Nenhum cadastro em uso por funcionário ativo pode ser excluído: o sistema mostra quantos vínculos usam o registro. Nesse caso, desative em vez de excluir.
+
+**Passo a passo**
+
+1. Abra o cadastro desejado no menu Estrutura e clique em "Novo".
+2. Em Departamentos, use o ícone de pasta com "+" para criar um subdepartamento e o campo "+ seção" para adicionar seções.
+3. Para editar ou excluir, passe o mouse sobre o registro e use o lápis ou a lixeira.
+
+> **Dica:** Comece pela estrutura: funcionários, escalas, relatórios e cálculo em lote usam esses cadastros como filtro.
+
+<a id="8-feriados"></a>
+## 8. Feriados
 
 **Para:** Administradores da organização e RH
 
@@ -140,8 +164,8 @@ A base de feriados municipais começa pelas capitais. Para outras cidades, cadas
 
 > **Dica:** Preencha o CEP da empresa: sem ele, só aparecem os feriados nacionais.
 
-<a id="8-clientes"></a>
-## 8. Clientes da plataforma
+<a id="9-clientes"></a>
+## 9. Clientes da plataforma
 
 **Para:** Equipe SuperPonto (SuperAdmin)
 
@@ -158,8 +182,8 @@ Ao criar um cliente, informe o nome, o identificador (gerado a partir do nome), 
 
 > **Dica:** Clientes novos começam no status "Em teste".
 
-<a id="9-usuarios"></a>
-## 9. Usuários
+<a id="10-usuarios"></a>
+## 10. Usuários
 
 **Para:** Administradores
 
@@ -177,8 +201,8 @@ Novos usuários recebem um convite por e-mail para criar a própria senha. O e-m
 
 > **Dica:** Ninguém pode desativar ou excluir o próprio usuário.
 
-<a id="10-perfis"></a>
-## 10. Perfis e permissões
+<a id="11-perfis"></a>
+## 11. Perfis e permissões
 
 **Para:** Administradores
 
@@ -190,8 +214,8 @@ Recursos marcados "módulo em construção na V2" já podem ser incluídos nos p
 
 Mudanças num perfil valem a partir do próximo acesso de cada usuário. Perfis com usuários não podem ser excluídos.
 
-<a id="11-seguranca"></a>
-## 11. Segurança, auditoria e privacidade
+<a id="12-seguranca"></a>
+## 12. Segurança, auditoria e privacidade
 
 **Para:** Todos
 
@@ -201,8 +225,8 @@ Senhas são guardadas apenas como hash forte; ninguém, nem a equipe SuperPonto,
 
 O tratamento de dados segue a LGPD: o empregador é o controlador dos dados dos trabalhadores e a SuperPonto atua como operadora.
 
-<a id="12-construcao"></a>
-## 12. Módulos em construção
+<a id="13-construcao"></a>
+## 13. Módulos em construção
 
 **Para:** Todos
 
@@ -214,8 +238,8 @@ Próximas fases: unidades e departamentos, usuários e perfis, pessoas e víncul
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 
-<a id="13-suporte"></a>
-## 13. Suporte
+<a id="14-suporte"></a>
+## 14. Suporte
 
 **Para:** Todos
 

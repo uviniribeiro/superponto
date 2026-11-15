@@ -18,6 +18,11 @@ export const companyInputSchema = z.object({
   ibgeCode: z.string().trim().regex(/^\d{7}$/, 'Código IBGE inválido').optional(),
   phone: z.string().trim().transform((v) => v.replace(/\D/g, '')).pipe(z.string().min(10).max(11)).optional(),
   email: z.email().optional(),
+  /** Inscrição estadual: só letras e números, ou "ISENTO" */
+  stateRegistration: z.string().trim().toUpperCase().transform((v) => (v === 'ISENTO' ? v : v.replace(/[^0-9A-Z]/g, ''))).pipe(z.string().regex(/^(ISENTO|[0-9A-Z]{2,18})$/, 'Inscrição estadual inválida')).optional(),
+  /** CEI (12 dígitos) ou CNO/CAEPF (12 a 14 dígitos) */
+  cno: z.string().trim().transform((v) => v.replace(/\D/g, '')).pipe(z.string().regex(/^\d{12,14}$/, 'CEI/CNO deve ter de 12 a 14 dígitos')).optional(),
+  externalCode: z.string().trim().max(30).optional(),
 });
 export type CompanyInput = z.infer<typeof companyInputSchema>;
 
