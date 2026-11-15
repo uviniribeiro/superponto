@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isValidCpf, isValidPis } from '@superponto/br-docs';
 import { useEffect, useState } from 'react';
-import { api, type AddressLookup, type Company, type EmployeeDetail, type Page } from '@/lib/api';
+import { api, type AddressLookup, type Company, type Employee, type EmployeeDetail, type Page } from '@/lib/api';
 import { digits, maskCep, maskCpf, maskPhone, maskPis } from '@/lib/masks';
 import { CONTRACT_TYPES, useStructureOptions } from '@/lib/options';
 import { Button, Input, useToast } from './ui';
@@ -17,7 +17,7 @@ const from = (e: EmployeeDetail | null, companyId: string | null): F => ({
   complement: e?.address?.complement ?? '', district: e?.address?.district ?? '', city: e?.address?.city ?? '', state: e?.address?.state ?? '', ibge: e?.address?.ibge ?? '',
   registration: e?.registration ?? '', hiredAt: e?.hiredAt ?? '', contractType: e?.contractType ?? 'CLT', weeklyHours: e?.weeklyHours ? String(e.weeklyHours) : '',
   unitId: e?.unit?.id ?? '', departmentId: e?.department?.id ?? '', sectorId: e?.sector?.id ?? '', positionId: e?.position?.id ?? '', functionId: e?.function?.id ?? '',
-  costCenterId: e?.costCenter?.id ?? '', employeeTypeId: e?.employeeType?.id ?? '', unionId: e?.union?.id ?? '',
+  costCenterId: e?.costCenter?.id ?? '', employeeTypeId: e?.employeeType?.id ?? '', unionId: e?.union?.id ?? '', supervisorId: e?.supervisor?.id ?? '',
   effectiveAt: new Date().toISOString().slice(0, 10), reason: '',
 });
 
@@ -46,6 +46,7 @@ export function EmployeeForm({ tenantId, employee, defaultCompanyId, onDone }: {
   const set = (k: string, v: string) => { setF((p) => ({ ...p, [k]: v })); setErrors((e) => ({ ...e, [k]: '' })); };
   const companies = useQuery({ queryKey: ['companies', tenantId, 'all'], queryFn: () => api<Page<Company>>('/companies?pageSize=200'), enabled: !employee });
   const opt = useStructureOptions(tenantId, f.companyId || null);
+  const peers = useQuery({ queryKey: ['employees', 'peers', f.companyId], queryFn: () => api<Page<Employee>>(`/employees?companyId=${f.companyId}&pageSize=200`), enabled: !!f.companyId });
   const sectors = opt.departments.find((d) => d.id === f.departmentId)?.sectors ?? [];
   const editing = !!employee;
   const canSeeDocs = !employee || employee.sensitiveVisible;
@@ -82,7 +83,7 @@ export function EmployeeForm({ tenantId, employee, defaultCompanyId, onDone }: {
     const body: Record<string, unknown> = {
       fullName: f.fullName.trim(), socialName: val('socialName'), birthDate: val('birthDate'), email: val('email'), phone: f.phone ? digits(f.phone) : editing ? null : undefined, address,
       registration: f.registration.trim(), contractType: f.contractType, weeklyHours: f.weeklyHours ? Number(f.weeklyHours.replace(',', '.')) : editing ? null : undefined,
-      unitId: val('unitId'), departmentId: val('departmentId'), sectorId: val('sectorId'), positionId: val('positionId'), functionId: val('functionId'), costCenterId: val('costCenterId'), employeeTypeId: val('employeeTypeId'), unionId: val('unionId'),
+      unitId: val('unitId'), departmentId: val('departmentId'), sectorId: val('sectorId'), positionId: val('positionId'), functionId: val('functionId'), costCenterId: val('costCenterId'), employeeTypeId: val('employeeTypeId'), unionId: val('unionId'), supervisorId: val('supervisorId'),
     };
     if (canSeeDocs) { body.cpf = f.cpf ? digits(f.cpf) : editing ? null : undefined; body.pis = f.pis ? digits(f.pis) : editing ? null : undefined; }
     if (editing) { body.effectiveAt = f.effectiveAt; if (f.reason.trim()) body.reason = f.reason.trim(); }
@@ -151,6 +152,7 @@ export function EmployeeForm({ tenantId, employee, defaultCompanyId, onDone }: {
           <Select label="Centro de custo" value={f.costCenterId} onChange={(v) => set('costCenterId', v)} options={opts(opt.costCenters)} />
           <Select label="Sindicato" value={f.unionId} onChange={(v) => set('unionId', v)} options={opt.unions.map((u) => [u.id, `${u.acronym} — ${u.name}`])} />
         </div>
+        <Select label="Superior imediato" value={f.supervisorId} onChange={(v) => set('supervisorId', v)} options={(peers.data?.data ?? []).filter((p) => p.id !== employee?.id).map((p) => [p.id, `${p.socialName ?? p.fullName} · ${p.registration}`])} empty="— (aprova solicitações quando o fluxo pede o superior)" />
       </Section>
 
       {editing && (

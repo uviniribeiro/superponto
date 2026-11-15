@@ -71,6 +71,7 @@ export class TimesheetCore {
     ]);
     const persistedMap = new Map(persisted.map((p) => [`${p.employmentId}|${iso(p.workDate)}`, p.details as unknown as DayView | null]));
     const out = new Map<string, DayView[]>();
+    const today = local(new Date()).date;
     for (const e of emps) {
       const days = plan.get(e.id)!;
       const ruleFor = (ruleSetId: string | null): AttendanceRules & { overtimeRequiresAuthorization?: boolean } => {
@@ -114,7 +115,9 @@ export class TimesheetCore {
         else if (al && al.justification.disregardsDebits) absence = al.fullDay ? { kind: 'full', reason: al.justification.name } : { kind: 'partial', minutes: al.minutes, reason: al.justification.name };
         const rules = ruleFor(d.ruleSetId);
         let result: DayView['result'] = null;
-        if (!outside) {
+        // Dia que ainda não chegou (horário de Brasília) não é apurado: sem falta antecipada.
+        const future = date > today;
+        if (!outside && !future) {
           const exp: ExpectedDay = d.engine;
           const r = calculateDay({ date, timeZone: TZ, expected: exp, punches: (byDay.get(date) ?? []).map((p) => ({ at: p.at, id: p.id })), rules, absence });
           const flags: string[] = [...r.flags];

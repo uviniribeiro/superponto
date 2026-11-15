@@ -4,6 +4,11 @@
 > - Fase 1 (estrutura) concluída: departamentos em árvore com seções, cargos (CBO), funções, centros
 >   de custo, tipos de funcionário, sindicatos, competências e empresa com inscrição estadual,
 >   CEI/CNO, código externo e logo.
+> - Fases 4 e 5 (ponto, bancos e solicitações) concluídas: espelho e espelho diário, ajustes com
+>   aprovação, justificativas com limite, abonos em lote, afastamentos, sobreaviso, cálculo em lote,
+>   fechar/reabrir ponto, marcação pelo navegador com proteção contra robôs, banco de horas (regras,
+>   extrato, lançamentos, zerar em lote), solicitações com aprovação em até 5 etapas e política de
+>   hora extra. Banco de compensação semanal e PDF assinado do espelho ficam para depois.
 > - Fase 3 (jornada) concluída: horários semanais, flexíveis e em ciclo com configuração avançada
 >   (considera feriado, in itinere, mobilidade de entrada e de intervalo), regras de apuração com
 >   faixas de extra, atribuição com vigência, escala agendada, troca de escala e de folga e grade da
@@ -74,7 +79,7 @@ na última seção.
 | Feriado | ✅ | ✅ (automático, melhor que o Átomo) | — |
 | Função | 🟡 | ✅ | Tela simples junto com Cargo |
 | Funcionário (com aba de biometria) | ✅ | ✅ vínculos, histórico, desligamento; digitais na API | Captura pelo leitor na fase 6 |
-| Justificativa (código, limite de uso, desconsidera débitos) | ✅ | ❌ | Tela de justificativas com limite de uso por período |
+| Justificativa (código, limite de uso, desconsidera débitos) | ✅ | ✅ abona ou só justifica, limite por mês/ano | — |
 | Local de trabalho | ✅ | ✅ unidades e locais por empresa | — |
 | Local georreferenciado (aprovar mobile automaticamente) | ✅ | 🟡 cerca virtual na unidade (tela pronta); aprovação automática vem com a marcação mobile | Tela de cercas com aprovação automática dentro do raio |
 | Seção | ❌ | ✅ dentro do departamento | Nível opcional abaixo de departamento |
@@ -115,24 +120,24 @@ na última seção.
 
 | Átomo | v1 | V2 | Como incluir |
 |---|---|---|---|
-| Abono em lote | ✅ | ❌ | Tela de abono em lote |
-| Afastamento | ✅ | ❌ | Tela + importação (também pela integração Átomo) |
-| Cálculo em lote (calcular, abrir e fechar ponto) | 🟡 | ❌ | Tela; fechamento já protegido no banco da V2 |
-| Espelho ponto | ✅ | ❌ | Tela central da fase de Ponto |
-| Espelho ponto diário (vários funcionários) | 🟡 | ❌ | Visão diária da equipe |
+| Abono em lote | ✅ | ✅ dia inteiro ou minutos, pulando folgas, com limite | — |
+| Afastamento | ✅ | ✅ tela (importação pela integração Átomo na fase 9) | — |
+| Cálculo em lote (calcular, abrir e fechar ponto) | 🟡 | ✅ calcular, fechar (lança banco) e reabrir com motivo | — |
+| Espelho ponto | ✅ | ✅ tela e impressão (PDF assinado pendente) | Assinatura e ciência eletrônica |
+| Espelho ponto diário (vários funcionários) | 🟡 | ✅ situação de cada funcionário no dia | — |
 | Layout de exportação (folha) | ✅ | ❌ | Layouts configuráveis por sistema de folha |
-| Meu espelho / Meu extrato BH / Meu extrato BC / Meu holerite | ✅ | ❌ | Área do funcionário |
-| Minhas solicitações / Solicitações | ✅ | ❌ | Módulo de solicitações com fluxo de aprovação |
+| Meu espelho / Meu extrato BH / Meu extrato BC / Meu holerite | ✅ | 🟡 meu espelho e registrar ponto | Meu extrato BH, holerite |
+| Minhas solicitações / Solicitações | ✅ | ✅ até 5 etapas, efeito aplicado na aprovação | — |
 | Painel de ocorrência | ✅ | ❌ | Painel do gestor |
-| Sobreaviso | ✅ | ❌ | Lançamento e cálculo de sobreaviso |
-| Zerar banco de horas em lote | ❌ | ❌ | Ação em lote com motivo e auditoria |
+| Sobreaviso | ✅ | ✅ lançamento e 1/3 no espelho | — |
+| Zerar banco de horas em lote | ❌ | ✅ pagar positivos ou zerar, com auditoria | — |
 
 ## Bancos de horas e de compensação
 
 | Átomo | v1 | V2 | Como incluir |
 |---|---|---|---|
-| Cadastro BH (vencimento, limites, ocorrências, prioridade) | ✅ | 🟡 motor com vencimento | Tela de regras de banco de horas |
-| Extrato BH | ✅ | ❌ | Extrato por funcionário |
+| Cadastro BH (vencimento, limites, ocorrências, prioridade) | ✅ | ✅ vencimento, limite diário, multiplicador | — |
+| Extrato BH | ✅ | ✅ saldo corrido e próximo vencimento | — |
 | Cadastro BC / Extrato BC | ✅ | ❌ | Mesma base do BH, regras de compensação |
 
 ## Exportação, importação e marcações
@@ -183,7 +188,7 @@ PDF/Excel/CSV, gerando cada relatório a partir do motor de cálculo.
 | Token do app móvel (liberação por e-mail) | 🟡 | ❌ | Liberação de aparelho com código por e-mail |
 | Dicas, vídeos, novidades, sobre | ❌ | 🟡 manual | Central de ajuda |
 | Documentação de integração | ❌ | ✅ Swagger da API | — |
-| Justificativa de crédito / Política de hora extra | ❌ | 🟡 permissão de aprovar extra | Aprovação de extra com justificativa e limites |
+| Justificativa de crédito / Política de hora extra | ❌ | ✅ autorização prévia por solicitação; extra sem autorização apontada | — |
 
 ## Plano de inclusão (V2)
 

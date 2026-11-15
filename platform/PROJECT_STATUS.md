@@ -11,7 +11,7 @@ Atualizado em 15/11/2026. A v1 (raiz do repositório) segue em produção; a v2 
 | 2. Infraestrutura e base | Monorepo, API NestJS, Prisma, autenticação, multi-tenant, permissões, auditoria | **Em andamento** — API e app web prontos e testados (detalhes abaixo); falta MFA nas rotas |
 | 3. Núcleo de gestão | Pessoas, empresas, unidades, funcionários, matrículas, vínculos, jornadas, escalas | **Em andamento** — estrutura e pessoas prontas (unidades, departamentos, cargos, funções, centros de custo, sindicatos, competências, funcionários com vínculos e histórico, importação, agrupamentos, LDAP) e jornada pronta (horários, regras de apuração, atribuição, escala agendada, trocas, grade da equipe) |
 | 4. Módulos especializados | Educação, saúde, operacional | Não iniciada (modelo de dados pronto) |
-| 5. Controle de ponto | Marcações, apuração, banco de horas, solicitações, aprovações, relatórios | Motor de cálculo pronto e testado; API e telas não iniciadas |
+| 5. Controle de ponto | Marcações, apuração, banco de horas, solicitações, aprovações, relatórios | **Em andamento** — marcação web, apuração, espelho, ajustes, abonos, fechamento, banco de horas e solicitações prontos; relatórios e AFD/AEJ oficiais a seguir |
 | 6. Equipamentos | Cadastro, adaptadores, sincronização, homologação | **Em andamento** — AFD das Portarias 1.510/373/671, fila de envio de empregador/funcionários/digitais, digitais cifradas e adaptador Control iD prontos e testados; telas, execução pelo Communication Server e homologação em equipamento real pendentes |
 | 7. Communication Server | Serviço independente em Node.js, filas, protocolos, painel | Não iniciada (projeto em COMMUNICATION_SERVER.md) |
 | 8. SaaS e SuperAdmin | Planos, assinaturas, cobrança, limites | Criação de clientes pelo SuperAdmin pronta; resto não iniciado |
@@ -74,6 +74,15 @@ histórico; escala agendada por período e dias da semana; troca de escala e de 
 por funcionário e grade da equipe com feriados; período fechado bloqueia mudanças (12 testes de API,
 7 novos no motor).
 
+**Ponto, bancos e solicitações (fases 4 e 5 do plano Átomo)** — apuração (jornada prevista +
+marcações originais/incluídas/desconsideradas + abonos e afastamentos + regras) pelo motor; espelho,
+meu espelho e espelho diário; ajustes com aprovação (original preservado); justificativas com limite;
+abonos em lote; afastamentos; sobreaviso; cálculo em lote, fechamento que grava a apuração e lança o
+banco, reabertura em ordem; marcação pelo navegador com desafio de uso único, intervalo mínimo, cerca
+virtual e comprovante; banco de horas (regras, FIFO com vencimento, extrato, lançamentos, zerar em
+lote); solicitações com fluxos de até 5 etapas e efeito na aprovação final; política de hora extra
+(13 testes de API). Pendentes: banco de compensação semanal, PDF assinado e ciência do espelho, NSR.
+
 **App web** (`apps/web`, Next.js 16) — login, esqueci/redefinir senha, painel com dados reais,
 empresas (CRUD com CNPJ alfanumérico), clientes (SuperAdmin, com seletor de organização), Manual e
 Conformidade MTE (30 exigências legais com a situação de cada uma). Barra lateral flutuante de vidro
@@ -83,7 +92,7 @@ vidro com fundo vivo e janela flutuante; painel inicial com números reais (resu
 Sessão em cookies httpOnly via BFF (`/api/*`). MANUAL.md e CONFORMIDADE_MTE.md são gerados do mesmo
 conteúdo das telas (`npm run docs -w @superponto/web`).
 
-**API** (`apps/api`, 153 testes contra PostgreSQL real com o papel sujeito à RLS):
+**API** (`apps/api`, 166 testes contra PostgreSQL real com o papel sujeito à RLS):
 - Autenticação com `@nestjs/authentication`: login por sessão (cookie `__Host-sid` httpOnly) e por
   token (JWT 15 min + refresh rotativo com detecção de reuso), saída, `/me`, esqueci minha senha
   (link de uso único, 1 h, mesma resposta para e-mail inexistente), scrypt (OWASP), limite de

@@ -11,9 +11,9 @@ _Revisado em 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › Confor
 
 | Situação | Itens |
 |---|---|
-| Atendido no sistema | 9 |
-| Em desenvolvimento | 6 |
-| Planejado | 15 |
+| Atendido no sistema | 11 |
+| Em desenvolvimento | 9 |
+| Planejado | 10 |
 | Ação da SuperPonto (fornecedor) | 2 |
 | Obrigação do empregador | 2 |
 | **Total** | **34** |
@@ -35,7 +35,7 @@ Regras da CLT que definem quando o controle de jornada é obrigatório e quais f
 |---|---|---|
 | [Registro obrigatório acima de 20 trabalhadores](#clt-74-2) | Planejado | CLT, art. 74, § 2º (redação da Lei nº 13.874/2019) |
 | [Empregado doméstico: registro sempre obrigatório](#domestico) | Planejado | Lei Complementar nº 150/2015, art. 12 |
-| [Trabalho externo](#clt-74-3) | Planejado | CLT, art. 74, § 3º |
+| [Trabalho externo](#clt-74-3) | Em desenvolvimento | CLT, art. 74, § 3º |
 | [Ponto por exceção](#clt-74-4) | Planejado | CLT, art. 74, § 4º |
 | [Quem fica fora do controle de jornada](#clt-62) | Planejado | CLT, art. 62 |
 
@@ -60,8 +60,8 @@ Regras da CLT que definem quando o controle de jornada é obrigatório e quais f
 
 - **O que a norma exige:** Quando o trabalho for executado fora do estabelecimento, o horário deve constar em registro em poder do empregado (ficha, papeleta ou meio eletrônico).
 - **Base legal:** CLT, art. 74, § 3º
-- **Situação:** Planejado
-- **No SuperPonto:** App do funcionário com marcação por geolocalização e cerca virtual (REP-P), já previsto no modelo de dados (unidades com latitude, longitude e raio).
+- **Situação:** Em desenvolvimento
+- **No SuperPonto:** Marcação pelo navegador (Ponto › Registrar ponto) com cerca virtual da unidade: fora do raio a marcação é recusada. O app do funcionário com GPS ainda será ligado à V2.
 
 <a id="clt-74-4"></a>
 ### Ponto por exceção
@@ -91,8 +91,8 @@ A Portaria MTP nº 671/2021 define três tipos de registrador e o programa que t
 | [Registro do software no INPI](#inpi) | Ação da SuperPonto (fornecedor) | Portaria MTP nº 671/2021 |
 | [Atestado Técnico e Termo de Responsabilidade](#atestado) | Ação da SuperPonto (fornecedor) | Portaria MTP nº 671/2021 |
 | [Condutas proibidas no sistema de ponto](#proibicoes) | Em desenvolvimento | Portaria MTP nº 671/2021 |
-| [Número sequencial de registro (NSR) e inalterabilidade](#nsr) | Planejado | Portaria MTP nº 671/2021, anexos de leiaute |
-| [Hora oficial sincronizada](#hora-legal) | Planejado | Portaria MTP nº 671/2021 |
+| [Número sequencial de registro (NSR) e inalterabilidade](#nsr) | Em desenvolvimento | Portaria MTP nº 671/2021, anexos de leiaute |
+| [Hora oficial sincronizada](#hora-legal) | Em desenvolvimento | Portaria MTP nº 671/2021 |
 
 <a id="rep-tipos"></a>
 ### Usar um dos três tipos de REP
@@ -140,23 +140,23 @@ A Portaria MTP nº 671/2021 define três tipos de registrador e o programa que t
 - **O que a norma exige:** O sistema não pode restringir horários de marcação, fazer marcação automática, exigir autorização prévia para marcar horas extras nem permitir alterar ou apagar as marcações registradas.
 - **Base legal:** Portaria MTP nº 671/2021
 - **Situação:** Em desenvolvimento
-- **No SuperPonto:** A auditoria da V2 já é imutável no banco (alteração e exclusão bloqueadas por gatilho). As marcações seguirão o mesmo modelo: correções são tratamentos separados, com justificativa, e a marcação original nunca é alterada.
+- **No SuperPonto:** Marcações e auditoria são imutáveis no banco (alteração e exclusão bloqueadas por gatilho); ajustes só incluem ou desconsideram, com justificativa, sem apagar o original; período fechado trava alterações. Marcação pelo navegador usa a hora do servidor e desafio de uso único. Falta a homologação formal do REP-P.
 
 <a id="nsr"></a>
 ### Número sequencial de registro (NSR) e inalterabilidade
 
 - **O que a norma exige:** Cada marcação recebe um NSR sequencial que não se repete nem é reiniciado, e os dados originais ficam protegidos contra alteração.
 - **Base legal:** Portaria MTP nº 671/2021, anexos de leiaute
-- **Situação:** Planejado
-- **No SuperPonto:** Sequência por registrador gravada em transação, com cadeia de hash entre marcações para provar que nada foi removido.
+- **Situação:** Em desenvolvimento
+- **No SuperPonto:** Marcações já têm cadeia de hash (cada uma guarda o hash da anterior do mesmo vínculo) e não podem ser alteradas. Falta o NSR sequencial por registrador para as marcações do navegador e do app.
 
 <a id="hora-legal"></a>
 ### Hora oficial sincronizada
 
 - **O que a norma exige:** Data e hora das marcações devem seguir a Hora Legal Brasileira, com o fuso horário do local de trabalho.
 - **Base legal:** Portaria MTP nº 671/2021
-- **Situação:** Planejado
-- **No SuperPonto:** Hora sempre do servidor (sincronizado por NTP com a hora legal), nunca do celular; fuso por empresa e unidade, já existente no cadastro.
+- **Situação:** Em desenvolvimento
+- **No SuperPonto:** A marcação pelo navegador usa sempre a hora do servidor (nunca a do aparelho) e o fuso de Brasília. A sincronização por NTP é configuração do servidor na instalação.
 
 ## Comprovantes, arquivos e relatórios obrigatórios
 
@@ -164,11 +164,11 @@ Documentos que o sistema precisa gerar para o trabalhador, para o empregador e p
 
 | Exigência | Situação | Base legal |
 |---|---|---|
-| [Comprovante de registro de ponto do trabalhador](#comprovante) | Planejado | Portaria MTP nº 671/2021 |
+| [Comprovante de registro de ponto do trabalhador](#comprovante) | Em desenvolvimento | Portaria MTP nº 671/2021 |
 | [AFD: Arquivo Fonte de Dados](#afd) | Planejado | Portaria MTP nº 671/2021, anexo de leiaute do AFD |
 | [AEJ: Arquivo Eletrônico de Jornada](#aej) | Planejado | Portaria MTP nº 671/2021, anexo de leiaute do AEJ |
-| [Espelho de ponto](#espelho) | Planejado | Portaria MTP nº 671/2021 |
-| [Tratamento de marcações com justificativa](#tratamento) | Em desenvolvimento | Portaria MTP nº 671/2021 |
+| [Espelho de ponto](#espelho) | Em desenvolvimento | Portaria MTP nº 671/2021 |
+| [Tratamento de marcações com justificativa](#tratamento) | Atendido no sistema | Portaria MTP nº 671/2021 |
 | [Entrega à fiscalização e guarda dos dados](#fiscalizacao) | Obrigação do empregador | Portaria MTP nº 671/2021; CF/88, art. 7º, XXIX (prescrição de 5 anos) |
 
 <a id="comprovante"></a>
@@ -176,8 +176,8 @@ Documentos que o sistema precisa gerar para o trabalhador, para o empregador e p
 
 - **O que a norma exige:** A cada marcação o trabalhador deve ter acesso ao comprovante, com os campos definidos na portaria (empregador com CNPJ/CPF, local, nome e CPF do trabalhador, data, hora e NSR). No REP-P o comprovante é eletrônico.
 - **Base legal:** Portaria MTP nº 671/2021
-- **Situação:** Planejado
-- **No SuperPonto:** Comprovante eletrônico no app e por e-mail, com validação de autenticidade.
+- **Situação:** Em desenvolvimento
+- **No SuperPonto:** Cada marcação pelo navegador mostra o comprovante na tela (funcionário, empresa, CNPJ, data, hora e código de integridade). Envio por e-mail e consulta pública de autenticidade ainda faltam.
 
 <a id="afd"></a>
 ### AFD: Arquivo Fonte de Dados
@@ -200,16 +200,16 @@ Documentos que o sistema precisa gerar para o trabalhador, para o empregador e p
 
 - **O que a norma exige:** O programa de tratamento emite o espelho de ponto do período, com identificação do empregador e do trabalhador, horário contratual, marcações originais e tratadas, e indicação de cada tratamento.
 - **Base legal:** Portaria MTP nº 671/2021
-- **Situação:** Planejado
-- **No SuperPonto:** Espelho mensal em PDF e na tela, com ciência eletrônica do trabalhador.
+- **Situação:** Em desenvolvimento
+- **No SuperPonto:** Espelho mensal na tela (Ponto › Espelho de ponto) com marcações originais, incluídas e desconsideradas, saldo, extras, noturno e ocorrências, e impressão pelo navegador. PDF assinado e ciência eletrônica do trabalhador ainda faltam.
 
 <a id="tratamento"></a>
 ### Tratamento de marcações com justificativa
 
 - **O que a norma exige:** Inclusões, desconsiderações e abonos são feitos apenas no programa de tratamento, com motivo, preservando a marcação original e identificando quem tratou.
 - **Base legal:** Portaria MTP nº 671/2021
-- **Situação:** Em desenvolvimento
-- **No SuperPonto:** Permissões já existem (time.adjustments:create e :approve) e a auditoria registra antes e depois; as telas de tratamento entram na fase de Ponto.
+- **Situação:** Atendido no sistema
+- **No SuperPonto:** Inclusão e desconsideração de marcação com justificativa obrigatória, aprovação por quem tem permissão (quem pediu não aprova) e auditoria; a marcação original nunca é alterada e aparece no espelho como desconsiderada.
 
 <a id="fiscalizacao"></a>
 ### Entrega à fiscalização e guarda dos dados
@@ -226,7 +226,7 @@ Regras da CLT aplicadas pelo motor de cálculo. Convenções coletivas podem alt
 | Exigência | Situação | Base legal |
 |---|---|---|
 | [Tolerância de 5 minutos por marcação](#clt-58) | Atendido no sistema | CLT, art. 58, § 1º |
-| [Horas extras e banco de horas](#clt-59) | Em desenvolvimento | CLT, art. 59, §§ 1º, 2º, 5º e 6º; CF/88, art. 7º, XVI |
+| [Horas extras e banco de horas](#clt-59) | Atendido no sistema | CLT, art. 59, §§ 1º, 2º, 5º e 6º; CF/88, art. 7º, XVI |
 | [Escala 12x36](#clt-59a) | Atendido no sistema | CLT, art. 59-A |
 | [Descanso entre jornadas e semanal](#clt-66-67) | Planejado | CLT, arts. 66 e 67; Lei nº 605/1949 |
 | [Intervalo para repouso e alimentação](#clt-71) | Em desenvolvimento | CLT, art. 71, caput, § 1º e § 4º |
@@ -246,8 +246,8 @@ Regras da CLT aplicadas pelo motor de cálculo. Convenções coletivas podem alt
 
 - **O que a norma exige:** Até 2 horas extras por dia, com adicional mínimo de 50%. Banco de horas por acordo individual escrito (compensação em até 6 meses) ou por convenção ou acordo coletivo (até 1 ano); compensação no mesmo mês pode ser por acordo tácito ou escrito.
 - **Base legal:** CLT, art. 59, §§ 1º, 2º, 5º e 6º; CF/88, art. 7º, XVI
-- **Situação:** Em desenvolvimento
-- **No SuperPonto:** Percentuais (mínimo de 50% validado), faixas de extra e limite diário configuráveis em Jornada › Regras de apuração e calculados no motor; banco de horas com vencimento dos créditos calculado no motor; espelho, alertas e telas do banco entram com os módulos de Ponto e Bancos.
+- **Situação:** Atendido no sistema
+- **No SuperPonto:** Percentuais (mínimo de 50% validado), faixas e limite diário em Jornada › Regras de apuração; banco de horas por empresa com vencimento configurável (a tela lembra o limite de 6 meses do acordo individual e 1 ano da convenção), créditos e débitos lançados no fechamento, extrato e zerar em lote; política de hora extra aponta a extra sem autorização prévia.
 
 <a id="clt-59a"></a>
 ### Escala 12x36

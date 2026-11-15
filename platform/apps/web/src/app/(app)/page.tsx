@@ -298,7 +298,7 @@ export default function DashboardPage() {
             <Card delay={0.35} className="rounded-[28px] p-6">
               <h2 className="text-lg font-semibold">Marcações de hoje</h2>
               <p className="text-sm text-muted">Entradas e saídas dos relógios e do app.</p>
-              <EmptyState icon={Clock3} title="Chega com o módulo de ponto" body="O registro de ponto da V2 entra na fase 4; até lá as marcações continuam na versão atual." />
+              <EmptyState icon={Clock3} title="Veja quem já marcou" body="O espelho diário mostra presentes, atrasados, faltas e quem ainda não marcou hoje." action={<Link href="/ponto/diario" className="pill-light inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-semibold">Abrir espelho diário <ArrowUpRight className="size-4" /></Link>} />
             </Card>
           </div>
         </div>

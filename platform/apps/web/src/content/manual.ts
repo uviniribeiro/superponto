@@ -205,6 +205,71 @@ export const SECTIONS: ManualSection[] = [
     steps: ['Abra Jornada › Escalas e marque os funcionários.', 'Na barra que aparece embaixo, escolha "Atribuir horário", "Escala agendada" ou "Trocar escala/folga".', 'Clique num dia para ver os detalhes e, se for escala agendada ou troca, remover o lançamento.'],
   },
   {
+    id: 'registrar-ponto',
+    title: 'Registrar ponto pelo navegador',
+    audience: 'Funcionários',
+    body: [
+      'Em Ponto › Registrar ponto, o funcionário marca entrada, intervalo e saída com um clique. A hora é sempre a do servidor (horário de Brasília), nunca a do computador ou celular.',
+      'Cada marcação mostra um comprovante com funcionário, empresa, CNPJ, data, hora e um código de integridade. A marcação não pode ser apagada; correções são feitas por ajuste ou solicitação.',
+      'Proteções: cada marcação exige um desafio de uso único emitido pelo servidor (contra robôs e repetição), há limite de tentativas por minuto e marcações com menos de 1 minuto de diferença são recusadas. Se a unidade tem cerca virtual, o navegador pede a localização e a marcação fora do raio é recusada.',
+      'Para marcar, o usuário precisa estar ligado ao funcionário: o administrador faz isso em Usuários › editar › Funcionário ligado.',
+    ],
+  },
+  {
+    id: 'espelho',
+    title: 'Espelho de ponto e espelho diário',
+    audience: 'RH, gestores e funcionários',
+    body: [
+      'Ponto › Espelho de ponto mostra o mês do funcionário dia a dia: horário previsto, marcações, horas trabalhadas, saldo e ocorrências (atraso, falta, marcação ímpar, extra, intervalo curto…). No topo ficam previsto, trabalhado, saldo, extras por percentual, noturno e faltas. Quem não tem acesso ao espelho da equipe vê o próprio (Meu espelho).',
+      'Marcações incluídas aparecem em azul; desconsideradas, riscadas; pendentes de aprovação, tracejadas. Dias de período fechado mostram um cadeado e não mudam mais. Dias futuros não são apurados.',
+      'Ponto › Espelho diário mostra a equipe num dia: presentes, atrasados, faltas, marcação ímpar, quem ainda não marcou, folga e afastados.',
+    ],
+    steps: ['Abra Ponto › Espelho de ponto, escolha o funcionário e o mês.', 'Clique num dia para ver as marcações, incluir uma marcação esquecida, desconsiderar uma duplicada ou abonar.', 'Use "Imprimir" para o espelho em papel ou PDF pelo navegador.'],
+  },
+  {
+    id: 'ajustes-abonos',
+    title: 'Ajustes, justificativas, abonos, afastamentos e sobreaviso',
+    audience: 'RH e gestores',
+    body: [
+      'Ajuste de marcação: incluir uma marcação esquecida ou desconsiderar uma duplicada, sempre com justificativa. Quem tem permissão de aprovar lança já aprovado; os demais ficam pendentes em Ponto › Ajustes de marcação, e quem pediu não pode aprovar. A marcação original nunca é apagada (Portaria 671).',
+      'Justificativas (Ponto › Justificativas) podem abonar (o dia ou os minutos não geram débito) ou só justificar (a falta aparece justificada, mas é descontada). Cada uma pode ter limite de uso por funcionário por mês ou por ano.',
+      'Abonos (Ponto › Abonos e afastamentos) são lançados em lote: vários funcionários e um período, por dia inteiro ou por minutos, pulando folgas e feriados. O sistema recusa o lançamento que passa do limite da justificativa.',
+      'Afastamentos (atestado, férias, licenças, acidente, suspensão) deixam os dias neutros no cálculo e não podem se sobrepor. Não registre CID ou diagnóstico: é dado sensível.',
+      'Sobreaviso (CLT art. 244 §2º): horas à disposição fora do local de trabalho; aparecem no espelho com o valor de 1/3.',
+    ],
+  },
+  {
+    id: 'fechamento',
+    title: 'Cálculo em lote e fechamento do período',
+    audience: 'RH',
+    body: [
+      'Em Ponto › Fechamento, "Calcular" grava a apuração do período para todos os funcionários da empresa e avisa ajustes pendentes, dias com marcação ímpar e extra sem autorização.',
+      '"Fechar período" exige que não haja ajustes pendentes, grava a apuração final, lança o banco de horas (se ativo) e trava o período: marcações, ajustes, abonos, afastamentos, escalas e horários não mudam mais nele.',
+      'Reabrir pede motivo, desfaz os lançamentos do banco daquele fechamento e precisa seguir a ordem (reabra antes o período mais recente). Tudo fica na auditoria.',
+    ],
+  },
+  {
+    id: 'banco-horas',
+    title: 'Banco de horas',
+    audience: 'RH',
+    body: [
+      'Em Bancos e solicitações › Banco de horas › Regras, ative o banco da empresa e defina em quantos dias os créditos vencem (acordo individual: até 6 meses; convenção coletiva: até 1 ano — CLT art. 59), o crédito máximo por dia e, se a convenção prevê, o multiplicador da extra (ex.: 1h a 50% vale 1h30).',
+      'No fechamento, o saldo positivo de cada dia vira crédito com data de vencimento e o negativo vira débito, que consome primeiro os créditos mais antigos. Créditos vencidos saem do saldo.',
+      'A lista mostra o saldo de cada funcionário; clique para ver o extrato com saldo corrido e o próximo vencimento. Selecione funcionários para lançar ajuste, pagamento em folha ou folga compensada, ou use "Zerar em lote" para pagar saldos positivos ou zerar saldos.',
+    ],
+  },
+  {
+    id: 'solicitacoes',
+    title: 'Solicitações e fluxos de aprovação',
+    audience: 'Todos',
+    body: [
+      'Em Solicitações, o funcionário pede: inclusão de marcação esquecida, justificativa de falta ou atraso, troca de folga, autorização de hora extra ou outro assunto. Quem tem permissão também pode abrir para outro funcionário.',
+      'Em "Para aprovar" aparecem só os pedidos da etapa em que você é o aprovador. Recusar exige motivo. Ao aprovar a última etapa, o sistema aplica o pedido sozinho: inclui a marcação, lança o abono, troca a folga ou registra a autorização de extra.',
+      'Em Fluxos de aprovação, cada tipo de pedido pode ter até 5 etapas: superior imediato (definido no cadastro do funcionário), quem tem um perfil, ou quem tem a permissão de aprovar solicitações. Sem fluxo, aprova quem tem essa permissão. Ninguém aprova o próprio pedido.',
+      'Política de hora extra: na regra de apuração, "exigir autorização" faz o espelho apontar a extra feita sem autorização prévia. A extra continua sendo paga (é trabalho realizado); o apontamento serve para conferência.',
+    ],
+  },
+  {
     id: 'feriados',
     title: 'Feriados',
     audience: 'Administradores da organização e RH',
@@ -307,9 +372,9 @@ export const SECTIONS: ManualSection[] = [
     title: 'Módulos em construção',
     audience: 'Todos',
     body: [
-      'A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, o motor de cálculo de jornada e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.',
+      'A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, registro de ponto pelo navegador, espelho, ajustes, abonos, afastamentos, fechamento, banco de horas e solicitações com aprovação em etapas e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.',
       'O app do terminal (tablet de ponto) é instalado por APK e abre em tela cheia, com a tela sempre ligada e opção de modo quiosque.',
-      'Próximas fases: registro de ponto (REP-P e relógios), espelho de ponto, AFD/AEJ, banco de horas, solicitações, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.',
+      'Próximas fases: app do funcionário e relógios na V2, AFD/AEJ oficiais, relatórios, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.',
       'A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.',
     ],
   },

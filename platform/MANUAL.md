@@ -20,15 +20,21 @@ _V2 — versão de 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › 
 11. [Horários (jornadas e escalas)](#11-horarios)
 12. [Regras de apuração](#12-regras-apuracao)
 13. [Escalas, escala agendada e trocas](#13-escalas)
-14. [Feriados](#14-feriados)
-15. [Clientes da plataforma](#15-clientes)
-16. [Usuários](#16-usuarios)
-17. [Dias de acesso, bloqueios e troca de senha](#17-acesso)
-18. [Login pela rede da organização (LDAP / Active Directory)](#18-ldap)
-19. [Perfis e permissões](#19-perfis)
-20. [Segurança, auditoria e privacidade](#20-seguranca)
-21. [Módulos em construção](#21-construcao)
-22. [Suporte](#22-suporte)
+14. [Registrar ponto pelo navegador](#14-registrar-ponto)
+15. [Espelho de ponto e espelho diário](#15-espelho)
+16. [Ajustes, justificativas, abonos, afastamentos e sobreaviso](#16-ajustes-abonos)
+17. [Cálculo em lote e fechamento do período](#17-fechamento)
+18. [Banco de horas](#18-banco-horas)
+19. [Solicitações e fluxos de aprovação](#19-solicitacoes)
+20. [Feriados](#20-feriados)
+21. [Clientes da plataforma](#21-clientes)
+22. [Usuários](#22-usuarios)
+23. [Dias de acesso, bloqueios e troca de senha](#23-acesso)
+24. [Login pela rede da organização (LDAP / Active Directory)](#24-ldap)
+25. [Perfis e permissões](#25-perfis)
+26. [Segurança, auditoria e privacidade](#26-seguranca)
+27. [Módulos em construção](#27-construcao)
+28. [Suporte](#28-suporte)
 
 <a id="1-visao"></a>
 ## 1. O que é o SuperPonto
@@ -260,8 +266,88 @@ Período fechado (fechamento de ponto) não aceita atribuição, escala agendada
 2. Na barra que aparece embaixo, escolha "Atribuir horário", "Escala agendada" ou "Trocar escala/folga".
 3. Clique num dia para ver os detalhes e, se for escala agendada ou troca, remover o lançamento.
 
-<a id="14-feriados"></a>
-## 14. Feriados
+<a id="14-registrar-ponto"></a>
+## 14. Registrar ponto pelo navegador
+
+**Para:** Funcionários
+
+Em Ponto › Registrar ponto, o funcionário marca entrada, intervalo e saída com um clique. A hora é sempre a do servidor (horário de Brasília), nunca a do computador ou celular.
+
+Cada marcação mostra um comprovante com funcionário, empresa, CNPJ, data, hora e um código de integridade. A marcação não pode ser apagada; correções são feitas por ajuste ou solicitação.
+
+Proteções: cada marcação exige um desafio de uso único emitido pelo servidor (contra robôs e repetição), há limite de tentativas por minuto e marcações com menos de 1 minuto de diferença são recusadas. Se a unidade tem cerca virtual, o navegador pede a localização e a marcação fora do raio é recusada.
+
+Para marcar, o usuário precisa estar ligado ao funcionário: o administrador faz isso em Usuários › editar › Funcionário ligado.
+
+<a id="15-espelho"></a>
+## 15. Espelho de ponto e espelho diário
+
+**Para:** RH, gestores e funcionários
+
+Ponto › Espelho de ponto mostra o mês do funcionário dia a dia: horário previsto, marcações, horas trabalhadas, saldo e ocorrências (atraso, falta, marcação ímpar, extra, intervalo curto…). No topo ficam previsto, trabalhado, saldo, extras por percentual, noturno e faltas. Quem não tem acesso ao espelho da equipe vê o próprio (Meu espelho).
+
+Marcações incluídas aparecem em azul; desconsideradas, riscadas; pendentes de aprovação, tracejadas. Dias de período fechado mostram um cadeado e não mudam mais. Dias futuros não são apurados.
+
+Ponto › Espelho diário mostra a equipe num dia: presentes, atrasados, faltas, marcação ímpar, quem ainda não marcou, folga e afastados.
+
+**Passo a passo**
+
+1. Abra Ponto › Espelho de ponto, escolha o funcionário e o mês.
+2. Clique num dia para ver as marcações, incluir uma marcação esquecida, desconsiderar uma duplicada ou abonar.
+3. Use "Imprimir" para o espelho em papel ou PDF pelo navegador.
+
+<a id="16-ajustes-abonos"></a>
+## 16. Ajustes, justificativas, abonos, afastamentos e sobreaviso
+
+**Para:** RH e gestores
+
+Ajuste de marcação: incluir uma marcação esquecida ou desconsiderar uma duplicada, sempre com justificativa. Quem tem permissão de aprovar lança já aprovado; os demais ficam pendentes em Ponto › Ajustes de marcação, e quem pediu não pode aprovar. A marcação original nunca é apagada (Portaria 671).
+
+Justificativas (Ponto › Justificativas) podem abonar (o dia ou os minutos não geram débito) ou só justificar (a falta aparece justificada, mas é descontada). Cada uma pode ter limite de uso por funcionário por mês ou por ano.
+
+Abonos (Ponto › Abonos e afastamentos) são lançados em lote: vários funcionários e um período, por dia inteiro ou por minutos, pulando folgas e feriados. O sistema recusa o lançamento que passa do limite da justificativa.
+
+Afastamentos (atestado, férias, licenças, acidente, suspensão) deixam os dias neutros no cálculo e não podem se sobrepor. Não registre CID ou diagnóstico: é dado sensível.
+
+Sobreaviso (CLT art. 244 §2º): horas à disposição fora do local de trabalho; aparecem no espelho com o valor de 1/3.
+
+<a id="17-fechamento"></a>
+## 17. Cálculo em lote e fechamento do período
+
+**Para:** RH
+
+Em Ponto › Fechamento, "Calcular" grava a apuração do período para todos os funcionários da empresa e avisa ajustes pendentes, dias com marcação ímpar e extra sem autorização.
+
+"Fechar período" exige que não haja ajustes pendentes, grava a apuração final, lança o banco de horas (se ativo) e trava o período: marcações, ajustes, abonos, afastamentos, escalas e horários não mudam mais nele.
+
+Reabrir pede motivo, desfaz os lançamentos do banco daquele fechamento e precisa seguir a ordem (reabra antes o período mais recente). Tudo fica na auditoria.
+
+<a id="18-banco-horas"></a>
+## 18. Banco de horas
+
+**Para:** RH
+
+Em Bancos e solicitações › Banco de horas › Regras, ative o banco da empresa e defina em quantos dias os créditos vencem (acordo individual: até 6 meses; convenção coletiva: até 1 ano — CLT art. 59), o crédito máximo por dia e, se a convenção prevê, o multiplicador da extra (ex.: 1h a 50% vale 1h30).
+
+No fechamento, o saldo positivo de cada dia vira crédito com data de vencimento e o negativo vira débito, que consome primeiro os créditos mais antigos. Créditos vencidos saem do saldo.
+
+A lista mostra o saldo de cada funcionário; clique para ver o extrato com saldo corrido e o próximo vencimento. Selecione funcionários para lançar ajuste, pagamento em folha ou folga compensada, ou use "Zerar em lote" para pagar saldos positivos ou zerar saldos.
+
+<a id="19-solicitacoes"></a>
+## 19. Solicitações e fluxos de aprovação
+
+**Para:** Todos
+
+Em Solicitações, o funcionário pede: inclusão de marcação esquecida, justificativa de falta ou atraso, troca de folga, autorização de hora extra ou outro assunto. Quem tem permissão também pode abrir para outro funcionário.
+
+Em "Para aprovar" aparecem só os pedidos da etapa em que você é o aprovador. Recusar exige motivo. Ao aprovar a última etapa, o sistema aplica o pedido sozinho: inclui a marcação, lança o abono, troca a folga ou registra a autorização de extra.
+
+Em Fluxos de aprovação, cada tipo de pedido pode ter até 5 etapas: superior imediato (definido no cadastro do funcionário), quem tem um perfil, ou quem tem a permissão de aprovar solicitações. Sem fluxo, aprova quem tem essa permissão. Ninguém aprova o próprio pedido.
+
+Política de hora extra: na regra de apuração, "exigir autorização" faz o espelho apontar a extra feita sem autorização prévia. A extra continua sendo paga (é trabalho realizado); o apontamento serve para conferência.
+
+<a id="20-feriados"></a>
+## 20. Feriados
 
 **Para:** Administradores da organização e RH
 
@@ -281,8 +367,8 @@ A base de feriados municipais começa pelas capitais. Para outras cidades, cadas
 
 > **Dica:** Preencha o CEP da empresa: sem ele, só aparecem os feriados nacionais.
 
-<a id="15-clientes"></a>
-## 15. Clientes da plataforma
+<a id="21-clientes"></a>
+## 21. Clientes da plataforma
 
 **Para:** Equipe SuperPonto (SuperAdmin)
 
@@ -299,8 +385,8 @@ Ao criar um cliente, informe o nome, o identificador (gerado a partir do nome), 
 
 > **Dica:** Clientes novos começam no status "Em teste".
 
-<a id="16-usuarios"></a>
-## 16. Usuários
+<a id="22-usuarios"></a>
+## 22. Usuários
 
 **Para:** Administradores
 
@@ -318,8 +404,8 @@ Novos usuários recebem um convite por e-mail para criar a própria senha. O e-m
 
 > **Dica:** Ninguém pode desativar, bloquear ou limitar os dias do próprio usuário.
 
-<a id="17-acesso"></a>
-## 17. Dias de acesso, bloqueios e troca de senha
+<a id="23-acesso"></a>
+## 23. Dias de acesso, bloqueios e troca de senha
 
 **Para:** Administradores
 
@@ -331,8 +417,8 @@ Em Administração › Bloqueios de acesso ficam os bloqueios vigentes e agendad
 
 "Pedir troca de senha no próximo acesso" leva o usuário direto para Minha conta até ele trocar a senha. Em Conta › Minha conta, qualquer usuário troca a própria senha informando a atual.
 
-<a id="18-ldap"></a>
-## 18. Login pela rede da organização (LDAP / Active Directory)
+<a id="24-ldap"></a>
+## 24. Login pela rede da organização (LDAP / Active Directory)
 
 **Para:** Administradores
 
@@ -352,8 +438,8 @@ Na nuvem, o servidor do diretório precisa ter endereço público com TLS: por s
 
 > **Dica:** Se o diretório ficar fora do ar, os usuários LDAP veem um aviso para tentar de novo; usuários com senha própria continuam entrando normalmente.
 
-<a id="19-perfis"></a>
-## 19. Perfis e permissões
+<a id="25-perfis"></a>
+## 25. Perfis e permissões
 
 **Para:** Administradores
 
@@ -365,8 +451,8 @@ Recursos marcados "módulo em construção na V2" já podem ser incluídos nos p
 
 Mudanças num perfil valem a partir do próximo acesso de cada usuário. Perfis com usuários não podem ser excluídos.
 
-<a id="20-seguranca"></a>
-## 20. Segurança, auditoria e privacidade
+<a id="26-seguranca"></a>
+## 26. Segurança, auditoria e privacidade
 
 **Para:** Todos
 
@@ -376,21 +462,21 @@ Senhas são guardadas apenas como hash forte; ninguém, nem a equipe SuperPonto,
 
 O tratamento de dados segue a LGPD: o empregador é o controlador dos dados dos trabalhadores e a SuperPonto atua como operadora.
 
-<a id="21-construcao"></a>
-## 21. Módulos em construção
+<a id="27-construcao"></a>
+## 27. Módulos em construção
 
 **Para:** Todos
 
-A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, o motor de cálculo de jornada e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.
+A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, registro de ponto pelo navegador, espelho, ajustes, abonos, afastamentos, fechamento, banco de horas e solicitações com aprovação em etapas e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.
 
 O app do terminal (tablet de ponto) é instalado por APK e abre em tela cheia, com a tela sempre ligada e opção de modo quiosque.
 
-Próximas fases: registro de ponto (REP-P e relógios), espelho de ponto, AFD/AEJ, banco de horas, solicitações, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.
+Próximas fases: app do funcionário e relógios na V2, AFD/AEJ oficiais, relatórios, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 
-<a id="22-suporte"></a>
-## 22. Suporte
+<a id="28-suporte"></a>
+## 28. Suporte
 
 **Para:** Todos
 

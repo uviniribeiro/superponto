@@ -9,6 +9,7 @@ import { can, useSession } from '@/components/providers';
 import { TenantPicker, useActiveTenant } from '@/components/tenant-picker';
 import { Button, Card, Confirm, EmptyState, Input, Sheet, Skeleton, useToast } from '@/components/ui';
 import { api, type Page as Paged, type RoleRow, type UserRow } from '@/lib/api';
+import type { Employee } from '@/lib/api';
 import { cn } from '@/lib/cn';
 
 const initials = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('');
@@ -83,10 +84,13 @@ function UserForm({ user, roles, onDone }: { user: UserRow | null; roles: RoleRo
   const [days, setDays] = useState<number[]>(user?.accessWeekdays ?? []);
   const [mustChange, setMustChange] = useState(user?.mustChangePassword ?? false);
   const [source, setSource] = useState<'LOCAL' | 'LDAP'>(user?.authSource ?? 'LOCAL');
+  const [person, setPerson] = useState<{ id: string; name: string } | null>(user?.personId ? { id: user.personId, name: user.person?.fullName ?? 'Funcionário' } : null);
+  const [personSearch, setPersonSearch] = useState('');
+  const people = useQuery({ queryKey: ['employees', 'link', personSearch], queryFn: () => api<Paged<Employee>>(`/employees?pageSize=8${personSearch ? `&search=${encodeURIComponent(personSearch)}` : ''}`), enabled: !!user && personSearch.length > 1 });
   const ldap = source === 'LDAP';
   const save = useMutation({
     mutationFn: () => (user
-      ? api(`/users/${user.id}`, { method: 'PATCH', json: { displayName: name, isActive: active, roleIds, accessWeekdays: days, mustChangePassword: ldap ? false : mustChange, ...(user.isSelf ? {} : { authSource: source }) } })
+      ? api(`/users/${user.id}`, { method: 'PATCH', json: { displayName: name, isActive: active, roleIds, accessWeekdays: days, mustChangePassword: ldap ? false : mustChange, personId: person?.id ?? null, ...(user.isSelf ? {} : { authSource: source }) } })
       : api('/users', { method: 'POST', json: { displayName: name, email, roleIds, accessWeekdays: days, mustChangePassword: ldap ? false : mustChange, authSource: source } })),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); qc.invalidateQueries({ queryKey: ['roles'] }); toast('success', user ? 'Usuário atualizado' : ldap ? 'Usuário criado: ele entra com a senha da rede da organização' : 'Usuário criado: o convite para definir a senha foi enviado por e-mail'); onDone(); },
     onError: (e: Error) => toast('error', e.message),
@@ -113,6 +117,20 @@ function UserForm({ user, roles, onDone }: { user: UserRow | null; roles: RoleRo
         </label>
       )}
       <RolePicker roles={roles} value={roleIds} onChange={setRoleIds} />
+      {user && (
+        <fieldset className="space-y-1.5">
+          <legend className="text-xs font-semibold uppercase tracking-wider text-subtle">Funcionário ligado</legend>
+          {person ? (
+            <div className="flex items-center justify-between rounded-2xl border border-line px-4 py-2.5 text-sm"><span>{person.name}</span><button type="button" onClick={() => setPerson(null)} className="text-xs text-muted hover:text-danger">Desligar</button></div>
+          ) : (
+            <>
+              <input value={personSearch} onChange={(e) => setPersonSearch(e.target.value)} placeholder="Buscar funcionário por nome, matrícula ou CPF…" aria-label="Buscar funcionário para ligar" className="h-10 w-full rounded-2xl border border-line bg-hover px-4 text-sm outline-none" />
+              {(people.data?.data ?? []).map((e) => <button key={e.id} type="button" onClick={() => { setPerson({ id: e.personId, name: `${e.socialName ?? e.fullName} · ${e.registration}` }); setPersonSearch(''); }} className="block w-full rounded-xl px-3 py-1.5 text-left text-sm hover:bg-hover">{e.socialName ?? e.fullName} <span className="text-xs text-subtle">· {e.registration}</span></button>)}
+            </>
+          )}
+          <span className="text-xs text-subtle">Com o vínculo, o usuário marca ponto pelo navegador, vê o próprio espelho e abre solicitações.</span>
+        </fieldset>
+      )}
       {!user?.isSelf && (
         <fieldset className="space-y-1.5">
           <legend className="text-xs font-semibold uppercase tracking-wider text-subtle">Dias com acesso</legend>

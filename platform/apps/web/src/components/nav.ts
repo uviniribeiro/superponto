@@ -1,4 +1,4 @@
-import { CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { CalendarCheck2, ClipboardCheck, FileCheck2, FileClock, Fingerprint, GitBranch, HeartPulse, Lock, MessageSquare, PiggyBank, CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -73,6 +73,20 @@ export function buildNav(me: Me | undefined): NavSection[] {
     ...(can(me, 'schedules.timetables:read') ? [{ id: 'timetables', label: 'Horários', href: '/jornada/horarios', icon: Clock3 } satisfies NavItem, { id: 'rules', label: 'Regras de apuração', href: '/jornada/regras', icon: Gauge } satisfies NavItem] : []),
   ];
   if (jornada.length) sections.push({ id: 'jornada', label: 'Jornada', items: jornada });
+  const ponto: NavItem[] = [
+    ...(can(me, 'time.records:create') ? [{ id: 'punch', label: 'Registrar ponto', href: '/ponto/registrar', icon: Fingerprint } satisfies NavItem] : []),
+    ...(can(me, 'time.calculations:read') || can(me, 'time.records:create') ? [{ id: 'mirror', label: can(me, 'time.calculations:read') ? 'Espelho de ponto' : 'Meu espelho', href: '/ponto/espelho', icon: FileClock } satisfies NavItem] : []),
+    ...(can(me, 'time.calculations:read') ? [{ id: 'daily', label: 'Espelho diário', href: '/ponto/diario', icon: CalendarCheck2 } satisfies NavItem] : []),
+    ...(can(me, 'time.records:read') ? [{ id: 'adjustments', label: 'Ajustes de marcação', href: '/ponto/ajustes', icon: ClipboardCheck } satisfies NavItem] : []),
+    ...(can(me, 'time.calculations:read') ? [{ id: 'allowances', label: 'Abonos e afastamentos', href: '/ponto/abonos', icon: HeartPulse } satisfies NavItem, { id: 'justifications', label: 'Justificativas', href: '/ponto/justificativas', icon: FileCheck2 } satisfies NavItem, { id: 'closing', label: 'Fechamento', href: '/ponto/fechamento', icon: Lock } satisfies NavItem] : []),
+  ];
+  if (ponto.length) sections.push({ id: 'ponto', label: 'Ponto', items: ponto });
+  const bancos: NavItem[] = [
+    ...(can(me, 'time.bank:read') ? [{ id: 'bank', label: 'Banco de horas', href: '/bancos/banco-de-horas', icon: PiggyBank } satisfies NavItem] : []),
+    ...(can(me, 'requests.requests:create') ? [{ id: 'requests', label: 'Solicitações', href: '/solicitacoes', icon: MessageSquare } satisfies NavItem] : []),
+    ...(can(me, 'requests.requests:read') ? [{ id: 'flows', label: 'Fluxos de aprovação', href: '/solicitacoes/fluxos', icon: GitBranch } satisfies NavItem] : []),
+  ];
+  if (bancos.length) sections.push({ id: 'bancos', label: 'Bancos e solicitações', items: bancos });
   if (can(me, 'admin.users:read')) {
     sections.push({
       id: 'admin',

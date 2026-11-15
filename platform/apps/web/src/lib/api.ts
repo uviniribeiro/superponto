@@ -51,7 +51,7 @@ export interface Me {
 }
 
 export interface RoleRef { id: string; key: string; name: string }
-export interface UserRow { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: string | null; roles: RoleRef[]; editable: boolean; isSelf: boolean; accessWeekdays: number[]; mustChangePassword: boolean; authSource: 'LOCAL' | 'LDAP'; accessBlocks: Array<{ id: string; reason: string; startsAt: string; endsAt: string | null }>; activeBlock: { id: string; reason: string; startsAt: string; endsAt: string | null } | null }
+export interface UserRow { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: string | null; roles: RoleRef[]; editable: boolean; isSelf: boolean; accessWeekdays: number[]; mustChangePassword: boolean; authSource: 'LOCAL' | 'LDAP'; personId: string | null; person: { fullName: string } | null; accessBlocks: Array<{ id: string; reason: string; startsAt: string; endsAt: string | null }>; activeBlock: { id: string; reason: string; startsAt: string; endsAt: string | null } | null }
 export interface RoleRow { id: string; key: string; name: string; description: string | null; isSystem: boolean; editable: boolean; permissions: string[]; users: number }
 export interface PermissionModule { key: string; label: string; resources: Array<{ key: string; label: string; available: boolean; actions: Array<{ permission: string; action: string; label: string; description: string }> }> }
 
