@@ -3,9 +3,9 @@
 import { createPrismaClient } from '@superponto/database';
 import { PERMISSIONS, SYSTEM_ROLES } from './authorization/catalog.js';
 
-const prisma = createPrismaClient(process.env.DATABASE_URL!);
+type Client = ReturnType<typeof createPrismaClient>;
 
-export async function seed(client = prisma, adminEmail = process.env.SEED_ADMIN_EMAIL) {
+export async function seed(client: Client, adminEmail = process.env.SEED_ADMIN_EMAIL) {
   await client.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT set_config('app.bypass_rls', 'on', true)`;
     for (const [key, description] of Object.entries(PERMISSIONS)) {
@@ -35,7 +35,9 @@ export async function seed(client = prisma, adminEmail = process.env.SEED_ADMIN_
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  await seed();
+  if (!process.env.DATABASE_URL) throw new Error('Defina DATABASE_URL (papel dono do banco)');
+  const prisma = createPrismaClient(process.env.DATABASE_URL);
+  await seed(prisma);
   console.log(`Seed concluído: ${Object.keys(PERMISSIONS).length} permissões, ${SYSTEM_ROLES.length} perfis de sistema.`);
   await prisma.$disconnect();
 }

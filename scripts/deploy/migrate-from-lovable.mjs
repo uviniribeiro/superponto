@@ -46,10 +46,19 @@ async function source(body) {
 }
 
 // ---------------------------------------------------------------- export
+// Logs técnicos volumosos, sem valor para a operação: fora da cópia por padrão.
+// Para incluir, defina EXPORT_SKIP_TABLES="" (vazio).
+const SKIP = (process.env.EXPORT_SKIP_TABLES ?? 'public.equipment_communication_logs').split(',').map((t) => t.trim()).filter(Boolean);
+
 async function cmdExport(file) {
   const manifest = await source({ action: 'manifest' });
+  if (SKIP.length) console.log(`Tabelas ignoradas: ${SKIP.join(', ')}`);
   const dump = { exported_at: new Date().toISOString(), source: env('SOURCE_URL'), buckets: manifest.buckets, tables: [] };
   for (const t of manifest.tables) {
+    if (SKIP.includes(`${t.schema}.${t.name}`)) {
+      dump.tables.push({ schema: t.schema, name: t.name, rows: [], skipped: t.rows });
+      continue;
+    }
     const rows = [];
     while (rows.length < t.rows) {
       const page = await source({ action: 'rows', schema: t.schema, table: t.name, offset: rows.length, limit: 1000 });
@@ -178,9 +187,12 @@ async function cmdImport(file) {
   let ok = true;
   for (const t of dump.tables) {
     const [{ n }] = await sql.unsafe(`SELECT count(*)::int AS n FROM "${t.schema}"."${t.name}"`).catch(() => [{ n: -1 }]);
-    if (n !== t.rows.length && t.rows.length) {
+    if (!t.rows.length || t.skipped) continue;
+    if (n < t.rows.length) {
       ok = false;
-      console.log(`::warning::${t.schema}.${t.name}: origem ${t.rows.length}, destino ${n}`);
+      console.log(`::error::${t.schema}.${t.name}: origem ${t.rows.length}, destino ${n} (faltam linhas)`);
+    } else if (n > t.rows.length) {
+      console.log(`::warning::${t.schema}.${t.name}: destino tem ${n - t.rows.length} linha(s) além da origem (contas criadas antes da importação)`);
     }
   }
   const [counts] = await sql`

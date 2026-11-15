@@ -14,8 +14,16 @@ export default async function setup() {
   await admin.end();
 
   const ownerUrl = ADMIN_URL.replace(/\/[^/]+$/, `/${DB}`);
+  // Papéis que a API REST do Supabase usa: as migrações precisam tirar o acesso deles.
+  const pre = new pg.Client({ connectionString: ownerUrl });
+  await pre.connect();
+  await pre.query(`DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
+  END $$`);
+  await pre.end();
   const dbPackage = path.resolve(import.meta.dirname, '../../../packages/database');
-  execSync('npx prisma migrate deploy', { cwd: dbPackage, env: { ...process.env, DATABASE_URL: ownerUrl }, stdio: 'pipe' });
+  execSync('npx prisma migrate deploy', { cwd: dbPackage, env: { ...process.env, DATABASE_URL: `${ownerUrl}?schema=superponto` }, stdio: 'pipe' });
 
   const owner = new pg.Client({ connectionString: ownerUrl });
   await owner.connect();

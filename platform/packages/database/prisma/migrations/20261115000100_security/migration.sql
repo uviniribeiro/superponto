@@ -15,20 +15,35 @@ BEGIN
   END IF;
 END $$;
 
-GRANT USAGE ON SCHEMA public TO superponto_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO superponto_app;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO superponto_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO superponto_app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO superponto_app;
-REVOKE ALL ON public._prisma_migrations FROM superponto_app;
+-- Tudo no esquema da conexão (padrão: superponto). Em Supabase, o esquema NÃO é publicado pela
+-- API REST deles, e os papéis públicos (anon, authenticated) perdem qualquer acesso.
+DO $$
+DECLARE s text := current_schema();
+BEGIN
+  EXECUTE format('GRANT USAGE ON SCHEMA %I TO superponto_app', s);
+  EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA %I TO superponto_app', s);
+  EXECUTE format('GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA %I TO superponto_app', s);
+  EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO superponto_app', s);
+  EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA %I GRANT USAGE, SELECT ON SEQUENCES TO superponto_app', s);
+  EXECUTE format('REVOKE ALL ON %I._prisma_migrations FROM superponto_app', s);
+  EXECUTE format('REVOKE ALL ON SCHEMA %I FROM PUBLIC', s);
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    EXECUTE format('REVOKE ALL ON SCHEMA %I FROM anon', s);
+    EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA %I FROM anon', s);
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    EXECUTE format('REVOKE ALL ON SCHEMA %I FROM authenticated', s);
+    EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA %I FROM authenticated', s);
+  END IF;
+END $$;
 
 CREATE OR REPLACE FUNCTION app_tenant_id() RETURNS uuid
-LANGUAGE sql STABLE AS $$
+LANGUAGE sql STABLE SET search_path FROM CURRENT AS $$
   SELECT NULLIF(current_setting('app.tenant_id', true), '')::uuid
 $$;
 
 CREATE OR REPLACE FUNCTION app_bypass_rls() RETURNS boolean
-LANGUAGE sql STABLE AS $$
+LANGUAGE sql STABLE SET search_path FROM CURRENT AS $$
   SELECT coalesce(current_setting('app.bypass_rls', true), '') = 'on'
 $$;
 
@@ -41,22 +56,22 @@ BEGIN
     SELECT c.table_name, c.is_nullable
     FROM information_schema.columns c
     JOIN information_schema.tables tb ON tb.table_name = c.table_name AND tb.table_schema = c.table_schema
-    WHERE c.table_schema = 'public' AND c.column_name = 'tenant_id' AND tb.table_type = 'BASE TABLE'
+    WHERE c.table_schema = current_schema() AND c.column_name = 'tenant_id' AND tb.table_type = 'BASE TABLE'
   LOOP
     nullable := t.is_nullable = 'YES';
-    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t.table_name);
-    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON public.%I', t.table_name);
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t.table_name);
+    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t.table_name);
     IF nullable THEN
       -- Linhas globais (tenant_id nulo, ex.: perfis de sistema) são legíveis por todos,
       -- mas só alteráveis em modo plataforma.
       EXECUTE format($p$
-        CREATE POLICY tenant_isolation ON public.%I
+        CREATE POLICY tenant_isolation ON %I
           USING (app_bypass_rls() OR tenant_id = app_tenant_id() OR tenant_id IS NULL)
           WITH CHECK (app_bypass_rls() OR tenant_id = app_tenant_id())
       $p$, t.table_name);
     ELSE
       EXECUTE format($p$
-        CREATE POLICY tenant_isolation ON public.%I
+        CREATE POLICY tenant_isolation ON %I
           USING (app_bypass_rls() OR tenant_id = app_tenant_id())
           WITH CHECK (app_bypass_rls() OR tenant_id = app_tenant_id())
       $p$, t.table_name);
@@ -65,8 +80,8 @@ BEGIN
 END $$;
 
 -- Tenants: cada tenant enxerga apenas o próprio registro.
-ALTER TABLE public.tenants ENABLE ROW LEVEL SECURITY;
-CREATE POLICY tenant_self ON public.tenants
+ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_self ON tenants
   USING (app_bypass_rls() OR id = app_tenant_id())
   WITH CHECK (app_bypass_rls());
 
@@ -74,52 +89,52 @@ CREATE POLICY tenant_self ON public.tenants
 -- Imutabilidade
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION forbid_mutation() RETURNS trigger
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql SET search_path FROM CURRENT AS $$
 BEGIN
   RAISE EXCEPTION '% é somente inserção: registros originais não podem ser alterados ou excluídos', TG_TABLE_NAME
     USING ERRCODE = '42501';
 END $$;
 
 CREATE TRIGGER time_records_immutable
-  BEFORE UPDATE OR DELETE ON public.time_records
+  BEFORE UPDATE OR DELETE ON time_records
   FOR EACH ROW EXECUTE FUNCTION forbid_mutation();
 
 CREATE TRIGGER audit_logs_immutable
-  BEFORE UPDATE OR DELETE ON public.audit_logs
+  BEFORE UPDATE OR DELETE ON audit_logs
   FOR EACH ROW EXECUTE FUNCTION forbid_mutation();
 
 CREATE TRIGGER device_events_immutable
-  BEFORE UPDATE OF payload, occurred_at, nsr, identifier OR DELETE ON public.device_events
+  BEFORE UPDATE OF payload, occurred_at, nsr, identifier OR DELETE ON device_events
   FOR EACH ROW EXECUTE FUNCTION forbid_mutation();
 
 -- Vínculos funcionais: exclusão física proibida (usar deleted_at / desligamento).
 CREATE OR REPLACE FUNCTION forbid_delete() RETURNS trigger
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql SET search_path FROM CURRENT AS $$
 BEGIN
   RAISE EXCEPTION 'Exclusão física não permitida em %: use desligamento ou exclusão lógica', TG_TABLE_NAME
     USING ERRCODE = '42501';
 END $$;
 
 CREATE TRIGGER employment_no_delete
-  BEFORE DELETE ON public.employment_relationships
+  BEFORE DELETE ON employment_relationships
   FOR EACH ROW EXECUTE FUNCTION forbid_delete();
 
 CREATE TRIGGER people_no_delete
-  BEFORE DELETE ON public.people
+  BEFORE DELETE ON people
   FOR EACH ROW EXECUTE FUNCTION forbid_delete();
 
 -- Fechamento: apuração de período fechado não pode ser alterada.
 CREATE OR REPLACE FUNCTION forbid_closed_period() RETURNS trigger
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql SET search_path FROM CURRENT AS $$
 DECLARE
   emp_company uuid;
   ref date;
 BEGIN
   ref := COALESCE(NEW.work_date, OLD.work_date);
-  SELECT company_id INTO emp_company FROM public.employment_relationships
+  SELECT company_id INTO emp_company FROM employment_relationships
    WHERE id = COALESCE(NEW.employment_id, OLD.employment_id);
   IF EXISTS (
-    SELECT 1 FROM public.time_closings
+    SELECT 1 FROM time_closings
      WHERE company_id = emp_company AND status = 'CLOSED'
        AND ref BETWEEN period_start AND period_end
   ) THEN
@@ -130,5 +145,5 @@ BEGIN
 END $$;
 
 CREATE TRIGGER time_calculations_closed_period
-  BEFORE INSERT OR UPDATE OR DELETE ON public.time_calculations
+  BEFORE INSERT OR UPDATE OR DELETE ON time_calculations
   FOR EACH ROW EXECUTE FUNCTION forbid_closed_period();
