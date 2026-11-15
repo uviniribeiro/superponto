@@ -1,6 +1,6 @@
 # SuperPonto v2 — Situação do projeto
 
-Atualizado em 14/11/2026. A v1 (raiz do repositório) segue em produção; a v2 é construída em
+Atualizado em 15/11/2026. A v1 (raiz do repositório) segue em produção; a v2 é construída em
 `platform/` e substitui a v1 na fase 10.
 
 ## Fases
@@ -56,15 +56,14 @@ banco de horas com vencimento FIFO e multiplicadores, resumo do período.
 3. Unidades, departamentos, cargos, usuários e perfis personalizados (API + telas).
 4. Pessoas e vínculos com múltiplas matrículas; jornadas e escalas usando o motor.
 
-## Decisões que aguardam validação
+## Decisões
 
-1. **Hospedagem da API** (NestJS + Redis precisam de processo contínuo): VPS própria
-   (recomendado) ou PaaS.
-2. **Banco**: Supabase como PostgreSQL gerenciado (recomendado) ou PostgreSQL na VPS.
-3. **Repositório independente** do Communication Server: criar `superponto-communication-server`
-   no GitHub (esta sessão não cria repositórios).
-4. **Migração dos dados da v1**: depende do backup do Lovable Cloud (função `migration-export`
-   aguardando publicação pelo Lovable).
+| Decisão | Situação |
+|---|---|
+| Banco | **Supabase** (esquema `superponto`), pronto para VPS: `scripts/db-move.sh` testado de ponta a ponta |
+| API | Imagem Docker + `deploy/docker-compose.yml`; roda em qualquer servidor com Docker |
+| Communication Server | Repositório `uviniribeiro/superponto-communication-server` criado; recebe o código na fase 7 |
+| Dados da v1 (Lovable Cloud) | **Backup completo feito em 15/11/2026** (35 contas com senha, 11 empresas, 28 perfis, 12 marcações, 16 arquivos); importação validada; aguarda os secrets do Supabase próprio |
 
 ## Riscos técnicos
 
@@ -75,4 +74,4 @@ banco de horas com vencimento FIFO e multiplicadores, resumo do período.
 | Protocolos proprietários de relógios | Integração sem equipamento real é especulativa | Adaptadores portados do robô v1 e homologação só com equipamento real |
 | Conformidade (Portaria 671, AFD/AEJ, LGPD) | Comercialização como "homologado" | Validação técnica e jurídica por modalidade antes da venda |
 | Migração da v1 (132 tabelas, dados reais) | Perda ou inconsistência de dados | ETL com contagens e conferência; v1 ativa até a virada |
-| Dados do Lovable Cloud | Sem backup, a migração começa vazia | Exportação pronta; depende do Lovable publicar a função |
+| Dados do Lovable Cloud | — | Backup feito e importação validada; Cloud pode ser desligado |
