@@ -2653,3 +2653,138 @@ model DeviceRosterEntry {
   @@unique([deviceId, workerId])
   @@map("device_roster")
 }
+
+/// Agendamento de e-mail com resumo (faltas, atrasos, ajustes pendentes, equipamentos sem comunicação).
+model NotificationSchedule {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  companyId  String    @map("company_id") @db.Uuid
+  name       String
+  /// ABSENCES, LATE, PENDING_ADJUSTMENTS, PENDING_REQUESTS, DEVICES_OFFLINE
+  kinds      String[]
+  /// horário de envio (HH:mm, Brasília)
+  time       String
+  /// dias da semana (0 = domingo); vazio = todos
+  weekdays   Int[]     @default([])
+  recipients String[]
+  active     Boolean   @default(true)
+  lastRunAt  DateTime? @map("last_run_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([tenantId, companyId])
+  @@map("notification_schedules")
+}
+
+/// Aviso para os funcionários (aparece no painel e no app), com ciência registrada.
+model Announcement {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  companyId   String?   @map("company_id") @db.Uuid
+  groupingId  String?   @map("grouping_id") @db.Uuid
+  title       String
+  body        String
+  /// INFO, IMPORTANT
+  level       String    @default("INFO")
+  startsAt    DateTime  @map("starts_at") @db.Timestamptz(6)
+  endsAt      DateTime? @map("ends_at") @db.Timestamptz(6)
+  requireAck  Boolean   @default(false) @map("require_ack")
+  createdById String?   @map("created_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  reads AnnouncementRead[]
+
+  @@index([tenantId, startsAt])
+  @@map("announcements")
+}
+
+model AnnouncementRead {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  announcementId String   @map("announcement_id") @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  readAt         DateTime @default(now()) @map("read_at") @db.Timestamptz(6)
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@map("announcement_reads")
+}
+
+/// Aparelho liberado para o app do funcionário (código enviado por e-mail; só o hash do token fica guardado).
+model AppDevice {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String
+  codeHash    String?   @map("code_hash")
+  codeExpires DateTime? @map("code_expires") @db.Timestamptz(6)
+  attempts    Int       @default(0)
+  tokenHash   String?   @unique @map("token_hash")
+  approvedAt  DateTime? @map("approved_at") @db.Timestamptz(6)
+  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([tenantId, userId])
+  @@map("app_devices")
+}
+
+/// Textos personalizados do cliente (rodapé do comprovante, mensagem no login, rodapé do espelho…).
+model CustomText {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  key       String
+  text      String
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([tenantId, key])
+  @@map("custom_texts")
+}
+
+/// Layout de exportação para a folha de pagamento: código de evento (rubrica) de cada verba e formato do arquivo.
+model PayrollLayout {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  companyId      String    @map("company_id") @db.Uuid
+  name           String
+  /// verba -> código do evento no sistema de folha, ex.: {"normal":"001","ot50":"150","night":"025"}
+  events         Json
+  /// separador do arquivo: ";" "," "|" ou "TAB"
+  separator      String    @default(";")
+  /// HHMM (08:30), DECIMAL (8,50) ou MINUTES (510)
+  quantityFormat String    @default("HHMM") @map("quantity_format")
+  includeHeader  Boolean   @default(true) @map("include_header")
+  /// MATRICULA ou CPF
+  employeeKey    String    @default("MATRICULA") @map("employee_key")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@index([tenantId, companyId])
+  @@map("payroll_layouts")
+}
+
+/// Ciência eletrônica do espelho de ponto pelo funcionário (com o resumo e o hash do que foi visto).
+model MirrorAcknowledgment {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  employmentId String   @map("employment_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  periodStart  DateTime @map("period_start") @db.Date
+  periodEnd    DateTime @map("period_end") @db.Date
+  /// SHA-256 do espelho (dias e totais) no momento da ciência
+  contentHash  String   @map("content_hash")
+  summary      Json
+  /// AGREE (de acordo) ou DISAGREE (com ressalva)
+  decision     String   @default("AGREE")
+  comment      String?
+  ip           String?
+  userAgent    String?  @map("user_agent")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([employmentId, periodStart, periodEnd])
+  @@index([tenantId, periodStart])
+  @@map("mirror_acknowledgments")
+}
