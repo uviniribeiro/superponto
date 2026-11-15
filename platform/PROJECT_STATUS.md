@@ -12,7 +12,7 @@ Atualizado em 15/11/2026. A v1 (raiz do repositório) segue em produção; a v2 
 | 3. Núcleo de gestão | Pessoas, empresas, unidades, funcionários, matrículas, vínculos, jornadas, escalas | **Em andamento** — estrutura e pessoas prontas (unidades, departamentos, cargos, funções, centros de custo, sindicatos, competências, funcionários com vínculos e histórico, importação, agrupamentos, LDAP) e jornada pronta (horários, regras de apuração, atribuição, escala agendada, trocas, grade da equipe) |
 | 4. Módulos especializados | Educação, saúde, operacional | Não iniciada (modelo de dados pronto) |
 | 5. Controle de ponto | Marcações, apuração, banco de horas, solicitações, aprovações, relatórios | **Em andamento** — marcação web, apuração, espelho, ajustes, abonos, fechamento, banco de horas e solicitações prontos; relatórios e AFD/AEJ oficiais a seguir |
-| 6. Equipamentos | Cadastro, adaptadores, sincronização, homologação | **Em andamento** — AFD das Portarias 1.510/373/671, fila de envio de empregador/funcionários/digitais, digitais cifradas e adaptador Control iD prontos e testados; telas, execução pelo Communication Server e homologação em equipamento real pendentes |
+| 6. Equipamentos | Cadastro, adaptadores, sincronização, homologação | **Em andamento** — cadastro, comandos, agente local (protocolo), alertas e AEJ prontos; AFD das Portarias 1.510/373/671, fila de envio de empregador/funcionários/digitais, digitais cifradas e adaptador Control iD prontos e testados; telas, execução pelo Communication Server e homologação em equipamento real pendentes |
 | 7. Communication Server | Serviço independente em Node.js, filas, protocolos, painel | Não iniciada (projeto em COMMUNICATION_SERVER.md) |
 | 8. SaaS e SuperAdmin | Planos, assinaturas, cobrança, limites | Criação de clientes pelo SuperAdmin pronta; resto não iniciado |
 | 9. Testes e homologação | Ampliação contínua a cada fase | Em andamento |
@@ -81,7 +81,17 @@ abonos em lote; afastamentos; sobreaviso; cálculo em lote, fechamento que grava
 banco, reabertura em ordem; marcação pelo navegador com desafio de uso único, intervalo mínimo, cerca
 virtual e comprovante; banco de horas (regras, FIFO com vencimento, extrato, lançamentos, zerar em
 lote); solicitações com fluxos de até 5 etapas e efeito na aprovação final; política de hora extra
-(13 testes de API). Pendentes: banco de compensação semanal, PDF assinado e ciência do espelho, NSR.
+(13 testes de API). Banco de compensação semanal/mensal e meu banco de horas (4 testes). Pendentes: PDF
+assinado e ciência do espelho, NSR do REP-P.
+
+**Equipamentos (fase 6)** — cadastro com portaria, nº do REP, grupo, coleta e alertas; comandos de envio
+e recebimento (empregador, funcionários, digitais, data/hora, registros) por equipamento ou grupo;
+protocolo do agente local com chave por equipamento; cadastro × relógio; alerta de sem comunicação e
+retorno por e-mail; gráfico diário; exportação das linhas originais do AFD; AEJ (Portaria 671) gerado da
+apuração (10 testes). Falta o programa do agente para cada marca de relógio e a assinatura CAdES.
+
+**Relatórios (fase 7)** — 30 relatórios com filtros padronizados, montador por campos e exportação Excel,
+CSV e PDF pela impressão (10 testes).
 
 **App web** (`apps/web`, Next.js 16) — login, esqueci/redefinir senha, painel com dados reais,
 empresas (CRUD com CNPJ alfanumérico), clientes (SuperAdmin, com seletor de organização), Manual e
@@ -92,7 +102,7 @@ vidro com fundo vivo e janela flutuante; painel inicial com números reais (resu
 Sessão em cookies httpOnly via BFF (`/api/*`). MANUAL.md e CONFORMIDADE_MTE.md são gerados do mesmo
 conteúdo das telas (`npm run docs -w @superponto/web`).
 
-**API** (`apps/api`, 166 testes contra PostgreSQL real com o papel sujeito à RLS):
+**API** (`apps/api`, 190 testes contra PostgreSQL real com o papel sujeito à RLS):
 - Autenticação com `@nestjs/authentication`: login por sessão (cookie `__Host-sid` httpOnly) e por
   token (JWT 15 min + refresh rotativo com detecção de reuso), saída, `/me`, esqueci minha senha
   (link de uso único, 1 h, mesma resposta para e-mail inexistente), scrypt (OWASP), limite de

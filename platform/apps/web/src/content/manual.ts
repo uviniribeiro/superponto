@@ -222,6 +222,7 @@ export const SECTIONS: ManualSection[] = [
     body: [
       'Ponto › Espelho de ponto mostra o mês do funcionário dia a dia: horário previsto, marcações, horas trabalhadas, saldo e ocorrências (atraso, falta, marcação ímpar, extra, intervalo curto…). No topo ficam previsto, trabalhado, saldo, extras por percentual, noturno e faltas. Quem não tem acesso ao espelho da equipe vê o próprio (Meu espelho).',
       'Marcações incluídas aparecem em azul; desconsideradas, riscadas; pendentes de aprovação, tracejadas. Dias de período fechado mostram um cadeado e não mudam mais. Dias futuros não são apurados.',
+      'O funcionário vê o próprio saldo em Bancos e solicitações › Meu banco de horas.',
       'Ponto › Espelho diário mostra a equipe num dia: presentes, atrasados, faltas, marcação ímpar, quem ainda não marcou, folga e afastados.',
     ],
     steps: ['Abra Ponto › Espelho de ponto, escolha o funcionário e o mês.', 'Clique num dia para ver as marcações, incluir uma marcação esquecida, desconsiderar uma duplicada ou abonar.', 'Use "Imprimir" para o espelho em papel ou PDF pelo navegador.'],
@@ -246,6 +247,7 @@ export const SECTIONS: ManualSection[] = [
       'Em Ponto › Fechamento, "Calcular" grava a apuração do período para todos os funcionários da empresa e avisa ajustes pendentes, dias com marcação ímpar e extra sem autorização.',
       '"Fechar período" exige que não haja ajustes pendentes, grava a apuração final, lança o banco de horas (se ativo) e trava o período: marcações, ajustes, abonos, afastamentos, escalas e horários não mudam mais nele.',
       'Reabrir pede motivo, desfaz os lançamentos do banco daquele fechamento e precisa seguir a ordem (reabra antes o período mais recente). Tudo fica na auditoria.',
+      '"Gerar AEJ" baixa o Arquivo Eletrônico de Jornada (Portaria 671) do período, com registradores, vínculos, horários, marcações originais, incluídas e desconsideradas, faltas e movimentos do banco. Confira no validador do MTE e assine com o certificado ICP-Brasil da empresa antes de entregar; o sistema avisa o que falta (ex.: número do REP-P).',
     ],
   },
   {
@@ -255,6 +257,7 @@ export const SECTIONS: ManualSection[] = [
     body: [
       'Em Bancos e solicitações › Banco de horas › Regras, ative o banco da empresa e defina em quantos dias os créditos vencem (acordo individual: até 6 meses; convenção coletiva: até 1 ano — CLT art. 59), o crédito máximo por dia e, se a convenção prevê, o multiplicador da extra (ex.: 1h a 50% vale 1h30).',
       'No fechamento, o saldo positivo de cada dia vira crédito com data de vencimento e o negativo vira débito, que consome primeiro os créditos mais antigos. Créditos vencidos saem do saldo.',
+      'Banco de compensação (nas Regras): os saldos de cada semana ou mês se compensam antes de ir para o banco — horas a mais cobrem faltas e atrasos do mesmo período. A sobra positiva vai para o banco ou é paga como extra; o líquido negativo vira débito. O extrato tem uma aba de compensação por período.',
       'A lista mostra o saldo de cada funcionário; clique para ver o extrato com saldo corrido e o próximo vencimento. Selecione funcionários para lançar ajuste, pagamento em folha ou folga compensada, ou use "Zerar em lote" para pagar saldos positivos ou zerar saldos.',
     ],
   },
@@ -267,6 +270,39 @@ export const SECTIONS: ManualSection[] = [
       'Em "Para aprovar" aparecem só os pedidos da etapa em que você é o aprovador. Recusar exige motivo. Ao aprovar a última etapa, o sistema aplica o pedido sozinho: inclui a marcação, lança o abono, troca a folga ou registra a autorização de extra.',
       'Em Fluxos de aprovação, cada tipo de pedido pode ter até 5 etapas: superior imediato (definido no cadastro do funcionário), quem tem um perfil, ou quem tem a permissão de aprovar solicitações. Sem fluxo, aprova quem tem essa permissão. Ninguém aprova o próprio pedido.',
       'Política de hora extra: na regra de apuração, "exigir autorização" faz o espelho apontar a extra feita sem autorização prévia. A extra continua sendo paga (é trabalho realizado); o apontamento serve para conferência.',
+    ],
+  },
+  {
+    id: 'equipamentos',
+    title: 'Equipamentos (relógios de ponto)',
+    audience: 'Administradores e TI',
+    body: [
+      'Em Equipamentos › Relógios (REP) ficam os relógios de cada empresa: portaria (1.510, 373 ou 671), número de fabricação do REP (17 dígitos, vai no AEJ), série, fabricante, modelo, endereço na rede, unidade, grupo de REP, intervalo de coleta e e-mails de alerta.',
+      'Cada equipamento mostra se está comunicando, o último contato, comandos na fila e com falha. Sem contato por 3 intervalos de coleta (mínimo 15 minutos), ele passa a "Sem comunicação" e os e-mails cadastrados recebem um aviso; quando volta, recebem outro.',
+      'Comandos: enviar funcionários e digitais (com o empregador), enviar data e hora, enviar empregador, coletar registros, receber funcionários, receber digitais e receber empregador. Com grupo de REP, o comando pode ir para todos os relógios do grupo. Falhas podem ser tentadas de novo e comandos na fila, cancelados.',
+      'Funcionários: compara quem está no cadastro com quem foi lido do relógio, mostrando quem falta, quem sobra, quem não tem o documento exigido pela portaria (PIS na 1.510, CPF na 671) e o último envio. Digitais recebidas do relógio entram cifradas, sem duplicar.',
+      'Arquivos: importar o AFD tirado pelo pendrive (reimportar não duplica) e baixar as linhas originais dos registros coletados no período.',
+    ],
+  },
+  {
+    id: 'agente-local',
+    title: 'Agente local',
+    audience: 'TI',
+    body: [
+      'O agente local é o programa instalado num computador da rede do cliente, perto dos relógios. Ele conversa com o relógio e com o SuperPonto pela internet (HTTPS), sem abrir portas na rede do cliente.',
+      'Na aba "Agente local" do equipamento, gere a chave e informe-a no agente. A chave aparece uma única vez (o SuperPonto guarda só uma impressão dela); gerar outra desliga a anterior. Equipamento desativado ou excluído perde o acesso.',
+      'O agente avisa que está vivo, busca a fila de comandos (já com os dados prontos para o relógio: empregador, PIS ou CPF conforme a portaria, nome e digitais), devolve o resultado de cada comando e envia os registros coletados (AFD) no intervalo de coleta.',
+    ],
+  },
+  {
+    id: 'relatorios',
+    title: 'Relatórios',
+    audience: 'RH, gestores e administradores',
+    body: [
+      'Em Relatórios há 30 relatórios em seis grupos: Ponto (horas trabalhadas, folha de conferência com extras por percentual, cartão ponto em lote, analíticos de extra, falta e atraso, marcações ímpares, déficit de intervalo, interjornada menor que 11 horas, absenteísmo, frequência, adicional noturno e sobreaviso), Movimentações (abonos, afastamentos, ajustes, solicitações, trocas e escala do período), Bancos (saldos e extrato), Cadastros (funcionários, aniversariantes e feriados), Equipamentos e marcações (marcações, marcações pelo navegador e app com localização, eventos dos equipamentos) e Segurança (auditoria e usuários com perfis).',
+      'Todos usam os mesmos filtros: empresa, período (até 93 dias), departamento com ou sem subdepartamentos e agrupamento. Relatórios de cadastro e saldos não pedem período.',
+      'O Montador de relatório monta um relatório com os campos que você escolher, uma linha por funcionário e dia (matrícula, nome, departamento, horário, marcações, previsto, trabalhado, saldo, extras, noturno, atraso, falta, abono, afastamento, ocorrências…).',
+      'Exporte em Excel (planilha com cabeçalho e totais) ou CSV (separado por ponto e vírgula, abre direto no Excel em português), ou use "Imprimir / PDF" para salvar em PDF pelo navegador. CPF só aparece completo para quem pode ver dados sensíveis; Auditoria e Usuários exigem permissão própria.',
     ],
   },
   {
@@ -372,9 +408,9 @@ export const SECTIONS: ManualSection[] = [
     title: 'Módulos em construção',
     audience: 'Todos',
     body: [
-      'A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, registro de ponto pelo navegador, espelho, ajustes, abonos, afastamentos, fechamento, banco de horas e solicitações com aprovação em etapas e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.',
+      'A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, registro de ponto pelo navegador, espelho, ajustes, abonos, afastamentos, fechamento, banco de horas e de compensação, solicitações com aprovação em etapas, equipamentos com agente local e alertas, AEJ e 30 relatórios com exportação e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.',
       'O app do terminal (tablet de ponto) é instalado por APK e abre em tela cheia, com a tela sempre ligada e opção de modo quiosque.',
-      'Próximas fases: app do funcionário e relógios na V2, AFD/AEJ oficiais, relatórios, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.',
+      'Próximas fases: programa do agente local para cada marca de relógio, app do funcionário na V2, assinatura do AEJ e do espelho, ferramentas, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.',
       'A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.',
     ],
   },

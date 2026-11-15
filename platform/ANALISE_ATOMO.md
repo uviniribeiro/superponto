@@ -4,11 +4,15 @@
 > - Fase 1 (estrutura) concluída: departamentos em árvore com seções, cargos (CBO), funções, centros
 >   de custo, tipos de funcionário, sindicatos, competências e empresa com inscrição estadual,
 >   CEI/CNO, código externo e logo.
+> - Fases 6 e 7 concluídas: equipamentos (cadastro, grupos, comandos de envio e recebimento,
+>   agente local com chave, cadastro × relógio, alertas por e-mail, gráfico, exportação de
+>   registros, AEJ) e 30 relatórios com montador e Excel/CSV/PDF. Fase 5 completa com banco de
+>   compensação e meu banco de horas.
 > - Fases 4 e 5 (ponto, bancos e solicitações) concluídas: espelho e espelho diário, ajustes com
 >   aprovação, justificativas com limite, abonos em lote, afastamentos, sobreaviso, cálculo em lote,
 >   fechar/reabrir ponto, marcação pelo navegador com proteção contra robôs, banco de horas (regras,
 >   extrato, lançamentos, zerar em lote), solicitações com aprovação em até 5 etapas e política de
->   hora extra. Banco de compensação semanal e PDF assinado do espelho ficam para depois.
+>   hora extra. PDF assinado do espelho fica para depois.
 > - Fase 3 (jornada) concluída: horários semanais, flexíveis e em ciclo com configuração avançada
 >   (considera feriado, in itinere, mobilidade de entrada e de intervalo), regras de apuração com
 >   faixas de extra, atribuição com vigência, escala agendada, troca de escala e de folga e grade da
@@ -104,17 +108,17 @@ na última seção.
 | Átomo | v1 | V2 | Como incluir |
 |---|---|---|---|
 | Enviar data e hora | 🟡 | ✅ comando na API | Tela de equipamentos |
-| Enviar/receber digital | 🟡 | 🟡 envio na API | Acrescentar **receber** digitais do relógio |
-| Enviar/receber empresa | ❌ | 🟡 envio na API | Acrescentar receber |
-| Enviar/receber funcionário (verificar digital, só não salvos) | ✅ envio | 🟡 envio na API | Acrescentar receber e comparar com o cadastro |
-| Equipamento (alertas de energia, conexão, USB fiscal, e-mail) | ✅ | 🟡 modelo | Tela + alertas por e-mail |
-| Exportação de registros (AFD por funcionário/empresa/equipamento) | 🟡 formato com erro | ❌ | Gerador de AFD no leiaute oficial (o leitor já existe) |
+| Enviar/receber digital | 🟡 | ✅ enviar e receber (cifradas, sem duplicar) | Captura pelo leitor USB no agente |
+| Enviar/receber empresa | ❌ | ✅ enviar e receber (confere o CNPJ) | — |
+| Enviar/receber funcionário (verificar digital, só não salvos) | ✅ envio | ✅ enviar, receber e comparar com o cadastro | — |
+| Equipamento (alertas de energia, conexão, USB fiscal, e-mail) | ✅ | ✅ tela; alerta de conexão por e-mail | Alertas de energia/USB dependem do agente por marca |
+| Exportação de registros (AFD por funcionário/empresa/equipamento) | 🟡 formato com erro | 🟡 linhas originais por equipamento; AEJ gerado | AFD do REP-P com NSR |
 | Exportar empresa / funcionário | ❌ | ❌ | Exportação em arquivo para outros sistemas |
-| Gerenciamento de coleta (agendamentos) | 🟡 | ❌ | Agendamento no Servidor de Comunicação |
-| Grupo REP | ❌ | ❌ | Agrupar equipamentos por departamento/local |
-| Gráficos de comunicação | 🟡 saúde do agente | ❌ | Painel com histórico de conexão |
-| Status de equipamento | ✅ | ❌ | Tela de status |
-| Status do funcionário no equipamento | 🟡 | ❌ | Lista enviados/excluídos/pendentes por relógio |
+| Gerenciamento de coleta (agendamentos) | 🟡 | ✅ intervalo por equipamento, executado pelo agente | — |
+| Grupo REP | ❌ | ✅ grupo com comando para todos | — |
+| Gráficos de comunicação | 🟡 saúde do agente | ✅ registros e contatos por dia | — |
+| Status de equipamento | ✅ | ✅ comunicando/sem comunicação, fila e falhas | — |
+| Status do funcionário no equipamento | 🟡 | ✅ cadastro × relógio e último envio | — |
 
 ## Movimentação
 
@@ -126,7 +130,7 @@ na última seção.
 | Espelho ponto | ✅ | ✅ tela e impressão (PDF assinado pendente) | Assinatura e ciência eletrônica |
 | Espelho ponto diário (vários funcionários) | 🟡 | ✅ situação de cada funcionário no dia | — |
 | Layout de exportação (folha) | ✅ | ❌ | Layouts configuráveis por sistema de folha |
-| Meu espelho / Meu extrato BH / Meu extrato BC / Meu holerite | ✅ | 🟡 meu espelho e registrar ponto | Meu extrato BH, holerite |
+| Meu espelho / Meu extrato BH / Meu extrato BC / Meu holerite | ✅ | ✅ meu espelho, meu banco e registrar ponto | Holerite |
 | Minhas solicitações / Solicitações | ✅ | ✅ até 5 etapas, efeito aplicado na aprovação | — |
 | Painel de ocorrência | ✅ | ❌ | Painel do gestor |
 | Sobreaviso | ✅ | ✅ lançamento e 1/3 no espelho | — |
@@ -138,7 +142,7 @@ na última seção.
 |---|---|---|---|
 | Cadastro BH (vencimento, limites, ocorrências, prioridade) | ✅ | ✅ vencimento, limite diário, multiplicador | — |
 | Extrato BH | ✅ | ✅ saldo corrido e próximo vencimento | — |
-| Cadastro BC / Extrato BC | ✅ | ❌ | Mesma base do BH, regras de compensação |
+| Cadastro BC / Extrato BC | ✅ | ✅ compensação semanal/mensal e extrato por período | — |
 
 ## Exportação, importação e marcações
 
@@ -163,9 +167,11 @@ marcação mobile, abono, absenteísmo, analítico de atraso, de extra e de falt
 de intervalo, intervalo não calculável, sobreaviso, assinatura eletrônica, divergência, folha ponto,
 frequência sintético, log do espelho, Portaria 1.510, usuários do grupo e funcionalidades do grupo.
 
-Como incluir: um módulo de relatórios com filtros padronizados (empresa, departamento com
-subdepartamentos, tipo de funcionário, agrupamento, competência/período, situação) e saída em
-PDF/Excel/CSV, gerando cada relatório a partir do motor de cálculo.
+**V2 (fase 7):** 30 relatórios com filtros padronizados (empresa, período, departamento com ou sem
+subdepartamentos, agrupamento) e saída em Excel, CSV e PDF pela impressão, mais o montador por campos
+(substitui o "customizado" sem SQL livre). Ainda faltam: clima organizacional, holerite, navegação de
+página, alteração de senha, login e falha (a auditoria já registra), assinatura eletrônica, divergência,
+log do espelho, Portaria 1.510 (espelho no modelo antigo), intervalo não calculável e funcionalidades do grupo.
 
 ## Grupos, segurança e ferramentas
 

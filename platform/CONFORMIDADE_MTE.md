@@ -12,8 +12,8 @@ _Revisado em 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › Confor
 | Situação | Itens |
 |---|---|
 | Atendido no sistema | 11 |
-| Em desenvolvimento | 9 |
-| Planejado | 10 |
+| Em desenvolvimento | 11 |
+| Planejado | 8 |
 | Ação da SuperPonto (fornecedor) | 2 |
 | Obrigação do empregador | 2 |
 | **Total** | **34** |
@@ -116,7 +116,7 @@ A Portaria MTP nº 671/2021 define três tipos de registrador e o programa que t
 - **O que a norma exige:** O REP precisa conhecer o empregador (CNPJ/CPF, razão social e local) e os trabalhadores (PIS no REP da 1.510, CPF no da 671) para registrar e identificar as marcações.
 - **Base legal:** Portaria nº 1.510/2009; Portaria MTP nº 671/2021 (registros de empresa e de empregado no AFD)
 - **Situação:** Em desenvolvimento
-- **No SuperPonto:** A API monta a fila de envio (empregador, funcionários ativos e digitais) por equipamento, conferindo PIS ou CPF e barrando CNPJ alfanumérico em REP da 1.510. O adaptador Control iD gera os comandos; a execução pelo Servidor de Comunicação e a homologação em equipamento real estão em andamento.
+- **No SuperPonto:** Fila de comandos por equipamento e por grupo (enviar e receber empregador, funcionários e digitais, data e hora, coleta), protocolo do agente local com chave por equipamento e comparação cadastro × relógio. Falta o programa do agente para cada marca de relógio e a homologação em equipamento real.
 
 <a id="inpi"></a>
 ### Registro do software no INPI
@@ -165,8 +165,8 @@ Documentos que o sistema precisa gerar para o trabalhador, para o empregador e p
 | Exigência | Situação | Base legal |
 |---|---|---|
 | [Comprovante de registro de ponto do trabalhador](#comprovante) | Em desenvolvimento | Portaria MTP nº 671/2021 |
-| [AFD: Arquivo Fonte de Dados](#afd) | Planejado | Portaria MTP nº 671/2021, anexo de leiaute do AFD |
-| [AEJ: Arquivo Eletrônico de Jornada](#aej) | Planejado | Portaria MTP nº 671/2021, anexo de leiaute do AEJ |
+| [AFD: Arquivo Fonte de Dados](#afd) | Em desenvolvimento | Portaria MTP nº 671/2021, anexo de leiaute do AFD |
+| [AEJ: Arquivo Eletrônico de Jornada](#aej) | Em desenvolvimento | Portaria MTP nº 671/2021, anexo de leiaute do AEJ |
 | [Espelho de ponto](#espelho) | Em desenvolvimento | Portaria MTP nº 671/2021 |
 | [Tratamento de marcações com justificativa](#tratamento) | Atendido no sistema | Portaria MTP nº 671/2021 |
 | [Entrega à fiscalização e guarda dos dados](#fiscalizacao) | Obrigação do empregador | Portaria MTP nº 671/2021; CF/88, art. 7º, XXIX (prescrição de 5 anos) |
@@ -184,16 +184,16 @@ Documentos que o sistema precisa gerar para o trabalhador, para o empregador e p
 
 - **O que a norma exige:** O registrador gera o AFD com todas as marcações e eventos no leiaute oficial, assinado eletronicamente, sempre que solicitado.
 - **Base legal:** Portaria MTP nº 671/2021, anexo de leiaute do AFD
-- **Situação:** Planejado
-- **No SuperPonto:** Exportação por registrador e período no leiaute oficial, com assinatura digital (CAdES, certificado ICP-Brasil), aceitando CNPJ alfanumérico.
+- **Situação:** Em desenvolvimento
+- **No SuperPonto:** Os AFDs dos relógios (1.510, 373 e 671) são importados e as linhas originais podem ser baixadas por equipamento e período (Equipamentos › Arquivos). Falta gerar o AFD do próprio REP-P (navegador/app) com NSR e assinatura CAdES.
 
 <a id="aej"></a>
 ### AEJ: Arquivo Eletrônico de Jornada
 
 - **O que a norma exige:** O programa de tratamento gera o AEJ com jornadas contratuais, marcações, tratamentos e ausências no leiaute oficial, assinado eletronicamente.
 - **Base legal:** Portaria MTP nº 671/2021, anexo de leiaute do AEJ
-- **Situação:** Planejado
-- **No SuperPonto:** Gerado a partir do motor de cálculo de jornada (já pronto e testado) e dos tratamentos registrados.
+- **Situação:** Em desenvolvimento
+- **No SuperPonto:** Gerado da apuração (Ponto › Fechamento › Gerar AEJ) com registradores, vínculos, horários contratuais, marcações originais/incluídas/desconsideradas, ausências, banco de horas e trailer. Faltam a assinatura CAdES (certificado ICP-Brasil da empresa) e o número do REP-P (registro no INPI); conferir no validador oficial.
 
 <a id="espelho"></a>
 ### Espelho de ponto

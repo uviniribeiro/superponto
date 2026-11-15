@@ -267,3 +267,15 @@ body {
 
 /* Barra de rolagem discreta */
 * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+
+/* Impressão (PDF pelo navegador): só o conteúdo, fundo branco, sem menu nem efeitos. */
+@media print {
+  :root, [data-theme="light"] { --bg: #fff; --fg: #111; --surface: #fff; --surface-strong: #fff; --window: #fff; --border: #ddd; --fg-muted: #444; --fg-subtle: #666; }
+  body { background: #fff !important; color: #111 !important; }
+  .app-backdrop, .app-grain, aside, .no-print, [aria-live="polite"] { display: none !important; }
+  .window, .glass, .glass-strong { background: #fff !important; box-shadow: none !important; backdrop-filter: none !important; border-color: #ddd !important; }
+  main { padding: 0 !important; }
+  .max-h-\[70vh\] { max-height: none !important; overflow: visible !important; }
+  table { font-size: 10px; }
+  tr { break-inside: avoid; }
+}

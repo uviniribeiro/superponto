@@ -26,15 +26,18 @@ _V2 — versão de 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › 
 17. [Cálculo em lote e fechamento do período](#17-fechamento)
 18. [Banco de horas](#18-banco-horas)
 19. [Solicitações e fluxos de aprovação](#19-solicitacoes)
-20. [Feriados](#20-feriados)
-21. [Clientes da plataforma](#21-clientes)
-22. [Usuários](#22-usuarios)
-23. [Dias de acesso, bloqueios e troca de senha](#23-acesso)
-24. [Login pela rede da organização (LDAP / Active Directory)](#24-ldap)
-25. [Perfis e permissões](#25-perfis)
-26. [Segurança, auditoria e privacidade](#26-seguranca)
-27. [Módulos em construção](#27-construcao)
-28. [Suporte](#28-suporte)
+20. [Equipamentos (relógios de ponto)](#20-equipamentos)
+21. [Agente local](#21-agente-local)
+22. [Relatórios](#22-relatorios)
+23. [Feriados](#23-feriados)
+24. [Clientes da plataforma](#24-clientes)
+25. [Usuários](#25-usuarios)
+26. [Dias de acesso, bloqueios e troca de senha](#26-acesso)
+27. [Login pela rede da organização (LDAP / Active Directory)](#27-ldap)
+28. [Perfis e permissões](#28-perfis)
+29. [Segurança, auditoria e privacidade](#29-seguranca)
+30. [Módulos em construção](#30-construcao)
+31. [Suporte](#31-suporte)
 
 <a id="1-visao"></a>
 ## 1. O que é o SuperPonto
@@ -288,6 +291,8 @@ Ponto › Espelho de ponto mostra o mês do funcionário dia a dia: horário pre
 
 Marcações incluídas aparecem em azul; desconsideradas, riscadas; pendentes de aprovação, tracejadas. Dias de período fechado mostram um cadeado e não mudam mais. Dias futuros não são apurados.
 
+O funcionário vê o próprio saldo em Bancos e solicitações › Meu banco de horas.
+
 Ponto › Espelho diário mostra a equipe num dia: presentes, atrasados, faltas, marcação ímpar, quem ainda não marcou, folga e afastados.
 
 **Passo a passo**
@@ -322,6 +327,8 @@ Em Ponto › Fechamento, "Calcular" grava a apuração do período para todos os
 
 Reabrir pede motivo, desfaz os lançamentos do banco daquele fechamento e precisa seguir a ordem (reabra antes o período mais recente). Tudo fica na auditoria.
 
+"Gerar AEJ" baixa o Arquivo Eletrônico de Jornada (Portaria 671) do período, com registradores, vínculos, horários, marcações originais, incluídas e desconsideradas, faltas e movimentos do banco. Confira no validador do MTE e assine com o certificado ICP-Brasil da empresa antes de entregar; o sistema avisa o que falta (ex.: número do REP-P).
+
 <a id="18-banco-horas"></a>
 ## 18. Banco de horas
 
@@ -330,6 +337,8 @@ Reabrir pede motivo, desfaz os lançamentos do banco daquele fechamento e precis
 Em Bancos e solicitações › Banco de horas › Regras, ative o banco da empresa e defina em quantos dias os créditos vencem (acordo individual: até 6 meses; convenção coletiva: até 1 ano — CLT art. 59), o crédito máximo por dia e, se a convenção prevê, o multiplicador da extra (ex.: 1h a 50% vale 1h30).
 
 No fechamento, o saldo positivo de cada dia vira crédito com data de vencimento e o negativo vira débito, que consome primeiro os créditos mais antigos. Créditos vencidos saem do saldo.
+
+Banco de compensação (nas Regras): os saldos de cada semana ou mês se compensam antes de ir para o banco — horas a mais cobrem faltas e atrasos do mesmo período. A sobra positiva vai para o banco ou é paga como extra; o líquido negativo vira débito. O extrato tem uma aba de compensação por período.
 
 A lista mostra o saldo de cada funcionário; clique para ver o extrato com saldo corrido e o próximo vencimento. Selecione funcionários para lançar ajuste, pagamento em folha ou folga compensada, ou use "Zerar em lote" para pagar saldos positivos ou zerar saldos.
 
@@ -346,8 +355,47 @@ Em Fluxos de aprovação, cada tipo de pedido pode ter até 5 etapas: superior i
 
 Política de hora extra: na regra de apuração, "exigir autorização" faz o espelho apontar a extra feita sem autorização prévia. A extra continua sendo paga (é trabalho realizado); o apontamento serve para conferência.
 
-<a id="20-feriados"></a>
-## 20. Feriados
+<a id="20-equipamentos"></a>
+## 20. Equipamentos (relógios de ponto)
+
+**Para:** Administradores e TI
+
+Em Equipamentos › Relógios (REP) ficam os relógios de cada empresa: portaria (1.510, 373 ou 671), número de fabricação do REP (17 dígitos, vai no AEJ), série, fabricante, modelo, endereço na rede, unidade, grupo de REP, intervalo de coleta e e-mails de alerta.
+
+Cada equipamento mostra se está comunicando, o último contato, comandos na fila e com falha. Sem contato por 3 intervalos de coleta (mínimo 15 minutos), ele passa a "Sem comunicação" e os e-mails cadastrados recebem um aviso; quando volta, recebem outro.
+
+Comandos: enviar funcionários e digitais (com o empregador), enviar data e hora, enviar empregador, coletar registros, receber funcionários, receber digitais e receber empregador. Com grupo de REP, o comando pode ir para todos os relógios do grupo. Falhas podem ser tentadas de novo e comandos na fila, cancelados.
+
+Funcionários: compara quem está no cadastro com quem foi lido do relógio, mostrando quem falta, quem sobra, quem não tem o documento exigido pela portaria (PIS na 1.510, CPF na 671) e o último envio. Digitais recebidas do relógio entram cifradas, sem duplicar.
+
+Arquivos: importar o AFD tirado pelo pendrive (reimportar não duplica) e baixar as linhas originais dos registros coletados no período.
+
+<a id="21-agente-local"></a>
+## 21. Agente local
+
+**Para:** TI
+
+O agente local é o programa instalado num computador da rede do cliente, perto dos relógios. Ele conversa com o relógio e com o SuperPonto pela internet (HTTPS), sem abrir portas na rede do cliente.
+
+Na aba "Agente local" do equipamento, gere a chave e informe-a no agente. A chave aparece uma única vez (o SuperPonto guarda só uma impressão dela); gerar outra desliga a anterior. Equipamento desativado ou excluído perde o acesso.
+
+O agente avisa que está vivo, busca a fila de comandos (já com os dados prontos para o relógio: empregador, PIS ou CPF conforme a portaria, nome e digitais), devolve o resultado de cada comando e envia os registros coletados (AFD) no intervalo de coleta.
+
+<a id="22-relatorios"></a>
+## 22. Relatórios
+
+**Para:** RH, gestores e administradores
+
+Em Relatórios há 30 relatórios em seis grupos: Ponto (horas trabalhadas, folha de conferência com extras por percentual, cartão ponto em lote, analíticos de extra, falta e atraso, marcações ímpares, déficit de intervalo, interjornada menor que 11 horas, absenteísmo, frequência, adicional noturno e sobreaviso), Movimentações (abonos, afastamentos, ajustes, solicitações, trocas e escala do período), Bancos (saldos e extrato), Cadastros (funcionários, aniversariantes e feriados), Equipamentos e marcações (marcações, marcações pelo navegador e app com localização, eventos dos equipamentos) e Segurança (auditoria e usuários com perfis).
+
+Todos usam os mesmos filtros: empresa, período (até 93 dias), departamento com ou sem subdepartamentos e agrupamento. Relatórios de cadastro e saldos não pedem período.
+
+O Montador de relatório monta um relatório com os campos que você escolher, uma linha por funcionário e dia (matrícula, nome, departamento, horário, marcações, previsto, trabalhado, saldo, extras, noturno, atraso, falta, abono, afastamento, ocorrências…).
+
+Exporte em Excel (planilha com cabeçalho e totais) ou CSV (separado por ponto e vírgula, abre direto no Excel em português), ou use "Imprimir / PDF" para salvar em PDF pelo navegador. CPF só aparece completo para quem pode ver dados sensíveis; Auditoria e Usuários exigem permissão própria.
+
+<a id="23-feriados"></a>
+## 23. Feriados
 
 **Para:** Administradores da organização e RH
 
@@ -367,8 +415,8 @@ A base de feriados municipais começa pelas capitais. Para outras cidades, cadas
 
 > **Dica:** Preencha o CEP da empresa: sem ele, só aparecem os feriados nacionais.
 
-<a id="21-clientes"></a>
-## 21. Clientes da plataforma
+<a id="24-clientes"></a>
+## 24. Clientes da plataforma
 
 **Para:** Equipe SuperPonto (SuperAdmin)
 
@@ -385,8 +433,8 @@ Ao criar um cliente, informe o nome, o identificador (gerado a partir do nome), 
 
 > **Dica:** Clientes novos começam no status "Em teste".
 
-<a id="22-usuarios"></a>
-## 22. Usuários
+<a id="25-usuarios"></a>
+## 25. Usuários
 
 **Para:** Administradores
 
@@ -404,8 +452,8 @@ Novos usuários recebem um convite por e-mail para criar a própria senha. O e-m
 
 > **Dica:** Ninguém pode desativar, bloquear ou limitar os dias do próprio usuário.
 
-<a id="23-acesso"></a>
-## 23. Dias de acesso, bloqueios e troca de senha
+<a id="26-acesso"></a>
+## 26. Dias de acesso, bloqueios e troca de senha
 
 **Para:** Administradores
 
@@ -417,8 +465,8 @@ Em Administração › Bloqueios de acesso ficam os bloqueios vigentes e agendad
 
 "Pedir troca de senha no próximo acesso" leva o usuário direto para Minha conta até ele trocar a senha. Em Conta › Minha conta, qualquer usuário troca a própria senha informando a atual.
 
-<a id="24-ldap"></a>
-## 24. Login pela rede da organização (LDAP / Active Directory)
+<a id="27-ldap"></a>
+## 27. Login pela rede da organização (LDAP / Active Directory)
 
 **Para:** Administradores
 
@@ -438,8 +486,8 @@ Na nuvem, o servidor do diretório precisa ter endereço público com TLS: por s
 
 > **Dica:** Se o diretório ficar fora do ar, os usuários LDAP veem um aviso para tentar de novo; usuários com senha própria continuam entrando normalmente.
 
-<a id="25-perfis"></a>
-## 25. Perfis e permissões
+<a id="28-perfis"></a>
+## 28. Perfis e permissões
 
 **Para:** Administradores
 
@@ -451,8 +499,8 @@ Recursos marcados "módulo em construção na V2" já podem ser incluídos nos p
 
 Mudanças num perfil valem a partir do próximo acesso de cada usuário. Perfis com usuários não podem ser excluídos.
 
-<a id="26-seguranca"></a>
-## 26. Segurança, auditoria e privacidade
+<a id="29-seguranca"></a>
+## 29. Segurança, auditoria e privacidade
 
 **Para:** Todos
 
@@ -462,21 +510,21 @@ Senhas são guardadas apenas como hash forte; ninguém, nem a equipe SuperPonto,
 
 O tratamento de dados segue a LGPD: o empregador é o controlador dos dados dos trabalhadores e a SuperPonto atua como operadora.
 
-<a id="27-construcao"></a>
-## 27. Módulos em construção
+<a id="30-construcao"></a>
+## 30. Módulos em construção
 
 **Para:** Todos
 
-A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, registro de ponto pelo navegador, espelho, ajustes, abonos, afastamentos, fechamento, banco de horas e solicitações com aprovação em etapas e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.
+A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, registro de ponto pelo navegador, espelho, ajustes, abonos, afastamentos, fechamento, banco de horas e de compensação, solicitações com aprovação em etapas, equipamentos com agente local e alertas, AEJ e 30 relatórios com exportação e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.
 
 O app do terminal (tablet de ponto) é instalado por APK e abre em tela cheia, com a tela sempre ligada e opção de modo quiosque.
 
-Próximas fases: app do funcionário e relógios na V2, AFD/AEJ oficiais, relatórios, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.
+Próximas fases: programa do agente local para cada marca de relógio, app do funcionário na V2, assinatura do AEJ e do espelho, ferramentas, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 
-<a id="28-suporte"></a>
-## 28. Suporte
+<a id="31-suporte"></a>
+## 31. Suporte
 
 **Para:** Todos
 
