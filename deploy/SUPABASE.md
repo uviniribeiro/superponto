@@ -67,7 +67,8 @@ O backup de 15/11/2026 (`backup-lovable-cloud-2026-11-15.tar.gz`) tem o banco co
 técnico `equipment_communication_logs` (271 mil linhas), e os 16 arquivos do Storage. Com ele, o Lovable
 Cloud pode ser desligado.
 
-Numa máquina com Node 22, extraia o arquivo e, na raiz do repositório, rode:
+Primeiro rode o workflow **Publicar sistema** (ele cria as tabelas no seu Supabase). Depois, numa
+máquina com Node 22, extraia o arquivo e, na raiz do repositório, rode:
 
 ```bash
 npm ci --legacy-peer-deps
@@ -81,7 +82,8 @@ DEST_DB_URL="postgresql://postgres.REF:SENHA@aws-0-sa-east-1.pooler.supabase.com
 DEST_URL=https://REF.supabase.co DEST_SERVICE_ROLE_KEY=CHAVE_SERVICE_ROLE node scripts/deploy/migrate-from-lovable.mjs storage-from-dir lovable-storage
 ```
 
-Depois rode o workflow **Publicar sistema** para garantir o Super Admin único. A importação foi
+Por fim, rode **Publicar sistema** de novo: ele confirma o Super Admin único sobre os dados
+importados. A importação foi
 validada com os dados reais: 35 contas com as senhas atuais, 28 perfis, 11 empresas, 12 marcações e
 16 arquivos.
 
