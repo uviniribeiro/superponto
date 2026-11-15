@@ -8,7 +8,7 @@ import { PrismaService, type Tx } from '../prisma/prisma.service.js';
 import type { BlockInput, UserCreate, UserUpdate } from './users.schemas.js';
 
 const SELECT = {
-  id: true, email: true, displayName: true, isActive: true, isSupport: true, lastLoginAt: true, createdAt: true, accessWeekdays: true, mustChangePassword: true, authSource: true,
+  id: true, email: true, displayName: true, isActive: true, isSupport: true, lastLoginAt: true, createdAt: true, accessWeekdays: true, mustChangePassword: true, authSource: true, personId: true, person: { select: { fullName: true } },
   accessBlocks: { where: { revokedAt: null }, select: { id: true, reason: true, startsAt: true, endsAt: true }, orderBy: { startsAt: 'desc' }, take: 20 },
   roles: { select: { role: { select: { id: true, key: true, name: true } } } },
 } as const;
@@ -21,7 +21,7 @@ const SELECT = {
 export class UsersService {
   constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly passwordReset: PasswordResetService) {}
 
-  private shape(u: { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: Date | null; createdAt: Date; accessWeekdays: number[]; mustChangePassword: boolean; authSource: 'LOCAL' | 'LDAP'; accessBlocks: Array<{ id: string; reason: string; startsAt: Date; endsAt: Date | null }>; roles: Array<{ role: { id: string; key: string; name: string } }> }, viewer: AuthUser) {
+  private shape(u: { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: Date | null; createdAt: Date; accessWeekdays: number[]; mustChangePassword: boolean; authSource: 'LOCAL' | 'LDAP'; personId: string | null; person: { fullName: string } | null; accessBlocks: Array<{ id: string; reason: string; startsAt: Date; endsAt: Date | null }>; roles: Array<{ role: { id: string; key: string; name: string } }> }, viewer: AuthUser) {
     const now = new Date();
     const blocks = u.accessBlocks.filter((b) => !b.endsAt || b.endsAt > now);
     const activeBlock = blocks.find((b) => b.startsAt <= now) ?? null;
@@ -97,7 +97,13 @@ export class UsersService {
         if (id === actor.id) throw new BadRequestException('Você não pode mudar a forma de login do próprio usuário');
         await this.requireLdap(tx, tenantId);
       }
+      if (input.personId) {
+        if (!(await tx.person.findFirst({ where: { id: input.personId } }))) throw new NotFoundException('Funcionário não encontrado');
+        const other = await tx.user.findFirst({ where: { personId: input.personId, id: { not: id } } });
+        if (other) throw new ConflictException('Este funcionário já está ligado a outro usuário');
+      }
       await tx.user.update({ where: { id }, data: {
+        ...(input.personId !== undefined ? { personId: input.personId } : {}),
         displayName: input.displayName, isActive: input.isActive, accessWeekdays: input.accessWeekdays,
         mustChangePassword: toLdap || (before.authSource === 'LDAP' && !toLocal) ? false : input.mustChangePassword,
         // LDAP não guarda senha local; ao voltar para senha própria, o usuário recebe convite para definir uma.

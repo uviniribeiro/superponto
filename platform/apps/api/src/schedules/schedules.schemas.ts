@@ -93,6 +93,8 @@ export const rulesSchema = z.object({
   dailyOvertimeLimitMinutes: z.number().int().min(0).max(720).default(120),
   discountAbsences: z.boolean().default(true),
   overtimeBands: z.array(z.object({ upToMinutes: z.number().int().min(1).max(720).nullable(), percent: pct(50, 'Faixa de extra') })).max(5).optional(),
+  /** política de hora extra: extra sem autorização prévia é apontada para conferência (continua sendo paga) */
+  overtimeRequiresAuthorization: z.boolean().default(false),
 }).superRefine((r, ctx) => {
   const b = r.overtimeBands;
   if (!b?.length) return;

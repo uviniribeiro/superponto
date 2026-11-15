@@ -21,6 +21,8 @@ export const userUpdateSchema = z.object({
   accessWeekdays: weekdays.optional(),
   mustChangePassword: z.boolean().optional(),
   authSource: z.enum(['LOCAL', 'LDAP']).optional(),
+  /** pessoa (funcionário) ligada ao usuário: habilita marcar ponto, ver o próprio espelho e abrir solicitações */
+  personId: z.uuid().nullable().optional(),
 });
 export type UserUpdate = z.infer<typeof userUpdateSchema>;
 

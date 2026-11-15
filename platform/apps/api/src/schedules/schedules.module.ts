@@ -142,5 +142,6 @@ export class ExpectedScheduleController {
   imports: [HolidaysModule],
   controllers: [WorkSchedulesController, RuleSetsController, ScheduleAssignmentsController, ScheduleOverridesController, ExpectedScheduleController],
   providers: [WorkSchedulesService, RuleSetsService, ScheduleAssignmentsService, ScheduleOverridesService, ExpectedScheduleService],
+  exports: [ExpectedScheduleService, ScheduleOverridesService],
 })
 export class SchedulesModule {}

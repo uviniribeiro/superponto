@@ -293,6 +293,12 @@ export class ExpectedScheduleService {
 
   /** Dias previstos de um conjunto de vínculos (mesma transação do chamador). */
   async compute(tx: Tx, emps: EmploymentLite[], from: string, to: string, holidays: Map<string, Map<string, { name: string; workday: boolean }>>) {
+    const raw = await this.computeEngine(tx, emps, from, to, holidays);
+    return new Map([...raw].map(([id, days]) => [id, days.map((d) => d.view)]));
+  }
+
+  /** Igual a compute(), mas também devolve o dia no formato do motor e a regra de apuração do horário. */
+  async computeEngine(tx: Tx, emps: Array<Pick<EmploymentLite, 'id' | 'companyId'>>, from: string, to: string, holidays: Map<string, Map<string, { name: string; workday: boolean }>>) {
     const ids = emps.map((e) => e.id);
     const [assignments, overrides] = await Promise.all([
       tx.scheduleAssignment.findMany({
@@ -301,10 +307,10 @@ export class ExpectedScheduleService {
       }),
       tx.scheduleOverride.findMany({ where: { employmentId: { in: ids }, date: { gte: toDate(from), lte: toDate(to) } } }),
     ]);
-    const result = new Map<string, ReturnType<typeof viewDay>[]>();
+    const result = new Map<string, Array<{ view: ReturnType<typeof viewDay>; engine: ExpectedDay; ruleSetId: string | null }>>();
     for (const e of emps) {
       const mine = assignments.filter((a) => a.employmentId === e.id).map((a) => ({
-        id: a.id, name: a.schedule.name, code: a.schedule.code,
+        id: a.id, name: a.schedule.name, code: a.schedule.code, ruleSetId: a.schedule.ruleSetId,
         engine: { schedule: toEngineSchedule(a.schedule), validFrom: iso(a.validFrom), validTo: a.validTo ? iso(a.validTo) : null, cycleStart: a.cycleStart ? iso(a.cycleStart) : null } as EngineAssignment,
       }));
       const ov = new Map(overrides.filter((o) => o.employmentId === e.id).map((o) => [iso(o.date), o]));
@@ -317,10 +323,13 @@ export class ExpectedScheduleService {
         const o = ov.get(d);
         const override: DayOverride | null = o ? { isWorkday: o.isWorkday, startTime: o.startTime, endTime: o.endTime, breakMinutes: o.breakMinutes, breakStart: o.breakStart } : null;
         const exp = resolveExpectedDay(active, d, h ? { date: d, isHoliday: true, isWorkday: h.workday } : null, override);
-        days.push(viewDay(exp, {
-          scheduleName: meta?.name ?? null, scheduleCode: meta?.code ?? null, holidayName: h && !h.workday ? h.name : null,
-          overrideId: o?.id ?? null, origin: o?.origin ?? null, note: o?.note ?? null,
-        }));
+        days.push({
+          engine: exp, ruleSetId: meta?.ruleSetId ?? null,
+          view: viewDay(exp, {
+            scheduleName: meta?.name ?? null, scheduleCode: meta?.code ?? null, holidayName: h && !h.workday ? h.name : null,
+            overrideId: o?.id ?? null, origin: o?.origin ?? null, note: o?.note ?? null,
+          }),
+        });
       }
       result.set(e.id, days);
     }

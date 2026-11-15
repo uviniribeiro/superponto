@@ -125,7 +125,7 @@ export const ACTION_LABELS: Record<string, string> = {
   read: 'Ver', create: 'Criar', update: 'Editar', delete: 'Excluir', manage: 'Gerenciar', approve: 'Aprovar', import: 'Importar', export: 'Exportar', execute: 'Executar',
 };
 /** Recursos com tela pronta na V2 (os demais aparecem como "em construção"). */
-export const AVAILABLE_RESOURCES = new Set(['org.companies', 'org.holidays', 'org.departments', 'org.positions', 'org.unions', 'org.functions', 'org.costcenters', 'org.employeetypes', 'org.competences', 'org.groupings', 'people.employments', 'people.sensitive', 'people.biometrics', 'devices.commands', 'time.records', 'admin.users', 'admin.roles', 'admin.ldap', 'org.units', 'schedules.schedules', 'schedules.timetables', 'schedules.scheduled', 'platform.tenants']);
+export const AVAILABLE_RESOURCES = new Set(['org.companies', 'org.holidays', 'org.departments', 'org.positions', 'org.unions', 'org.functions', 'org.costcenters', 'org.employeetypes', 'org.competences', 'org.groupings', 'people.employments', 'people.sensitive', 'people.biometrics', 'devices.commands', 'time.records', 'admin.users', 'admin.roles', 'admin.ldap', 'org.units', 'schedules.schedules', 'schedules.timetables', 'schedules.scheduled', 'time.calculations', 'time.adjustments', 'time.allowances', 'time.justifications', 'time.closings', 'time.bank', 'time.compensation', 'requests.requests', 'requests.flows', 'platform.tenants']);
 
 export type PermissionKey = keyof typeof PERMISSIONS;
 
