@@ -86,13 +86,18 @@ async function cmdAuth() {
   };
 
   const smtpHost = env('SMTP_HOST');
+  const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  const sender = env('SMTP_SENDER_EMAIL') || (isEmail(env('SMTP_USER')) ? env('SMTP_USER') : '');
+  if (smtpHost && !isEmail(sender)) {
+    fail('SMTP configurado sem remetente válido: crie o secret ou a variável SMTP_SENDER_EMAIL com o e-mail que envia (ex.: nao-responda@seudominio.com.br).');
+  }
   if (smtpHost) {
     Object.assign(config, {
       smtp_host: smtpHost,
       smtp_port: env('SMTP_PORT', '587'),
       smtp_user: env('SMTP_USER'),
       smtp_pass: env('SMTP_PASS'),
-      smtp_admin_email: env('SMTP_SENDER_EMAIL', env('SMTP_USER')),
+      smtp_admin_email: sender,
       smtp_sender_name: env('SMTP_SENDER_NAME', 'PontoMax'),
       rate_limit_email_sent: 60,
       // Personalizar o modelo de e-mail exige SMTP próprio no plano gratuito do Supabase.
