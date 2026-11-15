@@ -57,7 +57,26 @@ export interface Company {
   cnpj: string | null;
   segment: 'GENERAL' | 'EDUCATION' | 'HEALTH' | 'PUBLIC_SECTOR' | 'INDUSTRY' | 'RETAIL' | 'SERVICES';
   timezone: string;
+  zipCode: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  district: string | null;
+  city: string | null;
+  state: string | null;
+  ibgeCode: string | null;
+  phone: string | null;
+  email: string | null;
   createdAt: string;
 }
+
+export interface AddressLookup { cep: string; street: string; number?: string; complement?: string; district: string; city: string; uf: string; ibge: string | null; timezone?: string }
+export interface CnpjLookup { cnpj: string; legalName: string; tradeName: string | null; status: string | null; activity: string | null; phone: string | null; email: string | null; address: AddressLookup | null; source: string }
+
+export interface CompanyHoliday {
+  date: string; name: string; scope: 'NATIONAL' | 'STATE' | 'MUNICIPAL' | 'COMPANY'; kind: 'HOLIDAY' | 'OPTIONAL';
+  basis: string | null; review: boolean; workday: boolean; overridden: boolean; ruleId?: string; note?: string | null;
+}
+export interface HolidayList { year: number; location: { city: string | null; state: string | null; ibge: string | null; municipalBase: boolean }; holidays: CompanyHoliday[] }
 
 export interface Tenant { id: string; name: string; slug: string; status: string; createdAt: string }

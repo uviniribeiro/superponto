@@ -11,12 +11,12 @@ _Revisado em 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › Confor
 
 | Situação | Itens |
 |---|---|
-| Atendido no sistema | 7 |
+| Atendido no sistema | 8 |
 | Em desenvolvimento | 7 |
 | Planejado | 15 |
 | Ação da SuperPonto (fornecedor) | 2 |
 | Obrigação do empregador | 2 |
-| **Total** | **33** |
+| **Total** | **34** |
 
 ## Normas de referência
 
@@ -297,6 +297,7 @@ Dados que identificam empregador e trabalhador nos arquivos oficiais e nas integ
 |---|---|---|
 | [CNPJ alfanumérico](#cnpj-alfa) | Atendido no sistema | Instrução Normativa RFB nº 2.229/2024 |
 | [Vários CNPJs por cliente (matriz e filiais)](#multi-cnpj) | Atendido no sistema | Portaria MTP nº 671/2021 (identificação do empregador); leiautes do eSocial |
+| [Feriados nacionais, estaduais e municipais](#feriados) | Atendido no sistema | Lei nº 605/1949, arts. 8º e 9º; Lei nº 9.093/1995; Lei nº 662/1949; Lei nº 14.759/2023 |
 | [Integração com folha e eSocial](#esocial) | Planejado | Decreto nº 8.373/2014 (eSocial) e leiautes vigentes |
 
 <a id="cnpj-alfa"></a>
@@ -305,7 +306,7 @@ Dados que identificam empregador e trabalhador nos arquivos oficiais e nas integ
 - **O que a norma exige:** A partir de julho de 2026 a Receita Federal emite CNPJs com letras e números nas 12 primeiras posições e 2 dígitos verificadores numéricos (cálculo módulo 11 sobre o valor ASCII − 48). Os CNPJs numéricos existentes continuam válidos.
 - **Base legal:** Instrução Normativa RFB nº 2.229/2024
 - **Situação:** Atendido no sistema
-- **No SuperPonto:** Validação, máscara e busca aceitam os dois formatos na API, no banco (restrição de formato) e nas telas, com testes do exemplo oficial (12.ABC.345/01DE-35).
+- **No SuperPonto:** Validação, máscara e busca aceitam os dois formatos na API, no banco (restrição de formato) e nas telas, com testes do exemplo oficial (12.ABC.345/01DE-35). CNPJ numérico válido é consultado na Receita e preenche o cadastro; para o alfanumérico, a consulta pública ainda não está disponível e o preenchimento é manual.
 
 <a id="multi-cnpj"></a>
 ### Vários CNPJs por cliente (matriz e filiais)
@@ -314,6 +315,14 @@ Dados que identificam empregador e trabalhador nos arquivos oficiais e nas integ
 - **Base legal:** Portaria MTP nº 671/2021 (identificação do empregador); leiautes do eSocial
 - **Situação:** Atendido no sistema
 - **No SuperPonto:** Cada cliente (tenant) tem várias empresas/CNPJs, isoladas por segurança em nível de linha (RLS) no banco; o mesmo CNPJ pode existir em clientes diferentes sem vazar dados.
+
+<a id="feriados"></a>
+### Feriados nacionais, estaduais e municipais
+
+- **O que a norma exige:** Trabalho em feriado civil ou religioso é proibido salvo autorização, e o dia é remunerado; os feriados são definidos por lei federal, estadual e municipal (religiosos municipais limitados a quatro, incluída a Sexta-feira da Paixão).
+- **Base legal:** Lei nº 605/1949, arts. 8º e 9º; Lei nº 9.093/1995; Lei nº 662/1949; Lei nº 14.759/2023
+- **Situação:** Atendido no sistema
+- **No SuperPonto:** Feriados nacionais (fixos e móveis) calculados para qualquer ano; estaduais por UF e municipais pelo código IBGE vindo do CEP; o ano seguinte é cadastrado automaticamente antes de 1º de janeiro. A empresa pode cadastrar feriados locais repetidos todo ano e decidir folga ou trabalho em cada data, com auditoria. A base municipal inicial cobre as capitais e vem marcada para conferência.
 
 <a id="esocial"></a>
 ### Integração com folha e eSocial

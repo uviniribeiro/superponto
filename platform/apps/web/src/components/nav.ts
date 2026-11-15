@@ -1,4 +1,4 @@
-import { BookOpen, Building2, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { BookOpen, Building2, CalendarDays, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -43,6 +43,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
           icon: Network,
           children: [{ id: 'companies', label: 'Empresas', href: '/empresas', icon: Building2, dot: '#fcc419' }],
         },
+        { id: 'holidays', label: 'Feriados', href: '/feriados', icon: CalendarDays },
       ],
     });
   }

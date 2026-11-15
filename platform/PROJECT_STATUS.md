@@ -41,6 +41,13 @@ automática; importação idempotente que cria marcações com hash encadeado; f
 com permissão própria; adaptador Control iD. Terminal Android: APK em tela cheia/quiosque gerado
 pelo workflow **APK do terminal**.
 
+**Cadastro inteligente e feriados** — consulta de CNPJ na Receita (BrasilAPI) e de CEP (BrasilAPI
+com reserva ViaCEP), com cache, limite por minuto e código IBGE/fuso; formulário de empresa que se
+preenche sozinho. Feriados nacionais (fixos, móveis pela Páscoa e 20/11), estaduais e municipais
+(base inicial das capitais) por empresa; geração anual automática e idempotente (ano corrente e o
+seguinte, na subida da API e a cada 6 h); feriados próprios da empresa repetidos todo ano e decisão
+de folga/trabalho por data (14 testes de API, 7 de regras).
+
 **App web** (`apps/web`, Next.js 16) — login, esqueci/redefinir senha, painel com dados reais,
 empresas (CRUD com CNPJ alfanumérico), clientes (SuperAdmin, com seletor de organização), Manual e
 Conformidade MTE (30 exigências legais com a situação de cada uma). Barra lateral flutuante de vidro
@@ -49,7 +56,7 @@ abertura com revelação circular, transições entre telas (View Transitions), 
 Sessão em cookies httpOnly via BFF (`/api/*`). MANUAL.md e CONFORMIDADE_MTE.md são gerados do mesmo
 conteúdo das telas (`npm run docs -w @superponto/web`).
 
-**API** (`apps/api`, 73 testes contra PostgreSQL real com o papel sujeito à RLS):
+**API** (`apps/api`, 88 testes contra PostgreSQL real com o papel sujeito à RLS):
 - Autenticação com `@nestjs/authentication`: login por sessão (cookie `__Host-sid` httpOnly) e por
   token (JWT 15 min + refresh rotativo com detecção de reuso), saída, `/me`, esqueci minha senha
   (link de uso único, 1 h, mesma resposta para e-mail inexistente), scrypt (OWASP), limite de

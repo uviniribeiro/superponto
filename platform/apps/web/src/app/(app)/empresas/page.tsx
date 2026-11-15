@@ -4,70 +4,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useDeferredValue, useState } from 'react';
-import { formatCnpj, isValidCnpj, normalizeCnpj } from '@superponto/br-docs';
-import { CnpjInput } from '@/components/cnpj-input';
+import { formatCnpj } from '@superponto/br-docs';
+import { CompanyForm, SEGMENTS } from '@/components/company-form';
 import { Page, PageHeader } from '@/components/page';
 import { can, useSession } from '@/components/providers';
 import { TenantPicker, useActiveTenant } from '@/components/tenant-picker';
 import { Button, Card, Confirm, EmptyState, Input, Sheet, Skeleton, useToast } from '@/components/ui';
 import { api, type Company, type Page as Paged } from '@/lib/api';
 
-const SEGMENTS: Record<Company['segment'], string> = {
-  GENERAL: 'Geral', EDUCATION: 'Educação', HEALTH: 'Saúde', PUBLIC_SECTOR: 'Setor público', INDUSTRY: 'Indústria', RETAIL: 'Varejo', SERVICES: 'Serviços',
-};
-
 const showCnpj = (v: string | null) => (v ? formatCnpj(v) : 'Sem CNPJ');
-
-function CompanyForm({ initial, onSaved }: { initial: Company | null; onSaved: () => void }) {
-  const qc = useQueryClient();
-  const toast = useToast();
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const save = useMutation({
-    mutationFn: (body: Record<string, unknown>) => (initial ? api(`/companies/${initial.id}`, { method: 'PATCH', json: body }) : api('/companies', { method: 'POST', json: body })),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['companies'] });
-      toast('success', initial ? 'Empresa atualizada' : 'Empresa cadastrada');
-      onSaved();
-    },
-    onError: (e: Error) => toast('error', e.message),
-  });
-
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const legalName = String(f.get('legalName') ?? '').trim();
-    const tradeName = String(f.get('tradeName') ?? '').trim();
-    const cnpj = normalizeCnpj(String(f.get('cnpj') ?? ''));
-    const next: Record<string, string> = {};
-    if (legalName.length < 2) next.legalName = 'Informe a razão social';
-    if (cnpj && !isValidCnpj(cnpj)) next.cnpj = 'CNPJ inválido: confira os caracteres e os 2 dígitos finais';
-    setErrors(next);
-    if (Object.keys(next).length) return;
-    save.mutate({
-      legalName,
-      ...(tradeName ? { tradeName } : {}),
-      ...(cnpj ? { cnpj } : {}),
-      segment: f.get('segment'),
-      timezone: String(f.get('timezone') ?? 'America/Sao_Paulo'),
-    });
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <Input label="Razão social" name="legalName" defaultValue={initial?.legalName} error={errors.legalName} required autoFocus />
-      <Input label="Nome fantasia" name="tradeName" defaultValue={initial?.tradeName ?? ''} />
-      <CnpjInput name="cnpj" defaultValue={initial?.cnpj ?? ''} error={errors.cnpj} />
-      <label className="block space-y-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wider text-subtle">Segmento</span>
-        <select name="segment" defaultValue={initial?.segment ?? 'GENERAL'} className="h-11 w-full rounded-2xl border border-line bg-hover px-4 text-sm outline-none focus:border-brand [&>option]:bg-elevated">
-          {Object.entries(SEGMENTS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-      </label>
-      <Input label="Fuso horário" name="timezone" defaultValue={initial?.timezone ?? 'America/Sao_Paulo'} hint="Usado no cálculo da jornada" />
-      <Button type="submit" loading={save.isPending} className="h-12 w-full">{initial ? 'Salvar alterações' : 'Cadastrar empresa'}</Button>
-    </form>
-  );
-}
 
 export default function CompaniesPage() {
   const { me } = useSession();
@@ -130,7 +75,7 @@ export default function CompaniesPage() {
                     <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft font-display font-bold text-brand">{(c.tradeName ?? c.legalName).charAt(0).toUpperCase()}</div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{c.tradeName ?? c.legalName}</p>
-                      <p className="truncate text-xs text-muted">{c.tradeName ? `${c.legalName} · ` : ''}<span className="font-mono">{showCnpj(c.cnpj)}</span></p>
+                      <p className="truncate text-xs text-muted">{c.tradeName ? `${c.legalName} · ` : ''}<span className="font-mono">{showCnpj(c.cnpj)}</span>{c.city ? ` · ${c.city}/${c.state}` : ''}</p>
                     </div>
                     <span className="hidden rounded-full border border-line px-2.5 py-1 text-xs text-muted sm:inline">{SEGMENTS[c.segment]}</span>
                     <div className="flex gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">

@@ -84,13 +84,16 @@ export const SECTIONS: ManualSection[] = [
     title: 'Empresas e CNPJs',
     audience: 'Administradores da organização e RH',
     body: [
-      'Cadastre a matriz e as filiais da organização. Cada empresa tem razão social, nome fantasia, CNPJ, segmento e fuso horário (usado no cálculo da jornada).',
+      'Cadastre a matriz e as filiais da organização. Cada empresa tem CNPJ, razão social, nome fantasia, contato, endereço, segmento e fuso horário (usado no cálculo da jornada).',
+      'Ao digitar um CNPJ válido, o sistema consulta a Receita Federal e preenche razão social, nome fantasia, telefone, e-mail e endereço, e avisa se a situação cadastral não estiver ATIVA. Os campos preenchidos automaticamente ficam destacados em verde e podem ser editados.',
+      'Ao digitar o CEP, o endereço, a cidade, a UF e o fuso horário são preenchidos sozinhos. O CEP também identifica o município, que define os feriados estaduais e municipais da empresa.',
       'O campo CNPJ aceita o formato numérico e o novo CNPJ alfanumérico da Receita Federal (ex.: 12.ABC.345/01DE-35). A máscara é aplicada enquanto você digita e os dígitos verificadores são conferidos na hora e de novo no servidor.',
       'Não é possível cadastrar o mesmo CNPJ duas vezes na mesma organização.',
     ],
     steps: [
       'Abra Organização › Estrutura › Empresas.',
-      'Clique em "Nova empresa", preencha os dados e clique em "Cadastrar empresa".',
+      'Clique em "Nova empresa" e digite o CNPJ: os dados da Receita são preenchidos automaticamente.',
+      'Confira o endereço, informe o número e clique em "Cadastrar empresa".',
       'Para editar ou remover, passe o mouse sobre a empresa e use os ícones de lápis ou lixeira.',
       'Use a busca da lista para encontrar por nome ou CNPJ, com ou sem pontuação.',
     ],
@@ -98,6 +101,23 @@ export const SECTIONS: ManualSection[] = [
       'Remover uma empresa a tira das listas, mas o histórico continua guardado na auditoria.',
       'Os botões só aparecem para quem tem a permissão correspondente; a API também confere a permissão.',
     ],
+  },
+  {
+    id: 'feriados',
+    title: 'Feriados',
+    audience: 'Administradores da organização e RH',
+    body: [
+      'Os feriados são cadastrados automaticamente: os nacionais (inclusive os móveis, como Carnaval, Sexta-feira da Paixão e Corpus Christi, calculados pela Páscoa de cada ano e o 20 de novembro), os estaduais da UF da empresa e os municipais da cidade da empresa.',
+      'O ano seguinte é gerado com antecedência, antes de 1º de janeiro, sem ninguém precisar fazer nada. Consultar um ano futuro também gera os feriados dele na hora.',
+      'Ponto facultativo (Carnaval, Quarta-feira de Cinzas e Corpus Christi onde não há lei municipal) aparece como dia de trabalho até a empresa decidir dar folga.',
+      'A base de feriados municipais começa pelas capitais. Para outras cidades, cadastre os feriados locais (aniversário da cidade, padroeiro, Corpus Christi) em "Feriado da empresa": eles se repetem todo ano. Itens marcados "confira" vêm da base inicial do SuperPonto e devem ser conferidos com a lei local.',
+    ],
+    steps: [
+      'Abra Organização › Feriados, escolha a empresa e o ano.',
+      'Para folgar num ponto facultativo, clique em "Dar folga"; para trabalhar num feriado, "Trabalhar neste dia". "Padrão" desfaz a decisão.',
+      'Para cadastrar um feriado local, clique em "Feriado da empresa", informe o nome e o dia (ou escolha um feriado móvel).',
+    ],
+    tips: ['Preencha o CEP da empresa: sem ele, só aparecem os feriados nacionais.'],
   },
   {
     id: 'clientes',

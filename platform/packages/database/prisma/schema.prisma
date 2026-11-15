@@ -452,29 +452,42 @@ model Tenant {
 }
 
 model Company {
-  id        String         @id @default(uuid()) @db.Uuid
-  tenantId  String         @map("tenant_id") @db.Uuid
-  legalName String         @map("legal_name")
-  tradeName String?        @map("trade_name")
-  cnpj      String?
-  segment   CompanySegment @default(GENERAL)
-  timezone  String         @default("America/Sao_Paulo")
-  settings  Json           @default("{}")
-  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt DateTime?      @map("deleted_at") @db.Timestamptz(6)
+  id         String         @id @default(uuid()) @db.Uuid
+  tenantId   String         @map("tenant_id") @db.Uuid
+  legalName  String         @map("legal_name")
+  tradeName  String?        @map("trade_name")
+  cnpj       String?
+  segment    CompanySegment @default(GENERAL)
+  timezone   String         @default("America/Sao_Paulo")
+  settings   Json           @default("{}")
+  // Endereço (preenchido pelo CNPJ ou pelo CEP). O código IBGE define os feriados municipais.
+  zipCode    String?        @map("zip_code")
+  street     String?
+  number     String?
+  complement String?
+  district   String?
+  city       String?
+  state      String?
+  ibgeCode   String?        @map("ibge_code")
+  phone      String?
+  email      String?
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt  DateTime?      @map("deleted_at") @db.Timestamptz(6)
 
-  tenant        Tenant              @relation(fields: [tenantId], references: [id])
-  units         CompanyUnit[]
-  departments   Department[]
-  positions     JobPosition[]
-  employments   Employment[]
-  schedules     WorkSchedule[]
-  ruleSets      AttendanceRuleSet[]
-  calendars     Calendar[]
-  devices       Device[]
-  closings      TimeClosing[]
-  approvalFlows ApprovalFlow[]
+  tenant           Tenant                   @relation(fields: [tenantId], references: [id])
+  holidayRules     CompanyHolidayRule[]
+  holidayOverrides CompanyHolidayOverride[]
+  units            CompanyUnit[]
+  departments      Department[]
+  positions        JobPosition[]
+  employments      Employment[]
+  schedules        WorkSchedule[]
+  ruleSets         AttendanceRuleSet[]
+  calendars        Calendar[]
+  devices          Device[]
+  closings         TimeClosing[]
+  approvalFlows    ApprovalFlow[]
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -2079,4 +2092,82 @@ model BiometricTemplate {
 
   @@index([tenantId, employmentId])
   @@map("biometric_templates")
+}
+
+// -----------------------------------------------------------------------------
+// Feriados
+// -----------------------------------------------------------------------------
+
+enum HolidayScope {
+  NATIONAL
+  STATE
+  MUNICIPAL
+  COMPANY
+
+  @@map("holiday_scope")
+}
+
+enum HolidayKind {
+  HOLIDAY
+  OPTIONAL
+
+  @@map("holiday_kind")
+}
+
+/// Catálogo global de feriados por ano, gerado automaticamente (01/01 e na subida da API).
+/// uf e ibge vazios ('') nos nacionais, para a chave única funcionar.
+model PublicHoliday {
+  id        String       @id @default(uuid()) @db.Uuid
+  date      DateTime     @db.Date
+  year      Int          @db.SmallInt
+  name      String
+  scope     HolidayScope
+  kind      HolidayKind
+  uf        String       @default("")
+  ibge      String       @default("")
+  basis     String?
+  /// base inicial do SuperPonto: conferir com a lei local
+  review    Boolean      @default(false)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([date, scope, uf, ibge, name])
+  @@index([year, scope, uf, ibge])
+  @@map("public_holidays")
+}
+
+/// Feriado próprio da empresa (municipal fora da base, aniversário da empresa etc.), repetido todo ano.
+model CompanyHolidayRule {
+  id        String      @id @default(uuid()) @db.Uuid
+  tenantId  String      @map("tenant_id") @db.Uuid
+  companyId String      @map("company_id") @db.Uuid
+  name      String
+  kind      HolidayKind @default(HOLIDAY)
+  month     Int?        @db.SmallInt
+  day       Int?        @db.SmallInt
+  /// feriado móvel: CARNIVAL_MONDAY, CARNIVAL_TUESDAY, ASH_WEDNESDAY, GOOD_FRIDAY, CORPUS_CHRISTI
+  movable   String?
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt DateTime?   @map("deleted_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([tenantId, companyId])
+  @@map("company_holiday_rules")
+}
+
+/// Decisão da empresa para uma data: trabalhar num ponto facultativo ou folgar num dia comum.
+model CompanyHolidayOverride {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  date      DateTime @db.Date
+  workday   Boolean
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, date])
+  @@index([tenantId, companyId])
+  @@map("company_holiday_overrides")
 }

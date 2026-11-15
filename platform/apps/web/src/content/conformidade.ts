@@ -285,7 +285,7 @@ export const GROUPS: RequirementGroup[] = [
         rule: 'A partir de julho de 2026 a Receita Federal emite CNPJs com letras e números nas 12 primeiras posições e 2 dígitos verificadores numéricos (cálculo módulo 11 sobre o valor ASCII − 48). Os CNPJs numéricos existentes continuam válidos.',
         basis: 'Instrução Normativa RFB nº 2.229/2024',
         status: 'feito',
-        howWe: 'Validação, máscara e busca aceitam os dois formatos na API, no banco (restrição de formato) e nas telas, com testes do exemplo oficial (12.ABC.345/01DE-35).',
+        howWe: 'Validação, máscara e busca aceitam os dois formatos na API, no banco (restrição de formato) e nas telas, com testes do exemplo oficial (12.ABC.345/01DE-35). CNPJ numérico válido é consultado na Receita e preenche o cadastro; para o alfanumérico, a consulta pública ainda não está disponível e o preenchimento é manual.',
       },
       {
         id: 'multi-cnpj',
@@ -294,6 +294,14 @@ export const GROUPS: RequirementGroup[] = [
         basis: 'Portaria MTP nº 671/2021 (identificação do empregador); leiautes do eSocial',
         status: 'feito',
         howWe: 'Cada cliente (tenant) tem várias empresas/CNPJs, isoladas por segurança em nível de linha (RLS) no banco; o mesmo CNPJ pode existir em clientes diferentes sem vazar dados.',
+      },
+      {
+        id: 'feriados',
+        title: 'Feriados nacionais, estaduais e municipais',
+        rule: 'Trabalho em feriado civil ou religioso é proibido salvo autorização, e o dia é remunerado; os feriados são definidos por lei federal, estadual e municipal (religiosos municipais limitados a quatro, incluída a Sexta-feira da Paixão).',
+        basis: 'Lei nº 605/1949, arts. 8º e 9º; Lei nº 9.093/1995; Lei nº 662/1949; Lei nº 14.759/2023',
+        status: 'feito',
+        howWe: 'Feriados nacionais (fixos e móveis) calculados para qualquer ano; estaduais por UF e municipais pelo código IBGE vindo do CEP; o ano seguinte é cadastrado automaticamente antes de 1º de janeiro. A empresa pode cadastrar feriados locais repetidos todo ano e decidir folga ou trabalho em cada data, com auditoria. A base municipal inicial cobre as capitais e vem marcada para conferência.',
       },
       {
         id: 'esocial',

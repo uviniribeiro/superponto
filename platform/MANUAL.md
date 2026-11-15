@@ -13,11 +13,12 @@ _V2 — versão de 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › 
 4. [Navegação: barra lateral, busca e modo noturno](#4-navegacao)
 5. [Visão geral (painel)](#5-painel)
 6. [Empresas e CNPJs](#6-empresas)
-7. [Clientes da plataforma](#7-clientes)
-8. [Perfis e permissões](#8-perfis)
-9. [Segurança, auditoria e privacidade](#9-seguranca)
-10. [Módulos em construção](#10-construcao)
-11. [Suporte](#11-suporte)
+7. [Feriados](#7-feriados)
+8. [Clientes da plataforma](#8-clientes)
+9. [Perfis e permissões](#9-perfis)
+10. [Segurança, auditoria e privacidade](#10-seguranca)
+11. [Módulos em construção](#11-construcao)
+12. [Suporte](#12-suporte)
 
 <a id="1-visao"></a>
 ## 1. O que é o SuperPonto
@@ -96,7 +97,11 @@ O quadro "Marcações de hoje" fica vazio até a liberação do módulo de ponto
 
 **Para:** Administradores da organização e RH
 
-Cadastre a matriz e as filiais da organização. Cada empresa tem razão social, nome fantasia, CNPJ, segmento e fuso horário (usado no cálculo da jornada).
+Cadastre a matriz e as filiais da organização. Cada empresa tem CNPJ, razão social, nome fantasia, contato, endereço, segmento e fuso horário (usado no cálculo da jornada).
+
+Ao digitar um CNPJ válido, o sistema consulta a Receita Federal e preenche razão social, nome fantasia, telefone, e-mail e endereço, e avisa se a situação cadastral não estiver ATIVA. Os campos preenchidos automaticamente ficam destacados em verde e podem ser editados.
+
+Ao digitar o CEP, o endereço, a cidade, a UF e o fuso horário são preenchidos sozinhos. O CEP também identifica o município, que define os feriados estaduais e municipais da empresa.
 
 O campo CNPJ aceita o formato numérico e o novo CNPJ alfanumérico da Receita Federal (ex.: 12.ABC.345/01DE-35). A máscara é aplicada enquanto você digita e os dígitos verificadores são conferidos na hora e de novo no servidor.
 
@@ -105,15 +110,37 @@ Não é possível cadastrar o mesmo CNPJ duas vezes na mesma organização.
 **Passo a passo**
 
 1. Abra Organização › Estrutura › Empresas.
-2. Clique em "Nova empresa", preencha os dados e clique em "Cadastrar empresa".
-3. Para editar ou remover, passe o mouse sobre a empresa e use os ícones de lápis ou lixeira.
-4. Use a busca da lista para encontrar por nome ou CNPJ, com ou sem pontuação.
+2. Clique em "Nova empresa" e digite o CNPJ: os dados da Receita são preenchidos automaticamente.
+3. Confira o endereço, informe o número e clique em "Cadastrar empresa".
+4. Para editar ou remover, passe o mouse sobre a empresa e use os ícones de lápis ou lixeira.
+5. Use a busca da lista para encontrar por nome ou CNPJ, com ou sem pontuação.
 
 > **Dica:** Remover uma empresa a tira das listas, mas o histórico continua guardado na auditoria.
 > **Dica:** Os botões só aparecem para quem tem a permissão correspondente; a API também confere a permissão.
 
-<a id="7-clientes"></a>
-## 7. Clientes da plataforma
+<a id="7-feriados"></a>
+## 7. Feriados
+
+**Para:** Administradores da organização e RH
+
+Os feriados são cadastrados automaticamente: os nacionais (inclusive os móveis, como Carnaval, Sexta-feira da Paixão e Corpus Christi, calculados pela Páscoa de cada ano e o 20 de novembro), os estaduais da UF da empresa e os municipais da cidade da empresa.
+
+O ano seguinte é gerado com antecedência, antes de 1º de janeiro, sem ninguém precisar fazer nada. Consultar um ano futuro também gera os feriados dele na hora.
+
+Ponto facultativo (Carnaval, Quarta-feira de Cinzas e Corpus Christi onde não há lei municipal) aparece como dia de trabalho até a empresa decidir dar folga.
+
+A base de feriados municipais começa pelas capitais. Para outras cidades, cadastre os feriados locais (aniversário da cidade, padroeiro, Corpus Christi) em "Feriado da empresa": eles se repetem todo ano. Itens marcados "confira" vêm da base inicial do SuperPonto e devem ser conferidos com a lei local.
+
+**Passo a passo**
+
+1. Abra Organização › Feriados, escolha a empresa e o ano.
+2. Para folgar num ponto facultativo, clique em "Dar folga"; para trabalhar num feriado, "Trabalhar neste dia". "Padrão" desfaz a decisão.
+3. Para cadastrar um feriado local, clique em "Feriado da empresa", informe o nome e o dia (ou escolha um feriado móvel).
+
+> **Dica:** Preencha o CEP da empresa: sem ele, só aparecem os feriados nacionais.
+
+<a id="8-clientes"></a>
+## 8. Clientes da plataforma
 
 **Para:** Equipe SuperPonto (SuperAdmin)
 
@@ -130,8 +157,8 @@ Ao criar um cliente, informe o nome, o identificador (gerado a partir do nome), 
 
 > **Dica:** Clientes novos começam no status "Em teste".
 
-<a id="8-perfis"></a>
-## 8. Perfis e permissões
+<a id="9-perfis"></a>
+## 9. Perfis e permissões
 
 **Para:** Administradores
 
@@ -141,8 +168,8 @@ Um perfil pode valer para a organização inteira ou só para empresas específi
 
 A tela de usuários e perfis personalizados está em construção; até lá, os perfis são atribuídos pela equipe SuperPonto.
 
-<a id="9-seguranca"></a>
-## 9. Segurança, auditoria e privacidade
+<a id="10-seguranca"></a>
+## 10. Segurança, auditoria e privacidade
 
 **Para:** Todos
 
@@ -152,8 +179,8 @@ Senhas são guardadas apenas como hash forte; ninguém, nem a equipe SuperPonto,
 
 O tratamento de dados segue a LGPD: o empregador é o controlador dos dados dos trabalhadores e a SuperPonto atua como operadora.
 
-<a id="10-construcao"></a>
-## 10. Módulos em construção
+<a id="11-construcao"></a>
+## 11. Módulos em construção
 
 **Para:** Todos
 
@@ -165,8 +192,8 @@ Próximas fases: unidades e departamentos, usuários e perfis, pessoas e víncul
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 
-<a id="11-suporte"></a>
-## 11. Suporte
+<a id="12-suporte"></a>
+## 12. Suporte
 
 **Para:** Todos
 

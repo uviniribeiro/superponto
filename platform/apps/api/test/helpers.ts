@@ -5,6 +5,7 @@ import { createAppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
 import { loadConfig, type AppConfig } from '../src/config.js';
 import { MailService } from '../src/mail/mail.service.js';
+import { HTTP_FETCH } from '../src/lookup/lookup.service.js';
 
 export const appUrl = (process.env.TEST_APP_DATABASE_URL ?? 'postgresql://superponto_api_test:api@127.0.0.1:55432/superponto_test');
 export const ownerUrl = (process.env.TEST_OWNER_DATABASE_URL ?? 'postgresql://postgres:dev@127.0.0.1:55432/superponto_test');
@@ -22,9 +23,12 @@ export function testConfig(): AppConfig {
   } as NodeJS.ProcessEnv);
 }
 
-export async function createApp(): Promise<{ app: INestApplication; mail: MailService }> {
+export async function createApp(opts: { fetch?: typeof fetch } = {}): Promise<{ app: INestApplication; mail: MailService }> {
   const config = testConfig();
-  const moduleRef = await Test.createTestingModule({ imports: [createAppModule(config)] }).compile();
+  const builder = Test.createTestingModule({ imports: [createAppModule(config)] });
+  // Testes nunca acessam serviços externos: a consulta de CEP/CNPJ usa um fetch falso.
+  builder.overrideProvider(HTTP_FETCH).useValue(opts.fetch ?? (async () => new Response('{}', { status: 503 })));
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication();
   configureApp(app, config);
   await app.init();
