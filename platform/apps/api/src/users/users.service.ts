@@ -3,6 +3,7 @@ import { PasswordResetService } from '@nestjs/authentication';
 import type { AuthUser } from '../auth/auth-user.js';
 import { normalizeEmail } from '../auth/users.repository.js';
 import { AuditService } from '../audit/audit.service.js';
+import { assertLimit } from '../common/limits.js';
 import type { PageQuery, RequestMeta } from '../common/tenant.js';
 import { PrismaService, type Tx } from '../prisma/prisma.service.js';
 import type { BlockInput, UserCreate, UserUpdate } from './users.schemas.js';
@@ -68,6 +69,7 @@ export class UsersService {
     if (await this.prisma.asPlatform((tx) => tx.user.count({ where: { email } }))) throw new ConflictException('Este e-mail já tem uma conta no SuperPonto');
     const result = await this.prisma.forTenant(tenantId, async (tx) => {
       const roleIds = await this.assignableRoles(tx, tenantId, input.roleIds);
+      await assertLimit(tx, tenantId, 'limit.users');
       const ldap = input.authSource === 'LDAP';
       if (ldap) await this.requireLdap(tx, tenantId);
       const user = await tx.user.create({ data: { tenantId, email, displayName: input.displayName, accessWeekdays: input.accessWeekdays ?? [], mustChangePassword: ldap ? false : input.mustChangePassword ?? false, authSource: ldap ? 'LDAP' : 'LOCAL' } });

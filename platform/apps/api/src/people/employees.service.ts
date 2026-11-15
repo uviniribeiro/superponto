@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import type { Prisma } from '@superponto/database';
 import type { AuthUser } from '../auth/auth-user.js';
 import { AuditService } from '../audit/audit.service.js';
+import { assertLimit } from '../common/limits.js';
 import { can } from '../authorization/authorization.js';
 import type { RequestMeta } from '../common/tenant.js';
 import { PrismaService, type Tx } from '../prisma/prisma.service.js';
@@ -139,6 +140,7 @@ export class EmployeesService {
       return await this.prisma.forTenant(tenantId, async (tx) => {
         if (!(await tx.company.findFirst({ where: { id: input.companyId, deletedAt: null } }))) throw new NotFoundException('Empresa não encontrada');
         await this.checkRefs(tx, input.companyId, input);
+        await assertLimit(tx, tenantId, 'limit.employments');
         // Mesma pessoa (CPF) pode ter mais de um vínculo: reaproveita o cadastro da pessoa.
         let person = input.cpf ? await tx.person.findFirst({ where: { cpf: input.cpf, deletedAt: null } }) : null;
         if (!person && input.pis) person = await tx.person.findFirst({ where: { pis: input.pis, deletedAt: null } });

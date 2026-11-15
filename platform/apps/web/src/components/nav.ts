@@ -1,4 +1,4 @@
-import { Activity, Calculator, FileInput, FileOutput, Megaphone, MailCheck, Smartphone, Type, BarChart3, Router as RouterIcon, CalendarCheck2, ClipboardCheck, FileCheck2, FileClock, Fingerprint, GitBranch, HeartPulse, Lock, MessageSquare, PiggyBank, CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { Layers, Activity, Calculator, FileInput, FileOutput, Megaphone, MailCheck, Smartphone, Type, BarChart3, Router as RouterIcon, CalendarCheck2, ClipboardCheck, FileCheck2, FileClock, Fingerprint, GitBranch, HeartPulse, Lock, MessageSquare, PiggyBank, CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -111,6 +111,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
         { id: 'users', label: 'Usuários', href: '/usuarios', icon: Users },
         { id: 'roles', label: 'Perfis e permissões', href: '/perfis', icon: KeyRound },
         { id: 'blocks', label: 'Bloqueios de acesso', href: '/bloqueios', icon: ShieldBan },
+        { id: 'plan', label: 'Plano e uso', href: '/plano', icon: Layers },
         ...(can(me, 'admin.users:manage') ? [{ id: 'app-devices', label: 'Aparelhos do app', href: '/usuarios/aparelhos', icon: Smartphone } satisfies NavItem] : []),
         ...(can(me, 'admin.ldap:manage') ? [{ id: 'ldap', label: 'Login pela rede (LDAP)', href: '/usuarios/ldap', icon: NetworkIcon } satisfies NavItem] : []),
       ],
@@ -120,7 +121,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
     sections.push({
       id: 'platform',
       label: 'Plataforma',
-      items: [{ id: 'tenants', label: 'Clientes', href: '/plataforma/clientes', icon: ShieldCheck }],
+      items: [{ id: 'tenants', label: 'Clientes', href: '/plataforma/clientes', icon: ShieldCheck }, { id: 'plans', label: 'Planos', href: '/plataforma/planos', icon: Layers }],
     });
   }
   if (me) sections.push({ id: 'account', label: 'Conta', items: [{ id: 'my-account', label: 'Minha conta', href: '/minha-conta', icon: UserRound }] });

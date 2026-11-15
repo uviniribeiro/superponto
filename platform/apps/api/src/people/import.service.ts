@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { isValidCpf, isValidPis, onlyDigits } from '@superponto/br-docs';
 import type { AuthUser } from '../auth/auth-user.js';
 import type { RequestMeta } from '../common/tenant.js';
+import { assertLimit } from '../common/limits.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { employeeCreateSchema, type EmployeeCreate } from './employees.schemas.js';
 import { EmployeesService } from './employees.service.js';
@@ -156,6 +157,9 @@ export class EmployeeImportService {
     });
     if (input.dryRun) return { dryRun: true, ...summary(), results: prepared.map((p) => p.result) };
 
+    // O plano precisa comportar todos os novos funcionários antes de gravar qualquer coisa.
+    const novos = prepared.filter((p) => p.data && !p.existingId).length;
+    if (novos) await this.prisma.forTenant(tenantId, (tx) => assertLimit(tx, tenantId, 'limit.employments', novos));
     // Cria os cadastros que faltam (uma vez cada) e troca as referências "new:".
     const created: Record<string, Map<string, string>> = {};
     await this.prisma.forTenant(tenantId, async (tx) => {

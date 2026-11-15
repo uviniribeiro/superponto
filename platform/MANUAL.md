@@ -38,15 +38,17 @@ _V2 — versão de 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › 
 29. [Central de ajuda](#29-ajuda)
 30. [Exportação para a folha](#30-folha)
 31. [Importar marcações por planilha](#31-importar-marcacoes)
-32. [Feriados](#32-feriados)
-33. [Clientes da plataforma](#33-clientes)
-34. [Usuários](#34-usuarios)
-35. [Dias de acesso, bloqueios e troca de senha](#35-acesso)
-36. [Login pela rede da organização (LDAP / Active Directory)](#36-ldap)
-37. [Perfis e permissões](#37-perfis)
-38. [Segurança, auditoria e privacidade](#38-seguranca)
-39. [Módulos em construção](#39-construcao)
-40. [Suporte](#40-suporte)
+32. [Verificação em duas etapas](#32-mfa)
+33. [Planos e uso](#33-planos)
+34. [Feriados](#34-feriados)
+35. [Clientes da plataforma](#35-clientes)
+36. [Usuários](#36-usuarios)
+37. [Dias de acesso, bloqueios e troca de senha](#37-acesso)
+38. [Login pela rede da organização (LDAP / Active Directory)](#38-ldap)
+39. [Perfis e permissões](#39-perfis)
+40. [Segurança, auditoria e privacidade](#40-seguranca)
+41. [Módulos em construção](#41-construcao)
+42. [Suporte](#42-suporte)
 
 <a id="1-visao"></a>
 ## 1. O que é o SuperPonto
@@ -490,8 +492,26 @@ Em Ponto › Importar marcações envie um arquivo CSV ou TXT (ou cole o conteú
 
 Clique em "Conferir" para ver o que entra, o que já existe e os erros por linha (funcionário não encontrado, data ou hora inválida, marcação no futuro, fora do vínculo, período fechado ou repetida). Só depois clique em "Importar". Repetir o mesmo arquivo não duplica; a marcação entra com a origem "Importação" e com o código de integridade encadeado.
 
-<a id="32-feriados"></a>
-## 32. Feriados
+<a id="32-mfa"></a>
+## 32. Verificação em duas etapas
+
+**Para:** Todos (recomendado para administradores)
+
+Em Minha conta › Verificação em duas etapas, clique em Ativar, leia o QR code com um aplicativo autenticador (Google Authenticator, Microsoft Authenticator, Authy…) e digite o código de 6 dígitos. Guarde os códigos de recuperação: cada um entra uma vez se você perder o celular.
+
+Depois de ativada, o login pede o código do aplicativo logo após a senha. Para desativar ou gerar novos códigos de recuperação é preciso ter entrado com o código nessa sessão. Ativação e desativação ficam na auditoria.
+
+<a id="33-planos"></a>
+## 33. Planos e uso
+
+**Para:** Administradores e equipe SuperPonto
+
+Em Administração › Plano e uso o administrador vê o plano contratado, a vigência e quanto está em uso de cada limite (funcionários ativos, equipamentos e usuários). Ao atingir um limite, novos cadastros são recusados com a mensagem do plano; a importação de planilha confere o limite antes de gravar qualquer linha.
+
+A equipe SuperPonto cria os planos em Plataforma › Planos e define o plano de cada cliente em Clientes › Plano, com ajuste de limite só para aquele contrato. Assinatura suspensa ou cancelada bloqueia o acesso do cliente; reativar libera. A cobrança em si fica com o meio de pagamento contratado.
+
+<a id="34-feriados"></a>
+## 34. Feriados
 
 **Para:** Administradores da organização e RH
 
@@ -511,8 +531,8 @@ A base de feriados municipais começa pelas capitais. Para outras cidades, cadas
 
 > **Dica:** Preencha o CEP da empresa: sem ele, só aparecem os feriados nacionais.
 
-<a id="33-clientes"></a>
-## 33. Clientes da plataforma
+<a id="35-clientes"></a>
+## 35. Clientes da plataforma
 
 **Para:** Equipe SuperPonto (SuperAdmin)
 
@@ -529,8 +549,8 @@ Ao criar um cliente, informe o nome, o identificador (gerado a partir do nome), 
 
 > **Dica:** Clientes novos começam no status "Em teste".
 
-<a id="34-usuarios"></a>
-## 34. Usuários
+<a id="36-usuarios"></a>
+## 36. Usuários
 
 **Para:** Administradores
 
@@ -548,8 +568,8 @@ Novos usuários recebem um convite por e-mail para criar a própria senha. O e-m
 
 > **Dica:** Ninguém pode desativar, bloquear ou limitar os dias do próprio usuário.
 
-<a id="35-acesso"></a>
-## 35. Dias de acesso, bloqueios e troca de senha
+<a id="37-acesso"></a>
+## 37. Dias de acesso, bloqueios e troca de senha
 
 **Para:** Administradores
 
@@ -561,8 +581,8 @@ Em Administração › Bloqueios de acesso ficam os bloqueios vigentes e agendad
 
 "Pedir troca de senha no próximo acesso" leva o usuário direto para Minha conta até ele trocar a senha. Em Conta › Minha conta, qualquer usuário troca a própria senha informando a atual.
 
-<a id="36-ldap"></a>
-## 36. Login pela rede da organização (LDAP / Active Directory)
+<a id="38-ldap"></a>
+## 38. Login pela rede da organização (LDAP / Active Directory)
 
 **Para:** Administradores
 
@@ -582,8 +602,8 @@ Na nuvem, o servidor do diretório precisa ter endereço público com TLS: por s
 
 > **Dica:** Se o diretório ficar fora do ar, os usuários LDAP veem um aviso para tentar de novo; usuários com senha própria continuam entrando normalmente.
 
-<a id="37-perfis"></a>
-## 37. Perfis e permissões
+<a id="39-perfis"></a>
+## 39. Perfis e permissões
 
 **Para:** Administradores
 
@@ -595,8 +615,8 @@ Recursos marcados "módulo em construção na V2" já podem ser incluídos nos p
 
 Mudanças num perfil valem a partir do próximo acesso de cada usuário. Perfis com usuários não podem ser excluídos.
 
-<a id="38-seguranca"></a>
-## 38. Segurança, auditoria e privacidade
+<a id="40-seguranca"></a>
+## 40. Segurança, auditoria e privacidade
 
 **Para:** Todos
 
@@ -606,8 +626,8 @@ Senhas são guardadas apenas como hash forte; ninguém, nem a equipe SuperPonto,
 
 O tratamento de dados segue a LGPD: o empregador é o controlador dos dados dos trabalhadores e a SuperPonto atua como operadora.
 
-<a id="39-construcao"></a>
-## 39. Módulos em construção
+<a id="41-construcao"></a>
+## 41. Módulos em construção
 
 **Para:** Todos
 
@@ -619,8 +639,8 @@ Próximas fases: drivers do agente para outras marcas de relógio (Topdata, Biom
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 
-<a id="40-suporte"></a>
-## 40. Suporte
+<a id="42-suporte"></a>
+## 42. Suporte
 
 **Para:** Todos
 

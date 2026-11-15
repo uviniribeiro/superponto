@@ -386,6 +386,24 @@ export const SECTIONS: ManualSection[] = [
     ],
   },
   {
+    id: 'mfa',
+    title: 'Verificação em duas etapas',
+    audience: 'Todos (recomendado para administradores)',
+    body: [
+      'Em Minha conta › Verificação em duas etapas, clique em Ativar, leia o QR code com um aplicativo autenticador (Google Authenticator, Microsoft Authenticator, Authy…) e digite o código de 6 dígitos. Guarde os códigos de recuperação: cada um entra uma vez se você perder o celular.',
+      'Depois de ativada, o login pede o código do aplicativo logo após a senha. Para desativar ou gerar novos códigos de recuperação é preciso ter entrado com o código nessa sessão. Ativação e desativação ficam na auditoria.',
+    ],
+  },
+  {
+    id: 'planos',
+    title: 'Planos e uso',
+    audience: 'Administradores e equipe SuperPonto',
+    body: [
+      'Em Administração › Plano e uso o administrador vê o plano contratado, a vigência e quanto está em uso de cada limite (funcionários ativos, equipamentos e usuários). Ao atingir um limite, novos cadastros são recusados com a mensagem do plano; a importação de planilha confere o limite antes de gravar qualquer linha.',
+      'A equipe SuperPonto cria os planos em Plataforma › Planos e define o plano de cada cliente em Clientes › Plano, com ajuste de limite só para aquele contrato. Assinatura suspensa ou cancelada bloqueia o acesso do cliente; reativar libera. A cobrança em si fica com o meio de pagamento contratado.',
+    ],
+  },
+  {
     id: 'feriados',
     title: 'Feriados',
     audience: 'Administradores da organização e RH',

@@ -10,6 +10,7 @@ import { CnpjInput } from '@/components/cnpj-input';
 import { Page, PageHeader } from '@/components/page';
 import { useSession } from '@/components/providers';
 import { useActiveTenant } from '@/components/tenant-picker';
+import { TenantPlanForm } from '@/components/tenant-plan';
 import { Button, Card, EmptyState, Input, Sheet, Skeleton, useToast } from '@/components/ui';
 import { api, type Page as Paged, type Tenant } from '@/lib/api';
 
@@ -67,6 +68,7 @@ export default function TenantsPage() {
   const [search, setSearch] = useState('');
   const q = useDeferredValue(search.trim());
   const [creating, setCreating] = useState(false);
+  const [planOf, setPlanOf] = useState<{ id: string; name: string } | null>(null);
   const tenants = useQuery({
     queryKey: ['tenants', 'list', q],
     queryFn: () => api<Paged<Tenant>>(`/platform/tenants?pageSize=100${q ? `&search=${encodeURIComponent(q)}` : ''}`),
@@ -78,6 +80,7 @@ export default function TenantsPage() {
     return <Page><Card><EmptyState icon={ShieldCheck} title="Acesso restrito" body="Esta área é exclusiva da equipe SuperPonto." /></Card></Page>;
   }
   const rows = tenants.data?.data ?? [];
+
 
   return (
     <Page>
@@ -102,6 +105,7 @@ export default function TenantsPage() {
                     <p className="truncate font-semibold">{t.name}</p>
                     <p className="truncate text-xs text-muted">{t.slug} · desde {new Date(t.createdAt).toLocaleDateString('pt-BR')}</p>
                   </div>
+                  <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); setPlanOf({ id: t.id, name: t.name }); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setPlanOf({ id: t.id, name: t.name }); } }} className="rounded-full border border-line px-3 py-1 text-xs text-muted hover:text-fg">Plano</span>
                   <span className={`rounded-full px-2.5 py-1 text-xs ${t.status === 'ACTIVE' ? 'bg-success/15 text-success' : t.status === 'TRIAL' ? 'bg-brand-soft text-brand' : 'bg-hover text-muted'}`}>{STATUS[t.status] ?? t.status}</span>
                 </button>
               </motion.li>
@@ -109,6 +113,9 @@ export default function TenantsPage() {
           </ul>
         )}
       </Card>
+      <Sheet open={!!planOf} onClose={() => setPlanOf(null)} title={`Plano: ${planOf?.name ?? ''}`}>
+        {planOf && <TenantPlanForm tenantId={planOf.id} onSaved={() => setPlanOf(null)} />}
+      </Sheet>
       <Sheet open={creating} onClose={() => setCreating(false)} title="Novo cliente">
         {creating && <TenantForm onSaved={() => setCreating(false)} />}
       </Sheet>

@@ -11,6 +11,7 @@ import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { AuthUser } from '../auth/auth-user.js';
 import { AuditService } from '../audit/audit.service.js';
+import { assertLimit } from '../common/limits.js';
 import { RequirePermission } from '../authorization/authorization.js';
 import { sha256Hex } from '../common/crypto.js';
 import { ActiveTenant, RequestInfo, type RequestMeta } from '../common/tenant.js';
@@ -106,6 +107,7 @@ export class DeviceRegistryService {
         if (!(await tx.company.findFirst({ where: { id: input.companyId, deletedAt: null } }))) throw new NotFoundException('Empresa não encontrada');
         await this.check(tx, input, input.companyId);
         const { active, ...data } = input;
+        await assertLimit(tx, tenantId, 'limit.devices');
         const d = await tx.device.create({ data: { tenantId, ...data, status: active ? 'PENDING' : 'DISABLED' }, select: PUBLIC_SELECT });
         await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'CREATE', entity: 'device', entityId: d.id, after: this.shape(d), ...meta });
         return this.shape(d);
