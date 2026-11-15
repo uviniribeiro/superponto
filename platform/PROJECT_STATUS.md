@@ -52,7 +52,7 @@ de folga/trabalho por data (14 testes de API, 7 de regras).
 (clientes antigos recebem o suporte na subida da API); o suporte fica oculto da lista e, quando
 logado, aparece sem poder ser editado. Catálogo de 72 permissões separadas por recurso e ação, com
 nomes para a tela; perfis personalizados por cliente; telas de Usuários e de Perfis e permissões
-(9 testes de API). Conector da API Velti/Átomo (`packages/integrations`, 9 testes).
+(9 testes de API).
 
 **Estrutura (fase 1 do plano Átomo)** — departamentos em árvore com seções e proteção contra
 ciclos; cargos com CBO; funções, centros de custo, tipos de funcionário, sindicatos (CNPJ, data-base)

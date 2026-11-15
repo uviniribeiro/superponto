@@ -103,5 +103,5 @@ SuperPonto não depende nem se comunica com esse sistema.
 
 Por decisão do cliente (15/11/2026), o SuperPonto **não se integra nem se comunica** com o Átomo/Velti.
 Os recursos equivalentes foram feitos de forma nativa (exportação para a folha, importação de
-marcações por planilha, relatórios). O pacote `packages/integrations` (cliente da API desse sistema,
-feito antes da decisão) não é usado pela API nem pelo site e pode ser removido.
+marcações por planilha, relatórios). O antigo cliente da API desse sistema (`packages/integrations`)
+foi removido do código.
