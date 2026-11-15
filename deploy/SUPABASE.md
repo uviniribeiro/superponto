@@ -61,6 +61,30 @@ Variáveis opcionais (aba **Variables**):
 3. Entre no site com o seu e-mail na aba **Admin**.
 4. Depois de conferir, desative o Lovable Cloud.
 
+### Alternativa: migrar a partir do arquivo de backup (Cloud desligado)
+
+O backup de 15/11/2026 (`backup-lovable-cloud-2026-11-15.tar.gz`) tem o banco completo, menos o log
+técnico `equipment_communication_logs` (271 mil linhas), e os 16 arquivos do Storage. Com ele, o Lovable
+Cloud pode ser desligado.
+
+Numa máquina com Node 22, extraia o arquivo e, na raiz do repositório, rode:
+
+```bash
+npm ci --legacy-peer-deps
+```
+
+```bash
+DEST_DB_URL="postgresql://postgres.REF:SENHA@aws-0-sa-east-1.pooler.supabase.com:5432/postgres" node scripts/deploy/migrate-from-lovable.mjs import lovable-backup.json
+```
+
+```bash
+DEST_URL=https://REF.supabase.co DEST_SERVICE_ROLE_KEY=CHAVE_SERVICE_ROLE node scripts/deploy/migrate-from-lovable.mjs storage-from-dir lovable-storage
+```
+
+Depois rode o workflow **Publicar sistema** para garantir o Super Admin único. A importação foi
+validada com os dados reais: 35 contas com as senhas atuais, 28 perfis, 11 empresas, 12 marcações e
+16 arquivos.
+
 ## Esqueci minha senha
 
 Na tela **Admin**, use **Esqueci minha senha** e informe o e-mail. Chega um link que abre

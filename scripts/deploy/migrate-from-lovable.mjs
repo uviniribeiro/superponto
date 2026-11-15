@@ -250,8 +250,35 @@ async function cmdStorage() {
   if (failed) process.exitCode = 1;
 }
 
+// ------------------------------------------------- storage a partir do backup
+// Envia a pasta lovable-storage/ do backup (bucket/caminho) para o Storage do destino.
+async function cmdStorageFromDir(dir) {
+  const { readdirSync, readFileSync, statSync } = await import('node:fs');
+  const dest = env('DEST_URL').replace(/\/+$/, '');
+  const key = env('DEST_SERVICE_ROLE_KEY');
+  if (!dest || !key) fail('Defina DEST_URL e DEST_SERVICE_ROLE_KEY');
+  const headers = { apikey: key, Authorization: `Bearer ${key}` };
+  const types = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', pdf: 'application/pdf', csv: 'text/csv', txt: 'text/plain' };
+  let copied = 0, failed = 0;
+  for (const bucket of readdirSync(dir)) {
+    const root = path.join(dir, bucket);
+    if (!statSync(root).isDirectory()) continue;
+    const walk = (d) => readdirSync(d).flatMap((n) => (statSync(path.join(d, n)).isDirectory() ? walk(path.join(d, n)) : [path.join(d, n)]));
+    for (const file of walk(root)) {
+      const rel = path.relative(root, file).split(path.sep).map(encodeURIComponent).join('/');
+      const ext = file.split('.').pop()?.toLowerCase() ?? '';
+      const res = await fetch(`${dest}/storage/v1/object/${bucket}/${rel}`, {
+        method: 'POST', headers: { ...headers, 'Content-Type': types[ext] ?? 'application/octet-stream', 'x-upsert': 'true' }, body: readFileSync(file),
+      });
+      if (res.ok) copied++; else { failed++; console.log(`::warning::${bucket}/${rel}: HTTP ${res.status}`); }
+    }
+  }
+  console.log(`Arquivos do backup: ${copied} enviados, ${failed} falhas.`);
+  if (failed) process.exitCode = 1;
+}
+
 const [cmd, file] = process.argv.slice(2);
-const run = { export: () => cmdExport(file), import: () => cmdImport(file), storage: cmdStorage }[cmd];
-if (!run || (cmd !== 'storage' && !file)) fail('Uso: migrate-from-lovable.mjs export|import <arquivo.json> | storage');
-if (cmd !== 'import' && (!env('SOURCE_URL') || !env('MIGRATION_TOKEN'))) fail('Defina SOURCE_URL, SOURCE_ANON_KEY e MIGRATION_TOKEN');
+const run = { export: () => cmdExport(file), import: () => cmdImport(file), storage: cmdStorage, 'storage-from-dir': () => cmdStorageFromDir(file) }[cmd];
+if (!run || (cmd !== 'storage' && !file)) fail('Uso: migrate-from-lovable.mjs export|import <arquivo.json> | storage | storage-from-dir <pasta>');
+if ((cmd === 'export' || cmd === 'storage') && (!env('SOURCE_URL') || !env('MIGRATION_TOKEN'))) fail('Defina SOURCE_URL, SOURCE_ANON_KEY e MIGRATION_TOKEN');
 run().catch((e) => fail(e.stack || e.message));
