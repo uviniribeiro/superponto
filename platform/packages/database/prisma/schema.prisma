@@ -477,11 +477,14 @@ model Company {
   cno               String?
   /// código no sistema de folha/ERP, para exportações
   externalCode      String?        @map("external_code")
+  /// quando o logo mudou (vazio = sem logo); a imagem fica em company_logos
+  logoUpdatedAt     DateTime?      @map("logo_updated_at") @db.Timestamptz(6)
   createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt         DateTime?      @map("deleted_at") @db.Timestamptz(6)
 
   tenant           Tenant                   @relation(fields: [tenantId], references: [id])
+  logo             CompanyLogo?
   holidayRules     CompanyHolidayRule[]
   holidayOverrides CompanyHolidayOverride[]
   units            CompanyUnit[]
@@ -2297,4 +2300,18 @@ model Competence {
 
   @@index([tenantId, startsOn])
   @@map("competences")
+}
+
+/// Logo da empresa (PNG, JPEG ou WebP até 512 KB), separado para não pesar nas listagens.
+model CompanyLogo {
+  companyId String   @id @map("company_id") @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  mime      String
+  data      Bytes
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([tenantId])
+  @@map("company_logos")
 }

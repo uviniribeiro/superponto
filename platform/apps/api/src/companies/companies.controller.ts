@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { CurrentUser } from '@nestjs/authentication';
 import { ApiBearerAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
@@ -9,6 +9,7 @@ import { companyInputSchema, companyUpdateSchema, type CompanyInput, type Compan
 import { CompaniesService } from './companies.service.js';
 
 const idSchema = z.uuid();
+const logoSchema = z.object({ dataUrl: z.string().max(800_000, 'O logo deve ter no máximo 512 KB') });
 
 @ApiTags('organização')
 @ApiBearerAuth()
@@ -39,6 +40,25 @@ export class CompaniesController {
   @RequirePermission('org.companies:update')
   update(@ActiveTenant() tenantId: string, @CurrentUser() user: AuthUser, @Param('id', { schema: idSchema }) id: string, @Body({ schema: companyUpdateSchema }) body: CompanyUpdate, @RequestInfo() meta: RequestMeta) {
     return this.companies.update(tenantId, user, id, body, meta);
+  }
+
+  @Get(':id/logo')
+  @RequirePermission('org.companies:read')
+  logo(@ActiveTenant() tenantId: string, @CurrentUser() user: AuthUser, @Param('id', { schema: idSchema }) id: string) {
+    return this.companies.getLogo(tenantId, user, id);
+  }
+
+  @Put(':id/logo')
+  @RequirePermission('org.companies:update')
+  setLogo(@ActiveTenant() tenantId: string, @CurrentUser() user: AuthUser, @Param('id', { schema: idSchema }) id: string, @Body({ schema: logoSchema }) body: { dataUrl: string }, @RequestInfo() meta: RequestMeta) {
+    return this.companies.setLogo(tenantId, user, id, body.dataUrl, meta);
+  }
+
+  @Delete(':id/logo')
+  @HttpCode(204)
+  @RequirePermission('org.companies:update')
+  removeLogo(@ActiveTenant() tenantId: string, @CurrentUser() user: AuthUser, @Param('id', { schema: idSchema }) id: string, @RequestInfo() meta: RequestMeta) {
+    return this.companies.removeLogo(tenantId, user, id, meta);
   }
 
   @Delete(':id')

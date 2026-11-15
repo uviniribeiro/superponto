@@ -5,6 +5,9 @@ import type { AppConfig } from './config.js';
 
 /** Configuração comum à aplicação real e aos testes. */
 export function configureApp(app: INestApplication, config: AppConfig) {
+  // AFD, planilhas de importação e logos passam do limite padrão do Express (100 KB).
+  const express = app as INestApplication & { useBodyParser?: (type: string, opts: { limit: string }) => void };
+  express.useBodyParser?.('json', { limit: '25mb' });
   app.useGlobalPipes(new StandardSchemaValidationPipe());
   const origins = [config.APP_URL, ...config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)];
   app.enableCors({ origin: origins, credentials: true });

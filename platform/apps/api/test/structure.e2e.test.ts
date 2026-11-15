@@ -147,6 +147,23 @@ describe('Estrutura: cadastros da fase 1', () => {
     await api(app).post('/v1/companies').set(as(admin)).send({ legalName: 'CNO curto', cno: '123' }).expect(400);
   });
 
+  it('logo da empresa: aceita imagem real, recusa arquivo disfarçado e excesso de tamanho', async () => {
+    const co = ids['company-est-a'];
+    const png = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(200, 1)]);
+    const ok = await api(app).put(`/v1/companies/${co}/logo`).set(as(admin)).send({ dataUrl: `data:image/png;base64,${png.toString('base64')}` }).expect(200);
+    expect(ok.body.logoUpdatedAt).toBeTruthy();
+    const got = await api(app).get(`/v1/companies/${co}/logo`).set(as(admin)).expect(200);
+    expect(got.body.dataUrl).toBe(`data:image/png;base64,${png.toString('base64')}`);
+    const fake = Buffer.from('<svg onload="alert(1)"></svg>');
+    await api(app).put(`/v1/companies/${co}/logo`).set(as(admin)).send({ dataUrl: `data:image/png;base64,${fake.toString('base64')}` }).expect(400);
+    await api(app).put(`/v1/companies/${co}/logo`).set(as(admin)).send({ dataUrl: `data:image/svg+xml;base64,${fake.toString('base64')}` }).expect(400);
+    const big = Buffer.concat([png, Buffer.alloc(600 * 1024)]);
+    await api(app).put(`/v1/companies/${co}/logo`).set(as(admin)).send({ dataUrl: `data:image/png;base64,${big.toString('base64')}` }).expect(400);
+    await api(app).get(`/v1/companies/${co}/logo`).set(as(other)).expect(404);
+    await api(app).delete(`/v1/companies/${co}/logo`).set(as(admin)).expect(204);
+    await api(app).get(`/v1/companies/${co}/logo`).set(as(admin)).expect(404);
+  });
+
   it('outro cliente não vê nem altera nada da estrutura', async () => {
     expect((await api(app).get('/v1/cost-centers').set(as(other)).expect(200)).body.total).toBe(0);
     await api(app).patch(`/v1/cost-centers/${ids['cost-centers']}`).set(as(other)).send({ name: 'Invadido' }).expect(404);

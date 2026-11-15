@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { normalizeCnpj } from '@superponto/br-docs';
 import type { AuthUser } from '../auth/auth-user.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -79,4 +79,52 @@ export class CompaniesService {
       await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'DELETE', entity: 'company', entityId: id, before, ...meta });
     });
   }
+
+  /** Logo: PNG, JPEG ou WebP até 512 KB, enviado como data URL. */
+  setLogo(tenantId: string, user: AuthUser, id: string, dataUrl: string, meta: RequestMeta) {
+    const m = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+    if (!m) throw new BadRequestException('Envie uma imagem PNG, JPEG ou WebP');
+    const data = Buffer.from(m[2]!, 'base64');
+    if (data.length > 512 * 1024) throw new BadRequestException('O logo deve ter no máximo 512 KB');
+    const mime = sniffImage(data);
+    if (!mime) throw new BadRequestException('Arquivo não é uma imagem PNG, JPEG ou WebP válida');
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      const allowed = companyFilter(user, 'org.companies:update');
+      const c = await tx.company.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
+      if (!c || (allowed && !allowed.includes(c.id))) throw new NotFoundException('Empresa não encontrada');
+      await tx.companyLogo.upsert({ where: { companyId: id }, create: { companyId: id, tenantId, mime, data }, update: { mime, data } });
+      const updated = await tx.company.update({ where: { id }, data: { logoUpdatedAt: new Date() } });
+      await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'UPDATE', entity: 'company', entityId: id, after: { logo: { mime, bytes: data.length } }, ...meta });
+      return { logoUpdatedAt: updated.logoUpdatedAt };
+    });
+  }
+
+  getLogo(tenantId: string, user: AuthUser, id: string) {
+    const allowed = companyFilter(user, 'org.companies:read');
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      if (allowed && !allowed.includes(id)) throw new NotFoundException('Logo não encontrado');
+      const logo = await tx.companyLogo.findFirst({ where: { companyId: id, company: { deletedAt: null } } });
+      if (!logo) throw new NotFoundException('Logo não encontrado');
+      return { dataUrl: `data:${logo.mime};base64,${Buffer.from(logo.data).toString('base64')}`, updatedAt: logo.updatedAt };
+    });
+  }
+
+  removeLogo(tenantId: string, user: AuthUser, id: string, meta: RequestMeta) {
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      const allowed = companyFilter(user, 'org.companies:update');
+      if (allowed && !allowed.includes(id)) throw new NotFoundException('Empresa não encontrada');
+      const deleted = await tx.companyLogo.deleteMany({ where: { companyId: id } });
+      if (!deleted.count) throw new NotFoundException('Logo não encontrado');
+      await tx.company.update({ where: { id }, data: { logoUpdatedAt: null } });
+      await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'UPDATE', entity: 'company', entityId: id, after: { logo: null }, ...meta });
+    });
+  }
+}
+
+/** Tipo real da imagem pelos primeiros bytes (não confia na extensão nem no tipo declarado). */
+export function sniffImage(buf: Buffer): 'image/png' | 'image/jpeg' | 'image/webp' | null {
+  if (buf.length > 8 && buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (buf.length > 12 && buf.subarray(0, 4).toString('ascii') === 'RIFF' && buf.subarray(8, 12).toString('ascii') === 'WEBP') return 'image/webp';
+  return null;
 }

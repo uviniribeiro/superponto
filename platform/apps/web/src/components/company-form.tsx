@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, ApiError, type AddressLookup, type CnpjLookup, type Company } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { BR_TIMEZONES, digits, maskCep, maskPhone, UFS } from '@/lib/masks';
+import { CompanyLogoField } from './company-logo';
 import { Button, Input, useToast } from './ui';
 
 export const SEGMENTS: Record<Company['segment'], string> = {
@@ -155,6 +156,11 @@ export function CompanyForm({ initial, onSaved }: { initial: Company | null; onS
 
   return (
     <form onSubmit={onSubmit} className="space-y-7" noValidate>
+      {initial && (
+        <Section title="Logo">
+          <CompanyLogoField company={initial} />
+        </Section>
+      )}
       <Section title="Identificação">
         <div className="space-y-1.5">
           <Input label="CNPJ" name="cnpj" value={f.cnpj} onChange={(e) => set('cnpj', maskCnpjInput(e.target.value))} error={errors.cnpj} placeholder="00.000.000/0000-00 ou 12.ABC.345/01DE-35" autoComplete="off" spellCheck={false} className="font-mono tracking-wide" autoFocus={!initial} hint={cnpjStatus.kind === 'idle' ? 'Digite o CNPJ: os dados da Receita são preenchidos automaticamente' : undefined} />

@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useDeferredValue, useState } from 'react';
 import { formatCnpj } from '@superponto/br-docs';
 import { CompanyForm, SEGMENTS } from '@/components/company-form';
+import { CompanyLogo } from '@/components/company-logo';
 import { Page, PageHeader } from '@/components/page';
 import { can, useSession } from '@/components/providers';
 import { TenantPicker, useActiveTenant } from '@/components/tenant-picker';
@@ -72,7 +73,7 @@ export default function CompaniesPage() {
               <AnimatePresence initial={false}>
                 {rows.map((c, i) => (
                   <motion.li key={c.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0, transition: { delay: Math.min(i, 10) * 0.03 } }} exit={{ opacity: 0, x: -16 }} className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-hover">
-                    <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft font-display font-bold text-brand">{(c.tradeName ?? c.legalName).charAt(0).toUpperCase()}</div>
+                    <CompanyLogo company={c} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{c.tradeName ?? c.legalName}</p>
                       <p className="truncate text-xs text-muted">{c.tradeName ? `${c.legalName} · ` : ''}<span className="font-mono">{showCnpj(c.cnpj)}</span>{c.city ? ` · ${c.city}/${c.state}` : ''}</p>

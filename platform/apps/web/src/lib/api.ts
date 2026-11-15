@@ -76,6 +76,7 @@ export interface Company {
   stateRegistration: string | null;
   cno: string | null;
   externalCode: string | null;
+  logoUpdatedAt: string | null;
   createdAt: string;
 }
 
