@@ -1,4 +1,4 @@
-import { CalendarCheck2, ClipboardCheck, FileCheck2, FileClock, Fingerprint, GitBranch, HeartPulse, Lock, MessageSquare, PiggyBank, CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { Router as RouterIcon, CalendarCheck2, ClipboardCheck, FileCheck2, FileClock, Fingerprint, GitBranch, HeartPulse, Lock, MessageSquare, PiggyBank, CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -88,6 +88,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
     ...(can(me, 'requests.requests:read') ? [{ id: 'flows', label: 'Fluxos de aprovação', href: '/solicitacoes/fluxos', icon: GitBranch } satisfies NavItem] : []),
   ];
   if (bancos.length) sections.push({ id: 'bancos', label: 'Bancos e solicitações', items: bancos });
+  if (can(me, 'devices.devices:read')) sections.push({ id: 'devices', label: 'Equipamentos', items: [{ id: 'devices', label: 'Relógios (REP)', href: '/equipamentos', icon: RouterIcon }] });
   if (can(me, 'admin.users:read')) {
     sections.push({
       id: 'admin',

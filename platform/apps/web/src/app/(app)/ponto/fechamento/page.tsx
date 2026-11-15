@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, Calculator, Lock, LockOpen } from 'lucide-react';
+import { Building2, Calculator, FileDown, Lock, LockOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Page, PageHeader } from '@/components/page';
 import { can, useSession } from '@/components/providers';
@@ -10,6 +10,7 @@ import { Button, Card, EmptyState, Input, Sheet, Skeleton, useToast } from '@/co
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useCompanyPick } from '@/lib/schedules';
+import { downloadText } from '@/lib/download';
 import { hhmm, monthRange, todayBr } from '@/lib/timesheet';
 
 interface Closing { id: string; periodStart: string; periodEnd: string; status: 'OPEN' | 'CLOSED' | 'REOPENED'; closedAt: string | null; reopenReason: string | null }
@@ -31,6 +32,8 @@ export default function FechamentoPage() {
   const refresh = () => { qc.invalidateQueries({ queryKey: ['closings'] }); qc.invalidateQueries({ queryKey: ['mirror'] }); };
   const calc = useMutation({ mutationFn: () => api<NonNullable<typeof calcResult>>('/timesheet/calculate', { method: 'POST', json: { companyId, from: period.from, to: period.to } }), onSuccess: (r) => { setCalcResult(r); toast('success', `Apuração gravada: ${r.days} dia(s) de ${r.employments} funcionário(s)`); }, onError: (e: Error) => toast('error', e.message) });
   const close = useMutation({ mutationFn: () => api<{ bankEntries: number; employments: number }>('/closings', { method: 'POST', json: { companyId, periodStart: period.from, periodEnd: period.to } }), onSuccess: (r) => { refresh(); toast('success', `Período fechado: ${r.employments} funcionário(s), ${r.bankEntries} lançamento(s) no banco de horas`); }, onError: (e: Error) => toast('error', e.message) });
+  const aej = useMutation({ mutationFn: () => api<{ filename: string; content: string; totals: { marcacoes: number; vinculos: number }; warnings: string[] }>(`/timesheet/aej?companyId=${companyId}&from=${period.from}&to=${period.to}`), onSuccess: (r) => { downloadText(r.filename, r.content); toast('success', `AEJ gerado: ${r.totals.vinculos} vínculo(s), ${r.totals.marcacoes} marcação(ões)`); if (r.warnings.length) setAejWarnings(r.warnings); }, onError: (e: Error) => toast('error', e.message) });
+  const [aejWarnings, setAejWarnings] = useState<string[]>([]);
   const reopen = useMutation({ mutationFn: () => api(`/closings/${reopening!.id}/reopen`, { method: 'POST', json: { reason } }), onSuccess: () => { refresh(); setReopening(null); setReason(''); toast('success', 'Período reaberto; os lançamentos do banco desse fechamento foram desfeitos'); }, onError: (e: Error) => toast('error', e.message) });
   const rows = list.data ?? [];
   return (
@@ -51,8 +54,10 @@ export default function FechamentoPage() {
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" onClick={() => calc.mutate()} loading={calc.isPending} disabled={!companyId}><Calculator className="size-4" />Calcular</Button>
                 <Button onClick={() => close.mutate()} loading={close.isPending} disabled={!companyId}><Lock className="size-4" />Fechar período</Button>
+                {can(me, 'reports.reports:export') && <Button variant="outline" onClick={() => aej.mutate()} loading={aej.isPending} disabled={!companyId}><FileDown className="size-4" />Gerar AEJ</Button>}
               </div>
             ) : <p className="text-sm text-subtle">Você pode ver os fechamentos, mas não fechar ou reabrir.</p>}
+            {!!aejWarnings.length && <div className="space-y-1 rounded-2xl border border-warning/40 bg-warning/10 p-3 text-xs">{aejWarnings.map((w) => <p key={w}>{w}</p>)}<p className="text-muted">Confira o arquivo no validador do MTE e assine (CAdES, certificado ICP-Brasil da empresa) antes de entregar.</p></div>}
             {calcResult && (
               <div className="space-y-1 rounded-2xl bg-hover p-3 text-sm">
                 <p><strong>{calcResult.days}</strong> dia(s) calculados de <strong>{calcResult.employments}</strong> funcionário(s).</p>
