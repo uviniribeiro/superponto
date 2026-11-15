@@ -22,7 +22,7 @@ export const decideSchema = z.object({ approve: z.boolean(), comment: z.string()
 export const justificationSchema = z.object({
   code: z.string().trim().min(1).max(20).optional(),
   name: z.string().trim().min(3).max(120),
-  disregardsDebits: z.boolean().default(true),
+  disregardsDebits: z.union([z.boolean(), z.enum(['true', 'false']).transform((v) => v === 'true')]).default(true),
   usageLimit: z.coerce.number().int().min(1).max(366).nullable().optional(),
   limitPeriod: z.enum(['MONTH', 'YEAR']).default('MONTH'),
   active: z.boolean().optional(),
