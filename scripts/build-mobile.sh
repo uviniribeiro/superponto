@@ -71,6 +71,11 @@ grep -q 'android.hardware.camera"' "$MANIFEST" || \
 echo "==> Sincronizando"
 npx cap sync android
 
+if [ "$APP" = terminal ]; then
+  echo "==> Terminal em tela cheia (quiosque)"
+  node scripts/mobile/patch-terminal.mjs "$NATIVE"
+fi
+
 mkdir -p public/downloads
 OUT="public/downloads/pontomax-$APP.apk"
 if [ -n "${PONTOMAX_KEYSTORE:-}" ]; then

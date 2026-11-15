@@ -17,6 +17,7 @@ export function testConfig(): AppConfig {
     API_URL: 'http://localhost:3000',
     JWT_SECRET: 'teste-segredo-jwt-com-mais-de-32-caracteres!!',
     MFA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+    BIOMETRIC_ENCRYPTION_KEY: Buffer.alloc(32, 9).toString('base64'),
     MAIL_TRANSPORT: 'memory',
   } as NodeJS.ProcessEnv);
 }

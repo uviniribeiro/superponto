@@ -12,7 +12,7 @@ Atualizado em 15/11/2026. A v1 (raiz do repositório) segue em produção; a v2 
 | 3. Núcleo de gestão | Pessoas, empresas, unidades, funcionários, matrículas, vínculos, jornadas, escalas | Não iniciada (modelo de dados pronto) |
 | 4. Módulos especializados | Educação, saúde, operacional | Não iniciada (modelo de dados pronto) |
 | 5. Controle de ponto | Marcações, apuração, banco de horas, solicitações, aprovações, relatórios | Motor de cálculo pronto e testado; API e telas não iniciadas |
-| 6. Equipamentos | Cadastro, adaptadores, sincronização, homologação | Não iniciada (projeto em DEVICE_INTEGRATIONS.md) |
+| 6. Equipamentos | Cadastro, adaptadores, sincronização, homologação | **Em andamento** — AFD das Portarias 1.510/373/671, fila de envio de empregador/funcionários/digitais, digitais cifradas e adaptador Control iD prontos e testados; telas, execução pelo Communication Server e homologação em equipamento real pendentes |
 | 7. Communication Server | Serviço independente em Node.js, filas, protocolos, painel | Não iniciada (projeto em COMMUNICATION_SERVER.md) |
 | 8. SaaS e SuperAdmin | Planos, assinaturas, cobrança, limites | Criação de clientes pelo SuperAdmin pronta; resto não iniciado |
 | 9. Testes e homologação | Ampliação contínua a cada fase | Em andamento |
@@ -34,6 +34,13 @@ alfanumérico (IN RFB 2.229/2024), com o exemplo oficial; usado pela API, pelo b
 formato) e pelas telas. Multi-CNPJ: cada cliente tem várias empresas e o mesmo CNPJ pode existir em
 clientes diferentes, sem vazamento.
 
+**Equipamentos** (`packages/rep-protocols`, 18 testes; API, 14 testes) — leitura de AFD das
+Portarias 1.510/2009 (PIS, data sem fuso) e 671/2021 (CPF, fuso, REP-P com hash), com detecção
+automática; importação idempotente que cria marcações com hash encadeado; fila de envio ao REP
+(empregador, funcionários, digitais) conferindo PIS/CPF por portaria; digitais cifradas (AES-256-GCM)
+com permissão própria; adaptador Control iD. Terminal Android: APK em tela cheia/quiosque gerado
+pelo workflow **APK do terminal**.
+
 **App web** (`apps/web`, Next.js 16) — login, esqueci/redefinir senha, painel com dados reais,
 empresas (CRUD com CNPJ alfanumérico), clientes (SuperAdmin, com seletor de organização), Manual e
 Conformidade MTE (30 exigências legais com a situação de cada uma). Barra lateral flutuante de vidro
@@ -42,7 +49,7 @@ abertura com revelação circular, transições entre telas (View Transitions), 
 Sessão em cookies httpOnly via BFF (`/api/*`). MANUAL.md e CONFORMIDADE_MTE.md são gerados do mesmo
 conteúdo das telas (`npm run docs -w @superponto/web`).
 
-**API** (`apps/api`, 59 testes contra PostgreSQL real com o papel sujeito à RLS):
+**API** (`apps/api`, 73 testes contra PostgreSQL real com o papel sujeito à RLS):
 - Autenticação com `@nestjs/authentication`: login por sessão (cookie `__Host-sid` httpOnly) e por
   token (JWT 15 min + refresh rotativo com detecção de reuso), saída, `/me`, esqueci minha senha
   (link de uso único, 1 h, mesma resposta para e-mail inexistente), scrypt (OWASP), limite de
@@ -63,8 +70,8 @@ conteúdo das telas (`npm run docs -w @superponto/web`).
 
 ## Próximos passos (fase 2 → 3)
 
-1. Equipamentos: leitura de AFD das Portarias 1510/2009 e 671/2021, envio de empregador,
-   funcionários e digitais ao REP, terminal Android (APK em tela cheia).
+1. Equipamentos: telas (cadastro, importar AFD, digitais), execução da fila pelo Communication
+   Server e homologação com equipamento Control iD real.
 2. MFA (TOTP) nas rotas administrativas e de SuperAdmin.
 3. Unidades, departamentos, cargos, usuários e perfis personalizados (API + telas).
 4. Pessoas e vínculos com múltiplas matrículas; jornadas e escalas usando o motor.

@@ -6,6 +6,7 @@ import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { PermissionsGuard } from './authorization/authorization.js';
 import { CompaniesModule } from './companies/companies.module.js';
+import { DevicesModule } from './devices/devices.module.js';
 import { APP_CONFIG, type AppConfig } from './config.js';
 import { HealthController } from './health/health.controller.js';
 import { PlatformModule } from './platform/platform.module.js';
@@ -37,6 +38,7 @@ export function createAppModule(config: AppConfig): DynamicModule {
       AuditModule,
       AuthModule,
       CompaniesModule,
+      DevicesModule,
       PlatformModule,
     ],
     controllers: [HealthController],

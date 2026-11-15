@@ -44,9 +44,38 @@ Armazenada em `device_homologations` (modelo × firmware × adaptador × versão
 comercializado como **homologado** após teste com equipamento real ou ambiente do fabricante,
 registrando data, recursos testados e limitações. Não há compatibilidade universal.
 
+## Portarias 1.510/2009, 373/2011 e 671/2021
+
+Cada equipamento é cadastrado com a portaria que o rege (`devices.ordinance`) e o seu fuso
+(`devices.timezone`). O pacote `packages/rep-protocols` concentra as regras:
+
+| | Portaria 1.510/2009 | Portaria 373/2011 (REP-A) | Portaria 671/2021 |
+|---|---|---|---|
+| Leiaute do AFD | registros 1, 2, 3, 4, 5, 9 | o do sistema (1.510 ou 671, detectado) | registros 1 a 7 e 9 |
+| Data e hora | ddmmaaaa hhmm, **sem fuso** (usa o fuso do equipamento) | conforme o leiaute | ISO 8601 com fuso |
+| Trabalhador | **PIS** | conforme o leiaute | **CPF** |
+| Empregador | CNPJ numérico ou CPF | conforme o leiaute | CNPJ (inclusive alfanumérico) ou CPF |
+
+**Recebimento** — `POST /v1/devices/:id/afd` lê o arquivo (detecção automática do leiaute), grava cada
+evento bruto em `device_events` e cria `time_records` dos trabalhadores identificados, com hash
+encadeado por vínculo. Reimportar não duplica (chave `afd:<equipamento>:<NSR>`). Lacunas de NSR, linhas
+inválidas e PIS/CPF desconhecidos voltam no resumo. AFD de outro CNPJ é recusado.
+
+**Envio** — `POST /v1/devices/:id/sync` agenda em `device_sync_jobs`: empregador (`SET_EMPLOYER`),
+funcionários ativos (`UPSERT_EMPLOYEE`) e digitais (`UPSERT_FINGERPRINT`). Quem não tem o documento
+exigido pela portaria volta em `skipped`. REP da 1.510 não recebe CNPJ alfanumérico (o campo dele
+só tem 14 dígitos). O adaptador Control iD (`controlIdRequests`) traduz cada comando para a API
+`*.fcgi`; comandos de REP iDClass estão marcados `homologationPending` até o teste em equipamento real.
+
+> A Portaria MTP nº 672/2021 trata de segurança e saúde no trabalho (EPI e equipamentos), não de
+> registro de ponto; por isso não há leiaute de equipamento associado a ela.
+
 ## LGPD e biometria
 
-- Templates biométricos e imagens faciais ficam **no equipamento**; o SuperPonto guarda só a
-  referência (`device_identifiers.type = BIOMETRIC_REFERENCE`).
+- **Digitais**: o SuperPonto guarda só o **template** (nunca a imagem) em `biometric_templates`,
+  cifrado com AES-256-GCM (`BIOMETRIC_ENCRYPTION_KEY`, separada das demais chaves). O template não volta
+  nas respostas da API nem na auditoria; a fila de envio guarda só a referência e ele é decifrado no
+  momento do envio ao equipamento. Uma nova captura revoga a anterior; o template gravado não pode ser
+  alterado (gatilho no banco). Acesso pela permissão `people.biometrics:manage`.
 - Envio de foto para reconhecimento facial exige finalidade registrada, consentimento/base legal
   e política de retenção configurada por empresa.

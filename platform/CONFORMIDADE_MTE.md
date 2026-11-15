@@ -11,12 +11,12 @@ _Revisado em 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › Confor
 
 | Situação | Itens |
 |---|---|
-| Atendido no sistema | 5 |
-| Em desenvolvimento | 6 |
+| Atendido no sistema | 7 |
+| Em desenvolvimento | 7 |
 | Planejado | 15 |
 | Ação da SuperPonto (fornecedor) | 2 |
 | Obrigação do empregador | 2 |
-| **Total** | **30** |
+| **Total** | **33** |
 
 ## Normas de referência
 
@@ -81,11 +81,13 @@ Regras da CLT que definem quando o controle de jornada é obrigatório e quais f
 
 ## Registrador eletrônico de ponto (REP)
 
-A Portaria MTP nº 671/2021 define três tipos de registrador e o programa que trata as marcações.
+A Portaria MTP nº 671/2021 define três tipos de registrador e o programa que trata as marcações; equipamentos das Portarias 1.510/2009 e 373/2011 seguem aceitos.
 
 | Exigência | Situação | Base legal |
 |---|---|---|
 | [Usar um dos três tipos de REP](#rep-tipos) | Em desenvolvimento | Portaria MTP nº 671/2021 (registro eletrônico de ponto) |
+| [Equipamentos das Portarias 1.510/2009 e 373/2011](#rep-legado) | Atendido no sistema | Portaria nº 1.510/2009; Portaria nº 373/2011; Portaria MTP nº 671/2021 (regras de transição) |
+| [Envio de empregador, funcionários e digitais ao REP](#rep-envio) | Em desenvolvimento | Portaria nº 1.510/2009; Portaria MTP nº 671/2021 (registros de empresa e de empregado no AFD) |
 | [Registro do software no INPI](#inpi) | Ação da SuperPonto (fornecedor) | Portaria MTP nº 671/2021 |
 | [Atestado Técnico e Termo de Responsabilidade](#atestado) | Ação da SuperPonto (fornecedor) | Portaria MTP nº 671/2021 |
 | [Condutas proibidas no sistema de ponto](#proibicoes) | Em desenvolvimento | Portaria MTP nº 671/2021 |
@@ -99,6 +101,22 @@ A Portaria MTP nº 671/2021 define três tipos de registrador e o programa que t
 - **Base legal:** Portaria MTP nº 671/2021 (registro eletrônico de ponto)
 - **Situação:** Em desenvolvimento
 - **No SuperPonto:** O SuperPonto é um REP-P (app e navegador) e também recebe marcações de relógios REP-C pelo Servidor de Comunicação. O cadastro de equipamentos guardará tipo, fabricante, número de fabricação e certificado.
+
+<a id="rep-legado"></a>
+### Equipamentos das Portarias 1.510/2009 e 373/2011
+
+- **O que a norma exige:** REPs certificados pela Portaria nº 1.510/2009 e sistemas alternativos autorizados pela Portaria nº 373/2011 (hoje REP-C e REP-A) continuam podendo ser usados; o AFD deles identifica o trabalhador pelo PIS e grava data e hora sem fuso.
+- **Base legal:** Portaria nº 1.510/2009; Portaria nº 373/2011; Portaria MTP nº 671/2021 (regras de transição)
+- **Situação:** Atendido no sistema
+- **No SuperPonto:** Cada equipamento é cadastrado com a sua portaria e o seu fuso. A API lê o AFD dos leiautes 1.510 e 671 (detecção automática), cria as marcações pelo PIS ou pelo CPF, não duplica numa reimportação, avisa sobre lacunas de NSR e recusa arquivo de outro CNPJ. Coberto por testes.
+
+<a id="rep-envio"></a>
+### Envio de empregador, funcionários e digitais ao REP
+
+- **O que a norma exige:** O REP precisa conhecer o empregador (CNPJ/CPF, razão social e local) e os trabalhadores (PIS no REP da 1.510, CPF no da 671) para registrar e identificar as marcações.
+- **Base legal:** Portaria nº 1.510/2009; Portaria MTP nº 671/2021 (registros de empresa e de empregado no AFD)
+- **Situação:** Em desenvolvimento
+- **No SuperPonto:** A API monta a fila de envio (empregador, funcionários ativos e digitais) por equipamento, conferindo PIS ou CPF e barrando CNPJ alfanumérico em REP da 1.510. O adaptador Control iD gera os comandos; a execução pelo Servidor de Comunicação e a homologação em equipamento real estão em andamento.
 
 <a id="inpi"></a>
 ### Registro do software no INPI
@@ -313,6 +331,7 @@ O ponto trata dados pessoais e, com biometria e geolocalização, dados sensíve
 |---|---|---|
 | [Base legal e finalidade](#lgpd-base) | Obrigação do empregador | Lei nº 13.709/2018 (LGPD), arts. 7º e 11 |
 | [Segurança e acesso mínimo](#lgpd-seguranca) | Atendido no sistema | LGPD, arts. 46 a 49 |
+| [Digitais (biometria) protegidas](#lgpd-biometria) | Atendido no sistema | LGPD, arts. 5º, II, 11 e 46 |
 | [Direitos do trabalhador (titular)](#lgpd-titular) | Planejado | LGPD, art. 18 |
 
 <a id="lgpd-base"></a>
@@ -330,6 +349,14 @@ O ponto trata dados pessoais e, com biometria e geolocalização, dados sensíve
 - **Base legal:** LGPD, arts. 46 a 49
 - **Situação:** Atendido no sistema
 - **No SuperPonto:** Senhas com hash forte, tokens em cookies httpOnly, isolamento por cliente no banco (RLS), permissões por perfil verificadas na API e auditoria imutável.
+
+<a id="lgpd-biometria"></a>
+### Digitais (biometria) protegidas
+
+- **O que a norma exige:** Biometria é dado pessoal sensível: guardar só o necessário, com segurança reforçada, acesso restrito e registro de uso.
+- **Base legal:** LGPD, arts. 5º, II, 11 e 46
+- **Situação:** Atendido no sistema
+- **No SuperPonto:** Guarda só o template da digital (nunca a imagem), cifrado com AES-256-GCM e chave própria; o template não volta para as telas nem para a auditoria, e a fila de envio aos REPs leva só a referência. Permissão exclusiva (people.biometrics:manage), isolamento por cliente no banco e template inalterável por gatilho.
 
 <a id="lgpd-titular"></a>
 ### Direitos do trabalhador (titular)

@@ -11,6 +11,8 @@ const schema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET precisa de ao menos 32 caracteres'),
   /** Chave AES-256-GCM (base64, 32 bytes) para cifrar segredos de MFA. */
   MFA_ENCRYPTION_KEY: z.string().min(40),
+  /** Chave AES-256-GCM (base64, 32 bytes) para cifrar digitais. Sem ela, o cadastro de digitais fica desativado. */
+  BIOMETRIC_ENCRYPTION_KEY: z.string().min(40).optional(),
   MAIL_TRANSPORT: z.enum(['smtp', 'memory']).default('memory'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().default(587),

@@ -13,6 +13,7 @@ export const PERMISSIONS = {
   'people.people:read': 'Ver pessoas',
   'people.people:manage': 'Cadastrar e editar pessoas',
   'people.sensitive:read': 'Ver dados sensíveis (CPF, PIS, documentos)',
+  'people.biometrics:manage': 'Cadastrar, remover e enviar digitais aos equipamentos',
   'people.employments:read': 'Ver vínculos e matrículas',
   'people.employments:manage': 'Admitir, alterar e desligar vínculos',
   'people.employments:import': 'Importar vínculos em lote',

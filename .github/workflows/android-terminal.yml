@@ -1,0 +1,81 @@
+name: APK do terminal (tela cheia)
+
+# Gera o APK do terminal de ponto (tablet em modo quiosque) apontando para o Supabase de produção.
+# O endereço e a chave pública entram no build (não ficam fixos no código), como os demais instaladores.
+# Baixe o APK em Actions > esta execução > Artifacts.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'mobile/**'
+      - 'scripts/build-mobile.sh'
+      - 'scripts/mobile/**'
+      - 'capacitor.config.ts'
+      - 'package.json'
+      - '.github/workflows/android-terminal.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF || secrets.EXT_SUPABASE_PROJECT_REF }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN || secrets.EXT_SUPABASE_ACCESS_TOKEN }}
+
+jobs:
+  apk:
+    name: Gerar APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+
+      - name: Endereço e chave pública do Supabase
+        id: keys
+        run: |
+          if [ -z "$SUPABASE_PROJECT_REF" ] || [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::Cadastre os secrets SUPABASE_PROJECT_REF e SUPABASE_ACCESS_TOKEN (veja deploy/SUPABASE.md)."
+            exit 1
+          fi
+          node scripts/deploy/supabase-setup.mjs keys
+
+      - name: Compilar APK do terminal
+        env:
+          PONTOMAX_KEYSTORE_B64: ${{ secrets.TERMINAL_KEYSTORE_B64 }}
+          PONTOMAX_KEYSTORE_PASS: ${{ secrets.TERMINAL_KEYSTORE_PASS }}
+          PONTOMAX_KEY_ALIAS: ${{ secrets.TERMINAL_KEY_ALIAS }}
+          PONTOMAX_KEY_PASS: ${{ secrets.TERMINAL_KEY_PASS }}
+        run: |
+          # Com a chave de assinatura nos secrets, gera APK de distribuição; sem ela, APK de teste.
+          if [ -n "$PONTOMAX_KEYSTORE_B64" ]; then
+            echo "$PONTOMAX_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/terminal.jks"
+            export PONTOMAX_KEYSTORE="$RUNNER_TEMP/terminal.jks"
+          fi
+          bash scripts/build-mobile.sh terminal \
+            --server "${{ steps.keys.outputs.supabase_url }}" \
+            --key "${{ steps.keys.outputs.anon_key }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: superponto-terminal-apk
+          path: public/downloads/pontomax-terminal.apk
+          retention-days: 30
+
+      - name: Resumo
+        run: |
+          {
+            echo "### APK do terminal gerado"
+            echo "- Baixe em **Artifacts › superponto-terminal-apk**"
+            echo "- Abre em tela cheia, mantém a tela ligada, não fecha pelo botão voltar e abre sozinho ao ligar o tablet"
+            echo "- Modo quiosque completo: veja mobile/terminal/README.md"
+          } >> "$GITHUB_STEP_SUMMARY"
