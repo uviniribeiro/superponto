@@ -11,6 +11,7 @@ import { CatalogService, catalogController, type CatalogConfig } from '../struct
 import type { Tx } from '../prisma/prisma.service.js';
 import { bankPolicySchema, bankResetSchema, bankTxSchema, BankService, ClosingsService, type BankPolicyInput, type BankResetInput, type BankTxInput } from './bank.service.js';
 import { ApprovalFlowsService, flowSchema, requestDecisionSchema, requestSchema, RequestsService, type FlowInput, type RequestInput } from './requests.service.js';
+import { AejService } from './aej.service.js';
 import { TimesheetCore } from './timesheet.core.js';
 import {
   adjustmentSchema, allowanceSchema, calculateSchema, closingSchema, dailySchema, decideSchema, justificationSchema, leaveSchema, listRangeSchema, mirrorSchema, onCallSchema, periodSchema, punchSchema, reopenSchema,
@@ -32,7 +33,7 @@ export const JUSTIFICATIONS: CatalogConfig = {
 @ApiBearerAuth()
 @Controller('v1/timesheet')
 export class TimesheetController {
-  constructor(private readonly svc: TimesheetService) {}
+  constructor(private readonly svc: TimesheetService, private readonly aejSvc: AejService) {}
 
   /** Espelho de ponto de um funcionário. */
   @Get()
@@ -47,6 +48,11 @@ export class TimesheetController {
   @Get('daily')
   @RequirePermission('time.calculations:read')
   daily(@ActiveTenant() t: string, @Query({ schema: dailySchema }) q: { companyId: string; date: string; departmentId?: string; groupingId?: string }) { return this.svc.daily(t, q); }
+
+  /** AEJ (Portaria 671) do período, gerado da apuração. */
+  @Get('aej')
+  @RequirePermission('reports.reports:export')
+  aej(@ActiveTenant() t: string, @Query({ schema: calculateSchema }) q: { companyId: string; from: string; to: string }) { return this.aejSvc.generate(t, q.companyId, q.from, q.to); }
 
   @Post('calculate')
   @HttpCode(200)
@@ -257,7 +263,7 @@ export class RequestsController {
     TimesheetController, AdjustmentsController, AbsencesController, ClosingsController, PunchController, BankController, ApprovalFlowsController, RequestsController,
     catalogController(JUSTIFICATIONS),
   ],
-  providers: [TimesheetCore, TimesheetService, AdjustmentsService, AbsencesService, PunchService, BankService, ClosingsService, ApprovalFlowsService, RequestsService, CatalogService],
+  providers: [AejService, TimesheetCore, TimesheetService, AdjustmentsService, AbsencesService, PunchService, BankService, ClosingsService, ApprovalFlowsService, RequestsService, CatalogService],
 })
 export class TimesheetModule {}
 
