@@ -80,11 +80,24 @@ jobs:
         continue-on-error: true
         env:
           SITE_URL_OVERRIDE: ${{ vars.SITE_URL }}
+          VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE }}
           SUPABASE_URL: ${{ steps.keys.outputs.supabase_url }}
           ANON_KEY: ${{ steps.keys.outputs.anon_key }}
         run: |
           if [ -n "$SITE_URL_OVERRIDE" ]; then echo "url=${SITE_URL_OVERRIDE%/}" >> "$GITHUB_OUTPUT"; fi
-          deployment=$(npx -y vercel@65 --prod --yes --token "$VERCEL_TOKEN" \
+          # Diagnóstico do token (nunca imprime o valor) e escopo automático:
+          # tokens de equipe não têm usuário; nesse caso a implantação usa a equipe (--scope).
+          user_code=$(curl -s -o /dev/null -w '%{http_code}' https://api.vercel.com/v2/user -H "Authorization: Bearer $VERCEL_TOKEN")
+          teams_json=$(curl -s https://api.vercel.com/v2/teams -H "Authorization: Bearer $VERCEL_TOKEN" || true)
+          teams=$(printf '%s' "$teams_json" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{const t=JSON.parse(d).teams||[];console.log(t.map(x=>x.slug).join(' '))}catch{console.log('')}})")
+          echo "Vercel: usuário HTTP $user_code; equipes acessíveis: ${teams:-nenhuma}"
+          scope="${VERCEL_SCOPE:-}"
+          if [ -z "$scope" ] && [ "$user_code" != "200" ]; then scope="${teams%% *}"; fi
+          if [ "$user_code" != "200" ] && [ -z "$scope" ]; then
+            echo "::error::VERCEL_TOKEN inválido: a Vercel não reconhece o token (usuário HTTP $user_code, nenhuma equipe). Gere outro em vercel.com/account/tokens."
+            exit 1
+          fi
+          deployment=$(npx -y vercel@65 --prod --yes --token "$VERCEL_TOKEN" ${scope:+--scope "$scope"} \
             --build-env VITE_SUPABASE_URL="$SUPABASE_URL" \
             --build-env VITE_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
             --build-env VITE_SUPABASE_PROJECT_ID="$SUPABASE_PROJECT_REF")
