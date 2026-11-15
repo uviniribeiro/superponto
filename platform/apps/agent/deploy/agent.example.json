@@ -1,0 +1,19 @@
+{
+  "apiUrl": "https://api.seu-dominio.com.br",
+  "stateFile": "C:/SuperPonto/agente/estado.json",
+  "intervalSeconds": 30,
+  "devices": [
+    {
+      "id": "portaria",
+      "key": "spd_COLE_AQUI_A_CHAVE_GERADA_NA_TELA_EQUIPAMENTOS",
+      "driver": "controlid",
+      "host": "192.168.0.50",
+      "port": 443,
+      "https": true,
+      "insecureTls": true,
+      "login": "admin",
+      "password": "senha-do-relogio",
+      "family": "rep"
+    }
+  ]
+}

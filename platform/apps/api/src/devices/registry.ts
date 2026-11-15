@@ -331,7 +331,9 @@ export class AgentService {
   async heartbeat(key: string | undefined, input: z.infer<typeof heartbeatSchema>) {
     const d = await this.auth(key);
     await this.monitor.seen(d.tenantId, d.id, input);
-    return { ok: true, serverTime: new Date().toISOString() };
+    // Configuração que o agente usa (endereço e intervalo vêm do cadastro; usuário/senha do relógio ficam só no agente).
+    const cfg = await this.prisma.forTenant(d.tenantId, (tx) => tx.device.findFirstOrThrow({ where: { id: d.id }, select: { name: true, manufacturer: true, modelName: true, host: true, port: true, ordinance: true, timezone: true, collectIntervalMinutes: true } }));
+    return { ok: true, serverTime: new Date().toISOString(), device: { name: cfg.name, manufacturer: cfg.manufacturer, modelName: cfg.modelName, host: cfg.host, port: cfg.port, layout: layoutOf(cfg.ordinance), timezone: cfg.timezone, collectIntervalMinutes: cfg.collectIntervalMinutes ?? 10 } };
   }
 
   /** Entrega até 50 comandos da fila (marcados como em execução), já com os dados que o relógio precisa. */

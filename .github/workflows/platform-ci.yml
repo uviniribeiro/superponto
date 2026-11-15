@@ -64,6 +64,11 @@ jobs:
         run: |
           npm run typecheck -w @superponto/rep-protocols
           npm test -w @superponto/rep-protocols
+      - name: Agente local (drivers Control iD e simulador)
+        run: |
+          npm run typecheck -w @superponto/agent
+          npm test -w @superponto/agent
+          npm run build -w @superponto/agent
       - name: Manual e conformidade em dia
         run: |
           npm run docs -w @superponto/web

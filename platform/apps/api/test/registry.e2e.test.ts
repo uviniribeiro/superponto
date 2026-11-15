@@ -78,6 +78,7 @@ describe('Equipamentos: cadastro, agente local, alertas, AFD e AEJ', () => {
     expect(key).toMatch(/^spd_/);
     const hb = await api(app).post('/v1/agent/heartbeat').set(agent()).send({ firmware: '1.2.3' }).expect(200);
     expect(hb.body.ok).toBe(true);
+    expect(hb.body.device).toMatchObject({ layout: expect.stringMatching(/^(1510|671)$/), collectIntervalMinutes: expect.any(Number) });
     const d = await api(app).get(`/v1/devices/${ids.dev}`).set(as('admin')).expect(200);
     expect(d.body).toMatchObject({ status: 'ONLINE', firmware: '1.2.3', hasAgentKey: true });
     expect(await owner.device.count({ where: { agentKeyHash: { contains: key } } })).toBe(0); // só o hash fica guardado
