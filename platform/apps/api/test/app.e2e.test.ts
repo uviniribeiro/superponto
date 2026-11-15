@@ -164,6 +164,34 @@ describe('SuperPonto API — autenticação, multi-tenant, permissões e auditor
     await expect(owner.auditLog.deleteMany({ where: { entityId: companyA } })).rejects.toThrow();
   });
 
+  it('CNPJ alfanumérico (IN RFB 2.229/2024): aceito, normalizado e encontrado na busca', async () => {
+    const res = await api(app).post('/v1/companies').set(as(ADMIN_A))
+      .send({ legalName: 'Alfa Filial Norte', cnpj: '12.abc.345/01de-35' }).expect(201);
+    expect(res.body.cnpj).toBe('12ABC34501DE35');
+    const found = await api(app).get('/v1/companies?search=abc.345').set(as(ADMIN_A)).expect(200);
+    expect(found.body.data.map((c: { id: string }) => c.id)).toEqual([res.body.id]);
+  });
+
+  it('CNPJ com dígito verificador errado ou letra no DV é recusado', async () => {
+    await api(app).post('/v1/companies').set(as(ADMIN_A)).send({ legalName: 'DV errado', cnpj: '12ABC34501DE36' }).expect(400);
+    await api(app).post('/v1/companies').set(as(ADMIN_A)).send({ legalName: 'Letra no DV', cnpj: '12ABC34501DE3A' }).expect(400);
+    await api(app).post('/v1/companies').set(as(ADMIN_A)).send({ legalName: 'Repetido', cnpj: '11111111111111' }).expect(400);
+  });
+
+  it('multi-CNPJ: o mesmo CNPJ pode existir em clientes diferentes, sem vazar entre eles', async () => {
+    await api(app).post('/v1/companies').set(as(ADMIN_B)).send({ legalName: 'Beta Norte', cnpj: '12ABC34501DE35' }).expect(201);
+    const a = await api(app).get('/v1/companies?search=12ABC34501DE35').set(as(ADMIN_A)).expect(200);
+    const b = await api(app).get('/v1/companies?search=12ABC34501DE35').set(as(ADMIN_B)).expect(200);
+    expect(a.body.data.map((c: { legalName: string }) => c.legalName)).toEqual(['Alfa Filial Norte']);
+    expect(b.body.data.map((c: { legalName: string }) => c.legalName)).toEqual(['Beta Norte']);
+  });
+
+  it('o banco recusa CNPJ fora do formato mesmo sem passar pela API', async () => {
+    await expect(owner.$executeRawUnsafe(
+      `UPDATE companies SET cnpj = '12.ABC.345/01DE-35' WHERE legal_name = 'Alfa Filial Norte'`,
+    )).rejects.toThrow(/companies_cnpj_format/);
+  });
+
   it('refresh token gira e o reuso revoga toda a família', async () => {
     const issued = await api(app).post('/v1/auth/token').send({ email: ADMIN_A, password: PASSWORD }).expect(200);
     const first = issued.body.refreshToken as string;

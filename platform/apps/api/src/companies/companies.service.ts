@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { normalizeCnpj } from '@superponto/br-docs';
 import type { AuthUser } from '../auth/auth-user.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { PageQuery, RequestMeta } from '../common/tenant.js';
@@ -23,7 +24,7 @@ export class CompaniesService {
       const where = {
         deletedAt: null,
         ...(allowed ? { id: { in: allowed } } : {}),
-        ...(q.search ? { OR: [{ legalName: { contains: q.search, mode: 'insensitive' as const } }, { tradeName: { contains: q.search, mode: 'insensitive' as const } }, { cnpj: { contains: q.search.replace(/\D/g, '') || q.search } }] } : {}),
+        ...(q.search ? { OR: [{ legalName: { contains: q.search, mode: 'insensitive' as const } }, { tradeName: { contains: q.search, mode: 'insensitive' as const } }, { cnpj: { contains: normalizeCnpj(q.search) || q.search, mode: 'insensitive' as const } }] } : {}),
       };
       const [data, total] = await Promise.all([
         tx.company.findMany({ where, orderBy: { legalName: 'asc' }, skip: (q.page - 1) * q.pageSize, take: q.pageSize }),

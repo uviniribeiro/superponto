@@ -36,12 +36,20 @@ jobs:
       - run: npm ci
       - name: Build dos pacotes
         run: |
+          npm run build -w @superponto/br-docs
           npm run build -w @superponto/time-engine
           npm run build -w @superponto/database
       - name: Typecheck
         run: |
           npm run typecheck -w @superponto/time-engine
           npm run typecheck -w @superponto/api
+          npm run typecheck -w @superponto/web
+      - name: CNPJ (numérico e alfanumérico)
+        run: npm test -w @superponto/br-docs
+      - name: Manual e conformidade em dia
+        run: |
+          npm run docs -w @superponto/web
+          git diff --exit-code -- MANUAL.md CONFORMIDADE_MTE.md || { echo "::error::Rode 'npm run docs -w @superponto/web' e faça commit dos .md gerados"; exit 1; }
       - name: Motor de jornada
         run: npm test -w @superponto/time-engine
       - name: API (PostgreSQL real, RLS, contrato de autenticação)
@@ -50,3 +58,5 @@ jobs:
         run: npm test -w @superponto/api
       - name: Build da API
         run: npm run build -w @superponto/api
+      - name: Build do site (Next.js)
+        run: npm run build -w @superponto/web

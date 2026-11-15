@@ -6,13 +6,15 @@ import type { AuthUser } from '../auth/auth-user.js';
 import { normalizeEmail } from '../auth/users.repository.js';
 import { AuditService } from '../audit/audit.service.js';
 import { RequirePermission } from '../authorization/authorization.js';
+import { cnpjSchema } from '../common/documents.js';
 import { pageSchema, RequestInfo, type PageQuery, type RequestMeta } from '../common/tenant.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const createTenantSchema = z.object({
   name: z.string().trim().min(2).max(200),
   slug: z.string().trim().toLowerCase().regex(/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/, 'Use letras minúsculas, números e hífen'),
-  document: z.string().trim().max(32).optional(),
+  /** CNPJ do titular do contrato (numérico ou alfanumérico). */
+  document: cnpjSchema.optional(),
   admin: z.object({ email: z.email(), displayName: z.string().trim().min(2).max(200) }),
 });
 type CreateTenant = z.infer<typeof createTenantSchema>;

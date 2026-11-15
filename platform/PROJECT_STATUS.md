@@ -8,7 +8,7 @@ Atualizado em 15/11/2026. A v1 (raiz do repositório) segue em produção; a v2 
 | Fase | Escopo | Situação |
 |---|---|---|
 | 1. Auditoria e planejamento | Inventário da v1, arquitetura, modelo de dados, módulos, riscos | **Concluída** — ARCHITECTURE.md, DATABASE.md, COMMUNICATION_SERVER.md, DEVICE_INTEGRATIONS.md |
-| 2. Infraestrutura e base | Monorepo, API NestJS, Prisma, autenticação, multi-tenant, permissões, auditoria | **Em andamento** — base da API pronta e testada (detalhes abaixo); falta o app web (Next.js) e MFA nas rotas |
+| 2. Infraestrutura e base | Monorepo, API NestJS, Prisma, autenticação, multi-tenant, permissões, auditoria | **Em andamento** — API e app web prontos e testados (detalhes abaixo); falta MFA nas rotas |
 | 3. Núcleo de gestão | Pessoas, empresas, unidades, funcionários, matrículas, vínculos, jornadas, escalas | Não iniciada (modelo de dados pronto) |
 | 4. Módulos especializados | Educação, saúde, operacional | Não iniciada (modelo de dados pronto) |
 | 5. Controle de ponto | Marcações, apuração, banco de horas, solicitações, aprovações, relatórios | Motor de cálculo pronto e testado; API e telas não iniciadas |
@@ -29,7 +29,20 @@ marcações ao dia da jornada, tolerância da CLT (5 min por marcação / 10 min
 percentual (normal, noturna, folga, feriado, intervalo), hora noturna reduzida, faltas, afastamentos,
 banco de horas com vencimento FIFO e multiplicadores, resumo do período.
 
-**API** (`apps/api`, 45 testes contra PostgreSQL real com o papel sujeito à RLS):
+**CNPJ alfanumérico** (`packages/br-docs`, 7 testes) — validação e máscara do CNPJ numérico e do
+alfanumérico (IN RFB 2.229/2024), com o exemplo oficial; usado pela API, pelo banco (restrição de
+formato) e pelas telas. Multi-CNPJ: cada cliente tem várias empresas e o mesmo CNPJ pode existir em
+clientes diferentes, sem vazamento.
+
+**App web** (`apps/web`, Next.js 16) — login, esqueci/redefinir senha, painel com dados reais,
+empresas (CRUD com CNPJ alfanumérico), clientes (SuperAdmin, com seletor de organização), Manual e
+Conformidade MTE (30 exigências legais com a situação de cada uma). Barra lateral flutuante de vidro
+(recolhe/expande, pílula deslizante, árvore de subitens, tooltips, modo noturno), busca Ctrl+K,
+abertura com revelação circular, transições entre telas (View Transitions), versão celular.
+Sessão em cookies httpOnly via BFF (`/api/*`). MANUAL.md e CONFORMIDADE_MTE.md são gerados do mesmo
+conteúdo das telas (`npm run docs -w @superponto/web`).
+
+**API** (`apps/api`, 59 testes contra PostgreSQL real com o papel sujeito à RLS):
 - Autenticação com `@nestjs/authentication`: login por sessão (cookie `__Host-sid` httpOnly) e por
   token (JWT 15 min + refresh rotativo com detecção de reuso), saída, `/me`, esqueci minha senha
   (link de uso único, 1 h, mesma resposta para e-mail inexistente), scrypt (OWASP), limite de
@@ -50,8 +63,8 @@ banco de horas com vencimento FIFO e multiplicadores, resumo do período.
 
 ## Próximos passos (fase 2 → 3)
 
-1. App web Next.js com a identidade visual (tema escuro grafite, amarelo SuperPonto), login,
-   recuperação de senha, seleção de empresa e layout com sidebar.
+1. Equipamentos: leitura de AFD das Portarias 1510/2009 e 671/2021, envio de empregador,
+   funcionários e digitais ao REP, terminal Android (APK em tela cheia).
 2. MFA (TOTP) nas rotas administrativas e de SuperAdmin.
 3. Unidades, departamentos, cargos, usuários e perfis personalizados (API + telas).
 4. Pessoas e vínculos com múltiplas matrículas; jornadas e escalas usando o motor.
