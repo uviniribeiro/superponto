@@ -7,8 +7,16 @@ export const PERMISSIONS = {
   'org.companies:create': 'Cadastrar empresas',
   'org.companies:update': 'Editar empresas',
   'org.companies:delete': 'Excluir (logicamente) empresas',
-  'org.units:read': 'Ver unidades e departamentos',
-  'org.units:manage': 'Gerenciar unidades e departamentos',
+  'org.units:read': 'Ver unidades',
+  'org.units:manage': 'Gerenciar unidades',
+  'org.departments:read': 'Ver departamentos',
+  'org.departments:manage': 'Gerenciar departamentos',
+  'org.positions:read': 'Ver cargos',
+  'org.positions:manage': 'Gerenciar cargos',
+  'org.holidays:read': 'Ver feriados',
+  'org.holidays:manage': 'Cadastrar feriados da empresa e decidir folga/trabalho',
+  'org.unions:read': 'Ver sindicatos',
+  'org.unions:manage': 'Gerenciar sindicatos',
   // Pessoas e vínculos
   'people.people:read': 'Ver pessoas',
   'people.people:manage': 'Cadastrar e editar pessoas',
@@ -17,18 +25,29 @@ export const PERMISSIONS = {
   'people.employments:read': 'Ver vínculos e matrículas',
   'people.employments:manage': 'Admitir, alterar e desligar vínculos',
   'people.employments:import': 'Importar vínculos em lote',
+  'people.leaves:read': 'Ver afastamentos, férias e licenças',
+  'people.leaves:manage': 'Lançar afastamentos, férias e licenças',
+  'people.leaves:import': 'Importar afastamentos em lote',
   // Jornadas e escalas
   'schedules.schedules:read': 'Ver jornadas e escalas',
   'schedules.schedules:manage': 'Gerenciar jornadas e escalas',
+  'schedules.timetables:read': 'Ver horários',
+  'schedules.timetables:manage': 'Gerenciar horários',
+  'schedules.scheduled:manage': 'Lançar escala agendada (trabalho/folga por dia)',
   // Ponto
   'time.records:read': 'Ver marcações',
   'time.records:create': 'Registrar marcação própria',
+  'time.records:import': 'Importar marcações (AFD e integrações)',
   'time.adjustments:create': 'Lançar ajustes de marcação',
   'time.adjustments:approve': 'Aprovar ajustes de marcação',
+  'time.allowances:create': 'Lançar abonos de falta e de atraso',
+  'time.justifications:manage': 'Gerenciar códigos de justificativa e abono',
+  'time.overtime:approve': 'Aprovar horas extras',
   'time.calculations:read': 'Ver apuração e espelho',
   'time.closings:manage': 'Fechar e reabrir períodos',
   'time.bank:read': 'Ver banco de horas',
   'time.bank:manage': 'Lançar movimentos no banco de horas',
+  'time.compensation:manage': 'Configurar bancos de compensação',
   // Solicitações
   'requests.requests:create': 'Abrir solicitações',
   'requests.requests:read': 'Ver solicitações da equipe',
@@ -54,6 +73,9 @@ export const PERMISSIONS = {
   // Relatórios
   'reports.reports:read': 'Ver relatórios',
   'reports.reports:export': 'Exportar relatórios (PDF, Excel, CSV, AFD, AEJ)',
+  'reports.payroll:export': 'Exportar para a folha de pagamento',
+  // Integrações
+  'integrations.api:manage': 'Gerenciar integrações e chaves de API',
   // Administração do tenant
   'admin.users:read': 'Ver usuários',
   'admin.users:manage': 'Gerenciar usuários',
@@ -66,6 +88,32 @@ export const PERMISSIONS = {
   'platform.plans:manage': 'Gerenciar planos',
   'platform.monitoring:read': 'Monitorar a plataforma',
 } as const;
+
+/** Nomes para a tela de permissões: módulo → recurso → ação. */
+export const MODULE_LABELS: Record<string, string> = {
+  org: 'Organização', people: 'Pessoas', schedules: 'Jornadas e escalas', time: 'Ponto', requests: 'Solicitações',
+  education: 'Educação', health: 'Saúde', operational: 'Operacional', devices: 'Equipamentos', reports: 'Relatórios',
+  integrations: 'Integrações', admin: 'Administração', platform: 'Plataforma',
+};
+export const RESOURCE_LABELS: Record<string, string> = {
+  'org.companies': 'Empresas', 'org.units': 'Unidades', 'org.departments': 'Departamentos', 'org.positions': 'Cargos', 'org.holidays': 'Feriados', 'org.unions': 'Sindicatos',
+  'people.people': 'Pessoas', 'people.sensitive': 'Dados sensíveis', 'people.biometrics': 'Digitais', 'people.employments': 'Vínculos e matrículas', 'people.leaves': 'Afastamentos',
+  'schedules.schedules': 'Jornadas e escalas', 'schedules.timetables': 'Horários', 'schedules.scheduled': 'Escala agendada',
+  'time.records': 'Marcações', 'time.adjustments': 'Ajustes de marcação', 'time.allowances': 'Abonos', 'time.justifications': 'Justificativas', 'time.overtime': 'Horas extras',
+  'time.calculations': 'Apuração e espelho', 'time.closings': 'Fechamento de período', 'time.bank': 'Banco de horas', 'time.compensation': 'Banco de compensação',
+  'requests.requests': 'Solicitações', 'requests.flows': 'Fluxos de aprovação',
+  'education.academic': 'Turmas e grades', 'education.sessions': 'Aulas', 'health.shifts': 'Plantões', 'health.rooms': 'Salas e agenda',
+  'operational.board': 'Painel operacional', 'operational.occurrences': 'Ocorrências', 'operational.assignments': 'Alocações',
+  'devices.devices': 'Equipamentos', 'devices.commands': 'Comandos aos equipamentos', 'devices.servers': 'Servidores de comunicação',
+  'reports.reports': 'Relatórios', 'reports.payroll': 'Exportação para folha', 'integrations.api': 'Integrações e chaves de API',
+  'admin.users': 'Usuários', 'admin.roles': 'Perfis e permissões', 'admin.audit': 'Auditoria', 'admin.settings': 'Configurações', 'admin.billing': 'Plano e assinatura',
+  'platform.tenants': 'Clientes', 'platform.plans': 'Planos', 'platform.monitoring': 'Monitoramento',
+};
+export const ACTION_LABELS: Record<string, string> = {
+  read: 'Ver', create: 'Criar', update: 'Editar', delete: 'Excluir', manage: 'Gerenciar', approve: 'Aprovar', import: 'Importar', export: 'Exportar', execute: 'Executar',
+};
+/** Recursos com tela pronta na V2 (os demais aparecem como "em construção"). */
+export const AVAILABLE_RESOURCES = new Set(['org.companies', 'org.holidays', 'people.biometrics', 'devices.commands', 'time.records', 'admin.users', 'admin.roles', 'platform.tenants']);
 
 export type PermissionKey = keyof typeof PERMISSIONS;
 
@@ -87,7 +135,7 @@ export const SYSTEM_ROLES: SystemRole[] = [
   { key: 'super_admin', name: 'SuperAdministrador', description: 'Equipe SuperPonto: administração global da plataforma', permissions: all },
   { key: 'company_admin', name: 'Administrador da empresa', description: 'Acesso total à organização', permissions: tenantAll },
   { key: 'director', name: 'Diretor', description: 'Visão completa, sem administração técnica', permissions: [...readOnly(tenantAll), 'requests.requests:approve', 'reports.reports:export'] },
-  { key: 'hr', name: 'RH', description: 'Pessoas, vínculos, ponto e banco de horas', permissions: [...pick('people.', 'schedules.', 'time.', 'requests.', 'reports.'), 'org.companies:read', 'org.units:read', 'admin.users:read'] },
+  { key: 'hr', name: 'RH', description: 'Pessoas, vínculos, ponto e banco de horas', permissions: [...pick('people.', 'schedules.', 'time.', 'requests.', 'reports.'), 'org.companies:read', 'org.units:read', 'org.departments:read', 'org.positions:read', 'org.holidays:read', 'org.holidays:manage', 'org.unions:read', 'admin.users:read'] },
   { key: 'manager', name: 'Gestor', description: 'Equipe sob sua gestão', permissions: [...SELF, 'people.people:read', 'people.employments:read', 'schedules.schedules:read', 'time.records:read', 'time.calculations:read', 'time.bank:read', 'time.adjustments:create', 'time.adjustments:approve', 'requests.requests:read', 'requests.requests:approve', 'reports.reports:read', 'org.units:read'] },
   { key: 'supervisor', name: 'Supervisor', description: 'Acompanhamento da equipe e ocorrências', permissions: [...SELF, 'people.employments:read', 'time.records:read', 'time.calculations:read', 'requests.requests:read', 'operational.board:read', 'operational.occurrences:manage', 'org.units:read'] },
   { key: 'school_coordinator', name: 'Coordenador escolar', description: 'Gestão acadêmica e jornada docente', permissions: [...SELF, ...pick('education.'), 'people.employments:read', 'schedules.schedules:read', 'time.calculations:read', 'requests.requests:read', 'requests.requests:approve', 'reports.reports:read', 'org.units:read'] },

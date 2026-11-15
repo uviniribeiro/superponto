@@ -45,8 +45,14 @@ export interface Me {
   displayName: string;
   tenantId: string | null;
   isPlatformAdmin: boolean;
+  isSupport?: boolean;
   permissions: string[];
 }
+
+export interface RoleRef { id: string; key: string; name: string }
+export interface UserRow { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: string | null; roles: RoleRef[]; editable: boolean; isSelf: boolean }
+export interface RoleRow { id: string; key: string; name: string; description: string | null; isSystem: boolean; editable: boolean; permissions: string[]; users: number }
+export interface PermissionModule { key: string; label: string; resources: Array<{ key: string; label: string; available: boolean; actions: Array<{ permission: string; action: string; label: string; description: string }> }> }
 
 export interface Page<T> { data: T[]; page: number; pageSize: number; total: number }
 

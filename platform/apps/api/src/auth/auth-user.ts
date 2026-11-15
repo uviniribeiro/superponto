@@ -8,6 +8,8 @@ export interface AuthUser {
   tenantId: string | null;
   personId: string | null;
   isPlatformAdmin: boolean;
+  /** usuário de suporte/treinamento da equipe SuperPonto dentro do cliente */
+  isSupport: boolean;
   mustChangePassword: boolean;
   grants: Grant[];
 }

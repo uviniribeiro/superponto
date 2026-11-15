@@ -45,7 +45,7 @@ export class UsersRepository {
 
   private async toAuthUser(tx: Parameters<Parameters<PrismaService['asPlatform']>[0]>[0], user: {
     id: string; email: string; displayName: string; tenantId: string | null; personId: string | null;
-    isPlatformAdmin: boolean; mustChangePassword: boolean;
+    isPlatformAdmin: boolean; isSupport: boolean; mustChangePassword: boolean;
   }): Promise<AuthUser> {
     const roles = await tx.userRole.findMany({
       where: { userId: user.id },
@@ -67,6 +67,7 @@ export class UsersRepository {
       tenantId: user.tenantId,
       personId: user.personId,
       isPlatformAdmin: user.isPlatformAdmin,
+      isSupport: user.isSupport,
       mustChangePassword: user.mustChangePassword,
       grants,
     };

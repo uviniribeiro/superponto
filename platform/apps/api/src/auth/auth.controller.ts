@@ -17,7 +17,7 @@ import { CredentialsService } from './credentials.service.js';
 
 const publicUser = (u: AuthUser) => ({
   id: u.id, email: u.email, displayName: u.displayName, tenantId: u.tenantId, personId: u.personId,
-  isPlatformAdmin: u.isPlatformAdmin, mustChangePassword: u.mustChangePassword,
+  isPlatformAdmin: u.isPlatformAdmin, isSupport: u.isSupport, mustChangePassword: u.mustChangePassword,
   permissions: [...new Set(u.grants.map((g) => g.permission))].sort(),
 });
 

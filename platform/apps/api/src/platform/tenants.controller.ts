@@ -9,6 +9,7 @@ import { RequirePermission } from '../authorization/authorization.js';
 import { cnpjSchema } from '../common/documents.js';
 import { pageSchema, RequestInfo, type PageQuery, type RequestMeta } from '../common/tenant.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SupportProvisioningService } from '../users/support.service.js';
 
 const createTenantSchema = z.object({
   name: z.string().trim().min(2).max(200),
@@ -28,6 +29,7 @@ export class TenantsController {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly passwordReset: PasswordResetService,
+    private readonly support: SupportProvisioningService,
   ) {}
 
   @Get()
@@ -55,10 +57,13 @@ export class TenantsController {
       const role = await tx.role.findFirstOrThrow({ where: { tenantId: null, key: 'company_admin' } });
       const admin = await tx.user.create({ data: { tenantId: tenant.id, email, displayName: body.admin.displayName } });
       await tx.userRole.create({ data: { userId: admin.id, roleId: role.id, tenantId: tenant.id, scope: 'TENANT' } });
+      // Usuário de suporte e treinamento da equipe SuperPonto, criado junto com o cliente.
+      const supportUser = await this.support.ensureInTx(tx, tenant);
       await this.audit.record(tx, { tenantId: tenant.id, actorUserId: actor.id, action: 'CREATE', entity: 'tenant', entityId: tenant.id, after: { tenant, adminEmail: email }, ...meta });
-      return { tenant, adminId: admin.id };
+      return { tenant, adminId: admin.id, supportEmail: supportUser.email };
     });
     this.passwordReset.request(email);
+    this.support.sendAccess(result.supportEmail);
     return result;
   }
 }

@@ -1778,6 +1778,9 @@ model User {
   passwordHash       String?   @map("password_hash")
   displayName        String    @map("display_name")
   isPlatformAdmin    Boolean   @default(false) @map("is_platform_admin")
+  /// Usuário de suporte e treinamento da equipe SuperPonto dentro do cliente: oculto da lista
+  /// para os usuários do cliente e não editável por ninguém do cliente.
+  isSupport          Boolean   @default(false) @map("is_support")
   isActive           Boolean   @default(true) @map("is_active")
   mustChangePassword Boolean   @default(false) @map("must_change_password")
   lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz(6)

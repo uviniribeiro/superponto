@@ -15,10 +15,11 @@ _V2 — versão de 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › 
 6. [Empresas e CNPJs](#6-empresas)
 7. [Feriados](#7-feriados)
 8. [Clientes da plataforma](#8-clientes)
-9. [Perfis e permissões](#9-perfis)
-10. [Segurança, auditoria e privacidade](#10-seguranca)
-11. [Módulos em construção](#11-construcao)
-12. [Suporte](#12-suporte)
+9. [Usuários](#9-usuarios)
+10. [Perfis e permissões](#10-perfis)
+11. [Segurança, auditoria e privacidade](#11-seguranca)
+12. [Módulos em construção](#12-construcao)
+13. [Suporte](#13-suporte)
 
 <a id="1-visao"></a>
 ## 1. O que é o SuperPonto
@@ -157,19 +158,40 @@ Ao criar um cliente, informe o nome, o identificador (gerado a partir do nome), 
 
 > **Dica:** Clientes novos começam no status "Em teste".
 
-<a id="9-perfis"></a>
-## 9. Perfis e permissões
+<a id="9-usuarios"></a>
+## 9. Usuários
 
 **Para:** Administradores
 
-Cada usuário recebe um ou mais perfis. Os perfis do sistema são: SuperAdministrador, Administrador da empresa, Diretor, RH, Gestor, Supervisor, Coordenador escolar, Coordenador médico, Coordenador operacional, Responsável por escalas, Responsável por equipamentos, Funcionário, Professor e Médico.
+Cada cliente já começa com dois usuários: o Administrador (indicado no cadastro do cliente) e o Suporte SuperPonto, usado pela equipe SuperPonto para atendimento e treinamento.
 
-Um perfil pode valer para a organização inteira ou só para empresas específicas: quem tem acesso a uma empresa não vê as outras.
+O usuário de suporte não aparece na lista para os usuários do cliente. Quando o próprio suporte está conectado, ele aparece com um cadeado e não pode ser editado nem excluído.
 
-A tela de usuários e perfis personalizados está em construção; até lá, os perfis são atribuídos pela equipe SuperPonto.
+Novos usuários recebem um convite por e-mail para criar a própria senha. O e-mail é o login e não pode ser trocado depois.
 
-<a id="10-seguranca"></a>
-## 10. Segurança, auditoria e privacidade
+**Passo a passo**
+
+1. Abra Administração › Usuários e clique em "Novo usuário".
+2. Informe nome, e-mail e escolha um ou mais perfis de acesso.
+3. Para mudar perfis ou desativar o acesso, use o lápis ao lado do usuário; o envelope reenvia o convite para quem ainda não entrou.
+
+> **Dica:** Ninguém pode desativar ou excluir o próprio usuário.
+
+<a id="10-perfis"></a>
+## 10. Perfis e permissões
+
+**Para:** Administradores
+
+Cada recurso do sistema tem permissões separadas: por exemplo, Empresas tem Ver, Criar, Editar e Excluir; Feriados tem Ver e Gerenciar; Horas extras tem Aprovar. A tela mostra todos os recursos agrupados por módulo.
+
+Os perfis do sistema (Administrador da empresa, Diretor, RH, Gestor, Supervisor, Coordenadores, Responsáveis por escalas e por equipamentos, Funcionário, Professor, Médico e Profissional da saúde) não podem ser alterados. Para personalizar, use "Criar perfil a partir deste".
+
+Recursos marcados "módulo em construção na V2" já podem ser incluídos nos perfis e passam a valer quando a tela correspondente for liberada.
+
+Mudanças num perfil valem a partir do próximo acesso de cada usuário. Perfis com usuários não podem ser excluídos.
+
+<a id="11-seguranca"></a>
+## 11. Segurança, auditoria e privacidade
 
 **Para:** Todos
 
@@ -179,8 +201,8 @@ Senhas são guardadas apenas como hash forte; ninguém, nem a equipe SuperPonto,
 
 O tratamento de dados segue a LGPD: o empregador é o controlador dos dados dos trabalhadores e a SuperPonto atua como operadora.
 
-<a id="11-construcao"></a>
-## 11. Módulos em construção
+<a id="12-construcao"></a>
+## 12. Módulos em construção
 
 **Para:** Todos
 
@@ -192,8 +214,8 @@ Próximas fases: unidades e departamentos, usuários e perfis, pessoas e víncul
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 
-<a id="12-suporte"></a>
-## 12. Suporte
+<a id="13-suporte"></a>
+## 13. Suporte
 
 **Para:** Todos
 

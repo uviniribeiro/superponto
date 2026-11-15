@@ -79,3 +79,23 @@ só tem 14 dígitos). O adaptador Control iD (`controlIdRequests`) traduz cada c
   alterado (gatilho no banco). Acesso pela permissão `people.biometrics:manage`.
 - Envio de foto para reconhecimento facial exige finalidade registrada, consentimento/base legal
   e política de retenção configurada por empresa.
+
+## Integração com o sistema de ponto Velti/Átomo (servicoponto)
+
+`packages/integrations` traz o cliente da API REST desse sistema, montado a partir da coleção Postman
+fornecida e do Swagger que o próprio servidor publica em `/servicoponto/documentacao/swagger.json`
+(conferido no servidor de Montes Claros, que responde 401 sem token em `/servicoponto/api/horario`).
+
+- Autenticação por cabeçalho `token` (emitido pelo administrador do sistema de origem).
+- Operações: obter marcações do espelho, ajuste manual, abono de falta e de atraso, importação de
+  afastamentos, apontamento (marcação), escala agendada (um ou vários funcionários), horários,
+  sindicatos (listar e incluir), aprovação de horas extras e banco de compensação.
+- Os caminhos diferem entre a coleção (`/espelho/...`, `/marcacao/...`) e o Swagger (sem prefixo):
+  `routes: 'postman' | 'swagger'`. Os códigos de erro do Swagger (ponto fechado, funcionário inativo,
+  demitido, PIS não encontrado etc.) viram mensagens claras.
+
+**Serve como comunicador?** Não com relógios: é uma API servidor-a-servidor. Serve para conviver com
+clientes que ainda usam esse sistema ou migrar deles: trazer as marcações (identificadas pelo PIS)
+para o SuperPonto e enviar ajustes, abonos, escalas e aprovações. A tela de configuração (endereço e
+token por cliente, testar conexão, importar período) é o próximo passo e precisa de um token real
+para homologação.

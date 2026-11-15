@@ -38,6 +38,7 @@ jobs:
         run: |
           npm run build -w @superponto/br-docs
           npm run build -w @superponto/rep-protocols
+          npm run build -w @superponto/integrations
           npm run build -w @superponto/time-engine
           npm run build -w @superponto/database
       - name: Typecheck
@@ -47,6 +48,10 @@ jobs:
           npm run typecheck -w @superponto/web
       - name: CNPJ, CPF e PIS
         run: npm test -w @superponto/br-docs
+      - name: Conector Velti/Átomo
+        run: |
+          npm run typecheck -w @superponto/integrations
+          npm test -w @superponto/integrations
       - name: Protocolos de REP (AFD 1.510/671, comandos)
         run: |
           npm run typecheck -w @superponto/rep-protocols

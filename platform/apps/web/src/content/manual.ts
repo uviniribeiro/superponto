@@ -136,13 +136,30 @@ export const SECTIONS: ManualSection[] = [
     tips: ['Clientes novos começam no status "Em teste".'],
   },
   {
+    id: 'usuarios',
+    title: 'Usuários',
+    audience: 'Administradores',
+    body: [
+      'Cada cliente já começa com dois usuários: o Administrador (indicado no cadastro do cliente) e o Suporte SuperPonto, usado pela equipe SuperPonto para atendimento e treinamento.',
+      'O usuário de suporte não aparece na lista para os usuários do cliente. Quando o próprio suporte está conectado, ele aparece com um cadeado e não pode ser editado nem excluído.',
+      'Novos usuários recebem um convite por e-mail para criar a própria senha. O e-mail é o login e não pode ser trocado depois.',
+    ],
+    steps: [
+      'Abra Administração › Usuários e clique em "Novo usuário".',
+      'Informe nome, e-mail e escolha um ou mais perfis de acesso.',
+      'Para mudar perfis ou desativar o acesso, use o lápis ao lado do usuário; o envelope reenvia o convite para quem ainda não entrou.',
+    ],
+    tips: ['Ninguém pode desativar ou excluir o próprio usuário.'],
+  },
+  {
     id: 'perfis',
     title: 'Perfis e permissões',
     audience: 'Administradores',
     body: [
-      'Cada usuário recebe um ou mais perfis. Os perfis do sistema são: SuperAdministrador, Administrador da empresa, Diretor, RH, Gestor, Supervisor, Coordenador escolar, Coordenador médico, Coordenador operacional, Responsável por escalas, Responsável por equipamentos, Funcionário, Professor e Médico.',
-      'Um perfil pode valer para a organização inteira ou só para empresas específicas: quem tem acesso a uma empresa não vê as outras.',
-      'A tela de usuários e perfis personalizados está em construção; até lá, os perfis são atribuídos pela equipe SuperPonto.',
+      'Cada recurso do sistema tem permissões separadas: por exemplo, Empresas tem Ver, Criar, Editar e Excluir; Feriados tem Ver e Gerenciar; Horas extras tem Aprovar. A tela mostra todos os recursos agrupados por módulo.',
+      'Os perfis do sistema (Administrador da empresa, Diretor, RH, Gestor, Supervisor, Coordenadores, Responsáveis por escalas e por equipamentos, Funcionário, Professor, Médico e Profissional da saúde) não podem ser alterados. Para personalizar, use "Criar perfil a partir deste".',
+      'Recursos marcados "módulo em construção na V2" já podem ser incluídos nos perfis e passam a valer quando a tela correspondente for liberada.',
+      'Mudanças num perfil valem a partir do próximo acesso de cada usuário. Perfis com usuários não podem ser excluídos.',
     ],
   },
   {

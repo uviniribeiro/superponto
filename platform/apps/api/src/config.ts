@@ -13,6 +13,11 @@ const schema = z.object({
   MFA_ENCRYPTION_KEY: z.string().min(40),
   /** Chave AES-256-GCM (base64, 32 bytes) para cifrar digitais. Sem ela, o cadastro de digitais fica desativado. */
   BIOMETRIC_ENCRYPTION_KEY: z.string().min(40).optional(),
+  /**
+   * Caixa de e-mail do suporte. Cada cliente ganha um usuário de suporte/treinamento com
+   * endereço "suporte+<identificador>@dominio" (o e-mail cai nesta mesma caixa).
+   */
+  SUPPORT_EMAIL: z.email().default('suporte@superponto.local'),
   MAIL_TRANSPORT: z.enum(['smtp', 'memory']).default('memory'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().default(587),

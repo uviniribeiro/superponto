@@ -1,4 +1,4 @@
-import { BookOpen, Building2, CalendarDays, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { BookOpen, Building2, CalendarDays, KeyRound, Users, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -43,7 +43,17 @@ export function buildNav(me: Me | undefined): NavSection[] {
           icon: Network,
           children: [{ id: 'companies', label: 'Empresas', href: '/empresas', icon: Building2, dot: '#fcc419' }],
         },
-        { id: 'holidays', label: 'Feriados', href: '/feriados', icon: CalendarDays },
+        ...(can(me, 'org.holidays:read') ? [{ id: 'holidays', label: 'Feriados', href: '/feriados', icon: CalendarDays } satisfies NavItem] : []),
+      ],
+    });
+  }
+  if (can(me, 'admin.users:read')) {
+    sections.push({
+      id: 'admin',
+      label: 'Administração',
+      items: [
+        { id: 'users', label: 'Usuários', href: '/usuarios', icon: Users },
+        { id: 'roles', label: 'Perfis e permissões', href: '/perfis', icon: KeyRound },
       ],
     });
   }
