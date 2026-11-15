@@ -27,6 +27,12 @@ export async function seed(client: Client, adminEmail = process.env.SEED_ADMIN_E
         update: { isPlatformAdmin: true, isActive: true },
         create: { email, displayName: 'Administrador da plataforma', isPlatformAdmin: true },
       });
+      // Só na versão local: senha inicial definida no instalador (em produção, o acesso é pelo link de e-mail).
+      const password = process.env.SEED_ADMIN_PASSWORD;
+      if (password && !user.passwordHash) {
+        const { PasswordHasher } = await import('@nestjs/authentication');
+        await tx.user.update({ where: { id: user.id }, data: { passwordHash: await new PasswordHasher().hash(password) } });
+      }
       const role = await tx.role.findFirstOrThrow({ where: { tenantId: null, key: 'super_admin' } });
       const has = await tx.userRole.findFirst({ where: { userId: user.id, roleId: role.id } });
       if (!has) await tx.userRole.create({ data: { userId: user.id, roleId: role.id, scope: 'PLATFORM' } });

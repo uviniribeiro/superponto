@@ -1,0 +1,70 @@
+# SuperPonto — versão local para testar no computador antes de publicar.
+# Não use em produção: senhas e chaves ficam em local/.env, gerado pelo instalador.
+#   Windows: local\iniciar.bat      Mac/Linux: ./local/iniciar.sh
+name: superponto-local
+
+x-db: &db-url
+  MIGRATION_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/superponto?schema=superponto
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?rode o instalador}
+      POSTGRES_DB: superponto
+    volumes: [db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d superponto"]
+      interval: 3s
+      retries: 30
+
+  # Caixa de e-mail local: convites e "esqueci minha senha" chegam em http://localhost:8025
+  mail:
+    image: axllent/mailpit:v1.21
+    ports: ["127.0.0.1:8025:8025"]
+
+  setup:
+    build: { context: .., target: setup }
+    image: superponto/setup:local
+    environment:
+      <<: *db-url
+      API_DB_PASSWORD: ${API_DB_PASSWORD}
+      SEED_ADMIN_EMAIL: ${ADMIN_EMAIL}
+      SEED_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    depends_on: { db: { condition: service_healthy } }
+    restart: "no"
+
+  api:
+    build: { context: .., target: api }
+    image: superponto/api:local
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://superponto_api:${API_DB_PASSWORD}@db:5432/superponto?schema=superponto
+      APP_URL: http://localhost:3001
+      API_URL: http://localhost:3000
+      JWT_SECRET: ${JWT_SECRET}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY}
+      BIOMETRIC_ENCRYPTION_KEY: ${BIOMETRIC_ENCRYPTION_KEY}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-suporte@superponto.local}
+      MAIL_TRANSPORT: smtp
+      SMTP_HOST: mail
+      SMTP_PORT: 1025
+      MAIL_FROM: SuperPonto Local <nao-responda@superponto.local>
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on:
+      setup: { condition: service_completed_successfully }
+      mail: { condition: service_started }
+
+  web:
+    build: { context: .., target: web }
+    image: superponto/web:local
+    environment:
+      SUPERPONTO_API_URL: http://api:3000
+      COOKIE_SECURE: "false"
+    ports: ["127.0.0.1:3001:3001"]
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  db-data:

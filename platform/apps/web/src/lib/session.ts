@@ -7,7 +7,8 @@ export const API_URL = process.env.SUPERPONTO_API_URL ?? 'http://localhost:3000'
 export const cookieBase = {
   httpOnly: true,
   sameSite: 'lax' as const,
-  secure: process.env.NODE_ENV === 'production',
+  // COOKIE_SECURE=false só na versão local (http://localhost); em produção, sempre HTTPS.
+  secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production',
   path: '/',
 };
 

@@ -1,9 +1,12 @@
+import path from 'node:path';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   output: 'standalone',
+  // Monorepo: inclui no pacote standalone os pacotes do workspace (ex.: @superponto/br-docs).
+  outputFileTracingRoot: path.join(import.meta.dirname, '../..'),
   poweredByHeader: false,
   turbopack: {
     rules: {
