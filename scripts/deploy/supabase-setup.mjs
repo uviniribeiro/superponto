@@ -127,6 +127,11 @@ async function cmdAdmin() {
     if (users.length < 200) break;
   }
   let created = false;
+  if (!user && env('SUPER_ADMIN_CREATE') !== 'true') {
+    // A migração do Lovable Cloud traz a conta com a senha atual; criar antes geraria um e-mail confuso.
+    console.log(`::warning::Conta ${email} ainda não existe neste projeto. Rode "Migrar dados do Lovable Cloud" (traz a conta com a senha atual) ou defina a variável SUPER_ADMIN_CREATE=true para criá-la do zero.`);
+    return;
+  }
   if (!user) {
     // Senha aleatória descartada: o titular define a dele pelo link de recuperação enviado abaixo.
     user = await api('/auth/v1/admin/users', {

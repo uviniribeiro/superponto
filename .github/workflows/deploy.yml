@@ -27,6 +27,7 @@ env:
   VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
   SUPER_ADMIN_EMAIL: ${{ vars.SUPER_ADMIN_EMAIL || 'viniciusacacio1@gmail.com' }}
   SUPER_ADMIN_ONLY: ${{ vars.SUPER_ADMIN_ONLY || 'true' }}
+  SUPER_ADMIN_CREATE: ${{ vars.SUPER_ADMIN_CREATE || 'false' }}
 
 jobs:
   deploy:
@@ -75,12 +76,15 @@ jobs:
       - name: Site (Vercel)
         id: site
         if: steps.check.outputs.ready == 'true'
+        # Uma falha na Vercel não impede publicar banco, funções e configurações do Supabase.
+        continue-on-error: true
         env:
           SITE_URL_OVERRIDE: ${{ vars.SITE_URL }}
           SUPABASE_URL: ${{ steps.keys.outputs.supabase_url }}
           ANON_KEY: ${{ steps.keys.outputs.anon_key }}
         run: |
-          deployment=$(npx -y vercel@65 deploy --prod --yes --token "$VERCEL_TOKEN" \
+          if [ -n "$SITE_URL_OVERRIDE" ]; then echo "url=${SITE_URL_OVERRIDE%/}" >> "$GITHUB_OUTPUT"; fi
+          deployment=$(npx -y vercel@65 --prod --yes --token "$VERCEL_TOKEN" \
             --build-env VITE_SUPABASE_URL="$SUPABASE_URL" \
             --build-env VITE_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
             --build-env VITE_SUPABASE_PROJECT_ID="$SUPABASE_PROJECT_REF")
@@ -107,10 +111,14 @@ jobs:
         run: |
           host="${SITE#https://}"; host="${host%%/*}"
           {
-            echo "ALLOWED_ORIGINS=$SITE,https://localhost,capacitor://localhost"
-            echo "PUBLIC_APP_URL=$SITE"
-            echo "WEBAUTHN_RP_ID=$host"
-            echo "WEBAUTHN_ORIGIN=$SITE"
+            if [ -n "$SITE" ]; then
+              echo "ALLOWED_ORIGINS=$SITE,https://localhost,capacitor://localhost"
+              echo "PUBLIC_APP_URL=$SITE"
+              echo "WEBAUTHN_RP_ID=$host"
+              echo "WEBAUTHN_ORIGIN=$SITE"
+            else
+              echo "ALLOWED_ORIGINS=https://localhost,capacitor://localhost"
+            fi
             for v in AI_API_KEY AI_API_URL AI_MODEL RESEND_API_KEY ZAPI_INSTANCE_ID ZAPI_TOKEN; do
               [ -n "${!v}" ] && echo "$v=${!v}"
             done
@@ -130,7 +138,12 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_SENDER_EMAIL: ${{ vars.SMTP_SENDER_EMAIL }}
           SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME }}
-        run: node scripts/deploy/supabase-setup.mjs auth
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            echo "::warning::Site ainda não publicado: a configuração do 'Esqueci minha senha' fica para a próxima publicação."
+            exit 0
+          fi
+          node scripts/deploy/supabase-setup.mjs auth
 
       - name: Super Admin
         if: steps.check.outputs.ready == 'true'
