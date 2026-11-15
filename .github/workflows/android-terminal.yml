@@ -38,7 +38,13 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
+      - name: Android SDK (já instalado na máquina do GitHub)
+        run: |
+          # A ação setup-android tenta instalar o pacote antigo "tools", que não existe mais.
+          SDKM=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" --install "platforms;android-36" "build-tools;36.0.0" "platform-tools" > /dev/null
+          echo "SDK em $ANDROID_HOME pronto"
 
       - name: Endereço e chave pública do Supabase
         id: keys
