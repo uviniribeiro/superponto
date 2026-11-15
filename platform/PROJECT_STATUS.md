@@ -7,16 +7,16 @@ Atualizado em 15/11/2026 (fases 7, 8 e 9 da análise Átomo concluídas; sem int
 
 | Fase | Escopo | Situação |
 |---|---|---|
-| 1. Auditoria e planejamento | Inventário da v1, arquitetura, modelo de dados, módulos, riscos | **Concluída** — ARCHITECTURE.md, DATABASE.md, COMMUNICATION_SERVER.md, DEVICE_INTEGRATIONS.md |
-| 2. Infraestrutura e base | Monorepo, API NestJS, Prisma, autenticação, multi-tenant, permissões, auditoria | **Em andamento** — API e app web prontos e testados (detalhes abaixo); falta MFA nas rotas |
-| 3. Núcleo de gestão | Pessoas, empresas, unidades, funcionários, matrículas, vínculos, jornadas, escalas | **Em andamento** — estrutura e pessoas prontas (unidades, departamentos, cargos, funções, centros de custo, sindicatos, competências, funcionários com vínculos e histórico, importação, agrupamentos, LDAP) e jornada pronta (horários, regras de apuração, atribuição, escala agendada, trocas, grade da equipe) |
-| 4. Módulos especializados | Educação, saúde, operacional | Não iniciada (modelo de dados pronto) |
-| 5. Controle de ponto | Marcações, apuração, banco de horas, solicitações, aprovações, relatórios | **Em andamento** — marcação web, apuração, espelho com ciência eletrônica, ajustes, abonos, fechamento, banco de horas, solicitações, 38 relatórios, AEJ, painel ao vivo, avisos, e-mails agendados, aparelhos do app, exportação para a folha e importação de marcações prontos; AFD do REP-P e assinatura ICP-Brasil a seguir |
-| 6. Equipamentos | Cadastro, adaptadores, sincronização, homologação | **Em andamento** — cadastro, comandos, agente local (protocolo e programa com driver Control iD e simulador), alertas e AEJ prontos; AFD das Portarias 1.510/373/671, fila de envio de empregador/funcionários/digitais, digitais cifradas e adaptador Control iD prontos e testados; telas, execução pelo Communication Server e homologação em equipamento real pendentes |
-| 7. Communication Server | Serviço independente em Node.js, filas, protocolos, painel | Não iniciada (projeto em COMMUNICATION_SERVER.md) |
-| 8. SaaS e SuperAdmin | Planos, assinaturas, cobrança, limites | Criação de clientes pelo SuperAdmin pronta; resto não iniciado |
-| 9. Testes e homologação | Ampliação contínua a cada fase | Em andamento |
-| 10. Produção | Docker, servidores, migração de dados da v1, virada | Não iniciada |
+| 1. Auditoria e planejamento | Inventário da v1, arquitetura, modelo de dados, módulos, riscos | **Concluída** |
+| 2. Infraestrutura e base | Monorepo, API NestJS, Prisma, autenticação, multi-tenant, permissões, auditoria | **Concluída** — inclui verificação em duas etapas (TOTP) |
+| 3. Núcleo de gestão | Empresas, unidades, estrutura, funcionários, vínculos, jornadas, escalas | **Concluída** |
+| 4. Módulos especializados | Educação, saúde, operacional | **Concluída (versão básica)** — plantões com cobertura e trocas; turmas, grade e aulas; ocorrências com histórico |
+| 5. Controle de ponto | Marcações, apuração, banco de horas, solicitações, relatórios | **Concluída** — 38 relatórios, ciência do espelho, AEJ e AFD do REP-P com NSR |
+| 6. Equipamentos | Cadastro, adaptadores, sincronização, homologação | **Concluída no software** — agente local com drivers Control iD e Henry; homologação em equipamento real pendente |
+| 7. Communication Server | Serviço de comunicação com os relógios | **Substituído pelo agente local** (`apps/agent`), que roda na rede do cliente só com conexões de saída |
+| 8. SaaS e SuperAdmin | Planos, assinaturas, limites | **Concluída** — planos com limites, assinatura por cliente, suspensão; cobrança automática depende do meio de pagamento |
+| 9. Testes e homologação | Ampliação contínua | 212+ testes de API, motor, protocolos e agente na CI |
+| 10. Produção | Docker, servidores, migração da v1, virada | **Pronta para executar** — migração v1→v2 testada (`node dist/migrate-v1.js`), roteiro em `VIRADA.md` |
 
 ## O que já funciona (verificado por testes)
 

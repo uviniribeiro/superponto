@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { PasswordHasher } from '@nestjs/authentication';
+import bcrypt from 'bcryptjs';
 import type { AuthUser } from './auth-user.js';
 import type { RequestMeta } from '../common/tenant.js';
 import { LdapService } from './ldap.service.js';
@@ -13,11 +14,19 @@ export class CredentialsService {
     return this.hasher.hash(password);
   }
 
+  /** Confere a senha; aceita o hash bcrypt das contas migradas da v1 (trocado por scrypt no login). */
+  private async check(password: string, hash: string | null | undefined) {
+    if (hash && /^\$2[aby]\$\d{2}\$/.test(hash)) return bcrypt.compare(password, hash);
+    return this.hasher.verify(password, hash ?? undefined);
+  }
+
+  private isLegacy(hash: string) { return /^\$2[aby]\$/.test(hash); }
+
   /** Usuário ou `null`. E-mail inexistente e senha errada levam o mesmo tempo (hash fictício). */
   async verify(email: string, password: string, meta?: RequestMeta): Promise<AuthUser | null> {
     const found = await this.users.findCredentials(email);
     if (found?.authSource === 'LDAP') return this.verifyLdap(found, email, password, meta);
-    const valid = await this.hasher.verify(password, found?.passwordHash);
+    const valid = await this.check(password, found?.passwordHash);
     if (!valid || !found?.passwordHash) {
       // Falha registrada só para conta existente (na auditoria do próprio cliente; a resposta é a mesma).
       if (found) await this.users.logAccess(found.user.id, 'LOGIN_FAILED', 'session', { method: 'password' }, meta);
@@ -28,7 +37,7 @@ export class CredentialsService {
       await this.users.logAccess(found.user.id, 'LOGIN_FAILED', 'session', { method: 'password', reason: 'access_denied' }, meta);
       throw new ForbiddenException(found.denial);
     }
-    if (this.hasher.needsRehash(found.passwordHash)) {
+    if (this.isLegacy(found.passwordHash) || this.hasher.needsRehash(found.passwordHash)) {
       await this.users.updatePasswordHash(found.user.id, await this.hasher.hash(password));
     }
     await this.users.recordLogin(found.user.id);
@@ -65,7 +74,7 @@ export class CredentialsService {
   async change(userId: string, current: string, next: string, meta?: RequestMeta): Promise<void> {
     if ((await this.users.findAuthSource(userId)) === 'LDAP') throw new BadRequestException('Sua senha é a mesma da rede da organização (LDAP): troque-a no diretório da empresa');
     const hash = await this.users.findHashById(userId);
-    if (!hash || !(await this.hasher.verify(current, hash))) throw new BadRequestException('Senha atual incorreta');
+    if (!hash || !(await this.check(current, hash))) throw new BadRequestException('Senha atual incorreta');
     if (current === next) throw new BadRequestException('A nova senha deve ser diferente da atual');
     await this.users.updatePasswordHash(userId, await this.hasher.hash(next));
     await this.users.logAccess(userId, 'UPDATE', 'user_password', { via: 'change' }, meta);
