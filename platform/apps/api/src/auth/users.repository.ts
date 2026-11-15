@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Grant } from '../authorization/authorization.js';
-import { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaService, type Tx } from '../prisma/prisma.service.js';
 import type { AuthUser } from './auth-user.js';
 
 export const normalizeEmail = (email: string) => email.trim().normalize('NFC').toLowerCase();
@@ -17,11 +17,18 @@ export class UsersRepository {
     return this.prisma.asPlatform(async (tx) => {
       const user = await tx.user.findFirst({ where: { id, isActive: true, deletedAt: null } });
       if (!user) return null;
+      // Bloqueio ou dia sem acesso derrubam também sessões e tokens já emitidos.
+      if (await accessDenial(tx, user)) return null;
       return this.toAuthUser(tx, user);
     });
   }
 
-  async findCredentials(email: string): Promise<{ user: AuthUser; passwordHash: string | null } | null> {
+  /** Hash atual (para conferir a senha antiga na troca de senha). */
+  async findHashById(id: string): Promise<string | null> {
+    return this.prisma.asPlatform(async (tx) => (await tx.user.findFirst({ where: { id, deletedAt: null }, select: { passwordHash: true } }))?.passwordHash ?? null);
+  }
+
+  async findCredentials(email: string): Promise<{ user: AuthUser; passwordHash: string | null; denial: string | null } | null> {
     return this.prisma.asPlatform(async (tx) => {
       const user = await tx.user.findFirst({ where: { email: normalizeEmail(email), isActive: true, deletedAt: null } });
       if (!user) return null;
@@ -29,7 +36,7 @@ export class UsersRepository {
         const tenant = await tx.tenant.findUnique({ where: { id: user.tenantId } });
         if (!tenant || tenant.status === 'SUSPENDED' || tenant.status === 'CANCELLED' || tenant.deletedAt) return null;
       }
-      return { user: await this.toAuthUser(tx, user), passwordHash: user.passwordHash };
+      return { user: await this.toAuthUser(tx, user), passwordHash: user.passwordHash, denial: await accessDenial(tx, user) };
     });
   }
 
@@ -72,4 +79,26 @@ export class UsersRepository {
       grants,
     };
   }
+}
+
+const WEEKDAYS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+
+/**
+ * Motivo pelo qual o usuário não pode entrar agora, ou null: bloqueio por período ativo ou dia da
+ * semana fora dos permitidos (horário de Brasília).
+ */
+export async function accessDenial(tx: Tx, user: { id: string; accessWeekdays: number[] }, now = new Date()): Promise<string | null> {
+  const block = await tx.userAccessBlock.findFirst({
+    where: { userId: user.id, revokedAt: null, startsAt: { lte: now }, OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+    orderBy: { startsAt: 'desc' },
+  });
+  if (block) {
+    const until = block.endsAt ? ` até ${block.endsAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })}` : '';
+    return `Acesso bloqueado${until}. Motivo: ${block.reason}`;
+  }
+  if (user.accessWeekdays.length) {
+    const wd = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })).getDay();
+    if (!user.accessWeekdays.includes(wd)) return `Seu acesso não é permitido em ${WEEKDAYS[wd]}`;
+  }
+  return null;
 }

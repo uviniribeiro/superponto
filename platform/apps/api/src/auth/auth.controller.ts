@@ -7,6 +7,7 @@ import {
   TokenService,
 } from '@nestjs/authentication';
 import { Throttle } from '@nestjs/throttler';
+import { z } from 'zod';
 import { ApiTags } from '@nestjs/swagger';
 import type { AuthUser } from './auth-user.js';
 import {
@@ -14,6 +15,8 @@ import {
   type ForgotDto, type RefreshDto, type ResetDto, type SignInDto,
 } from './auth.schemas.js';
 import { CredentialsService } from './credentials.service.js';
+
+const changePasswordSchema = z.object({ currentPassword: z.string().min(1).max(256), newPassword: z.string().min(12, 'A nova senha precisa de 12 caracteres ou mais').max(128) });
 
 const publicUser = (u: AuthUser) => ({
   id: u.id, email: u.email, displayName: u.displayName, tenantId: u.tenantId, personId: u.personId,
@@ -67,6 +70,14 @@ export class AuthController {
   @HttpCode(204)
   async signOut() {
     await this.signIn.signOut();
+  }
+
+  /** Troca de senha pelo usuário logado (também atende a troca obrigatória no primeiro acesso). */
+  @Post('password/change')
+  @HttpCode(204)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async changePassword(@CurrentUser() user: AuthUser, @Body({ schema: changePasswordSchema }) body: { currentPassword: string; newPassword: string }) {
+    await this.credentials.change(user.id, body.currentPassword, body.newPassword);
   }
 
   @Get('me')

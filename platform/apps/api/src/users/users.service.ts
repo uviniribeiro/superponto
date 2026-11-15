@@ -5,10 +5,11 @@ import { normalizeEmail } from '../auth/users.repository.js';
 import { AuditService } from '../audit/audit.service.js';
 import type { PageQuery, RequestMeta } from '../common/tenant.js';
 import { PrismaService, type Tx } from '../prisma/prisma.service.js';
-import type { UserCreate, UserUpdate } from './users.schemas.js';
+import type { BlockInput, UserCreate, UserUpdate } from './users.schemas.js';
 
 const SELECT = {
-  id: true, email: true, displayName: true, isActive: true, isSupport: true, lastLoginAt: true, createdAt: true,
+  id: true, email: true, displayName: true, isActive: true, isSupport: true, lastLoginAt: true, createdAt: true, accessWeekdays: true, mustChangePassword: true,
+  accessBlocks: { where: { revokedAt: null }, select: { id: true, reason: true, startsAt: true, endsAt: true }, orderBy: { startsAt: 'desc' }, take: 20 },
   roles: { select: { role: { select: { id: true, key: true, name: true } } } },
 } as const;
 
@@ -20,8 +21,11 @@ const SELECT = {
 export class UsersService {
   constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly passwordReset: PasswordResetService) {}
 
-  private shape(u: { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: Date | null; createdAt: Date; roles: Array<{ role: { id: string; key: string; name: string } }> }, viewer: AuthUser) {
-    return { ...u, roles: u.roles.map((r) => r.role), editable: !u.isSupport, isSelf: u.id === viewer.id };
+  private shape(u: { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: Date | null; createdAt: Date; accessWeekdays: number[]; mustChangePassword: boolean; accessBlocks: Array<{ id: string; reason: string; startsAt: Date; endsAt: Date | null }>; roles: Array<{ role: { id: string; key: string; name: string } }> }, viewer: AuthUser) {
+    const now = new Date();
+    const blocks = u.accessBlocks.filter((b) => !b.endsAt || b.endsAt > now);
+    const activeBlock = blocks.find((b) => b.startsAt <= now) ?? null;
+    return { ...u, accessBlocks: blocks, activeBlock, roles: u.roles.map((r) => r.role), editable: !u.isSupport, isSelf: u.id === viewer.id };
   }
 
   list(tenantId: string, viewer: AuthUser, q: PageQuery) {
@@ -60,7 +64,7 @@ export class UsersService {
     if (await this.prisma.asPlatform((tx) => tx.user.count({ where: { email } }))) throw new ConflictException('Este e-mail já tem uma conta no SuperPonto');
     const result = await this.prisma.forTenant(tenantId, async (tx) => {
       const roleIds = await this.assignableRoles(tx, tenantId, input.roleIds);
-      const user = await tx.user.create({ data: { tenantId, email, displayName: input.displayName } });
+      const user = await tx.user.create({ data: { tenantId, email, displayName: input.displayName, accessWeekdays: input.accessWeekdays ?? [], mustChangePassword: input.mustChangePassword ?? false } });
       await tx.userRole.createMany({ data: roleIds.map((roleId) => ({ userId: user.id, roleId, tenantId, scope: 'TENANT' as const })) });
       const saved = await tx.user.findUniqueOrThrow({ where: { id: user.id }, select: SELECT });
       await this.audit.record(tx, { tenantId, actorUserId: actor.id, action: 'CREATE', entity: 'user', entityId: user.id, after: { email, displayName: input.displayName, roleIds }, ...meta });
@@ -79,7 +83,8 @@ export class UsersService {
         await tx.userRole.deleteMany({ where: { userId: id, tenantId } });
         await tx.userRole.createMany({ data: roleIds.map((roleId) => ({ userId: id, roleId, tenantId, scope: 'TENANT' as const })) });
       }
-      await tx.user.update({ where: { id }, data: { displayName: input.displayName, isActive: input.isActive } });
+      if (id === actor.id && input.accessWeekdays?.length) throw new BadRequestException('Você não pode limitar os dias do próprio acesso');
+      await tx.user.update({ where: { id }, data: { displayName: input.displayName, isActive: input.isActive, accessWeekdays: input.accessWeekdays, mustChangePassword: input.mustChangePassword } });
       const after = await tx.user.findUniqueOrThrow({ where: { id }, select: SELECT });
       await this.audit.record(tx, { tenantId, actorUserId: actor.id, action: 'UPDATE', entity: 'user', entityId: id, before: this.shape(before, actor), after: this.shape(after, actor), ...meta });
       return this.shape(after, actor);
@@ -92,6 +97,40 @@ export class UsersService {
       if (id === actor.id) throw new BadRequestException('Você não pode excluir o próprio usuário');
       await tx.user.update({ where: { id }, data: { deletedAt: new Date(), isActive: false } });
       await this.audit.record(tx, { tenantId, actorUserId: actor.id, action: 'DELETE', entity: 'user', entityId: id, before: this.shape(before, actor), ...meta });
+    });
+  }
+
+  /** Bloqueio de acesso por período (encerra as sessões do usuário enquanto valer). */
+  addBlock(tenantId: string, actor: AuthUser, id: string, input: BlockInput, meta: RequestMeta) {
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      await this.editable(tx, tenantId, actor, id);
+      if (id === actor.id) throw new BadRequestException('Você não pode bloquear o próprio acesso');
+      const b = await tx.userAccessBlock.create({ data: { tenantId, userId: id, reason: input.reason, startsAt: input.startsAt, endsAt: input.endsAt, createdById: actor.id } });
+      await this.audit.record(tx, { tenantId, actorUserId: actor.id, action: 'CREATE', entity: 'user_access_block', entityId: b.id, after: b, ...meta });
+      return b;
+    });
+  }
+
+  revokeBlock(tenantId: string, actor: AuthUser, id: string, blockId: string, meta: RequestMeta) {
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      await this.editable(tx, tenantId, actor, id);
+      const b = await tx.userAccessBlock.findFirst({ where: { id: blockId, userId: id, revokedAt: null } });
+      if (!b) throw new NotFoundException('Bloqueio não encontrado');
+      await tx.userAccessBlock.update({ where: { id: blockId }, data: { revokedAt: new Date() } });
+      await this.audit.record(tx, { tenantId, actorUserId: actor.id, action: 'DELETE', entity: 'user_access_block', entityId: blockId, before: b, ...meta });
+    });
+  }
+
+  /** Bloqueios do cliente (tela "Bloqueio de acesso"): vigentes, futuros e, opcionalmente, encerrados. */
+  listBlocks(tenantId: string, viewer: AuthUser, includeEnded: boolean) {
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      const now = new Date();
+      const rows = await tx.userAccessBlock.findMany({
+        where: { user: { tenantId, deletedAt: null, ...(viewer.isSupport ? {} : { isSupport: false }) }, ...(includeEnded ? {} : { revokedAt: null, OR: [{ endsAt: null }, { endsAt: { gt: now } }] }) },
+        include: { user: { select: { id: true, displayName: true, email: true } } },
+        orderBy: { startsAt: 'desc' }, take: 500,
+      });
+      return rows.map((b) => ({ ...b, state: b.revokedAt ? 'REVOKED' : b.endsAt && b.endsAt <= now ? 'ENDED' : b.startsAt > now ? 'SCHEDULED' : 'ACTIVE' }));
     });
   }
 

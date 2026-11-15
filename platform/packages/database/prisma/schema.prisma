@@ -524,6 +524,7 @@ model CompanyUnit {
   company     Company            @relation(fields: [companyId], references: [id])
   parent      CompanyUnit?       @relation("UnitTree", fields: [parentId], references: [id])
   children    CompanyUnit[]      @relation("UnitTree")
+  groupings   GroupingUnit[]
   departments Department[]
   employments Employment[]
   devices     Device[]
@@ -675,8 +676,9 @@ model JobPosition {
   createdAt DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   deletedAt DateTime?            @map("deleted_at") @db.Timestamptz(6)
 
-  company     Company      @relation(fields: [companyId], references: [id])
+  company     Company            @relation(fields: [companyId], references: [id])
   employments Employment[]
+  groupings   GroupingPosition[]
 
   @@unique([companyId, name])
   @@index([tenantId])
@@ -753,6 +755,7 @@ model Employment {
   requests               TimeRequest[]
   deviceIdentifiers      DeviceIdentifier[]
   biometrics             BiometricTemplate[]
+  groupings              GroupingEmployment[]
   teachingAssignments    TeachingAssignment[]
   shiftAssignments       MedicalShiftAssignment[]
   availability           ProfessionalAvailability[]
@@ -1802,6 +1805,8 @@ model User {
   /// para os usuários do cliente e não editável por ninguém do cliente.
   isSupport          Boolean   @default(false) @map("is_support")
   isActive           Boolean   @default(true) @map("is_active")
+  /// dias da semana com acesso (0 = domingo … 6 = sábado); vazio = todos os dias
+  accessWeekdays     Int[]     @default([]) @map("access_weekdays")
   mustChangePassword Boolean   @default(false) @map("must_change_password")
   lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz(6)
   failedLogins       Int       @default(0) @map("failed_logins")
@@ -1813,6 +1818,7 @@ model User {
   tenant        Tenant?                  @relation(fields: [tenantId], references: [id])
   person        Person?                  @relation(fields: [personId], references: [id])
   roles         UserRole[]
+  accessBlocks  UserAccessBlock[]        @relation("BlockedUser")
   notifications Notification[]
   preferences   NotificationPreference[]
 
@@ -2314,4 +2320,84 @@ model CompanyLogo {
 
   @@index([tenantId])
   @@map("company_logos")
+}
+
+// -----------------------------------------------------------------------------
+// Agrupamentos e controle de acesso
+// -----------------------------------------------------------------------------
+
+/// Agrupamento livre de funcionários, cargos e unidades (locais de trabalho), usado como filtro
+/// em relatórios, cálculo em lote e envio aos relógios.
+model Grouping {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  code      String?
+  name      String
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  employments GroupingEmployment[]
+  positions   GroupingPosition[]
+  units       GroupingUnit[]
+
+  @@index([tenantId])
+  @@map("groupings")
+}
+
+model GroupingEmployment {
+  groupingId   String @map("grouping_id") @db.Uuid
+  employmentId String @map("employment_id") @db.Uuid
+  tenantId     String @map("tenant_id") @db.Uuid
+
+  grouping   Grouping   @relation(fields: [groupingId], references: [id], onDelete: Cascade)
+  employment Employment @relation(fields: [employmentId], references: [id])
+
+  @@id([groupingId, employmentId])
+  @@index([tenantId, employmentId])
+  @@map("grouping_employments")
+}
+
+model GroupingPosition {
+  groupingId String @map("grouping_id") @db.Uuid
+  positionId String @map("position_id") @db.Uuid
+  tenantId   String @map("tenant_id") @db.Uuid
+
+  grouping Grouping    @relation(fields: [groupingId], references: [id], onDelete: Cascade)
+  position JobPosition @relation(fields: [positionId], references: [id])
+
+  @@id([groupingId, positionId])
+  @@map("grouping_positions")
+}
+
+model GroupingUnit {
+  groupingId String @map("grouping_id") @db.Uuid
+  unitId     String @map("unit_id") @db.Uuid
+  tenantId   String @map("tenant_id") @db.Uuid
+
+  grouping Grouping    @relation(fields: [groupingId], references: [id], onDelete: Cascade)
+  unit     CompanyUnit @relation(fields: [unitId], references: [id])
+
+  @@id([groupingId, unitId])
+  @@map("grouping_units")
+}
+
+/// Bloqueio de acesso de um usuário por período, com motivo (ex.: férias, afastamento, investigação).
+model UserAccessBlock {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  reason      String
+  startsAt    DateTime  @map("starts_at") @db.Timestamptz(6)
+  /// vazio = por tempo indeterminado
+  endsAt      DateTime? @map("ends_at") @db.Timestamptz(6)
+  createdById String?   @map("created_by_id") @db.Uuid
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation("BlockedUser", fields: [userId], references: [id])
+
+  @@index([tenantId, userId])
+  @@map("user_access_blocks")
 }

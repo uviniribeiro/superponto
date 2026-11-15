@@ -9,6 +9,7 @@ import { CompaniesModule } from './companies/companies.module.js';
 import { DevicesModule } from './devices/devices.module.js';
 import { HolidaysModule } from './holidays/holidays.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
+import { PeopleModule } from './people/people.module.js';
 import { StructureModule } from './structure/structure.module.js';
 import { UsersModule } from './users/users.module.js';
 import { APP_CONFIG, type AppConfig } from './config.js';
@@ -47,6 +48,7 @@ export function createAppModule(config: AppConfig): DynamicModule {
       LookupModule,
       UsersModule,
       StructureModule,
+      PeopleModule,
       PlatformModule,
     ],
     controllers: [HealthController],

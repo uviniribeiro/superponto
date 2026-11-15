@@ -6,7 +6,7 @@ import type { AuthUser } from '../auth/auth-user.js';
 import { RequirePermission } from '../authorization/authorization.js';
 import { ActiveTenant, pageSchema, RequestInfo, type PageQuery, type RequestMeta } from '../common/tenant.js';
 import { permissionCatalog, RolesService } from './roles.service.js';
-import { roleSchema, roleUpdateSchema, userCreateSchema, userUpdateSchema, type RoleInput, type RoleUpdate, type UserCreate, type UserUpdate } from './users.schemas.js';
+import { blockSchema, roleSchema, roleUpdateSchema, userCreateSchema, userUpdateSchema, type BlockInput, type RoleInput, type RoleUpdate, type UserCreate, type UserUpdate } from './users.schemas.js';
 import { UsersService } from './users.service.js';
 
 const idSchema = z.uuid();
@@ -47,6 +47,25 @@ export class UsersController {
   @RequirePermission('admin.users:manage')
   invite(@ActiveTenant() tenantId: string, @CurrentUser() user: AuthUser, @Param('id', { schema: idSchema }) id: string) {
     return this.users.resendInvite(tenantId, user, id);
+  }
+
+  @Get('access-blocks')
+  @RequirePermission('admin.users:read')
+  blocks(@ActiveTenant() tenantId: string, @CurrentUser() user: AuthUser, @Query({ schema: z.object({ includeEnded: z.enum(['true', 'false']).default('false') }) }) q: { includeEnded: 'true' | 'false' }) {
+    return this.users.listBlocks(tenantId, user, q.includeEnded === 'true');
+  }
+
+  @Post('users/:id/blocks')
+  @RequirePermission('admin.users:manage')
+  addBlock(@ActiveTenant() tenantId: string, @CurrentUser() user: AuthUser, @Param('id', { schema: idSchema }) id: string, @Body({ schema: blockSchema }) body: BlockInput, @RequestInfo() meta: RequestMeta) {
+    return this.users.addBlock(tenantId, user, id, body, meta);
+  }
+
+  @Delete('users/:id/blocks/:blockId')
+  @HttpCode(204)
+  @RequirePermission('admin.users:manage')
+  revokeBlock(@ActiveTenant() tenantId: string, @CurrentUser() user: AuthUser, @Param('id', { schema: idSchema }) id: string, @Param('blockId', { schema: idSchema }) blockId: string, @RequestInfo() meta: RequestMeta) {
+    return this.users.revokeBlock(tenantId, user, id, blockId, meta);
   }
 
   @Get('permissions')
