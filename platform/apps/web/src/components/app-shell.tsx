@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'motion/react';
 import { Menu } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { CommandPalette } from './command-palette';
 import { IntroReveal } from './intro-reveal';
@@ -14,6 +15,12 @@ import { ToastProvider } from './ui';
 function Shell({ children }: { children: React.ReactNode }) {
   const { expanded, toggle } = useSidebarState();
   const { me } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+  // Troca obrigatória de senha: só "Minha conta" fica acessível até trocar.
+  useEffect(() => {
+    if (me?.mustChangePassword && pathname !== '/minha-conta') router.replace('/minha-conta');
+  }, [me?.mustChangePassword, pathname, router]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const sections = useMemo(() => buildNav(me), [me]);

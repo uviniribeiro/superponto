@@ -46,11 +46,12 @@ export interface Me {
   tenantId: string | null;
   isPlatformAdmin: boolean;
   isSupport?: boolean;
+  mustChangePassword?: boolean;
   permissions: string[];
 }
 
 export interface RoleRef { id: string; key: string; name: string }
-export interface UserRow { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: string | null; roles: RoleRef[]; editable: boolean; isSelf: boolean }
+export interface UserRow { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: string | null; roles: RoleRef[]; editable: boolean; isSelf: boolean; accessWeekdays: number[]; mustChangePassword: boolean; accessBlocks: Array<{ id: string; reason: string; startsAt: string; endsAt: string | null }>; activeBlock: { id: string; reason: string; startsAt: string; endsAt: string | null } | null }
 export interface RoleRow { id: string; key: string; name: string; description: string | null; isSystem: boolean; editable: boolean; permissions: string[]; users: number }
 export interface PermissionModule { key: string; label: string; resources: Array<{ key: string; label: string; available: boolean; actions: Array<{ permission: string; action: string; label: string; description: string }> }> }
 
@@ -90,3 +91,19 @@ export interface CompanyHoliday {
 export interface HolidayList { year: number; location: { city: string | null; state: string | null; ibge: string | null; municipalBase: boolean }; holidays: CompanyHoliday[] }
 
 export interface Tenant { id: string; name: string; slug: string; status: string; createdAt: string }
+
+export interface Ref { id: string; name: string }
+export interface Employee {
+  id: string; personId: string; fullName: string; socialName: string | null; cpf: string | null; pis: string | null; sensitiveVisible: boolean;
+  birthDate: string | null; email: string | null; phone: string | null; address: Record<string, string> | null;
+  registration: string; status: 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED'; contractType: string; weeklyHours: number | null;
+  hiredAt: string; terminatedAt: string | null;
+  company: { id: string; legalName: string; tradeName: string | null }; department: Ref | null; sector: Ref | null;
+  position: (Ref & { cbo: string | null }) | null; function: Ref | null; costCenter: Ref | null; employeeType: Ref | null;
+  union: { id: string; acronym: string } | null; supervisor: { id: string; fullName: string } | null; unitId: string | null;
+}
+export interface EmployeeDetail extends Employee {
+  history: Array<{ id: string; field: string; oldValue: string | null; newValue: string | null; effectiveAt: string; reason: string | null; createdAt: string }>;
+  otherEmployments: Array<{ id: string; registration: string; status: string; company: { legalName: string; tradeName: string | null } }>;
+}
+export interface AccessBlock { id: string; reason: string; startsAt: string; endsAt: string | null }

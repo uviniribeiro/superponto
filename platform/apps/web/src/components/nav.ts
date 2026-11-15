@@ -1,4 +1,4 @@
-import { BadgeCheck, BookOpen, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -53,6 +53,17 @@ export function buildNav(me: Me | undefined): NavSection[] {
         },
         ...(can(me, 'org.holidays:read') ? [{ id: 'holidays', label: 'Feriados', href: '/feriados', icon: CalendarDays } satisfies NavItem] : []),
         ...(can(me, 'org.competences:read') ? [{ id: 'competences', label: 'Competências', href: '/estrutura/competencias', icon: CalendarRange } satisfies NavItem] : []),
+        ...(can(me, 'org.groupings:read') ? [{ id: 'groupings', label: 'Agrupamentos', href: '/estrutura/agrupamentos', icon: Boxes } satisfies NavItem] : []),
+      ],
+    });
+  }
+  if (can(me, 'people.employments:read')) {
+    sections.push({
+      id: 'people',
+      label: 'Pessoas',
+      items: [
+        { id: 'employees', label: 'Funcionários', href: '/funcionarios', icon: UsersRound },
+        ...(can(me, 'people.employments:import') ? [{ id: 'import', label: 'Importar planilha', href: '/funcionarios/importar', icon: FileSpreadsheet } satisfies NavItem] : []),
       ],
     });
   }
@@ -63,6 +74,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
       items: [
         { id: 'users', label: 'Usuários', href: '/usuarios', icon: Users },
         { id: 'roles', label: 'Perfis e permissões', href: '/perfis', icon: KeyRound },
+        { id: 'blocks', label: 'Bloqueios de acesso', href: '/bloqueios', icon: ShieldBan },
       ],
     });
   }
@@ -73,6 +85,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
       items: [{ id: 'tenants', label: 'Clientes', href: '/plataforma/clientes', icon: ShieldCheck }],
     });
   }
+  if (me) sections.push({ id: 'account', label: 'Conta', items: [{ id: 'my-account', label: 'Minha conta', href: '/minha-conta', icon: UserRound }] });
   sections.push({
     id: 'help',
     label: 'Ajuda',

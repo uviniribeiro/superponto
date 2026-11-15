@@ -89,7 +89,7 @@ export function CountUp({ value, format = (n) => Math.round(n).toLocaleString('p
 }
 
 // ----------------------------------------------------------------- painel lateral
-export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+export function Sheet({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; wide?: boolean }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -109,7 +109,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
             animate={{ x: 0 }}
             exit={{ x: '105%' }}
             transition={{ type: 'spring', stiffness: 380, damping: 38 }}
-            className="glass-strong fixed inset-y-3 right-3 z-50 flex w-[min(460px,calc(100vw-24px))] flex-col rounded-[28px]"
+            className={cn('glass-strong fixed inset-y-3 right-3 z-50 flex flex-col rounded-[28px]', wide ? 'w-[min(760px,calc(100vw-24px))]' : 'w-[min(460px,calc(100vw-24px))]')}
           >
             <div className="flex items-center justify-between border-b border-line px-6 py-4">
               <h2 className="font-display text-lg font-bold">{title}</h2>

@@ -121,6 +121,53 @@ export const SECTIONS: ManualSection[] = [
     tips: ['Comece pela estrutura: funcionários, escalas, relatórios e cálculo em lote usam esses cadastros como filtro.'],
   },
   {
+    id: 'funcionarios',
+    title: 'Funcionários',
+    audience: 'RH e administradores',
+    body: [
+      'Cada funcionário é uma pessoa com um ou mais vínculos. A mesma pessoa (mesmo CPF) pode ter vínculo em mais de uma empresa; a matrícula não se repete dentro da mesma empresa.',
+      'O cadastro pede nome, CPF ou PIS (relógios da Portaria 671 usam o CPF; os da 1.510, o PIS), matrícula, admissão e empresa. O CEP preenche o endereço. Departamento, seção, cargo, função, centro de custo, tipo e sindicato vêm dos cadastros da Estrutura, e o sistema só oferece os da empresa escolhida.',
+      'Mudanças de departamento, cargo, função, centro de custo, tipo, sindicato, contrato e carga horária ficam no histórico do vínculo, com a data em que passam a valer e o motivo.',
+      'Desligar pede a data e o motivo; o funcionário sai da lista de ativos, mas nada é apagado. "Reativar" desfaz o desligamento.',
+      'CPF e PIS completos aparecem só para quem tem a permissão "Ver dados sensíveis"; para os demais eles aparecem mascarados e a busca por CPF não funciona. A auditoria nunca guarda os números completos.',
+    ],
+    steps: [
+      'Abra Pessoas › Funcionários e clique em "Novo funcionário".',
+      'Preencha pessoa, endereço (pelo CEP) e vínculo e clique em "Cadastrar funcionário".',
+      'Clique num funcionário para ver a ficha, o histórico e os botões Editar, Desligar e Reativar.',
+      'Use os filtros do topo: empresa, departamento (inclui os subdepartamentos), cargo, tipo, agrupamento e situação.',
+    ],
+  },
+  {
+    id: 'importacao',
+    title: 'Importar funcionários por planilha',
+    audience: 'RH e administradores',
+    body: [
+      'A importação lê planilhas CSV (no Excel: Arquivo › Salvar como › CSV), com separador ponto e vírgula ou vírgula. O sistema reconhece os nomes de coluna mais comuns, como "Data de admissão", "Matrícula" e "PIS/PASEP"; colunas desconhecidas são ignoradas e informadas.',
+      'Primeiro o sistema confere a planilha sem gravar nada e mostra, linha por linha, o que está pronto e o que tem erro (CPF ou PIS inválido, data inexistente, matrícula repetida, departamento ou cargo não cadastrado). Depois você importa só as linhas válidas.',
+      'Opcionalmente, o sistema cria os departamentos, cargos, funções, centros de custo e tipos que ainda não existirem, e atualiza funcionários cuja matrícula já está cadastrada. Sindicatos precisam estar cadastrados antes.',
+    ],
+    steps: [
+      'Abra Pessoas › Importar planilha e, se quiser, clique em "Baixar modelo".',
+      'Escolha a empresa e o arquivo CSV.',
+      'Clique em "1. Conferir planilha", corrija o que for preciso e confira de novo.',
+      'Clique em "2. Importar" para gravar as linhas válidas.',
+    ],
+    tips: ['Até 5.000 linhas por vez. Datas no formato dd/mm/aaaa.'],
+  },
+  {
+    id: 'agrupamentos',
+    title: 'Agrupamentos',
+    audience: 'Administradores e RH',
+    body: [
+      'Agrupamentos reúnem funcionários e cargos sem depender da estrutura (ex.: "Plantão noturno", "Motoristas da frota"). Servem de filtro na lista de funcionários e, nas próximas fases, nos relatórios, no cálculo em lote e no envio aos relógios.',
+    ],
+    steps: [
+      'Abra Organização › Agrupamentos, clique em "Novo" e dê um nome.',
+      'Clique no botão "funcionário(s)" do agrupamento para escolher os funcionários e os cargos.',
+    ],
+  },
+  {
     id: 'feriados',
     title: 'Feriados',
     audience: 'Administradores da organização e RH',
@@ -167,7 +214,18 @@ export const SECTIONS: ManualSection[] = [
       'Informe nome, e-mail e escolha um ou mais perfis de acesso.',
       'Para mudar perfis ou desativar o acesso, use o lápis ao lado do usuário; o envelope reenvia o convite para quem ainda não entrou.',
     ],
-    tips: ['Ninguém pode desativar ou excluir o próprio usuário.'],
+    tips: ['Ninguém pode desativar, bloquear ou limitar os dias do próprio usuário.'],
+  },
+  {
+    id: 'acesso',
+    title: 'Dias de acesso, bloqueios e troca de senha',
+    audience: 'Administradores',
+    body: [
+      'No cadastro do usuário dá para marcar os dias da semana em que ele pode entrar. Fora desses dias (horário de Brasília) o login é recusado e quem já estava conectado é desconectado. Nenhum dia marcado significa acesso todos os dias.',
+      'O bloqueio de acesso impede a entrada por um período (com início, fim opcional e motivo), por exemplo durante férias ou afastamento. Enquanto vale, as sessões do usuário são encerradas. O motivo só aparece para quem digitou a senha correta.',
+      'Em Administração › Bloqueios de acesso ficam os bloqueios vigentes e agendados, com a opção de encerrar antes do fim.',
+      '"Pedir troca de senha no próximo acesso" leva o usuário direto para Minha conta até ele trocar a senha. Em Conta › Minha conta, qualquer usuário troca a própria senha informando a atual.',
+    ],
   },
   {
     id: 'perfis',

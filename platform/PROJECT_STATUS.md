@@ -9,7 +9,7 @@ Atualizado em 15/11/2026. A v1 (raiz do repositório) segue em produção; a v2 
 |---|---|---|
 | 1. Auditoria e planejamento | Inventário da v1, arquitetura, modelo de dados, módulos, riscos | **Concluída** — ARCHITECTURE.md, DATABASE.md, COMMUNICATION_SERVER.md, DEVICE_INTEGRATIONS.md |
 | 2. Infraestrutura e base | Monorepo, API NestJS, Prisma, autenticação, multi-tenant, permissões, auditoria | **Em andamento** — API e app web prontos e testados (detalhes abaixo); falta MFA nas rotas |
-| 3. Núcleo de gestão | Pessoas, empresas, unidades, funcionários, matrículas, vínculos, jornadas, escalas | **Em andamento** — estrutura pronta (departamentos em árvore, seções, cargos, funções, centros de custo, tipos de funcionário, sindicatos, competências); pessoas e vínculos a seguir |
+| 3. Núcleo de gestão | Pessoas, empresas, unidades, funcionários, matrículas, vínculos, jornadas, escalas | **Em andamento** — estrutura e pessoas prontas (departamentos, cargos, funções, centros de custo, sindicatos, competências, funcionários com vínculos e histórico, importação, agrupamentos); jornadas e escalas a seguir |
 | 4. Módulos especializados | Educação, saúde, operacional | Não iniciada (modelo de dados pronto) |
 | 5. Controle de ponto | Marcações, apuração, banco de horas, solicitações, aprovações, relatórios | Motor de cálculo pronto e testado; API e telas não iniciadas |
 | 6. Equipamentos | Cadastro, adaptadores, sincronização, homologação | **Em andamento** — AFD das Portarias 1.510/373/671, fila de envio de empregador/funcionários/digitais, digitais cifradas e adaptador Control iD prontos e testados; telas, execução pelo Communication Server e homologação em equipamento real pendentes |
@@ -59,6 +59,11 @@ ciclos; cargos com CBO; funções, centros de custo, tipos de funcionário, sind
 e competências por uma fábrica de cadastros com auditoria, busca, isolamento por cliente e bloqueio
 de exclusão quando em uso; empresa com inscrição estadual, CEI/CNO e código externo (15 testes).
 
+**Pessoas e acesso (fase 2 do plano Átomo)** — funcionários (pessoa + vínculos), CPF/PIS validados e
+mascarados sem permissão, histórico com vigência, desligamento/reativação; importação CSV com
+conferência por linha e criação opcional de cadastros; agrupamentos; dias de acesso, bloqueio por
+período (derruba sessões), troca obrigatória e troca de senha (18 testes). Logo da empresa.
+
 **App web** (`apps/web`, Next.js 16) — login, esqueci/redefinir senha, painel com dados reais,
 empresas (CRUD com CNPJ alfanumérico), clientes (SuperAdmin, com seletor de organização), Manual e
 Conformidade MTE (30 exigências legais com a situação de cada uma). Barra lateral flutuante de vidro
@@ -67,7 +72,7 @@ abertura com revelação circular, transições entre telas (View Transitions), 
 Sessão em cookies httpOnly via BFF (`/api/*`). MANUAL.md e CONFORMIDADE_MTE.md são gerados do mesmo
 conteúdo das telas (`npm run docs -w @superponto/web`).
 
-**API** (`apps/api`, 112 testes contra PostgreSQL real com o papel sujeito à RLS):
+**API** (`apps/api`, 131 testes contra PostgreSQL real com o papel sujeito à RLS):
 - Autenticação com `@nestjs/authentication`: login por sessão (cookie `__Host-sid` httpOnly) e por
   token (JWT 15 min + refresh rotativo com detecção de reuso), saída, `/me`, esqueci minha senha
   (link de uso único, 1 h, mesma resposta para e-mail inexistente), scrypt (OWASP), limite de

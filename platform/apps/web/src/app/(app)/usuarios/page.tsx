@@ -36,6 +36,43 @@ function RolePicker({ roles, value, onChange }: { roles: RoleRow[]; value: strin
   );
 }
 
+const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+function Blocks({ user }: { user: UserRow }) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const local = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+  const [form, setForm] = useState({ reason: '', startsAt: local(new Date()), endsAt: '' });
+  const [blocks, setBlocks] = useState(user.accessBlocks);
+  const refresh = () => qc.invalidateQueries({ queryKey: ['users'] });
+  const add = useMutation({
+    mutationFn: () => api<UserRow['accessBlocks'][number]>(`/users/${user.id}/blocks`, { method: 'POST', json: { reason: form.reason, startsAt: new Date(form.startsAt).toISOString(), ...(form.endsAt ? { endsAt: new Date(form.endsAt).toISOString() } : {}) } }),
+    onSuccess: (b) => { setBlocks((x) => [b, ...x]); refresh(); setForm({ reason: '', startsAt: local(new Date()), endsAt: '' }); toast('success', 'Bloqueio registrado: as sessões do usuário são encerradas enquanto valer'); },
+    onError: (e: Error) => toast('error', e.message),
+  });
+  const revoke = useMutation({ mutationFn: (id: string) => api(`/users/${user.id}/blocks/${id}`, { method: 'DELETE' }).then(() => id), onSuccess: (id) => { setBlocks((x) => x.filter((b) => b.id !== id)); refresh(); toast('success', 'Bloqueio encerrado'); }, onError: (e: Error) => toast('error', e.message) });
+  const fmt = (d: string | null) => (d ? new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'indeterminado');
+  return (
+    <fieldset className="space-y-3">
+      <legend className="text-xs font-semibold uppercase tracking-wider text-subtle">Bloqueio de acesso</legend>
+      {blocks.map((b) => (
+        <div key={b.id} className="flex items-center gap-2 rounded-xl border border-danger/30 bg-danger/5 px-3 py-2 text-xs">
+          <span className="flex-1">{b.reason} · {fmt(b.startsAt)} até {fmt(b.endsAt)}</span>
+          <button type="button" onClick={() => revoke.mutate(b.id)} className="text-brand">Encerrar</button>
+        </div>
+      ))}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Input label="Início" type="datetime-local" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} />
+        <Input label="Fim (opcional)" type="datetime-local" value={form.endsAt} onChange={(e) => setForm({ ...form, endsAt: e.target.value })} />
+      </div>
+      <div className="flex gap-2">
+        <input value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Motivo (ex.: férias, afastamento)" aria-label="Motivo do bloqueio" className="h-10 flex-1 rounded-2xl border border-line bg-hover px-3 text-sm outline-none focus:border-brand" />
+        <Button type="button" variant="outline" disabled={form.reason.trim().length < 3} loading={add.isPending} onClick={() => add.mutate()}>Bloquear</Button>
+      </div>
+    </fieldset>
+  );
+}
+
 function UserForm({ user, roles, onDone }: { user: UserRow | null; roles: RoleRow[]; onDone: () => void }) {
   const qc = useQueryClient();
   const toast = useToast();
@@ -43,10 +80,12 @@ function UserForm({ user, roles, onDone }: { user: UserRow | null; roles: RoleRo
   const [email, setEmail] = useState(user?.email ?? '');
   const [active, setActive] = useState(user?.isActive ?? true);
   const [roleIds, setRoleIds] = useState<string[]>(user?.roles.map((r) => r.id) ?? []);
+  const [days, setDays] = useState<number[]>(user?.accessWeekdays ?? []);
+  const [mustChange, setMustChange] = useState(user?.mustChangePassword ?? false);
   const save = useMutation({
     mutationFn: () => (user
-      ? api(`/users/${user.id}`, { method: 'PATCH', json: { displayName: name, isActive: active, roleIds } })
-      : api('/users', { method: 'POST', json: { displayName: name, email, roleIds } })),
+      ? api(`/users/${user.id}`, { method: 'PATCH', json: { displayName: name, isActive: active, roleIds, accessWeekdays: days, mustChangePassword: mustChange } })
+      : api('/users', { method: 'POST', json: { displayName: name, email, roleIds, accessWeekdays: days, mustChangePassword: mustChange } })),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); qc.invalidateQueries({ queryKey: ['roles'] }); toast('success', user ? 'Usuário atualizado' : 'Usuário criado: o convite para definir a senha foi enviado por e-mail'); onDone(); },
     onError: (e: Error) => toast('error', e.message),
   });
@@ -61,7 +100,26 @@ function UserForm({ user, roles, onDone }: { user: UserRow | null; roles: RoleRo
         </label>
       )}
       <RolePicker roles={roles} value={roleIds} onChange={setRoleIds} />
+      {!user?.isSelf && (
+        <fieldset className="space-y-1.5">
+          <legend className="text-xs font-semibold uppercase tracking-wider text-subtle">Dias com acesso</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {WEEKDAYS.map((d, i) => {
+              const on = days.includes(i);
+              return <button key={d} type="button" aria-pressed={on} onClick={() => setDays(on ? days.filter((x) => x !== i) : [...days, i].sort())} className={cn('h-9 w-12 rounded-xl border text-xs', on ? 'border-brand/50 bg-brand-soft text-fg' : 'border-line text-muted')}>{d}</button>;
+            })}
+          </div>
+          <span className="text-xs text-subtle">{days.length ? 'Fora desses dias o login é recusado (horário de Brasília).' : 'Nenhum dia marcado: acesso todos os dias.'}</span>
+        </fieldset>
+      )}
+      {!user?.isSelf && (
+        <label className="flex items-center justify-between rounded-2xl border border-line px-4 py-3 text-sm">
+          <span>Pedir troca de senha no próximo acesso</span>
+          <input type="checkbox" checked={mustChange} onChange={(e) => setMustChange(e.target.checked)} className="size-4 accent-[var(--brand)]" />
+        </label>
+      )}
       <Button type="submit" loading={save.isPending} className="h-12 w-full">{user ? 'Salvar alterações' : 'Criar usuário'}</Button>
+      {user && !user.isSelf && <div className="border-t border-line pt-5"><Blocks user={user} /></div>}
     </form>
   );
 }
@@ -118,7 +176,7 @@ export default function UsersPage() {
                     <div className={cn('grid size-10 shrink-0 place-items-center rounded-full font-display text-sm font-bold', u.isSupport ? 'bg-sky-500/15 text-sky-400' : 'bg-brand-soft text-brand')}>{u.isSupport ? <Lock className="size-4" /> : initials(u.displayName)}</div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{u.displayName}{u.isSelf && <span className="ml-2 text-xs font-normal text-subtle">(você)</span>}</p>
-                      <p className="truncate text-xs text-muted">{u.email} · {u.isActive ? lastSeen(u.lastLoginAt) : 'Acesso desativado'}</p>
+                      <p className="truncate text-xs text-muted">{u.email} · {u.activeBlock ? `Bloqueado: ${u.activeBlock.reason}` : u.isActive ? lastSeen(u.lastLoginAt) : 'Acesso desativado'}{u.accessWeekdays.length ? ` · ${u.accessWeekdays.map((d) => WEEKDAYS[d]).join(', ')}` : ''}</p>
                     </div>
                     <div className="hidden flex-wrap justify-end gap-1 md:flex">
                       {u.isSupport && <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-xs text-sky-400">Suporte e treinamento</span>}

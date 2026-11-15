@@ -1,9 +1,14 @@
 # Análise: Átomo Ponto × SuperPonto
 
-> **Andamento:** fase 1 (estrutura) concluída na V2 em 15/11/2026: departamentos em árvore com
-> seções, cargos (CBO), funções, centros de custo, tipos de funcionário, sindicatos, competências e
-> empresa com inscrição estadual, CEI/CNO e código externo. Agrupamento entra com a fase 2, porque
-> vincula funcionários.
+> **Andamento (15/11/2026, V2):**
+> - Fase 1 (estrutura) concluída: departamentos em árvore com seções, cargos (CBO), funções, centros
+>   de custo, tipos de funcionário, sindicatos, competências e empresa com inscrição estadual,
+>   CEI/CNO, código externo e logo.
+> - Fase 2 (pessoas e usuários) concluída: funcionários com vínculos e histórico, desligamento,
+>   importação por planilha com conferência, agrupamentos, dias de acesso, bloqueio por período, troca
+>   obrigatória e troca de senha pelo usuário. Captura de digital pelo leitor fica para a fase 6
+>   (equipamentos), porque depende do aplicativo local do leitor; o cadastro e o envio das digitais
+>   aos relógios já existem na API.
 
 Fontes: manual do sistema Átomo (2 PDFs, 162 páginas, 131 funções; inventário com campos em
 `docs/atomo-inventario.json`), Swagger e coleção Postman da API "servicoponto", e tela de login de
@@ -52,18 +57,18 @@ na última seção.
 
 | Átomo | v1 | V2 | Como incluir |
 |---|---|---|---|
-| Agrupamento (vincula funcionários, locais e cargos) | ❌ | ❌ | Nova entidade "Agrupamento" usada como filtro em relatórios, cálculo em lote e permissões |
+| Agrupamento (vincula funcionários, locais e cargos) | ❌ | ✅ funcionários e cargos (unidades na API) | Nova entidade "Agrupamento" usada como filtro em relatórios, cálculo em lote e permissões |
 | Especialidades | ❌ | 🟡 modelo (especialidade do vínculo) | Tela na fase de Pessoas |
 | Cargo | ✅ | ✅ com CBO e categoria | Tela na fase de Estrutura |
 | Centro de custo | ❌ | ✅ | Nova entidade, vinculada ao vínculo e à exportação para folha |
 | Cidade | ✅ | ✅ automático pelo CEP (IBGE) | Sem cadastro manual: vem do CEP |
 | Competência (períodos nomeados) | ✅ | ✅ | Tela de competências; usada como filtro em todo o sistema |
 | Departamento (com subdepartamentos) | ✅ | ✅ árvore sem limite de níveis | Tela com árvore de subdepartamentos |
-| Empresa | ✅ | ✅ com CNPJ/CEP automáticos, IE, CEI/CNO e código externo | Falta só o logo |
+| Empresa | ✅ | ✅ com CNPJ/CEP automáticos, IE, CEI/CNO, código externo e logo | — |
 | Estado civil | ✅ | ❌ | Lista fixa no cadastro de pessoa (não precisa de tela) |
 | Feriado | ✅ | ✅ (automático, melhor que o Átomo) | — |
 | Função | 🟡 | ✅ | Tela simples junto com Cargo |
-| Funcionário (com aba de biometria) | ✅ | 🟡 modelo + digitais na API | Tela na fase de Pessoas, com captura de digital |
+| Funcionário (com aba de biometria) | ✅ | ✅ vínculos, histórico, desligamento; digitais na API | Captura pelo leitor na fase 6 |
 | Justificativa (código, limite de uso, desconsidera débitos) | ✅ | ❌ | Tela de justificativas com limite de uso por período |
 | Local de trabalho | ✅ | 🟡 unidades | Tela de unidades/locais |
 | Local georreferenciado (aprovar mobile automaticamente) | ✅ | 🟡 cerca virtual no modelo | Tela de cercas com aprovação automática dentro do raio |
@@ -131,7 +136,7 @@ na última seção.
 |---|---|---|---|
 | Arquivos MTE (AFD, AEJ, ACJEF) | 🟡 | ❌ | Geradores no leiaute oficial da Portaria 671 (e 1.510 para legado) |
 | Exportar ocorrências | ✅ | ❌ | Junto com layouts de folha |
-| Importar funcionário | ✅ | ❌ | Importação por planilha com validação de CPF/PIS |
+| Importar funcionário | ✅ | ✅ CSV com conferência por linha | — |
 | Importar holerite | 🟡 | ❌ | Importação de arquivo do sistema de folha |
 | Importar registros (AFD) | 🟡 | ✅ | — |
 | Marcação desconsiderada / efetuada | 🟡 | ❌ | Listas com motivo (a marcação original nunca é apagada) |
@@ -157,9 +162,9 @@ PDF/Excel/CSV, gerando cada relatório a partir do motor de cálculo.
 | Átomo | v1 | V2 | Como incluir |
 |---|---|---|---|
 | Grupo (telas visíveis por grupo) | 🟡 | ✅ perfis com permissão por recurso | — |
-| Usuário (acesso por dias da semana, troca de senha no login, LDAP) | ✅ | ✅ | Acrescentar dias/horários de acesso, troca obrigatória de senha e LDAP/AD |
-| Alterar senha | ✅ | 🟡 só pelo esqueci minha senha | Tela "Minha conta" |
-| Bloqueio de acesso (motivo, período) | ❌ | 🟡 campo de bloqueio no modelo | Tela de bloqueios com período |
+| Usuário (acesso por dias da semana, troca de senha no login, LDAP) | ✅ | ✅ dias de acesso e troca obrigatória | Falta LDAP/AD |
+| Alterar senha | ✅ | ✅ Minha conta | — |
+| Bloqueio de acesso (motivo, período) | ❌ | ✅ | — |
 | Agendamento de notificação (e-mail de ocorrências) | 🟡 | ❌ | Agendador de e-mails |
 | Calculadora de horas | ✅ | ❌ | Ferramenta simples |
 | Configuração do sistema | ✅ | ❌ | Configurações do cliente |

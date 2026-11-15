@@ -14,13 +14,17 @@ _V2 — versão de 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › 
 5. [Visão geral (painel)](#5-painel)
 6. [Empresas e CNPJs](#6-empresas)
 7. [Estrutura da organização](#7-estrutura)
-8. [Feriados](#8-feriados)
-9. [Clientes da plataforma](#9-clientes)
-10. [Usuários](#10-usuarios)
-11. [Perfis e permissões](#11-perfis)
-12. [Segurança, auditoria e privacidade](#12-seguranca)
-13. [Módulos em construção](#13-construcao)
-14. [Suporte](#14-suporte)
+8. [Funcionários](#8-funcionarios)
+9. [Importar funcionários por planilha](#9-importacao)
+10. [Agrupamentos](#10-agrupamentos)
+11. [Feriados](#11-feriados)
+12. [Clientes da plataforma](#12-clientes)
+13. [Usuários](#13-usuarios)
+14. [Dias de acesso, bloqueios e troca de senha](#14-acesso)
+15. [Perfis e permissões](#15-perfis)
+16. [Segurança, auditoria e privacidade](#16-seguranca)
+17. [Módulos em construção](#17-construcao)
+18. [Suporte](#18-suporte)
 
 <a id="1-visao"></a>
 ## 1. O que é o SuperPonto
@@ -143,8 +147,62 @@ Nenhum cadastro em uso por funcionário ativo pode ser excluído: o sistema most
 
 > **Dica:** Comece pela estrutura: funcionários, escalas, relatórios e cálculo em lote usam esses cadastros como filtro.
 
-<a id="8-feriados"></a>
-## 8. Feriados
+<a id="8-funcionarios"></a>
+## 8. Funcionários
+
+**Para:** RH e administradores
+
+Cada funcionário é uma pessoa com um ou mais vínculos. A mesma pessoa (mesmo CPF) pode ter vínculo em mais de uma empresa; a matrícula não se repete dentro da mesma empresa.
+
+O cadastro pede nome, CPF ou PIS (relógios da Portaria 671 usam o CPF; os da 1.510, o PIS), matrícula, admissão e empresa. O CEP preenche o endereço. Departamento, seção, cargo, função, centro de custo, tipo e sindicato vêm dos cadastros da Estrutura, e o sistema só oferece os da empresa escolhida.
+
+Mudanças de departamento, cargo, função, centro de custo, tipo, sindicato, contrato e carga horária ficam no histórico do vínculo, com a data em que passam a valer e o motivo.
+
+Desligar pede a data e o motivo; o funcionário sai da lista de ativos, mas nada é apagado. "Reativar" desfaz o desligamento.
+
+CPF e PIS completos aparecem só para quem tem a permissão "Ver dados sensíveis"; para os demais eles aparecem mascarados e a busca por CPF não funciona. A auditoria nunca guarda os números completos.
+
+**Passo a passo**
+
+1. Abra Pessoas › Funcionários e clique em "Novo funcionário".
+2. Preencha pessoa, endereço (pelo CEP) e vínculo e clique em "Cadastrar funcionário".
+3. Clique num funcionário para ver a ficha, o histórico e os botões Editar, Desligar e Reativar.
+4. Use os filtros do topo: empresa, departamento (inclui os subdepartamentos), cargo, tipo, agrupamento e situação.
+
+<a id="9-importacao"></a>
+## 9. Importar funcionários por planilha
+
+**Para:** RH e administradores
+
+A importação lê planilhas CSV (no Excel: Arquivo › Salvar como › CSV), com separador ponto e vírgula ou vírgula. O sistema reconhece os nomes de coluna mais comuns, como "Data de admissão", "Matrícula" e "PIS/PASEP"; colunas desconhecidas são ignoradas e informadas.
+
+Primeiro o sistema confere a planilha sem gravar nada e mostra, linha por linha, o que está pronto e o que tem erro (CPF ou PIS inválido, data inexistente, matrícula repetida, departamento ou cargo não cadastrado). Depois você importa só as linhas válidas.
+
+Opcionalmente, o sistema cria os departamentos, cargos, funções, centros de custo e tipos que ainda não existirem, e atualiza funcionários cuja matrícula já está cadastrada. Sindicatos precisam estar cadastrados antes.
+
+**Passo a passo**
+
+1. Abra Pessoas › Importar planilha e, se quiser, clique em "Baixar modelo".
+2. Escolha a empresa e o arquivo CSV.
+3. Clique em "1. Conferir planilha", corrija o que for preciso e confira de novo.
+4. Clique em "2. Importar" para gravar as linhas válidas.
+
+> **Dica:** Até 5.000 linhas por vez. Datas no formato dd/mm/aaaa.
+
+<a id="10-agrupamentos"></a>
+## 10. Agrupamentos
+
+**Para:** Administradores e RH
+
+Agrupamentos reúnem funcionários e cargos sem depender da estrutura (ex.: "Plantão noturno", "Motoristas da frota"). Servem de filtro na lista de funcionários e, nas próximas fases, nos relatórios, no cálculo em lote e no envio aos relógios.
+
+**Passo a passo**
+
+1. Abra Organização › Agrupamentos, clique em "Novo" e dê um nome.
+2. Clique no botão "funcionário(s)" do agrupamento para escolher os funcionários e os cargos.
+
+<a id="11-feriados"></a>
+## 11. Feriados
 
 **Para:** Administradores da organização e RH
 
@@ -164,8 +222,8 @@ A base de feriados municipais começa pelas capitais. Para outras cidades, cadas
 
 > **Dica:** Preencha o CEP da empresa: sem ele, só aparecem os feriados nacionais.
 
-<a id="9-clientes"></a>
-## 9. Clientes da plataforma
+<a id="12-clientes"></a>
+## 12. Clientes da plataforma
 
 **Para:** Equipe SuperPonto (SuperAdmin)
 
@@ -182,8 +240,8 @@ Ao criar um cliente, informe o nome, o identificador (gerado a partir do nome), 
 
 > **Dica:** Clientes novos começam no status "Em teste".
 
-<a id="10-usuarios"></a>
-## 10. Usuários
+<a id="13-usuarios"></a>
+## 13. Usuários
 
 **Para:** Administradores
 
@@ -199,10 +257,23 @@ Novos usuários recebem um convite por e-mail para criar a própria senha. O e-m
 2. Informe nome, e-mail e escolha um ou mais perfis de acesso.
 3. Para mudar perfis ou desativar o acesso, use o lápis ao lado do usuário; o envelope reenvia o convite para quem ainda não entrou.
 
-> **Dica:** Ninguém pode desativar ou excluir o próprio usuário.
+> **Dica:** Ninguém pode desativar, bloquear ou limitar os dias do próprio usuário.
 
-<a id="11-perfis"></a>
-## 11. Perfis e permissões
+<a id="14-acesso"></a>
+## 14. Dias de acesso, bloqueios e troca de senha
+
+**Para:** Administradores
+
+No cadastro do usuário dá para marcar os dias da semana em que ele pode entrar. Fora desses dias (horário de Brasília) o login é recusado e quem já estava conectado é desconectado. Nenhum dia marcado significa acesso todos os dias.
+
+O bloqueio de acesso impede a entrada por um período (com início, fim opcional e motivo), por exemplo durante férias ou afastamento. Enquanto vale, as sessões do usuário são encerradas. O motivo só aparece para quem digitou a senha correta.
+
+Em Administração › Bloqueios de acesso ficam os bloqueios vigentes e agendados, com a opção de encerrar antes do fim.
+
+"Pedir troca de senha no próximo acesso" leva o usuário direto para Minha conta até ele trocar a senha. Em Conta › Minha conta, qualquer usuário troca a própria senha informando a atual.
+
+<a id="15-perfis"></a>
+## 15. Perfis e permissões
 
 **Para:** Administradores
 
@@ -214,8 +285,8 @@ Recursos marcados "módulo em construção na V2" já podem ser incluídos nos p
 
 Mudanças num perfil valem a partir do próximo acesso de cada usuário. Perfis com usuários não podem ser excluídos.
 
-<a id="12-seguranca"></a>
-## 12. Segurança, auditoria e privacidade
+<a id="16-seguranca"></a>
+## 16. Segurança, auditoria e privacidade
 
 **Para:** Todos
 
@@ -225,8 +296,8 @@ Senhas são guardadas apenas como hash forte; ninguém, nem a equipe SuperPonto,
 
 O tratamento de dados segue a LGPD: o empregador é o controlador dos dados dos trabalhadores e a SuperPonto atua como operadora.
 
-<a id="13-construcao"></a>
-## 13. Módulos em construção
+<a id="17-construcao"></a>
+## 17. Módulos em construção
 
 **Para:** Todos
 
@@ -238,8 +309,8 @@ Próximas fases: unidades e departamentos, usuários e perfis, pessoas e víncul
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 
-<a id="14-suporte"></a>
-## 14. Suporte
+<a id="18-suporte"></a>
+## 18. Suporte
 
 **Para:** Todos
 

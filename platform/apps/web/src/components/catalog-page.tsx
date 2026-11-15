@@ -38,6 +38,8 @@ export interface CatalogDef {
   /** registros pertencem a uma empresa (escolhida no topo) */
   companyScoped?: boolean;
   emptyBody?: string;
+  /** ação extra por linha (ex.: membros do agrupamento) */
+  rowExtra?: (row: Row & Record<string, unknown>, canManage: boolean) => React.ReactNode;
 }
 
 type Row = Record<string, unknown> & { id: string; name: string; active?: boolean; inUse?: number };
@@ -201,7 +203,8 @@ export function CatalogPage({ def }: { def: CatalogDef }) {
                       {def.subtitle && <p className="truncate text-xs text-muted">{def.subtitle(r)}</p>}
                     </div>
                     {def.badge?.(r) && <span className="hidden rounded-full border border-line px-2.5 py-1 text-xs text-muted sm:inline">{def.badge(r)}</span>}
-                    {typeof r.inUse === 'number' && r.inUse > 0 && <span className="hidden rounded-full bg-hover px-2.5 py-1 text-xs text-muted md:inline">{r.inUse} em uso</span>}
+                    {!def.rowExtra && typeof r.inUse === 'number' && r.inUse > 0 && <span className="hidden rounded-full bg-hover px-2.5 py-1 text-xs text-muted md:inline">{r.inUse} em uso</span>}
+                    {def.rowExtra?.(r, canManage)}
                     {canManage && (
                       <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
                         <Button variant="ghost" className="size-9 px-0" onClick={() => setEditing(r)} aria-label={`Editar ${r.name}`}><Pencil className="size-4" /></Button>
