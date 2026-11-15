@@ -177,7 +177,7 @@ Documentos que o sistema precisa gerar para o trabalhador, para o empregador e p
 - **O que a norma exige:** A cada marcação o trabalhador deve ter acesso ao comprovante, com os campos definidos na portaria (empregador com CNPJ/CPF, local, nome e CPF do trabalhador, data, hora e NSR). No REP-P o comprovante é eletrônico.
 - **Base legal:** Portaria MTP nº 671/2021
 - **Situação:** Em desenvolvimento
-- **No SuperPonto:** Cada marcação pelo navegador mostra o comprovante na tela (funcionário, empresa, CNPJ, data, hora, código de integridade, aparelho liberado quando a marcação vem do app e o rodapé definido pela empresa). Envio por e-mail e consulta pública de autenticidade ainda faltam.
+- **No SuperPonto:** Cada marcação pelo navegador mostra o comprovante na tela (funcionário, empresa, CNPJ, data, hora, NSR, código de integridade, aparelho liberado quando a marcação vem do app e o rodapé definido pela empresa). Envio por e-mail e consulta pública de autenticidade ainda faltam.
 
 <a id="afd"></a>
 ### AFD: Arquivo Fonte de Dados
@@ -185,7 +185,7 @@ Documentos que o sistema precisa gerar para o trabalhador, para o empregador e p
 - **O que a norma exige:** O registrador gera o AFD com todas as marcações e eventos no leiaute oficial, assinado eletronicamente, sempre que solicitado.
 - **Base legal:** Portaria MTP nº 671/2021, anexo de leiaute do AFD
 - **Situação:** Em desenvolvimento
-- **No SuperPonto:** Os AFDs dos relógios (1.510, 373 e 671) são importados e as linhas originais podem ser baixadas por equipamento e período (Equipamentos › Arquivos). Falta gerar o AFD do próprio REP-P (navegador/app) com NSR e assinatura CAdES.
+- **No SuperPonto:** Os AFDs dos relógios (1.510, 373 e 671) são importados e as linhas originais podem ser baixadas por equipamento e período (Equipamentos › Arquivos). O AFD do próprio REP-P (navegador/app) é gerado em Ponto › Fechamento › AFD do REP-P, no leiaute da Portaria 671: cabeçalho com o número do programa no INPI, registros tipo 7 com NSR sequencial por empresa e hash SHA-256 encadeado (gravados na hora da marcação, que é imutável) e trailer. Falta a assinatura .p7s (certificado ICP-Brasil) e conferir no validador oficial.
 
 <a id="aej"></a>
 ### AEJ: Arquivo Eletrônico de Jornada
@@ -193,7 +193,7 @@ Documentos que o sistema precisa gerar para o trabalhador, para o empregador e p
 - **O que a norma exige:** O programa de tratamento gera o AEJ com jornadas contratuais, marcações, tratamentos e ausências no leiaute oficial, assinado eletronicamente.
 - **Base legal:** Portaria MTP nº 671/2021, anexo de leiaute do AEJ
 - **Situação:** Em desenvolvimento
-- **No SuperPonto:** Gerado da apuração (Ponto › Fechamento › Gerar AEJ) com registradores, vínculos, horários contratuais, marcações originais/incluídas/desconsideradas, ausências, banco de horas e trailer. Faltam a assinatura CAdES (certificado ICP-Brasil da empresa) e o número do REP-P (registro no INPI); conferir no validador oficial.
+- **No SuperPonto:** Gerado da apuração (Ponto › Fechamento › Gerar AEJ) com registradores, vínculos, horários contratuais, marcações originais/incluídas/desconsideradas, ausências, banco de horas e trailer. Usa o número do REP-P no INPI informado no fechamento. Falta a assinatura CAdES (certificado ICP-Brasil da empresa); conferir no validador oficial.
 
 <a id="espelho"></a>
 ### Espelho de ponto

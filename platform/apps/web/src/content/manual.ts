@@ -248,6 +248,7 @@ export const SECTIONS: ManualSection[] = [
       '"Fechar período" exige que não haja ajustes pendentes, grava a apuração final, lança o banco de horas (se ativo) e trava o período: marcações, ajustes, abonos, afastamentos, escalas e horários não mudam mais nele.',
       'Reabrir pede motivo, desfaz os lançamentos do banco daquele fechamento e precisa seguir a ordem (reabra antes o período mais recente). Tudo fica na auditoria.',
       '"Gerar AEJ" baixa o Arquivo Eletrônico de Jornada (Portaria 671) do período, com registradores, vínculos, horários, marcações originais, incluídas e desconsideradas, faltas e movimentos do banco. Confira no validador do MTE e assine com o certificado ICP-Brasil da empresa antes de entregar; o sistema avisa o que falta (ex.: número do REP-P).',
+      'Em Fechamento também ficam o número do REP-P no INPI (usado no AFD e no AEJ) e o botão "AFD do REP-P", que gera o arquivo das marcações feitas pelo navegador e pelo app no período, com NSR e código de integridade de cada marcação, no leiaute da Portaria 671. Assine o arquivo com o certificado digital da empresa antes de entregar.',
     ],
   },
   {

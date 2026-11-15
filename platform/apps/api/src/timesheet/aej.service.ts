@@ -17,7 +17,7 @@ export class AejService {
   constructor(private readonly prisma: PrismaService, private readonly core: TimesheetCore) {}
 
   async generate(tenantId: string, companyId: string, from: string, to: string) {
-    const { company, emps, devices, bank } = await this.prisma.forTenant(tenantId, async (tx) => {
+    const { company, emps, devices, bank, repP } = await this.prisma.forTenant(tenantId, async (tx) => {
       const company = await tx.company.findFirst({ where: { id: companyId, deletedAt: null } });
       if (!company) throw new NotFoundException('Empresa não encontrada');
       const emps = await tx.employment.findMany({
@@ -26,8 +26,9 @@ export class AejService {
         orderBy: { registration: 'asc' },
       });
       const devices = await tx.device.findMany({ where: { companyId, deletedAt: null }, select: { id: true, repNumber: true, ordinance: true } });
+      const repP = await tx.repPRegister.findUnique({ where: { companyId }, select: { inpiNumber: true } });
       const bank = await tx.bankHourTransaction.findMany({ where: { account: { employment: { companyId } }, refDate: { gte: toDate(from), lte: toDate(to) }, type: { in: ['CREDIT', 'DEBIT', 'COMPENSATION'] } }, select: { type: true, minutes: true, refDate: true, account: { select: { employmentId: true } } } });
-      return { company, emps, devices, bank };
+      return { company, emps, devices, bank, repP };
     });
     if (!company.cnpj) throw new BadRequestException('A empresa precisa de CNPJ para gerar o AEJ');
     const warnings: string[] = [];
@@ -35,8 +36,8 @@ export class AejService {
 
     // 02: registradores. REP-P (navegador/app) = id 1; relógios com número de fabricação a partir do 2.
     const reps = new Map<string, { id: number; tp: number; nr: string }>();
-    reps.set('WEB', { id: 1, tp: 3, nr: '0'.repeat(17) });
-    warnings.push('O número do REP-P (registro do programa no INPI) ainda não foi informado: saiu com zeros.');
+    reps.set('WEB', { id: 1, tp: 3, nr: repP?.inpiNumber ?? '0'.repeat(17) });
+    if (!repP?.inpiNumber) warnings.push('O número do REP-P (registro do programa no INPI) ainda não foi informado: saiu com zeros.');
     let next = 2;
     for (const d of devices) {
       if (!d.repNumber) { warnings.push('Há relógio sem número de fabricação (17 dígitos): as marcações dele saem como REP-P.'); continue; }

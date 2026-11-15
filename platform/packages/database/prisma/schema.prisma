@@ -967,12 +967,17 @@ model TimeRecord {
   previousHash    String?          @map("previous_hash")
   idempotencyKey  String           @map("idempotency_key")
   receivedAt      DateTime         @default(now()) @map("received_at") @db.Timestamptz(6)
+  /// REP-P (navegador/app): NSR sequencial por empresa e hash encadeado do registro tipo 7 do AFD
+  repPCompanyId   String?          @map("rep_p_company_id") @db.Uuid
+  repPNsr         BigInt?          @map("rep_p_nsr")
+  repPHash        String?          @map("rep_p_hash")
 
   employment  Employment             @relation(fields: [employmentId], references: [id])
   device      Device?                @relation(fields: [deviceId], references: [id])
   adjustments TimeRecordAdjustment[]
 
   @@unique([tenantId, idempotencyKey])
+  @@unique([repPCompanyId, repPNsr])
   @@index([tenantId, employmentId, recordedAt])
   @@index([tenantId, deviceId, deviceNsr])
   @@map("time_records")
@@ -2787,4 +2792,18 @@ model MirrorAcknowledgment {
   @@unique([employmentId, periodStart, periodEnd])
   @@index([tenantId, periodStart])
   @@map("mirror_acknowledgments")
+}
+
+/// Programa de registro de ponto (REP-P) por empresa: número no INPI e último NSR usado.
+model RepPRegister {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  companyId  String   @unique @map("company_id") @db.Uuid
+  /// número de registro do programa no INPI (17 dígitos no AFD/AEJ)
+  inpiNumber String?  @map("inpi_number")
+  lastNsr    BigInt   @default(0) @map("last_nsr")
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([tenantId])
+  @@map("rep_p_registers")
 }

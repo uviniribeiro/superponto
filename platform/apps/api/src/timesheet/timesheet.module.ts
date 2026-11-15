@@ -12,6 +12,7 @@ import type { Tx } from '../prisma/prisma.service.js';
 import { bankPolicySchema, bankResetSchema, bankTxSchema, BankService, ClosingsService, type BankPolicyInput, type BankResetInput, type BankTxInput } from './bank.service.js';
 import { ApprovalFlowsService, flowSchema, requestDecisionSchema, requestSchema, RequestsService, type FlowInput, type RequestInput } from './requests.service.js';
 import { AejService } from './aej.service.js';
+import { repPAfdSchema, RepPService, repPSettingsSchema } from './rep-p.service.js';
 import { TimesheetCore } from './timesheet.core.js';
 import {
   adjustmentSchema, allowanceSchema, calculateSchema, closingSchema, dailySchema, decideSchema, justificationSchema, leaveSchema, listRangeSchema, mirrorSchema, onCallSchema, periodSchema, punchSchema, reopenSchema,
@@ -33,7 +34,21 @@ export const JUSTIFICATIONS: CatalogConfig = {
 @ApiBearerAuth()
 @Controller('v1/timesheet')
 export class TimesheetController {
-  constructor(private readonly svc: TimesheetService, private readonly aejSvc: AejService) {}
+  constructor(private readonly svc: TimesheetService, private readonly aejSvc: AejService, private readonly repP: RepPService) {}
+
+  /** REP-P: número no INPI e último NSR da empresa. */
+  @Get('rep-p')
+  @RequirePermission('time.calculations:read')
+  repPGet(@ActiveTenant() t: string, @Query({ schema: z.object({ companyId: z.uuid() }) }) q: { companyId: string }) { return this.repP.get(t, q.companyId); }
+
+  @Put('rep-p')
+  @RequirePermission('admin.settings:manage')
+  repPSave(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Body({ schema: repPSettingsSchema }) b: z.infer<typeof repPSettingsSchema>, @RequestInfo() m: RequestMeta) { return this.repP.save(t, u, b, m); }
+
+  /** AFD (Portaria 671) das marcações do REP-P (navegador/app) no período. */
+  @Get('afd-rep-p')
+  @RequirePermission('reports.reports:export')
+  repPAfd(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Query({ schema: repPAfdSchema }) q: z.infer<typeof repPAfdSchema>, @RequestInfo() m: RequestMeta) { return this.repP.afd(t, u, q, m); }
 
   /** Espelho de ponto de um funcionário. */
   @Get()
@@ -264,7 +279,7 @@ export class RequestsController {
     catalogController(JUSTIFICATIONS),
   ],
   exports: [TimesheetCore, TimesheetService],
-  providers: [AejService, TimesheetCore, TimesheetService, AdjustmentsService, AbsencesService, PunchService, BankService, ClosingsService, ApprovalFlowsService, RequestsService, CatalogService],
+  providers: [AejService, RepPService, TimesheetCore, TimesheetService, AdjustmentsService, AbsencesService, PunchService, BankService, ClosingsService, ApprovalFlowsService, RequestsService, CatalogService],
 })
 export class TimesheetModule {}
 

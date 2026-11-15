@@ -3,15 +3,16 @@ import { setSession } from '@/lib/bff';
 import { API_URL, type TokenPair } from '@/lib/session';
 
 export async function POST(req: NextRequest) {
-  const { email, password } = await req.json().catch(() => ({}));
+  const { email, password, code, recoveryCode } = await req.json().catch(() => ({}));
   const upstream = await fetch(`${API_URL}/v1/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, ...(code ? { code } : {}), ...(recoveryCode ? { recoveryCode } : {}) }),
     cache: 'no-store',
   });
   if (!upstream.ok) {
     const error = await upstream.json().catch(() => ({ message: 'Não foi possível entrar' }));
+    if (error.mfaRequired) return NextResponse.json({ message: error.message, mfaRequired: true }, { status: 401 });
     return NextResponse.json({ message: upstream.status === 401 ? 'E-mail ou senha incorretos' : error.message ?? 'Não foi possível entrar' }, { status: upstream.status });
   }
   const tokens = (await upstream.json()) as TokenPair;

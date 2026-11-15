@@ -8,6 +8,7 @@ import type { RequestMeta } from '../common/tenant.js';
 import { APP_CONFIG, type AppConfig } from '../config.js';
 import { PrismaService, type Tx } from '../prisma/prisma.service.js';
 import { assertOpenPeriod, ExpectedScheduleService } from '../schedules/schedules.service.js';
+import { afdRecord7 } from '@superponto/rep-protocols';
 import { addDays, daysBetween, EMP_SELECT, iso, local, TimesheetCore, toDate, type Emp } from './timesheet.core.js';
 import type { AdjustmentInput, AllowanceInput, LeaveInput, OnCallInput, PunchInput } from './timesheet.schemas.js';
 
@@ -360,8 +361,14 @@ export class PunchService {
       if (await tx.timeRecord.findFirst({ where: { idempotencyKey: key } })) throw new ConflictException('Este desafio já foi usado');
       const lastHash = (await tx.timeRecord.findFirst({ where: { employmentId: e.id }, orderBy: { receivedAt: 'desc' }, select: { hash: true } }))?.hash ?? null;
       const hash = sha256Hex([lastHash ?? '', e.id, now.toISOString(), 'WEB', nonce].join('|'));
+      // REP-P: NSR sequencial por empresa (linha travada na mesma transação) e hash do registro tipo 7.
+      const [{ last_nsr: nsr }] = await tx.$queryRaw<Array<{ last_nsr: bigint }>>`INSERT INTO rep_p_registers (id, tenant_id, company_id, last_nsr, updated_at) VALUES (gen_random_uuid(), ${tenantId}::uuid, ${e.companyId}::uuid, 1, now()) ON CONFLICT (company_id) DO UPDATE SET last_nsr = rep_p_registers.last_nsr + 1, updated_at = now() RETURNING last_nsr` as [{ last_nsr: bigint }];
+      const prev = nsr > 1n ? (await tx.timeRecord.findFirst({ where: { repPCompanyId: e.companyId, repPNsr: nsr - 1n }, select: { repPHash: true } }))?.repPHash ?? null : null;
+      const cpf = (await tx.person.findFirst({ where: { employments: { some: { id: e.id } } }, select: { cpf: true } }))?.cpf ?? '';
+      const rec7 = afdRecord7({ nsr, at: now, cpf, recordedAt: now, collector: appDevice ? '01' : '02', offline: false }, prev);
       const r = await tx.timeRecord.create({ data: {
         tenantId, employmentId: e.id, recordedAt: now, source: 'WEB', hash, previousHash: lastHash, idempotencyKey: key,
+        repPCompanyId: e.companyId, repPNsr: nsr, repPHash: rec7.hash,
         latitude: input.latitude ?? null, longitude: input.longitude ?? null, accuracyM: input.accuracy ?? null,
       } });
       await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'CREATE', entity: 'time_record', entityId: r.id, after: { employmentId: e.id, recordedAt: now, source: 'WEB', ip: meta.ip, appDevice: appDevice?.name ?? null }, ...meta });
@@ -369,7 +376,7 @@ export class PunchService {
       // Comprovante (Portaria 671): dados da marcação para o trabalhador conferir.
       return {
         id: r.id, recordedAt: now.toISOString(), date: today, time: local(now).time, hash,
-        employee: e.person.socialName ?? e.person.fullName, registration: e.registration, company: e.company.tradeName ?? e.company.legalName, cnpj: e.company.cnpj, appDevice: appDevice?.name ?? null, footer,
+        employee: e.person.socialName ?? e.person.fullName, registration: e.registration, company: e.company.tradeName ?? e.company.legalName, cnpj: e.company.cnpj, appDevice: appDevice?.name ?? null, footer, nsr: Number(nsr),
       };
     });
   }

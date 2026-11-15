@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn';
 import { SOURCE_LABEL } from '@/lib/timesheet';
 
 interface Me { today: string; employments: Array<{ id: string; registration: string; company: string; geofence: { name: string; radiusM: number } | null }>; punches: Array<{ id: string; employmentId: string; time: string; source: string; hash: string }> }
-interface Receipt { id: string; date: string; time: string; hash: string; employee: string; registration: string; company: string; cnpj: string | null; appDevice?: string | null; footer?: string | null }
+interface Receipt { id: string; date: string; time: string; hash: string; employee: string; registration: string; company: string; cnpj: string | null; appDevice?: string | null; footer?: string | null; nsr?: number }
 
 function Clock() {
   const [now, setNow] = useState<Date | null>(null);
@@ -85,7 +85,7 @@ export default function RegistrarPage() {
                   <motion.div initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} className="glass rounded-[28px] p-5">
                     <div className="flex items-center gap-2 text-success"><CheckCircle2 className="size-5" /><span className="font-semibold">Comprovante de marcação</span></div>
                     <dl className="mt-3 space-y-1 text-sm">
-                      {[['Funcionário', `${receipt.employee} · matrícula ${receipt.registration}`], ['Empresa', `${receipt.company}${receipt.cnpj ? ` · CNPJ ${receipt.cnpj}` : ''}`], ['Data e hora', `${receipt.date.split('-').reverse().join('/')} às ${receipt.time}`]].map(([k, v]) => (
+                      {[['Funcionário', `${receipt.employee} · matrícula ${receipt.registration}`], ['Empresa', `${receipt.company}${receipt.cnpj ? ` · CNPJ ${receipt.cnpj}` : ''}`], ['Data e hora', `${receipt.date.split('-').reverse().join('/')} às ${receipt.time}`], ...(receipt.nsr ? [['NSR', String(receipt.nsr).padStart(9, '0')]] : [])].map(([k, v]) => (
                         <div key={k} className="flex justify-between gap-3"><dt className="text-muted">{k}</dt><dd className="text-right">{v}</dd></div>
                       ))}
                     </dl>

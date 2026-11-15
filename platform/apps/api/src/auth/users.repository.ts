@@ -56,7 +56,7 @@ export class UsersRepository {
   }
 
   /** Trilha de acesso (login, falha de login, troca/redefinição de senha) na auditoria do cliente. */
-  async logAccess(userId: string, action: 'LOGIN' | 'LOGIN_FAILED' | 'UPDATE', entity: 'session' | 'user_password', after: Record<string, unknown>, meta?: { ip: string | null; userAgent: string | null }): Promise<void> {
+  async logAccess(userId: string, action: 'LOGIN' | 'LOGIN_FAILED' | 'UPDATE', entity: 'session' | 'user_password' | 'user_mfa', after: Record<string, unknown>, meta?: { ip: string | null; userAgent: string | null }): Promise<void> {
     await this.prisma.asPlatform(async (tx) => {
       const u = await tx.user.findUnique({ where: { id: userId }, select: { tenantId: true } });
       if (!u) return;

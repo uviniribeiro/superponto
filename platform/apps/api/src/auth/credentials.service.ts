@@ -57,6 +57,10 @@ export class CredentialsService {
     return found.user;
   }
 
+  logMfa(userId: string, change: 'enabled' | 'disabled') {
+    return this.users.logAccess(userId, 'UPDATE', 'user_mfa', { change });
+  }
+
   /** Troca de senha pelo próprio usuário (confere a senha atual). */
   async change(userId: string, current: string, next: string, meta?: RequestMeta): Promise<void> {
     if ((await this.users.findAuthSource(userId)) === 'LDAP') throw new BadRequestException('Sua senha é a mesma da rede da organização (LDAP): troque-a no diretório da empresa');

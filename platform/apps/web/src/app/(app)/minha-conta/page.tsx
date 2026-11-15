@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { KeyRound, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
+import { MfaCard } from '@/components/mfa-card';
 import { Page, PageHeader } from '@/components/page';
 import { useSession } from '@/components/providers';
 import { Button, Card, Input, useToast } from '@/components/ui';
@@ -47,6 +48,7 @@ export default function MyAccountPage() {
             <Button type="submit" loading={change.isPending} className="h-12 w-full">Salvar nova senha</Button>
           </form>
         </Card>
+        <MfaCard />
       </div>
     </Page>
   );
