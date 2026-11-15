@@ -1573,32 +1573,45 @@ model DeviceHomologation {
 }
 
 model Device {
-  id             String        @id @default(uuid()) @db.Uuid
-  tenantId       String        @map("tenant_id") @db.Uuid
-  companyId      String        @map("company_id") @db.Uuid
-  unitId         String?       @map("unit_id") @db.Uuid
-  modelId        String?       @map("model_id") @db.Uuid
-  commServerId   String?       @map("comm_server_id") @db.Uuid
-  name           String
-  serialNumber   String?       @map("serial_number")
-  firmware       String?
-  host           String?
-  port           Int?
-  protocol       String?
-  internalCode   String?       @map("internal_code")
-  usage          String[]      @default(["TIME"])
-  ordinance      RepOrdinance?
+  id                     String              @id @default(uuid()) @db.Uuid
+  tenantId               String              @map("tenant_id") @db.Uuid
+  companyId              String              @map("company_id") @db.Uuid
+  unitId                 String?             @map("unit_id") @db.Uuid
+  modelId                String?             @map("model_id") @db.Uuid
+  commServerId           String?             @map("comm_server_id") @db.Uuid
+  name                   String
+  serialNumber           String?             @map("serial_number")
+  firmware               String?
+  host                   String?
+  port                   Int?
+  protocol               String?
+  internalCode           String?             @map("internal_code")
+  usage                  String[]            @default(["TIME"])
+  ordinance              RepOrdinance?
   /// fuso do equipamento: o AFD da Portaria 1.510 não traz fuso
-  timezone       String        @default("America/Sao_Paulo")
-  status         DeviceStatus  @default(PENDING)
-  lastSeenAt     DateTime?     @map("last_seen_at") @db.Timestamptz(6)
-  lastSyncAt     DateTime?     @map("last_sync_at") @db.Timestamptz(6)
-  adapterVersion String?       @map("adapter_version")
+  timezone               String              @default("America/Sao_Paulo")
+  status                 DeviceStatus        @default(PENDING)
+  lastSeenAt             DateTime?           @map("last_seen_at") @db.Timestamptz(6)
+  lastSyncAt             DateTime?           @map("last_sync_at") @db.Timestamptz(6)
+  adapterVersion         String?             @map("adapter_version")
   // Credenciais do equipamento ficam cifradas (nunca retornam ao frontend).
-  credentialsEnc String?       @map("credentials_enc")
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt      DateTime?     @map("deleted_at") @db.Timestamptz(6)
+  credentialsEnc         String?             @map("credentials_enc")
+  /// grupo de REP (ex.: "Portaria", "Bloco B") para enviar comandos a vários de uma vez
+  groupName              String?             @map("group_name")
+  /// número de fabricação do REP (17 dígitos, Portaria 671)
+  repNumber              String?             @map("rep_number")
+  manufacturer           String?
+  modelName              String?             @map("model_name")
+  /// coleta automática a cada N minutos (o agente local busca os registros)
+  collectIntervalMinutes Int?                @map("collect_interval_minutes")
+  /// e-mails avisados quando o equipamento fica sem comunicação ou volta
+  alertEmails            String[]            @default([]) @map("alert_emails")
+  /// SHA-256 da chave do agente local (a chave só aparece uma vez, ao gerar)
+  agentKeyHash           String?             @unique @map("agent_key_hash")
+  roster                 DeviceRosterEntry[]
+  createdAt              DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt              DateTime?           @map("deleted_at") @db.Timestamptz(6)
 
   company            Company              @relation(fields: [companyId], references: [id])
   unit               CompanyUnit?         @relation(fields: [unitId], references: [id])
@@ -2591,6 +2604,12 @@ model BankPolicy {
   maxDailyCreditMinutes Int?     @map("max_daily_credit_minutes")
   /// multiplicador do crédito por percentual de extra, ex.: {"50": 1.5}
   creditMultipliers     Json     @default("{}") @map("credit_multipliers")
+  /// banco de compensação: os saldos diários se compensam dentro da semana ou do mês antes do banco
+  compensationEnabled   Boolean  @default(false) @map("compensation_enabled")
+  /// WEEK ou MONTH
+  compensationPeriod    String   @default("WEEK") @map("compensation_period")
+  /// sobra positiva da compensação: BANK (vai para o banco) ou PAY (paga como extra)
+  compensationLeftover  String   @default("BANK") @map("compensation_leftover")
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -2615,4 +2634,22 @@ model OvertimeAuthorization {
 
   @@unique([employmentId, date])
   @@map("overtime_authorizations")
+}
+
+/// Funcionários lidos do equipamento (comando "receber funcionários"), para comparar com o cadastro.
+model DeviceRosterEntry {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  deviceId     String   @map("device_id") @db.Uuid
+  /// PIS (Portaria 1.510) ou CPF (Portaria 671)
+  workerId     String   @map("worker_id")
+  name         String?
+  registration String?
+  fingerprints Int      @default(0)
+  receivedAt   DateTime @default(now()) @map("received_at") @db.Timestamptz(6)
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, workerId])
+  @@map("device_roster")
 }
