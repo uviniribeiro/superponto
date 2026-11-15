@@ -119,7 +119,7 @@ na última seção.
 | Enviar/receber funcionário (verificar digital, só não salvos) | ✅ envio | ✅ enviar, receber e comparar com o cadastro | — |
 | Equipamento (alertas de energia, conexão, USB fiscal, e-mail) | ✅ | ✅ tela; alerta de conexão por e-mail | Alertas de energia/USB dependem do agente por marca |
 | Exportação de registros (AFD por funcionário/empresa/equipamento) | 🟡 formato com erro | 🟡 linhas originais por equipamento; AEJ gerado | AFD do REP-P com NSR |
-| Agente de comunicação (Crab/Octopus no Átomo) | 🟡 robô Python | ✅ agente local com driver Control iD e simulador; Henry, Topdata, Biomtech, Dahua e RW pendentes | Driver por marca, com documentação do fabricante e equipamento para homologar |
+| Agente de comunicação (Crab/Octopus no Átomo) | 🟡 robô Python | ✅ agente local com drivers Control iD, Henry (protocolo 8x) e simulador; Topdata, Biomtech, Dahua e RW pendentes | Driver por marca, com documentação do fabricante e equipamento para homologar |
 | Exportar empresa / funcionário | ❌ | ✅ relatórios Funcionários e Usuários em Excel/CSV | — |
 | Gerenciamento de coleta (agendamentos) | 🟡 | ✅ intervalo por equipamento, executado pelo agente | — |
 | Grupo REP | ❌ | ✅ grupo com comando para todos | — |

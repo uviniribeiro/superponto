@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { ControlIdDriver } from './drivers/controlid.js';
+import { HenryDriver } from './drivers/henry.js';
 import { SimulatorDriver } from './drivers/simulator.js';
 import type { DeviceDriver } from './drivers/types.js';
 
@@ -8,7 +9,7 @@ export interface DeviceEntry {
   id: string;
   /** chave do equipamento (spd_...), gerada na tela Equipamentos */
   key: string;
-  driver: 'controlid' | 'simulator';
+  driver: 'controlid' | 'henry' | 'simulator';
   host?: string;
   port?: number;
   https?: boolean;
@@ -16,6 +17,8 @@ export interface DeviceEntry {
   login?: string;
   password?: string;
   family?: 'rep' | 'access';
+  /** Henry: códigos de evento que não viram marcação (padrão 80, 82, 83) */
+  ignoreEventCodes?: string[];
 }
 export interface AgentConfig { apiUrl: string; stateFile: string | null; intervalSeconds: number; devices: DeviceEntry[] }
 
@@ -42,6 +45,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AgentConfig {
   for (const d of devices) {
     if (!/^spd_[A-Za-z0-9_-]{20,}$/.test(d.key ?? '')) throw new Error(`${d.id}: chave do equipamento inválida (gere em Equipamentos → Agente local)`);
     if (d.driver === 'controlid' && (!d.host || !d.login || !d.password)) throw new Error(`${d.id}: Control iD precisa de host, login e password`);
+    if (d.driver === 'henry' && !d.host) throw new Error(`${d.id}: Henry precisa de host (porta padrão 3000)`);
   }
   return { apiUrl, stateFile: raw.stateFile ?? env.SUPERPONTO_AGENT_STATE ?? 'superponto-agent-state.json', intervalSeconds: Math.max(10, raw.intervalSeconds ?? 30), devices };
 }
@@ -52,5 +56,6 @@ export function createDriver(d: DeviceEntry): DeviceDriver {
     const https = d.https ?? true;
     return new ControlIdDriver({ host: d.host!, port: d.port ?? (https ? 443 : 80), https, insecureTls: d.insecureTls ?? true, timeoutMs: 30_000, login: d.login!, password: d.password!, family: d.family ?? 'rep' });
   }
+  if (d.driver === 'henry') return new HenryDriver({ host: d.host!, port: d.port ?? 3000, timeoutMs: 15_000, ignoreEventCodes: d.ignoreEventCodes });
   throw new Error(`Driver desconhecido: ${String(d.driver)}`);
 }

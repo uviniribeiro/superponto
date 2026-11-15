@@ -14,6 +14,18 @@
       "login": "admin",
       "password": "senha-do-relogio",
       "family": "rep"
+    },
+    {
+      "id": "catraca-entrada",
+      "key": "spd_COLE_AQUI_A_CHAVE_DESTE_EQUIPAMENTO",
+      "driver": "henry",
+      "host": "192.168.0.60",
+      "port": 3000,
+      "ignoreEventCodes": [
+        "80",
+        "82",
+        "83"
+      ]
     }
   ]
 }

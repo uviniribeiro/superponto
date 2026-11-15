@@ -31,7 +31,8 @@ bruto). A conversão para marcação ou evento de acesso acontece na API, por re
 | Fabricante | Protocolo conhecido (v1) | Adaptador v2 | Situação |
 |---|---|---|---|
 | Control iD (iDClass, iDFlex, REP iDX) | REST JSON (`/login.fcgi`, `/load_objects.fcgi`) | `apps/agent` driver `controlid` | pronto no agente; homologação em REP real pendente |
-| Henry (Hexa, Prisma, Orion) | TCP ASCII STX/ETX + checksum XOR, porta 3000 | `henry-tcp` | a portar |
+| Henry (Primme Acesso, Argos, Prisma 8.x) | Protocolo de gerenciamento 8x: TCP porta 3000, quadro 0x02 + tamanho (word LE) + `II+CMD+VV+dados` + XOR + 0x03 | `apps/agent` driver `henry` + `packages/rep-protocols/src/henry.ts` | pronto no agente; homologação em equipamento real pendente |
+| Henry REP certificado (Hexa/Prisma REP) | a confirmar se usa o mesmo protocolo 8x | — | depende de documentação/equipamento |
 | ZKTeco / Rep iX | TCP/UDP 4370 | `zkteco` | a portar |
 | Topdata (Inner Rep) | TCP binário STX/ETX, porta 3570 | `topdata-tcp` | a portar |
 | Biomtech, Dahua, RW | a levantar com documentação do fabricante | — | não iniciado |
@@ -88,10 +89,12 @@ saída: para o relógio e para a API (`/v1/agent/*`, chave `spd_` no cabeçalho 
 batimento (recebe leiaute, endereço e intervalo de coleta) → fila de comandos → resultado → coleta
 agendada do AFD a partir do último NSR guardado em arquivo. Drivers: `controlid` (API local `*.fcgi`,
 sessão com novo login quando expira, certificado autoassinado aceito só para o relógio) e
-`simulator`. Testado com um relógio Control iD falso (HTTP) e uma API falsa; ver `apps/agent/README.md`.
+`henry` (protocolo 8x por TCP, um comando por conexão, resposta casada pelo índice, eventos online REON ignorados, coleta `RR T]lote]início` convertida em linhas tipo 3 do AFD com NSR = id do evento) e `simulator`. Testado com um relógio Control iD falso (HTTP), um equipamento Henry falso (TCP) e uma API falsa; ver `apps/agent/README.md`.
+
+**Fonte do protocolo Henry:** planilha do fabricante "Protocolo Primme Acesso 8.0.0.50 e Argos" publicada no repositório público github.com/juliolvfilho/henry-php (biblioteca PHP para catracas Henry, sem licença declarada). Usamos apenas a especificação (formato do quadro, comandos, códigos de erro); nenhum código desse repositório foi copiado.
 
 Em 15/11/2026 o cliente enviou os arquivos do serviço de comunicação de outro sistema de ponto
-(AtomoCrab/AtomoOctopusCore). Foram usados **só como referência da lista de fabricantes** que o
+(AtomoCrab/AtomoOctopusCore e o `crab.properties`, que aponta o serviço para um servidor do próprio Átomo). Foram usados **só como referência da lista de fabricantes** que o
 mercado espera (Henry protocolo 8x, Control iD REP iDClass, Topdata, Biomtech 040/060, Dahua, RW);
 nenhum código, biblioteca ou binário de terceiros foi copiado, descompilado ou incluído, e o
 SuperPonto não depende nem se comunica com esse sistema.

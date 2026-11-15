@@ -392,7 +392,7 @@ O agente avisa que está vivo, busca a fila de comandos (já com os dados pronto
 
 O programa do agente (pasta apps/agent) roda em Windows (como serviço) ou Linux (systemd), com um arquivo de configuração que traz o endereço da API, a chave de cada relógio e o usuário e a senha do relógio (que nunca saem da rede do cliente). Ele lembra o último NSR enviado para não reenviar marcações e, em falha de rede, tenta de novo esperando 15 s, 30 s, 1 min… até 5 min.
 
-Fabricantes: Control iD (REP iDClass e linha iDAccess/iDFlex/iDFace) pela API local do equipamento, e um relógio simulado para testar a instalação. No Control iD, hora e coleta de AFD seguem a documentação do fabricante; empregador, lista e cadastro de usuários e digitais no REP iDClass estão com homologação pendente em equipamento real. Henry, Topdata, Biomtech, Dahua e RW ainda não têm driver.
+Fabricantes: Control iD (REP iDClass e linha iDAccess/iDFlex/iDFace) pela API local do equipamento, Henry pelo protocolo de gerenciamento 8x (Primme Acesso, Argos e linha Prisma 8.x, porta 3000) e um relógio simulado para testar a instalação. No Control iD, hora e coleta de AFD seguem a documentação do fabricante; empregador, lista e cadastro de usuários e digitais no REP iDClass estão com homologação pendente em equipamento real. O driver Henry foi feito pela especificação do fabricante e também aguarda homologação; equipamento de acesso Henry não é REP certificado (para ponto, exige acordo coletivo). Topdata, Biomtech, Dahua e RW ainda não têm driver.
 
 <a id="22-relatorios"></a>
 ## 22. Relatórios
@@ -613,7 +613,7 @@ A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha 
 
 O app do terminal (tablet de ponto) é instalado por APK e abre em tela cheia, com a tela sempre ligada e opção de modo quiosque.
 
-Próximas fases: drivers do agente para outras marcas de relógio (Henry, Topdata e outras) e homologação do Control iD em equipamento real, app do funcionário na V2, assinatura ICP-Brasil do AEJ e do espelho, módulos de Educação, Saúde e Operações e Servidor de Comunicação.
+Próximas fases: drivers do agente para outras marcas de relógio (Topdata, Biomtech, Dahua, RW) e homologação do Control iD e do Henry em equipamento real, app do funcionário na V2, assinatura ICP-Brasil do AEJ e do espelho, módulos de Educação, Saúde e Operações e Servidor de Comunicação.
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 

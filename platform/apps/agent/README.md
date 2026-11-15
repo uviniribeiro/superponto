@@ -13,9 +13,10 @@ Só faz conexões **de saída**: para o relógio (rede local) e para a API do Su
 | Driver | Situação |
 | --- | --- |
 | `controlid` — Control iD (REP iDClass e linha iDAccess/iDFlex/iDFace) pela API local `*.fcgi` | Hora, coleta de AFD e cadastro de usuários seguem a documentação pública da Control iD. **Empregador, cadastro/lista de usuários no REP iDClass e digitais no REP estão com homologação pendente** (precisam ser validados em um equipamento real antes de produção). |
+| `henry` — Henry pelo protocolo de gerenciamento 8x (TCP, porta 3000): Primme Acesso, Argos e linha Prisma com firmware 8.x | Hora, empregador, usuários (inclusão vira alteração quando já existe), digitais no formato Henry, lista de usuários e coleta de eventos em lotes a partir do último NSR. Feito a partir da especificação do fabricante e testado contra um equipamento falso; **homologação em equipamento real pendente**. Eventos de catraca 80, 82 e 83 (aguardando giro, desistência, forçada) não viram marcação; ajuste em `ignoreEventCodes`. Equipamento de acesso Henry não é REP certificado: usar para ponto exige acordo coletivo (REP-A). |
 | `simulator` — relógio simulado | Para testar a instalação sem equipamento. |
 
-Henry (protocolo 8x), Topdata, Biomtech, Dahua e RW **não estão implementados**: cada um exige a documentação oficial do fabricante e um equipamento para homologar. A estrutura de drivers (`src/drivers/types.ts`) já está pronta para recebê-los.
+Topdata, Biomtech, Dahua, RW e o protocolo dos REPs Henry certificados (Hexa/Prisma REP, quando diferente do 8x) **não estão implementados**: cada um exige a documentação oficial do fabricante e um equipamento para homologar. A estrutura de drivers (`src/drivers/types.ts`) já está pronta para recebê-los.
 
 ## Instalação
 
