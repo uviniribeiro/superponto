@@ -175,3 +175,82 @@ describe('banco de horas e período', () => {
     expect(s.overtimeByPercent).toEqual([{ percent: 50, minutes: 120 }, { percent: 100, minutes: 240 }]);
   });
 });
+
+describe('fase 3: configuração avançada de jornada', () => {
+  const withBreak = (over: Partial<Schedule> = {}): ScheduleAssignment => ({
+    validFrom: '2026-01-01',
+    schedule: {
+      type: 'FIXED',
+      days: [1, 2, 3, 4, 5].map((d) => ({ dayIndex: d, isWorkday: true, startTime: '08:00', endTime: '17:00', breakMinutes: 60, breakStart: '12:00' })),
+      ...over,
+    },
+  });
+
+  it('escala que não considera feriado: o dia segue a escala', () => {
+    const holiday = { date: MON, isHoliday: true };
+    expect(resolveExpectedDay(withBreak(), MON, holiday)).toMatchObject({ isWorkday: false, isHoliday: true });
+    expect(resolveExpectedDay(withBreak({ considerHolidays: false }), MON, holiday)).toMatchObject({ isWorkday: true, isHoliday: false, expectedMinutes: 480 });
+  });
+
+  it('escala agendada vence a jornada: folga num dia útil e trabalho no sábado', () => {
+    const a = withBreak();
+    expect(resolveExpectedDay(a, MON, null, { isWorkday: false })).toMatchObject({ isWorkday: false, scheduled: true });
+    const sat = resolveExpectedDay(a, '2026-03-07', null, { isWorkday: true, startTime: '07:00', endTime: '13:00' });
+    expect(sat).toMatchObject({ isWorkday: true, start: 420, end: 780, expectedMinutes: 360, scheduled: true });
+    // vale até sem jornada atribuída e até em feriado
+    expect(resolveExpectedDay(null, MON, { date: MON, isHoliday: true }, { isWorkday: true, startTime: '19:00', endTime: '07:00', breakMinutes: 60 }))
+      .toMatchObject({ isWorkday: true, start: 1140, end: 1860, expectedMinutes: 660 });
+    const r = calculateDay({ date: '2026-03-07', timeZone: TZ, expected: sat, punches: [{ at: at('2026-03-07', '07:00') }, { at: at('2026-03-07', '13:00') }] });
+    expect(r).toMatchObject({ workedMinutes: 360, balanceMinutes: 0 });
+    expect(r.flags).toContain('SCHEDULED_DAY');
+  });
+
+  it('hora in itinere soma o deslocamento ao trabalhado', () => {
+    const r = day(MON, ['08:00', '12:00', '13:00', '17:00'], withBreak({ inItinereMinutes: 40 }));
+    expect(r).toMatchObject({ workedMinutes: 520, inItinereMinutes: 40, balanceMinutes: 40 });
+    expect(r.flags).toContain('IN_ITINERE');
+    // marcação ímpar: dia pendente, sem in itinere
+    expect(day(MON, ['08:00', '12:00', '13:00'], withBreak({ inItinereMinutes: 40 })).inItinereMinutes).toBe(0);
+  });
+
+  it('mobilidade de jornada: entrada até 60 min depois desloca a saída prevista', () => {
+    const a = withBreak({ entryMobilityMinutes: 60 });
+    const r = day(MON, ['08:45', '12:45', '13:45', '17:45'], a);
+    expect(r).toMatchObject({ lateMinutes: 0, earlyLeaveMinutes: 0, balanceMinutes: 0, entryShiftMinutes: 45, breakDeviationMinutes: 0 });
+    expect(r.flags).toContain('MOBILE_ENTRY');
+    // sem mobilidade, o mesmo dia tem atraso
+    expect(day(MON, ['08:45', '12:45', '13:45', '17:45'], withBreak()).lateMinutes).toBe(45);
+    // fora da janela: atraso normal
+    const out = day(MON, ['09:30', '12:00', '13:00', '17:00'], a);
+    expect(out.lateMinutes).toBe(90);
+    // saiu antes do horário deslocado
+    expect(day(MON, ['08:30', '12:30', '13:30', '17:00'], a).earlyLeaveMinutes).toBe(30);
+  });
+
+  it('mobilidade de intervalo: início do intervalo dentro da janela não é apontado', () => {
+    const sem = day(MON, ['08:00', '13:00', '14:00', '17:00'], withBreak());
+    expect(sem.flags).toContain('BREAK_OUT_OF_WINDOW');
+    expect(sem.breakDeviationMinutes).toBe(55); // 60 min de diferença - 5 de tolerância
+    const com = day(MON, ['08:00', '13:00', '14:00', '17:00'], withBreak({ breakMobilityMinutes: 90 }));
+    expect(com.flags).not.toContain('BREAK_OUT_OF_WINDOW');
+    expect(com.balanceMinutes).toBe(0);
+  });
+
+  it('intervalo maior que o previsto é apontado (e reduz o trabalhado)', () => {
+    const r = day(MON, ['08:00', '12:00', '13:30', '17:00'], withBreak());
+    expect(r.flags).toContain('BREAK_EXCEEDED');
+    expect(r.balanceMinutes).toBe(-30);
+  });
+
+  it('faixas de hora extra: 2 primeiras horas a 50%, o restante a 100%', () => {
+    const rules = { overtimeBands: [{ upToMinutes: 120, percent: 50 }, { upToMinutes: null, percent: 100 }], dailyOvertimeLimitMinutes: 0 };
+    const r = day(MON, ['08:00', '12:00', '13:00', '20:00'], withBreak(), { rules });
+    expect(r.overtimeMinutes).toBe(180);
+    expect(r.overtime).toEqual([{ percent: 50, minutes: 120 }, { percent: 100, minutes: 60 }]);
+    // até o limite da 1ª faixa
+    expect(day(MON, ['08:00', '12:00', '13:00', '18:00'], withBreak(), { rules }).overtime).toEqual([{ percent: 50, minutes: 60 }]);
+    // domingo/folga ignora as faixas (percentual de descanso)
+    const sun = day('2026-03-08', ['08:00', '12:00'], withBreak(), { rules });
+    expect(sun.overtime).toEqual([{ percent: 100, minutes: 240 }]);
+  });
+});

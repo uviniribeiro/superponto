@@ -749,6 +749,7 @@ model Employment {
   history                EmploymentHistory[]
   specialties            EmploymentSpecialty[]
   scheduleAssignments    ScheduleAssignment[]
+  scheduleOverrides      ScheduleOverride[]
   timeRecords            TimeRecord[]
   calculations           TimeCalculation[]
   bankAccount            BankHourAccount?
@@ -827,25 +828,37 @@ model AttendanceRuleSet {
 
 /// Jornada/escala modelo. Para escalas cíclicas (12x36, 6x1, rotativas), `cycle` define a sequência.
 model WorkSchedule {
-  id            String       @id @default(uuid()) @db.Uuid
-  tenantId      String       @map("tenant_id") @db.Uuid
-  companyId     String       @map("company_id") @db.Uuid
-  name          String
-  type          ScheduleType
-  weeklyMinutes Int?         @map("weekly_minutes")
-  cycleDays     Int?         @map("cycle_days")
-  cycle         Json?
-  ruleSetId     String?      @map("rule_set_id") @db.Uuid
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt     DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  id                   String       @id @default(uuid()) @db.Uuid
+  tenantId             String       @map("tenant_id") @db.Uuid
+  companyId            String       @map("company_id") @db.Uuid
+  name                 String
+  /// código usado nas integrações e na escala agendada (Átomo: "código do horário")
+  code                 String?
+  type                 ScheduleType
+  weeklyMinutes        Int?         @map("weekly_minutes")
+  cycleDays            Int?         @map("cycle_days")
+  cycle                Json?
+  ruleSetId            String?      @map("rule_set_id") @db.Uuid
+  /// feriado vira folga; falso = o dia segue a escala (12x36, plantões)
+  considerHolidays     Boolean      @default(true) @map("consider_holidays")
+  /// hora in itinere somada à jornada nos dias trabalhados (minutos)
+  inItinereMinutes     Int          @default(0) @map("in_itinere_minutes")
+  /// mobilidade de jornada: entrada pode variar até N minutos (a saída acompanha)
+  entryMobilityMinutes Int          @default(0) @map("entry_mobility_minutes")
+  /// mobilidade de intervalo: o intervalo pode começar até N minutos antes/depois
+  breakMobilityMinutes Int          @default(0) @map("break_mobility_minutes")
+  active               Boolean      @default(true)
+  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt            DateTime?    @map("deleted_at") @db.Timestamptz(6)
 
   company     Company              @relation(fields: [companyId], references: [id])
   ruleSet     AttendanceRuleSet?   @relation(fields: [ruleSetId], references: [id])
   days        WorkScheduleDay[]
   assignments ScheduleAssignment[]
 
-  @@unique([companyId, name])
+  /// nome único por empresa sem diferenciar maiúsculas (índice parcial na migração)
+  @@index([companyId])
   @@index([tenantId])
   @@map("work_schedules")
 }
@@ -2434,4 +2447,29 @@ model TenantLdapConfig {
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@map("tenant_ldap_configs")
+}
+
+/// Escala agendada: trabalho ou folga definidos para um dia específico de um vínculo
+/// (vence a jornada atribuída e o feriado). Também registra trocas de escala e de folga.
+model ScheduleOverride {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  employmentId String   @map("employment_id") @db.Uuid
+  date         DateTime @db.Date
+  isWorkday    Boolean  @map("is_workday")
+  startTime    String?  @map("start_time")
+  endTime      String?  @map("end_time")
+  breakMinutes Int      @default(0) @map("break_minutes")
+  breakStart   String?  @map("break_start")
+  /// AGENDADA (lançamento direto) ou TROCA (troca de escala/folga)
+  origin       String   @default("AGENDADA")
+  note         String?
+  createdById  String?  @map("created_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employment Employment @relation(fields: [employmentId], references: [id])
+
+  @@unique([employmentId, date])
+  @@index([tenantId, date])
+  @@map("schedule_overrides")
 }

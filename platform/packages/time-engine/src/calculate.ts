@@ -2,7 +2,7 @@
 import type { ExpectedDay } from './schedule.ts';
 import { type CivilDate, minutesFrom, parseHm } from './time.ts';
 
-export const ENGINE_VERSION = '2.0.0';
+export const ENGINE_VERSION = '2.1.0';
 
 export type RoundingMode = 'up' | 'down' | 'nearest';
 
@@ -25,6 +25,12 @@ export interface AttendanceRules {
   dailyOvertimeLimitMinutes: number;
   /** falta sem justificativa gera saldo negativo */
   discountAbsences: boolean;
+  /**
+   * Faixas de hora extra em dia útil (percentual extra por faixa), em ordem. Ex.: as 2 primeiras
+   * horas a 50% e o restante a 100%: [{ upToMinutes: 120, percent: 50 }, { upToMinutes: null, percent: 100 }].
+   * Sem faixas, vale overtimePercent.normal.
+   */
+  overtimeBands?: Array<{ upToMinutes: number | null; percent: number }>;
 }
 
 export const DEFAULT_RULES: AttendanceRules = {
@@ -76,7 +82,12 @@ export type DayFlag =
   | 'WORK_ON_REST_DAY'
   | 'WORK_ON_HOLIDAY'
   | 'LEAVE_FULL'
-  | 'LEAVE_PARTIAL';
+  | 'LEAVE_PARTIAL'
+  | 'MOBILE_ENTRY'
+  | 'BREAK_OUT_OF_WINDOW'
+  | 'BREAK_EXCEEDED'
+  | 'IN_ITINERE'
+  | 'SCHEDULED_DAY';
 
 export interface DayResult {
   date: CivilDate;
@@ -92,6 +103,12 @@ export interface DayResult {
   earlyEntryMinutes: number;
   absenceMinutes: number;
   breakShortfallMinutes: number;
+  /** quanto o início do intervalo fugiu da janela permitida */
+  breakDeviationMinutes: number;
+  /** minutos de deslocamento (in itinere) somados ao trabalhado */
+  inItinereMinutes: number;
+  /** deslocamento aplicado ao horário previsto pela mobilidade de jornada (+ atrasou, − adiantou) */
+  entryShiftMinutes: number;
   overtime: { percent: number; minutes: number }[];
   overtimeMinutes: number;
   intervals: { start: number; end: number }[];
@@ -124,12 +141,15 @@ export function calculateDay(input: DayInput): DayResult {
     ...input.rules,
     overtimePercent: { ...DEFAULT_RULES.overtimePercent, ...input.rules?.overtimePercent },
   };
-  const { expected, date } = input;
+  const { date } = input;
+  let expected = input.expected;
   const flags: DayFlag[] = [];
+  if (expected.scheduled) flags.push('SCHEDULED_DAY');
   const base = (overrides: Partial<DayResult>): DayResult => ({
     date, engineVersion: ENGINE_VERSION, expectedMinutes: expected.expectedMinutes, workedMinutes: 0, balanceMinutes: 0,
     breakMinutes: 0, nightMinutes: 0, nightReducedMinutes: 0, lateMinutes: 0, earlyLeaveMinutes: 0, earlyEntryMinutes: 0,
-    absenceMinutes: 0, breakShortfallMinutes: 0, overtime: [], overtimeMinutes: 0, intervals: [], flags, ...overrides,
+    absenceMinutes: 0, breakShortfallMinutes: 0, breakDeviationMinutes: 0, inItinereMinutes: 0, entryShiftMinutes: 0,
+    overtime: [], overtimeMinutes: 0, intervals: [], flags, ...overrides,
   });
 
   // Afastamento integral: dia neutro.
@@ -176,6 +196,10 @@ export function calculateDay(input: DayInput): DayResult {
   worked = Math.max(0, round(worked, rules));
   night = Math.max(0, Math.min(night, worked));
 
+  // Hora in itinere: deslocamento previsto na escala, somado quando o dia foi trabalhado por completo.
+  const inItinere = !incomplete && worked > 0 ? expected.inItinereMinutes ?? 0 : 0;
+  if (inItinere > 0) { worked += inItinere; flags.push('IN_ITINERE'); }
+
   // Intervalo inferior ao mínimo (só quando o intervalo foi marcado).
   let breakShortfall = 0;
   if (intervals.length > 1 && rules.minBreakMinutes > 0 && breakMinutes < rules.minBreakMinutes && worked > 360) {
@@ -183,9 +207,27 @@ export function calculateDay(input: DayInput): DayResult {
     flags.push('INSUFFICIENT_BREAK');
   }
 
+  // Mobilidade de jornada: entrada dentro da janela desloca o horário previsto inteiro (inclusive o intervalo).
+  const first = marks[0]!;
+  let entryShift = 0;
+  const mobility = expected.entryMobilityMinutes ?? 0;
+  if (mobility > 0 && expected.start !== null && expected.end !== null && Math.abs(first - expected.start) <= mobility && first !== expected.start) {
+    entryShift = first - expected.start;
+    expected = { ...expected, start: expected.start + entryShift, end: expected.end + entryShift, breakStart: expected.breakStart == null ? expected.breakStart : expected.breakStart + entryShift };
+    flags.push('MOBILE_ENTRY');
+  }
+
+  // Intervalo: início fora da janela (mobilidade de intervalo, ou a tolerância por marcação) e intervalo maior que o previsto.
+  let breakDeviation = 0;
+  if (intervals.length > 1 && expected.breakStart != null) {
+    const allowed = Math.max(expected.breakMobilityMinutes ?? 0, rules.markToleranceMinutes);
+    const diff = Math.abs(intervals[0]!.end - expected.breakStart);
+    if (diff > allowed) { breakDeviation = diff - allowed; flags.push('BREAK_OUT_OF_WINDOW'); }
+  }
+  if (intervals.length > 1 && expected.breakMinutes > 0 && breakMinutes > expected.breakMinutes + rules.markToleranceMinutes) flags.push('BREAK_EXCEEDED');
+
   // Variações em relação ao horário previsto.
   let late = 0, earlyLeave = 0, earlyEntry = 0, lateExit = 0;
-  const first = marks[0]!;
   const last = incomplete ? null : marks[marks.length - 1]!;
   if (expected.start !== null) {
     if (first > expected.start) late = first - expected.start;
@@ -231,14 +273,32 @@ export function calculateDay(input: DayInput): DayResult {
   }
 
   const overtime: { percent: number; minutes: number }[] = [];
+  const push = (percent: number, minutes: number) => {
+    if (minutes <= 0) return;
+    const same = overtime.find((o) => o.percent === percent);
+    if (same) same.minutes += minutes; else overtime.push({ percent, minutes });
+  };
   if (overtimeMinutes > 0) {
     const pct = dayKind === 'holiday' ? rules.overtimePercent.holiday : dayKind === 'rest' ? rules.overtimePercent.rest : rules.overtimePercent.normal;
     const nightPart = Math.min(night, overtimeMinutes);
     const dayPart = overtimeMinutes - nightPart;
-    if (dayPart > 0) overtime.push({ percent: pct, minutes: dayPart });
-    if (nightPart > 0) overtime.push({ percent: dayKind === 'normal' ? rules.overtimePercent.night : pct, minutes: nightPart });
+    if (dayKind === 'normal' && rules.overtimeBands?.length) {
+      // Faixas: as primeiras horas extras do dia num percentual, as seguintes em outro.
+      let left = dayPart, used = 0;
+      for (const band of rules.overtimeBands) {
+        if (left <= 0) break;
+        const room = band.upToMinutes === null ? left : Math.max(0, band.upToMinutes - used);
+        const take = Math.min(left, room);
+        push(band.percent, take);
+        left -= take; used += take;
+      }
+      push(rules.overtimeBands.at(-1)!.percent, left);
+    } else {
+      push(pct, dayPart);
+    }
+    push(dayKind === 'normal' ? rules.overtimePercent.night : pct, nightPart);
   }
-  if (breakShortfall > 0) overtime.push({ percent: rules.overtimePercent.break, minutes: breakShortfall });
+  if (breakShortfall > 0) push(rules.overtimePercent.break, breakShortfall);
   if (rules.dailyOvertimeLimitMinutes > 0 && overtimeMinutes > rules.dailyOvertimeLimitMinutes && dayKind === 'normal') {
     flags.push('OVERTIME_LIMIT_EXCEEDED');
   }
@@ -255,6 +315,9 @@ export function calculateDay(input: DayInput): DayResult {
     earlyEntryMinutes: earlyEntry,
     absenceMinutes: leaveMinutes,
     breakShortfallMinutes: breakShortfall,
+    breakDeviationMinutes: breakDeviation,
+    inItinereMinutes: inItinere,
+    entryShiftMinutes: entryShift,
     overtime,
     overtimeMinutes: overtimeMinutes + breakShortfall,
     intervals,
