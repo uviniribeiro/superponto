@@ -83,7 +83,6 @@ async function cmdAuth() {
     mailer_autoconfirm: true,
     external_email_enabled: true,
     password_min_length: 8,
-    mailer_subjects_recovery: 'PontoMax - redefinição de senha',
   };
 
   const smtpHost = env('SMTP_HOST');
@@ -96,6 +95,8 @@ async function cmdAuth() {
       smtp_admin_email: env('SMTP_SENDER_EMAIL', env('SMTP_USER')),
       smtp_sender_name: env('SMTP_SENDER_NAME', 'PontoMax'),
       rate_limit_email_sent: 60,
+      // Personalizar o modelo de e-mail exige SMTP próprio no plano gratuito do Supabase.
+      mailer_subjects_recovery: 'SuperPonto - redefinição de senha',
     });
   } else {
     console.log('::warning::SMTP não configurado: o Supabase usa o e-mail padrão, limitado a poucas mensagens por hora e só para membros da equipe do projeto. Defina os secrets SMTP_* para produção.');
