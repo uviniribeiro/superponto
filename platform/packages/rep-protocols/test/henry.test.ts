@@ -22,7 +22,7 @@ describe('Henry protocolo 8x', () => {
     const p2 = decodeHenry(all);
     expect(p2.frames.map((f) => `${f.index}:${f.command}:${f.code}`)).toEqual(['01:RH:00', '02:EH:00']);
     expect(p2.frames[0]!.data).toBe('24/06/10 16:35:15]00/00/00]00/00/00');
-    const bad = Buffer.from(a); bad[bad.length - 2] ^= 1;
+    const bad = Buffer.from(a); bad[bad.length - 2] = bad[bad.length - 2]! ^ 1;
     expect(() => decodeHenry(bad)).toThrow(/Checksum/);
     // Pacote maior que 255 bytes (tamanho em dois bytes).
     const big = encodeHenry(3, 'EU', `1+I[52998224725[${'A'.repeat(90)}[[0[`.repeat(4));
