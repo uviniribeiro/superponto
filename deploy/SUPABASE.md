@@ -1,5 +1,8 @@
 # PontoMax no seu próprio Supabase (sem Lovable)
 
+> **No ar desde 15/11/2026:** https://superponto.vercel.app (Supabase próprio, dados migrados do
+> Lovable Cloud: 35 contas, 28 perfis, 11 empresas, 12 marcações, 16 arquivos).
+
 A partir de agora, cada alteração enviada para a `main` publica tudo sozinha pelo GitHub Actions
 (workflow **Publicar sistema**):
 1. aplica as migrações no banco do **seu** projeto Supabase;
