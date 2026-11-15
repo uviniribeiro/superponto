@@ -34,6 +34,7 @@
     "@superponto/database": "*",
     "@superponto/rep-protocols": "*",
     "@superponto/time-engine": "*",
+    "exceljs": "^4.4.0",
     "ldapts": "^9.2.0",
     "nodemailer": "^10.5.0",
     "reflect-metadata": "^0.2.2",

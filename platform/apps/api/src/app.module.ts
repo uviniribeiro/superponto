@@ -13,6 +13,7 @@ import { LookupModule } from './lookup/lookup.module.js';
 import { PeopleModule } from './people/people.module.js';
 import { SchedulesModule } from './schedules/schedules.module.js';
 import { TimesheetModule } from './timesheet/timesheet.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 import { StructureModule } from './structure/structure.module.js';
 import { UsersModule } from './users/users.module.js';
 import { APP_CONFIG, type AppConfig } from './config.js';
@@ -55,6 +56,7 @@ export function createAppModule(config: AppConfig): DynamicModule {
       PeopleModule,
       SchedulesModule,
       TimesheetModule,
+      ReportsModule,
       PlatformModule,
     ],
     controllers: [HealthController],
