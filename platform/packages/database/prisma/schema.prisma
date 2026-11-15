@@ -172,6 +172,7 @@ enum RequestType {
   COMPENSATION
   ALLOWANCE
   SCHEDULE_CHANGE
+  OVERTIME_AUTHORIZATION
   OTHER
 
   @@map("request_type")
@@ -498,6 +499,7 @@ model Company {
   devices          Device[]
   closings         TimeClosing[]
   approvalFlows    ApprovalFlow[]
+  bankPolicy       BankPolicy?
 
   @@unique([tenantId, cnpj])
   @@index([tenantId])
@@ -750,6 +752,10 @@ model Employment {
   specialties            EmploymentSpecialty[]
   scheduleAssignments    ScheduleAssignment[]
   scheduleOverrides      ScheduleOverride[]
+  allowances             Allowance[]
+  leaves                 Leave[]
+  onCallPeriods          OnCallPeriod[]
+  overtimeAuthorizations OvertimeAuthorization[]
   timeRecords            TimeRecord[]
   calculations           TimeCalculation[]
   bankAccount            BankHourAccount?
@@ -1012,6 +1018,8 @@ model TimeCalculation {
   absenceMinutes    Int      @default(0) @map("absence_minutes")
   breakMinutes      Int      @default(0) @map("break_minutes")
   flags             Json     @default("[]")
+  /// resultado completo do dia (marcações usadas, intervalos, faixas de extra) para o espelho do período fechado
+  details           Json?
   engineVersion     String   @map("engine_version")
   calculatedAt      DateTime @default(now()) @map("calculated_at") @db.Timestamptz(6)
 
@@ -2472,4 +2480,139 @@ model ScheduleOverride {
   @@unique([employmentId, date])
   @@index([tenantId, date])
   @@map("schedule_overrides")
+}
+
+/// Justificativa (código de abono/ocorrência). "Abona" = o dia/minutos não geram débito.
+model Justification {
+  id               String    @id @default(uuid()) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  code             String?
+  name             String
+  /// abona: falta ou atraso justificado não gera débito; sem abonar, só fica justificado (e descontado)
+  disregardsDebits Boolean   @default(true) @map("disregards_debits")
+  /// limite de uso por funcionário no período (null = sem limite)
+  usageLimit       Int?      @map("usage_limit")
+  /// MONTH ou YEAR
+  limitPeriod      String    @default("MONTH") @map("limit_period")
+  active           Boolean   @default(true)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  allowances Allowance[]
+  leaves     Leave[]
+
+  @@index([tenantId])
+  @@map("justifications")
+}
+
+/// Abono: falta (dia inteiro) ou minutos justificados num dia.
+model Allowance {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  employmentId    String   @map("employment_id") @db.Uuid
+  date            DateTime @db.Date
+  justificationId String   @map("justification_id") @db.Uuid
+  fullDay         Boolean  @default(true) @map("full_day")
+  minutes         Int      @default(0)
+  note            String?
+  createdById     String?  @map("created_by_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employment    Employment    @relation(fields: [employmentId], references: [id])
+  justification Justification @relation(fields: [justificationId], references: [id])
+
+  @@unique([employmentId, date])
+  @@index([tenantId, date])
+  @@map("allowances")
+}
+
+enum LeaveType {
+  MEDICAL
+  VACATION
+  MATERNITY
+  PATERNITY
+  WORK_ACCIDENT
+  UNPAID
+  SUSPENSION
+  OTHER
+
+  @@map("leave_type")
+}
+
+/// Afastamento (atestado, férias, licenças): dias neutros na apuração.
+model Leave {
+  id              String    @id @default(uuid()) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  employmentId    String    @map("employment_id") @db.Uuid
+  type            LeaveType
+  startDate       DateTime  @map("start_date") @db.Date
+  endDate         DateTime  @map("end_date") @db.Date
+  justificationId String?   @map("justification_id") @db.Uuid
+  note            String?
+  createdById     String?   @map("created_by_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  employment    Employment     @relation(fields: [employmentId], references: [id])
+  justification Justification? @relation(fields: [justificationId], references: [id])
+
+  @@index([tenantId, employmentId, startDate])
+  @@map("leaves")
+}
+
+/// Sobreaviso (CLT art. 244 §2º): horas à disposição fora do local, pagas à razão de 1/3.
+model OnCallPeriod {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  employmentId String   @map("employment_id") @db.Uuid
+  date         DateTime @db.Date
+  startTime    String   @map("start_time")
+  endTime      String   @map("end_time")
+  minutes      Int
+  note         String?
+  createdById  String?  @map("created_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employment Employment @relation(fields: [employmentId], references: [id])
+
+  @@index([tenantId, employmentId, date])
+  @@map("on_call_periods")
+}
+
+/// Regras do banco de horas da empresa (créditos e débitos lançados no fechamento do período).
+model BankPolicy {
+  id                    String   @id @default(uuid()) @db.Uuid
+  tenantId              String   @map("tenant_id") @db.Uuid
+  companyId             String   @unique @map("company_id") @db.Uuid
+  enabled               Boolean  @default(false)
+  /// dias até o crédito vencer (null = não vence); acordo individual: até 6 meses (CLT art. 59 §5º)
+  expirationDays        Int?     @map("expiration_days")
+  maxDailyCreditMinutes Int?     @map("max_daily_credit_minutes")
+  /// multiplicador do crédito por percentual de extra, ex.: {"50": 1.5}
+  creditMultipliers     Json     @default("{}") @map("credit_multipliers")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@map("bank_policies")
+}
+
+/// Autorização prévia de hora extra (política de hora extra).
+model OvertimeAuthorization {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  employmentId String   @map("employment_id") @db.Uuid
+  date         DateTime @db.Date
+  maxMinutes   Int      @map("max_minutes")
+  requestId    String?  @map("request_id") @db.Uuid
+  note         String?
+  createdById  String?  @map("created_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  employment Employment @relation(fields: [employmentId], references: [id])
+
+  @@unique([employmentId, date])
+  @@map("overtime_authorizations")
 }
