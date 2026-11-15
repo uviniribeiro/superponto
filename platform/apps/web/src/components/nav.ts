@@ -1,4 +1,4 @@
-import { Layers, Activity, Calculator, FileInput, FileOutput, Megaphone, MailCheck, Smartphone, Type, BarChart3, Router as RouterIcon, CalendarCheck2, ClipboardCheck, FileCheck2, FileClock, Fingerprint, GitBranch, HeartPulse, Lock, MessageSquare, PiggyBank, CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { GraduationCap, Stethoscope, ClipboardList, Layers, Activity, Calculator, FileInput, FileOutput, Megaphone, MailCheck, Smartphone, Type, BarChart3, Router as RouterIcon, CalendarCheck2, ClipboardCheck, FileCheck2, FileClock, Fingerprint, GitBranch, HeartPulse, Lock, MessageSquare, PiggyBank, CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -96,6 +96,12 @@ export function buildNav(me: Me | undefined): NavSection[] {
     ...(can(me, 'reports.payroll:export') ? [{ id: 'payroll', label: 'Exportação para a folha', href: '/folha', icon: FileOutput } satisfies NavItem] : []),
   ];
   if (reports.length) sections.push({ id: 'reports', label: 'Relatórios', items: reports });
+  const modules: NavItem[] = [
+    ...(can(me, 'health.shifts:read') ? [{ id: 'shifts', label: 'Plantões', href: '/saude/plantoes', icon: Stethoscope } satisfies NavItem] : []),
+    ...(can(me, 'education.academic:read') ? [{ id: 'education', label: 'Educação', href: '/educacao', icon: GraduationCap } satisfies NavItem] : []),
+    ...(can(me, 'operational.board:read') ? [{ id: 'occurrences', label: 'Ocorrências', href: '/operacional/ocorrencias', icon: ClipboardList } satisfies NavItem] : []),
+  ];
+  if (modules.length) sections.push({ id: 'modules', label: 'Módulos', items: modules });
   const tools: NavItem[] = [
     ...(can(me, 'tools.announcements:manage') ? [{ id: 'announcements', label: 'Avisos', href: '/ferramentas/avisos', icon: Megaphone } satisfies NavItem] : []),
     ...(can(me, 'tools.notifications:manage') ? [{ id: 'emails', label: 'E-mails agendados', href: '/ferramentas/emails', icon: MailCheck } satisfies NavItem] : []),

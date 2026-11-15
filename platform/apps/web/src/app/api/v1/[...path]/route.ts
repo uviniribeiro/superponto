@@ -5,8 +5,9 @@ type Ctx = { params: Promise<{ path: string[] }> };
 
 async function handle(req: NextRequest, { params }: Ctx) {
   const { path } = await params;
-  // Só repassa caminhos de recurso (sem "..", sem rotas de autenticação, que têm handlers próprios).
-  if (path.some((p) => p === '..' || p.includes('/')) || path[0] === 'auth') {
+  // Só repassa caminhos de recurso (sem "..", sem rotas de autenticação, que têm handlers próprios);
+  // a verificação em duas etapas (auth/mfa/*) usa o token da sessão como as demais rotas.
+  if (path.some((p) => p === '..' || p.includes('/')) || (path[0] === 'auth' && path[1] !== 'mfa')) {
     return Response.json({ message: 'Caminho inválido' }, { status: 400 });
   }
   return forward(req, `v1/${path.map(encodeURIComponent).join('/')}`);

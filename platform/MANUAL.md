@@ -40,15 +40,18 @@ _V2 — versão de 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › 
 31. [Importar marcações por planilha](#31-importar-marcacoes)
 32. [Verificação em duas etapas](#32-mfa)
 33. [Planos e uso](#33-planos)
-34. [Feriados](#34-feriados)
-35. [Clientes da plataforma](#35-clientes)
-36. [Usuários](#36-usuarios)
-37. [Dias de acesso, bloqueios e troca de senha](#37-acesso)
-38. [Login pela rede da organização (LDAP / Active Directory)](#38-ldap)
-39. [Perfis e permissões](#39-perfis)
-40. [Segurança, auditoria e privacidade](#40-seguranca)
-41. [Módulos em construção](#41-construcao)
-42. [Suporte](#42-suporte)
+34. [Plantões (saúde)](#34-plantoes)
+35. [Educação](#35-educacao)
+36. [Ocorrências (operacional)](#36-ocorrencias)
+37. [Feriados](#37-feriados)
+38. [Clientes da plataforma](#38-clientes)
+39. [Usuários](#39-usuarios)
+40. [Dias de acesso, bloqueios e troca de senha](#40-acesso)
+41. [Login pela rede da organização (LDAP / Active Directory)](#41-ldap)
+42. [Perfis e permissões](#42-perfis)
+43. [Segurança, auditoria e privacidade](#43-seguranca)
+44. [Situação do sistema](#44-construcao)
+45. [Suporte](#45-suporte)
 
 <a id="1-visao"></a>
 ## 1. O que é o SuperPonto
@@ -510,8 +513,37 @@ Em Administração › Plano e uso o administrador vê o plano contratado, a vig
 
 A equipe SuperPonto cria os planos em Plataforma › Planos e define o plano de cada cliente em Clientes › Plano, com ajuste de limite só para aquele contrato. Assinatura suspensa ou cancelada bloqueia o acesso do cliente; reativar libera. A cobrança em si fica com o meio de pagamento contratado.
 
-<a id="34-feriados"></a>
-## 34. Feriados
+<a id="34-plantoes"></a>
+## 34. Plantões (saúde)
+
+**Para:** Coordenação médica e de enfermagem
+
+Em Módulos › Plantões, escolha a unidade e a semana. "Novo plantão" cria um plantão (diurno, noturno, 12 h, 24 h, sobreaviso, extra ou cobertura) com a quantidade de profissionais necessária, e pode repeti-lo pelos próximos dias. Saída menor que a entrada termina no dia seguinte.
+
+Escale os profissionais em cada plantão. O sistema recusa quem já está em outro plantão no mesmo horário e mostra quantas vagas estão sem plantonista. A situação de cada um (confirmado, em plantão, concluído, faltou) fica no próprio cartão.
+
+Para trocar um plantonista, peça a troca com o substituto e o motivo; ao aprovar, o substituto entra (com a mesma checagem de conflito) e o original fica como substituído. Só há dados administrativos: nada de paciente ou informação clínica.
+
+<a id="35-educacao"></a>
+## 35. Educação
+
+**Para:** Coordenação escolar
+
+Em Módulos › Educação, cadastre o período letivo, os cursos, as disciplinas e as turmas (por unidade). Em cada turma, aloque o professor de cada disciplina e monte a grade com os horários da semana; o sistema recusa horário que conflite com outra aula do mesmo professor.
+
+Na aba Aulas do dia aparecem as aulas previstas pela grade; marque cada uma como dada, não dada ou substituída (com o professor substituto). A aba Resumo do mês mostra, por professor, aulas dadas, não dadas, substituições e as horas-aula.
+
+<a id="36-ocorrencias"></a>
+## 36. Ocorrências (operacional)
+
+**Para:** Supervisores e coordenação operacional
+
+Em Módulos › Ocorrências, registre problemas da operação (equipe incompleta, equipamento indisponível, troca de profissional…) por unidade. Cada ocorrência tem histórico: iniciar tratamento, comentar, resolver ou descartar (com explicação) e reabrir.
+
+"Gerar do espelho" cria, para o dia escolhido, uma ocorrência para cada falta, atraso e marcação incompleta do espelho diário. Rodar de novo não duplica; funcionário sem unidade fica de fora.
+
+<a id="37-feriados"></a>
+## 37. Feriados
 
 **Para:** Administradores da organização e RH
 
@@ -531,8 +563,8 @@ A base de feriados municipais começa pelas capitais. Para outras cidades, cadas
 
 > **Dica:** Preencha o CEP da empresa: sem ele, só aparecem os feriados nacionais.
 
-<a id="35-clientes"></a>
-## 35. Clientes da plataforma
+<a id="38-clientes"></a>
+## 38. Clientes da plataforma
 
 **Para:** Equipe SuperPonto (SuperAdmin)
 
@@ -549,8 +581,8 @@ Ao criar um cliente, informe o nome, o identificador (gerado a partir do nome), 
 
 > **Dica:** Clientes novos começam no status "Em teste".
 
-<a id="36-usuarios"></a>
-## 36. Usuários
+<a id="39-usuarios"></a>
+## 39. Usuários
 
 **Para:** Administradores
 
@@ -568,8 +600,8 @@ Novos usuários recebem um convite por e-mail para criar a própria senha. O e-m
 
 > **Dica:** Ninguém pode desativar, bloquear ou limitar os dias do próprio usuário.
 
-<a id="37-acesso"></a>
-## 37. Dias de acesso, bloqueios e troca de senha
+<a id="40-acesso"></a>
+## 40. Dias de acesso, bloqueios e troca de senha
 
 **Para:** Administradores
 
@@ -581,8 +613,8 @@ Em Administração › Bloqueios de acesso ficam os bloqueios vigentes e agendad
 
 "Pedir troca de senha no próximo acesso" leva o usuário direto para Minha conta até ele trocar a senha. Em Conta › Minha conta, qualquer usuário troca a própria senha informando a atual.
 
-<a id="38-ldap"></a>
-## 38. Login pela rede da organização (LDAP / Active Directory)
+<a id="41-ldap"></a>
+## 41. Login pela rede da organização (LDAP / Active Directory)
 
 **Para:** Administradores
 
@@ -602,8 +634,8 @@ Na nuvem, o servidor do diretório precisa ter endereço público com TLS: por s
 
 > **Dica:** Se o diretório ficar fora do ar, os usuários LDAP veem um aviso para tentar de novo; usuários com senha própria continuam entrando normalmente.
 
-<a id="39-perfis"></a>
-## 39. Perfis e permissões
+<a id="42-perfis"></a>
+## 42. Perfis e permissões
 
 **Para:** Administradores
 
@@ -615,8 +647,8 @@ Recursos marcados "módulo em construção na V2" já podem ser incluídos nos p
 
 Mudanças num perfil valem a partir do próximo acesso de cada usuário. Perfis com usuários não podem ser excluídos.
 
-<a id="40-seguranca"></a>
-## 40. Segurança, auditoria e privacidade
+<a id="43-seguranca"></a>
+## 43. Segurança, auditoria e privacidade
 
 **Para:** Todos
 
@@ -626,21 +658,21 @@ Senhas são guardadas apenas como hash forte; ninguém, nem a equipe SuperPonto,
 
 O tratamento de dados segue a LGPD: o empregador é o controlador dos dados dos trabalhadores e a SuperPonto atua como operadora.
 
-<a id="41-construcao"></a>
-## 41. Módulos em construção
+<a id="44-construcao"></a>
+## 44. Situação do sistema
 
 **Para:** Todos
 
-A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, registro de ponto pelo navegador, espelho, ajustes, abonos, afastamentos, fechamento, banco de horas e de compensação, solicitações com aprovação em etapas, equipamentos com agente local (programa com driver Control iD e simulador) e alertas, AEJ, 38 relatórios com exportação, painel ao vivo, avisos, e-mails agendados, aparelhos do app, textos personalizados, central de ajuda, ciência eletrônica do espelho, exportação para a folha e importação de marcações por planilha e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.
+A V2 está completa nas áreas de cadastro, jornada, ponto, bancos e solicitações, relatórios, ferramentas, equipamentos (agente local com Control iD e Henry), planos SaaS, verificação em duas etapas, AFD do REP-P e módulos de Saúde (plantões), Educação (turmas, grade e aulas) e Operacional (ocorrências).
 
 O app do terminal (tablet de ponto) é instalado por APK e abre em tela cheia, com a tela sempre ligada e opção de modo quiosque.
 
-Próximas fases: drivers do agente para outras marcas de relógio (Topdata, Biomtech, Dahua, RW) e homologação do Control iD e do Henry em equipamento real, app do funcionário na V2, assinatura ICP-Brasil do AEJ e do espelho, módulos de Educação, Saúde e Operações e Servidor de Comunicação.
+Ainda dependem de recursos externos: homologação dos relógios Control iD e Henry em equipamento real, assinatura digital ICP-Brasil (CAdES/.p7s) do AFD, AEJ e espelho com o certificado da empresa, cobrança automática pelo meio de pagamento contratado, app do funcionário publicado nas lojas e a virada de produção com a migração dos dados da v1.
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 
-<a id="42-suporte"></a>
-## 42. Suporte
+<a id="45-suporte"></a>
+## 45. Suporte
 
 **Para:** Todos
 

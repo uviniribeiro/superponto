@@ -404,6 +404,34 @@ export const SECTIONS: ManualSection[] = [
     ],
   },
   {
+    id: 'plantoes',
+    title: 'Plantões (saúde)',
+    audience: 'Coordenação médica e de enfermagem',
+    body: [
+      'Em Módulos › Plantões, escolha a unidade e a semana. "Novo plantão" cria um plantão (diurno, noturno, 12 h, 24 h, sobreaviso, extra ou cobertura) com a quantidade de profissionais necessária, e pode repeti-lo pelos próximos dias. Saída menor que a entrada termina no dia seguinte.',
+      'Escale os profissionais em cada plantão. O sistema recusa quem já está em outro plantão no mesmo horário e mostra quantas vagas estão sem plantonista. A situação de cada um (confirmado, em plantão, concluído, faltou) fica no próprio cartão.',
+      'Para trocar um plantonista, peça a troca com o substituto e o motivo; ao aprovar, o substituto entra (com a mesma checagem de conflito) e o original fica como substituído. Só há dados administrativos: nada de paciente ou informação clínica.',
+    ],
+  },
+  {
+    id: 'educacao',
+    title: 'Educação',
+    audience: 'Coordenação escolar',
+    body: [
+      'Em Módulos › Educação, cadastre o período letivo, os cursos, as disciplinas e as turmas (por unidade). Em cada turma, aloque o professor de cada disciplina e monte a grade com os horários da semana; o sistema recusa horário que conflite com outra aula do mesmo professor.',
+      'Na aba Aulas do dia aparecem as aulas previstas pela grade; marque cada uma como dada, não dada ou substituída (com o professor substituto). A aba Resumo do mês mostra, por professor, aulas dadas, não dadas, substituições e as horas-aula.',
+    ],
+  },
+  {
+    id: 'ocorrencias',
+    title: 'Ocorrências (operacional)',
+    audience: 'Supervisores e coordenação operacional',
+    body: [
+      'Em Módulos › Ocorrências, registre problemas da operação (equipe incompleta, equipamento indisponível, troca de profissional…) por unidade. Cada ocorrência tem histórico: iniciar tratamento, comentar, resolver ou descartar (com explicação) e reabrir.',
+      '"Gerar do espelho" cria, para o dia escolhido, uma ocorrência para cada falta, atraso e marcação incompleta do espelho diário. Rodar de novo não duplica; funcionário sem unidade fica de fora.',
+    ],
+  },
+  {
     id: 'feriados',
     title: 'Feriados',
     audience: 'Administradores da organização e RH',
@@ -503,12 +531,12 @@ export const SECTIONS: ManualSection[] = [
   },
   {
     id: 'construcao',
-    title: 'Módulos em construção',
+    title: 'Situação do sistema',
     audience: 'Todos',
     body: [
-      'A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, registro de ponto pelo navegador, espelho, ajustes, abonos, afastamentos, fechamento, banco de horas e de compensação, solicitações com aprovação em etapas, equipamentos com agente local (programa com driver Control iD e simulador) e alertas, AEJ, 38 relatórios com exportação, painel ao vivo, avisos, e-mails agendados, aparelhos do app, textos personalizados, central de ajuda, ciência eletrônica do espelho, exportação para a folha e importação de marcações por planilha e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.',
+      'A V2 está completa nas áreas de cadastro, jornada, ponto, bancos e solicitações, relatórios, ferramentas, equipamentos (agente local com Control iD e Henry), planos SaaS, verificação em duas etapas, AFD do REP-P e módulos de Saúde (plantões), Educação (turmas, grade e aulas) e Operacional (ocorrências).',
       'O app do terminal (tablet de ponto) é instalado por APK e abre em tela cheia, com a tela sempre ligada e opção de modo quiosque.',
-      'Próximas fases: drivers do agente para outras marcas de relógio (Topdata, Biomtech, Dahua, RW) e homologação do Control iD e do Henry em equipamento real, app do funcionário na V2, assinatura ICP-Brasil do AEJ e do espelho, módulos de Educação, Saúde e Operações e Servidor de Comunicação.',
+      'Ainda dependem de recursos externos: homologação dos relógios Control iD e Henry em equipamento real, assinatura digital ICP-Brasil (CAdES/.p7s) do AFD, AEJ e espelho com o certificado da empresa, cobrança automática pelo meio de pagamento contratado, app do funcionário publicado nas lojas e a virada de produção com a migração dos dados da v1.',
       'A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.',
     ],
   },
