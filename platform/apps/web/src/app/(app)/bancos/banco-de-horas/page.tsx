@@ -12,22 +12,22 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useCompanyPick } from '@/lib/schedules';
 import { hhmm, todayBr } from '@/lib/timesheet';
+import { StatementView } from '@/components/bank-statement';
 
 interface Balance { employmentId: string; registration: string; status: string; name: string; balanceMinutes: number }
-interface Policy { enabled: boolean; expirationDays: number | null; maxDailyCreditMinutes: number | null; creditMultipliers: Record<string, number>; configured?: boolean }
-interface Statement { employment: { name: string; registration: string }; balanceMinutes: number; nextExpiration: { minutes: number; expiresOn: string } | null; transactions: Array<{ id: string; type: string; minutes: number; refDate: string; expiresOn: string | null; description: string | null; balanceAfter: number }> }
-const TYPE: Record<string, string> = { CREDIT: 'Crédito', DEBIT: 'Débito', EXPIRATION: 'Vencimento', ADJUSTMENT: 'Ajuste', PAYOUT: 'Pagamento', COMPENSATION: 'Compensação' };
+interface Policy { enabled: boolean; expirationDays: number | null; maxDailyCreditMinutes: number | null; creditMultipliers: Record<string, number>; compensationEnabled: boolean; compensationPeriod: 'WEEK' | 'MONTH'; compensationLeftover: 'BANK' | 'PAY'; configured?: boolean }
 const dmy = (v: string) => v.split('-').reverse().join('/');
 const parseHm = (v: string) => { const m = v.trim().match(/^(-)?(\d{1,4})(?::(\d{2}))?$/); if (!m) return NaN; const t = Number(m[2]) * 60 + Number(m[3] ?? 0); return m[1] ? -t : t; };
 
 function PolicyForm({ companyId, policy, onDone }: { companyId: string; policy: Policy; onDone: () => void }) {
   const qc = useQueryClient();
   const toast = useToast();
-  const [f, setF] = useState({ enabled: policy.enabled, expirationDays: policy.expirationDays ? String(policy.expirationDays) : '', maxDaily: policy.maxDailyCreditMinutes ? String(policy.maxDailyCreditMinutes) : '', m50: String(policy.creditMultipliers['50'] ?? ''), m100: String(policy.creditMultipliers['100'] ?? '') });
+  const [f, setF] = useState({ enabled: policy.enabled, expirationDays: policy.expirationDays ? String(policy.expirationDays) : '', maxDaily: policy.maxDailyCreditMinutes ? String(policy.maxDailyCreditMinutes) : '', m50: String(policy.creditMultipliers['50'] ?? ''), m100: String(policy.creditMultipliers['100'] ?? ''), comp: policy.compensationEnabled, compPeriod: policy.compensationPeriod ?? 'WEEK', compLeft: policy.compensationLeftover ?? 'BANK' });
   const save = useMutation({
     mutationFn: () => api('/bank/policy', { method: 'PUT', json: {
       companyId, enabled: f.enabled, expirationDays: f.expirationDays ? Number(f.expirationDays) : null, maxDailyCreditMinutes: f.maxDaily ? Number(f.maxDaily) : null,
       creditMultipliers: Object.fromEntries([['50', f.m50], ['100', f.m100]].filter(([, v]) => v).map(([k, v]) => [k, Number(String(v).replace(',', '.'))])),
+      compensationEnabled: f.comp, compensationPeriod: f.compPeriod, compensationLeftover: f.compLeft,
     } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['bank-policy'] }); toast('success', 'Regras do banco salvas'); onDone(); },
     onError: (e: Error) => toast('error', e.message),
@@ -41,6 +41,16 @@ function PolicyForm({ companyId, policy, onDone }: { companyId: string; policy: 
         <Input label="Multiplicador da extra 50%" value={f.m50} onChange={(e) => setF({ ...f, m50: e.target.value })} placeholder="1" hint="Ex.: 1,5 = 1h extra vale 1h30 no banco" />
         <Input label="Multiplicador da extra 100%" value={f.m100} onChange={(e) => setF({ ...f, m100: e.target.value })} placeholder="1" />
       </div>
+      <fieldset className="space-y-3 rounded-2xl border border-line p-4">
+        <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-brand">Banco de compensação</legend>
+        <label className="flex items-center justify-between gap-3"><span><span className="block">Compensar dentro do período</span><span className="block text-xs text-subtle">Horas a mais e a menos se compensam antes de ir para o banco (acordo de compensação)</span></span><input type="checkbox" checked={f.comp} onChange={(e) => setF({ ...f, comp: e.target.checked })} className="size-4 accent-[var(--brand)]" /></label>
+        {f.comp && (
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block space-y-1.5"><span className="text-xs font-semibold uppercase tracking-wider text-subtle">Período</span><select value={f.compPeriod} onChange={(e) => setF({ ...f, compPeriod: e.target.value as 'WEEK' | 'MONTH' })} className="h-11 w-full rounded-2xl border border-line bg-hover px-3 [&>option]:bg-elevated"><option value="WEEK">Semanal</option><option value="MONTH">Mensal</option></select></label>
+            <label className="block space-y-1.5"><span className="text-xs font-semibold uppercase tracking-wider text-subtle">Sobra positiva</span><select value={f.compLeft} onChange={(e) => setF({ ...f, compLeft: e.target.value as 'BANK' | 'PAY' })} className="h-11 w-full rounded-2xl border border-line bg-hover px-3 [&>option]:bg-elevated"><option value="BANK">Vai para o banco</option><option value="PAY">Paga como extra</option></select></label>
+          </div>
+        )}
+      </fieldset>
       <Button type="submit" loading={save.isPending} className="h-12 w-full">Salvar regras</Button>
     </form>
   );
@@ -90,32 +100,6 @@ function ResetForm({ companyId, ids, onDone }: { companyId: string; ids: string[
       <Input label="Descrição" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} required minLength={3} placeholder="Ex.: pagamento do banco no fechamento semestral" />
       <Button type="submit" variant="danger" loading={save.isPending} className="h-12 w-full"><Eraser className="size-4" />Zerar saldos</Button>
     </form>
-  );
-}
-
-function StatementView({ employmentId }: { employmentId: string }) {
-  const s = useQuery({ queryKey: ['bank', 'statement', employmentId], queryFn: () => api<Statement>(`/bank/statement/${employmentId}`) });
-  if (!s.data) return <Skeleton className="h-60" />;
-  const d = s.data;
-  return (
-    <div className="space-y-4 text-sm">
-      <div className={cn('rounded-2xl p-4', d.balanceMinutes >= 0 ? 'hero-brand-soft' : 'border border-danger/40 bg-danger/10')}>
-        <div className="text-xs opacity-70">Saldo atual</div><div className="font-mono text-3xl font-semibold">{hhmm(d.balanceMinutes, true)}</div>
-        {d.nextExpiration && <div className="mt-1 text-xs opacity-75">{hhmm(d.nextExpiration.minutes)} vencem em {dmy(d.nextExpiration.expiresOn)}</div>}
-      </div>
-      {!d.transactions.length ? <p className="text-subtle">Sem lançamentos.</p> : (
-        <ul className="divide-y divide-line rounded-2xl border border-line">
-          {d.transactions.map((t) => (
-            <li key={t.id} className="flex items-center gap-3 px-3 py-2">
-              <span className="w-12 font-mono text-xs text-muted">{dmy(t.refDate).slice(0, 5)}</span>
-              <div className="min-w-0 flex-1"><p>{TYPE[t.type] ?? t.type}</p><p className="truncate text-xs text-subtle">{t.description}{t.expiresOn ? ` · vence ${dmy(t.expiresOn)}` : ''}</p></div>
-              <span className={cn('font-mono text-xs font-semibold', t.minutes > 0 ? 'text-success' : 'text-danger')}>{hhmm(t.minutes, true)}</span>
-              <span className="w-16 text-right font-mono text-xs text-muted">{hhmm(t.balanceAfter, true)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
 

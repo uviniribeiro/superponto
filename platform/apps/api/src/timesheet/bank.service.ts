@@ -7,8 +7,8 @@ import { AuditService } from '../audit/audit.service.js';
 import type { RequestMeta } from '../common/tenant.js';
 import { PrismaService, type Tx } from '../prisma/prisma.service.js';
 import { ExpectedScheduleService } from '../schedules/schedules.service.js';
-import { iso, TimesheetCore, toDate, type DayView } from './timesheet.core.js';
-import { TimesheetService } from './timesheet.service.js';
+import { EMP_SELECT, iso, TimesheetCore, toDate, type DayView } from './timesheet.core.js';
+import { myEmployments, TimesheetService } from './timesheet.service.js';
 
 const civil = z.iso.date();
 export const bankPolicySchema = z.object({
@@ -17,6 +17,9 @@ export const bankPolicySchema = z.object({
   expirationDays: z.number().int().min(1).max(730).nullable(),
   maxDailyCreditMinutes: z.number().int().min(1).max(720).nullable().optional(),
   creditMultipliers: z.record(z.string().regex(/^\d{1,3}$/), z.number().min(1).max(3)).default({}),
+  compensationEnabled: z.boolean().default(false),
+  compensationPeriod: z.enum(['WEEK', 'MONTH']).default('WEEK'),
+  compensationLeftover: z.enum(['BANK', 'PAY']).default('BANK'),
 });
 export type BankPolicyInput = z.infer<typeof bankPolicySchema>;
 export const bankTxSchema = z.object({
@@ -37,6 +40,33 @@ export const bankResetSchema = z.object({
 });
 export type BankResetInput = z.infer<typeof bankResetSchema>;
 
+/** Chave do período de compensação: segunda-feira da semana ou o mês. */
+export function periodKey(date: string, period: 'WEEK' | 'MONTH') {
+  if (period === 'MONTH') return date.slice(0, 7);
+  const d = new Date(`${date}T00:00:00Z`);
+  return iso(new Date(d.getTime() - ((d.getUTCDay() + 6) % 7) * 86_400_000));
+}
+
+/**
+ * Banco de compensação: soma os saldos diários de cada semana (ou mês). O líquido negativo vira um
+ * débito; o positivo vai para o banco (BANK) ou é pago como extra (PAY). Faltas compensam com extras.
+ */
+export function compensate(days: DayResult[], period: 'WEEK' | 'MONTH', leftover: 'BANK' | 'PAY') {
+  const groups = new Map<string, DayResult[]>();
+  for (const d of [...days].sort((a, b) => a.date.localeCompare(b.date))) {
+    const k = periodKey(d.date, period);
+    groups.set(k, [...(groups.get(k) ?? []), d]);
+  }
+  const periods = [...groups].map(([key, list]) => {
+    const positive = list.reduce((s, d) => s + Math.max(0, d.balanceMinutes), 0);
+    const negative = list.reduce((s, d) => s + Math.min(0, d.balanceMinutes), 0);
+    const net = positive + negative;
+    return { key, from: list[0]!.date, to: list.at(-1)!.date, positive, negative, net, toBank: net < 0 || leftover === 'BANK' ? net : 0, toPay: net > 0 && leftover === 'PAY' ? net : 0 };
+  });
+  const toBank = periods.filter((p) => p.toBank !== 0).map((p) => ({ date: p.to, balanceMinutes: p.toBank, overtime: [] } as unknown as DayResult));
+  return { periods, toBank };
+}
+
 /** Reconstrói o estado do banco (saldo e créditos em aberto, FIFO) a partir dos lançamentos. */
 export function replay(txs: Array<{ type: string; minutes: number; refDate: Date; expiresOn: Date | null }>): BankState {
   const state: BankState = { balance: 0, entries: [], openCredits: [] };
@@ -54,12 +84,12 @@ export function replay(txs: Array<{ type: string; minutes: number; refDate: Date
 
 @Injectable()
 export class BankService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly core: TimesheetCore) {}
 
   getPolicy(tenantId: string, companyId: string) {
     return this.prisma.forTenant(tenantId, async (tx) => {
       if (!(await tx.company.findFirst({ where: { id: companyId, deletedAt: null } }))) throw new NotFoundException('Empresa não encontrada');
-      return (await tx.bankPolicy.findUnique({ where: { companyId } })) ?? { companyId, enabled: false, expirationDays: 180, maxDailyCreditMinutes: null, creditMultipliers: {}, configured: false };
+      return (await tx.bankPolicy.findUnique({ where: { companyId } })) ?? { companyId, enabled: false, expirationDays: 180, maxDailyCreditMinutes: null, creditMultipliers: {}, compensationEnabled: false, compensationPeriod: 'WEEK', compensationLeftover: 'BANK', configured: false };
     });
   }
 
@@ -67,7 +97,7 @@ export class BankService {
     return this.prisma.forTenant(tenantId, async (tx) => {
       if (!(await tx.company.findFirst({ where: { id: input.companyId, deletedAt: null } }))) throw new NotFoundException('Empresa não encontrada');
       const before = await tx.bankPolicy.findUnique({ where: { companyId: input.companyId } });
-      const data = { enabled: input.enabled, expirationDays: input.expirationDays, maxDailyCreditMinutes: input.maxDailyCreditMinutes ?? null, creditMultipliers: input.creditMultipliers as Prisma.InputJsonValue };
+      const data = { enabled: input.enabled, expirationDays: input.expirationDays, maxDailyCreditMinutes: input.maxDailyCreditMinutes ?? null, creditMultipliers: input.creditMultipliers as Prisma.InputJsonValue, compensationEnabled: input.compensationEnabled, compensationPeriod: input.compensationPeriod, compensationLeftover: input.compensationLeftover };
       const p = await tx.bankPolicy.upsert({ where: { companyId: input.companyId }, create: { tenantId, companyId: input.companyId, ...data }, update: data });
       await this.audit.record(tx, { tenantId, actorUserId: user.id, action: before ? 'UPDATE' : 'CREATE', entity: 'bank_policy', entityId: p.id, before, after: p, ...meta });
       return p;
@@ -84,7 +114,9 @@ export class BankService {
     if (!policy?.enabled) return 0;
     let n = 0;
     for (const [employmentId, days] of results) {
-      const dayResults = days.map((d) => d.result).filter(Boolean) as unknown as DayResult[];
+      const raw = days.map((d) => d.result).filter(Boolean) as unknown as DayResult[];
+      // Banco de compensação: os saldos se compensam na semana/mês; só o líquido vai para o banco.
+      const dayResults = policy.compensationEnabled ? compensate(raw, policy.compensationPeriod as 'WEEK' | 'MONTH', policy.compensationLeftover as 'BANK' | 'PAY').toBank : raw;
       if (!dayResults.length) continue;
       const acc = await this.account(tx, tenantId, employmentId);
       const before = replay(await tx.bankHourTransaction.findMany({ where: { accountId: acc.id } }));
@@ -113,6 +145,27 @@ export class BankService {
       await tx.bankHourAccount.update({ where: { id: accountId }, data: { balanceMinutes: sum._sum.minutes ?? 0 } });
     }
     return txs.length;
+  }
+
+  /** Extrato do banco de compensação (líquido por semana/mês), calculado da apuração. */
+  async compensation(tenantId: string, employmentId: string, from: string, to: string) {
+    const e = await this.prisma.forTenant(tenantId, (tx) => tx.employment.findFirst({ where: { id: employmentId, deletedAt: null }, select: EMP_SELECT }));
+    if (!e) throw new NotFoundException('Funcionário não encontrado');
+    const policy = await this.prisma.forTenant(tenantId, (tx) => tx.bankPolicy.findUnique({ where: { companyId: e.companyId } }));
+    const period = (policy?.compensationPeriod ?? 'WEEK') as 'WEEK' | 'MONTH';
+    const leftover = (policy?.compensationLeftover ?? 'BANK') as 'BANK' | 'PAY';
+    const days = (await this.core.compute(tenantId, [e], from, to)).get(e.id)!;
+    const results = days.map((d) => d.result ? { ...d.result, date: d.date } : null).filter(Boolean) as unknown as DayResult[];
+    const { periods } = compensate(results, period, leftover);
+    return { employment: { id: e.id, registration: e.registration, name: e.person.socialName ?? e.person.fullName }, enabled: !!policy?.compensationEnabled, period, leftover, periods };
+  }
+
+  /** Meu banco de horas: extrato do funcionário logado. */
+  async mine(tenantId: string, user: AuthUser, employmentId?: string) {
+    const mine = await this.prisma.forTenant(tenantId, (tx) => myEmployments(tx, user));
+    const e = employmentId ? mine.find((m) => m.id === employmentId) : mine[0];
+    if (!e) throw new NotFoundException('Vínculo não encontrado');
+    return this.statement(tenantId, e.id);
   }
 
   balances(tenantId: string, companyId: string) {

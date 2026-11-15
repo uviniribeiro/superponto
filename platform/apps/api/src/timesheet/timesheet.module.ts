@@ -177,6 +177,14 @@ export class BankController {
   @RequirePermission('time.compensation:manage')
   savePolicy(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Body({ schema: bankPolicySchema }) b: BankPolicyInput, @RequestInfo() m: RequestMeta) { return this.svc.savePolicy(t, u, b, m); }
 
+  @Get('me')
+  @RequirePermission('time.records:create')
+  mine(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Query({ schema: z.object({ employmentId: z.uuid().optional() }) }) q: { employmentId?: string }) { return this.svc.mine(t, u, q.employmentId); }
+
+  @Get('compensation/:employmentId')
+  @RequirePermission('time.bank:read')
+  compensation(@ActiveTenant() t: string, @Param('employmentId', id) eid: string, @Query({ schema: periodSchema }) q: { from: string; to: string }) { return this.svc.compensation(t, eid, q.from, q.to); }
+
   @Get('balances')
   @RequirePermission('time.bank:read')
   balances(@ActiveTenant() t: string, @Query({ schema: z.object({ companyId: z.uuid() }) }) q: { companyId: string }) { return this.svc.balances(t, q.companyId); }

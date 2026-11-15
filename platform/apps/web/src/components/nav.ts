@@ -83,6 +83,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
   if (ponto.length) sections.push({ id: 'ponto', label: 'Ponto', items: ponto });
   const bancos: NavItem[] = [
     ...(can(me, 'time.bank:read') ? [{ id: 'bank', label: 'Banco de horas', href: '/bancos/banco-de-horas', icon: PiggyBank } satisfies NavItem] : []),
+    ...(can(me, 'time.records:create') && !can(me, 'time.bank:read') ? [{ id: 'my-bank', label: 'Meu banco de horas', href: '/bancos/meu-banco', icon: PiggyBank } satisfies NavItem] : []),
     ...(can(me, 'requests.requests:create') ? [{ id: 'requests', label: 'Solicitações', href: '/solicitacoes', icon: MessageSquare } satisfies NavItem] : []),
     ...(can(me, 'requests.requests:read') ? [{ id: 'flows', label: 'Fluxos de aprovação', href: '/solicitacoes/fluxos', icon: GitBranch } satisfies NavItem] : []),
   ];
