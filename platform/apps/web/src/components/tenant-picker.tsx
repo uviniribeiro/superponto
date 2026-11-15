@@ -29,7 +29,7 @@ export function TenantPicker({ value, onChange }: { value: string | null; onChan
     if (value && data && !tenants.some((t) => t.id === value)) onChange(null);
   }, [value, data, tenants, onChange]);
   return (
-    <label className="glass flex h-10 items-center gap-2 rounded-2xl pl-3 pr-1 text-sm">
+    <label className="glass flex h-10 items-center gap-2 rounded-full pl-3.5 pr-1.5 text-sm">
       <Building className="size-4 text-brand" />
       <select
         aria-label="Organização"

@@ -27,7 +27,7 @@ export function Logo({ className, subtitle }: { className?: string; subtitle?: s
     <div className={cn('flex items-center gap-3', className)}>
       <LogoMark />
       <div className="leading-tight">
-        <div className="font-display text-[17px] font-bold tracking-tight">
+        <div className="font-brand text-[17px] font-bold tracking-tight">
           Super<span className="text-brand">Ponto</span>
         </div>
         {subtitle && <div className="text-xs text-subtle">{subtitle}</div>}

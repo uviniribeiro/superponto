@@ -42,7 +42,14 @@ export function Sidebar({ expanded, onToggle, onOpenSearch, mobile, onClose }: S
   const { theme, toggle } = useTheme();
   const sections = useMemo(() => buildNav(me), [me]);
   const [hovered, setHovered] = useState<string | null>(null);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ structure: true });
+  // Grupos começam fechados, exceto o que contém a tela atual (menu mais curto, como no vídeo).
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    const active = sections.flatMap((s) => s.items).find((i) => i.children?.some((c) => isActive(pathname, c.href)));
+    if (active) setOpenGroups((g) => (g[active.id] ? g : { ...g, [active.id]: true }));
+    // Leva o item ativo para a área visível do menu.
+    requestAnimationFrame(() => document.querySelector('aside[aria-label="Navegação principal"] [aria-current="page"]')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+  }, [pathname, sections]);
   const [menuOpen, setMenuOpen] = useState(false);
   const open = expanded || !!mobile;
 
@@ -100,14 +107,14 @@ export function Sidebar({ expanded, onToggle, onOpenSearch, mobile, onClose }: S
             onMouseEnter={() => setHovered('search')}
             className={cn(
               'flex h-10 w-full items-center gap-3 rounded-2xl text-sm text-muted transition-colors hover:text-fg',
-              open ? 'bg-hover px-3' : 'justify-center',
+              open ? 'border border-line bg-hover pl-1.5 pr-2' : 'justify-center',
             )}
             aria-label="Buscar telas (Ctrl+K)"
           >
-            <Search className="size-[18px] shrink-0" />
+            {open ? <span className="sp-orb size-7 shrink-0 rounded-full" /> : <Search className="size-[18px] shrink-0" />}
             {open && (
               <>
-                <span className="flex-1 truncate text-left">Buscar telas</span>
+                <span className="flex-1 truncate text-left">Buscar ou ir para…</span>
                 <kbd className="rounded-md border border-line px-1.5 py-0.5 text-[10px] text-subtle">⌘K</kbd>
               </>
             )}
@@ -235,7 +242,7 @@ function NavRow({
     <>
       <Pills id={item.id} active={active && (!hasChildren || !open)} hovered={hovered === item.id} />
       <span className="relative z-10 grid size-[18px] place-items-center">
-        <Icon className={cn('size-[18px] transition-colors', active ? 'text-brand' : 'text-muted group-hover:text-fg')} />
+        <Icon className={cn('size-[18px] transition-colors duration-300', active && (!hasChildren || !open) ? 'text-[color:var(--pill-fg)]' : active ? 'text-brand' : 'text-muted group-hover:text-fg')} />
         {!open && !!item.badge && <span className="absolute -right-1.5 -top-1.5 size-2 rounded-full bg-danger" />}
       </span>
       <AnimatePresence initial={false}>
@@ -245,7 +252,7 @@ function NavRow({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -6 }}
             transition={{ duration: 0.16 }}
-            className={cn('relative z-10 flex-1 truncate text-left', active ? 'font-semibold text-fg' : 'text-muted group-hover:text-fg')}
+            className={cn('relative z-10 flex-1 truncate text-left transition-colors duration-300', active && (!hasChildren || !open) ? 'font-semibold text-[color:var(--pill-fg)]' : active ? 'font-semibold text-fg' : 'text-muted group-hover:text-fg')}
           >
             {item.label}
           </motion.span>
@@ -297,14 +304,14 @@ function ChildRow({ child, pathname, hovered, setHovered, onNavigate }: {
       <Link href={child.href} onClick={onNavigate} aria-current={active ? 'page' : undefined} className="group relative flex h-9 items-center gap-2.5 rounded-xl px-3 text-[13px]">
         <Pills id={child.id} active={active} hovered={hovered === child.id} small />
         <span className="relative z-10 size-1.5 rounded-full" style={{ background: child.dot ?? 'var(--fg-subtle)' }} />
-        <span className={cn('relative z-10 flex-1 truncate', active ? 'font-semibold text-fg' : 'text-muted group-hover:text-fg')}>{child.label}</span>
+        <span className={cn('relative z-10 flex-1 truncate transition-colors duration-300', active ? 'font-semibold text-[color:var(--pill-fg)]' : 'text-muted group-hover:text-fg')}>{child.label}</span>
         {!!child.badge && <Badge value={child.badge} />}
       </Link>
     </li>
   );
 }
 
-/** Pílulas animadas: a de hover desliza entre itens; a ativa marca a tela atual em amarelo. */
+/** Pílulas animadas: a de hover desliza entre itens; a ativa (clara, como no vídeo) marca a tela atual. */
 function Pills({ id, active, hovered, small }: { id: string; active: boolean; hovered: boolean; small?: boolean }) {
   return (
     <>
@@ -319,11 +326,9 @@ function Pills({ id, active, hovered, small }: { id: string; active: boolean; ho
         <motion.span
           layoutId="sp-active-pill"
           transition={SPRING}
-          className={cn('absolute inset-0 border border-[color:var(--brand-glow)] bg-brand-soft', small ? 'rounded-xl' : 'rounded-2xl')}
+          className={cn('pill-light absolute inset-0', small ? 'rounded-xl' : 'rounded-2xl')}
           data-id={id}
-        >
-          <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand" />
-        </motion.span>
+        />
       )}
     </>
   );

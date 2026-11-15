@@ -6,6 +6,7 @@ import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { PermissionsGuard } from './authorization/authorization.js';
 import { CompaniesModule } from './companies/companies.module.js';
+import { DashboardModule } from './dashboard/dashboard.module.js';
 import { DevicesModule } from './devices/devices.module.js';
 import { HolidaysModule } from './holidays/holidays.module.js';
 import { LookupModule } from './lookup/lookup.module.js';
@@ -43,6 +44,7 @@ export function createAppModule(config: AppConfig): DynamicModule {
       AuditModule,
       AuthModule,
       CompaniesModule,
+      DashboardModule,
       DevicesModule,
       HolidaysModule,
       LookupModule,

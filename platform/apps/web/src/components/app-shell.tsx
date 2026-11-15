@@ -45,7 +45,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <div className="glass-strong fixed inset-x-3 top-3 z-30 flex h-14 items-center gap-3 rounded-2xl px-3 md:hidden">
           <button onClick={() => setMobileOpen(true)} className="grid size-9 place-items-center rounded-xl text-muted hover:bg-hover" aria-label="Abrir menu"><Menu className="size-5" /></button>
           <LogoMark className="size-8" />
-          <span className="font-display font-bold">Super<span className="text-brand">Ponto</span></span>
+          <span className="font-brand font-bold">Super<span className="text-brand">Ponto</span></span>
         </div>
         <AnimatePresence>
           {mobileOpen && (
@@ -58,7 +58,9 @@ function Shell({ children }: { children: React.ReactNode }) {
           )}
         </AnimatePresence>
 
-        <main className="min-w-0 flex-1 px-4 pb-10 pt-20 md:px-8 md:pt-8">{children}</main>
+        <main className="min-w-0 flex-1 px-3 pb-3 pt-[72px] md:py-3 md:pl-1 md:pr-3">
+          <div className="window min-h-[calc(100vh-84px)] rounded-[28px] px-4 py-6 md:min-h-[calc(100vh-24px)] md:rounded-[34px] md:px-8 md:py-7">{children}</div>
+        </main>
       </div>
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} sections={sections} />
     </IntroReveal>

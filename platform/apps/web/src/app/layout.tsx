@@ -29,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-full">
         <div className="app-backdrop" aria-hidden />
+        <div className="app-grain" aria-hidden />
         {children}
       </body>
     </html>

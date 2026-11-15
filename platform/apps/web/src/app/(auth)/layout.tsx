@@ -7,7 +7,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div className="flex items-center gap-3">
           <LogoMark className="size-10" />
-          <span className="font-display text-xl font-bold">Super<span className="text-brand">Ponto</span></span>
+          <span className="font-brand text-xl font-bold">Super<span className="text-brand">Ponto</span></span>
         </div>
         <div className="relative z-10 max-w-md">
           <h1 className="font-display text-5xl font-bold leading-[1.05] tracking-tight">

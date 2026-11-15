@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn';
 
 // ----------------------------------------------------------------- botão
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'ghost' | 'danger' | 'outline';
+  variant?: 'primary' | 'ghost' | 'danger' | 'outline' | 'light' | 'dark';
   loading?: boolean;
 };
 
@@ -19,11 +19,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl px-4 text-sm font-semibold transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60',
         variant === 'primary' && 'bg-brand text-brand-fg shadow-[0_8px_24px_-8px_var(--brand-glow)] hover:bg-brand-strong',
         variant === 'ghost' && 'text-muted hover:bg-hover hover:text-fg',
         variant === 'outline' && 'border border-line-strong text-fg hover:bg-hover',
         variant === 'danger' && 'bg-danger/90 text-white hover:bg-danger',
+        variant === 'light' && 'pill-light rounded-full hover:brightness-95',
+        variant === 'dark' && 'pill-dark rounded-full hover:brightness-125',
         className,
       )}
       {...props}
@@ -65,7 +67,7 @@ export function Card({ className, children, delay = 0, ...props }: React.HTMLAtt
       initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
       transition={{ duration: 0.5, delay, ease: [0.2, 0.8, 0.2, 1] }}
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -3, transition: { type: 'spring', stiffness: 400, damping: 28 } }}
       className={cn('glass rounded-panel p-5', className)}
       {...(props as React.ComponentProps<typeof motion.div>)}
     >
@@ -86,6 +88,58 @@ export function CountUp({ value, format = (n) => Math.round(n).toLocaleString('p
     return () => controls.stop();
   }, [inView, value, mv]);
   return <motion.span ref={ref}>{text}</motion.span>;
+}
+
+/**
+ * Número com dígitos que rolam como num contador mecânico (efeito do vídeo de referência):
+ * cada dígito gira até o valor com mola e leve desfoque, da direita para a esquerda.
+ */
+export function RollingNumber({ value, format = (n) => n.toLocaleString('pt-BR'), className }: { value: number; format?: (n: number) => string; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+  const text = format(value);
+  const chars = [...text];
+  const digitCount = chars.filter((c) => /\d/.test(c)).length;
+  let seen = 0;
+  return (
+    <span ref={ref} className={cn('inline-flex tabular-nums', className)} aria-label={text}>
+      {chars.map((ch, i) => {
+        if (!/\d/.test(ch)) return <span key={i} aria-hidden>{ch}</span>;
+        const order = digitCount - 1 - seen++;
+        const d = Number(ch);
+        return (
+          <span key={i} aria-hidden className="relative inline-block h-[1em] overflow-hidden leading-none" style={{ width: '0.62em' }}>
+            <motion.span
+              className="absolute inset-x-0 top-0 flex flex-col items-center"
+              initial={{ y: '0em', filter: 'blur(0px)' }}
+              animate={inView ? { y: `${-(d + 10)}em`, filter: ['blur(0px)', 'blur(3px)', 'blur(0px)'] } : undefined}
+              transition={{ y: { type: 'spring', stiffness: 70, damping: 16, delay: 0.15 + order * 0.08 }, filter: { duration: 0.9, delay: 0.15 + order * 0.08 } }}
+            >
+              {Array.from({ length: 20 }, (_, n) => <span key={n} className="block h-[1em] leading-none">{n % 10}</span>)}
+            </motion.span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/** Minigráfico de linha que se desenha ao aparecer (série real; sem série, nada é desenhado). */
+export function Sparkline({ values, className, color = 'currentColor' }: { values: number[]; className?: string; color?: string }) {
+  if (values.length < 2) return null;
+  const w = 100, h = 32;
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const pts = values.map((v, i) => [(i / (values.length - 1)) * w, h - 3 - ((v - min) / (max - min || 1)) * (h - 6)] as const);
+  const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
+  const last = pts[pts.length - 1]!;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className={cn('h-8 w-24 overflow-visible', className)} aria-hidden>
+      <motion.path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
+        initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: 1.2, ease: [0.2, 0.8, 0.2, 1], delay: 0.3 }} />
+      <motion.circle cx={last[0]} cy={last[1]} r="2.6" fill={color} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1.3 }} />
+    </svg>
+  );
 }
 
 // ----------------------------------------------------------------- painel lateral
