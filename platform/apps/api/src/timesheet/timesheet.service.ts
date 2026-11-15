@@ -56,7 +56,7 @@ export class TimesheetService {
     const rows = emps.map((e) => {
       const d = map.get(e.id)![0]!;
       const f = d.result?.flags ?? [];
-      const situation = d.leave ? 'LEAVE' : d.allowance?.fullDay ? 'ALLOWANCE' : f.includes('ABSENCE') ? 'ABSENT' : f.includes('INCOMPLETE') ? 'INCOMPLETE'
+      const situation = d.leave ? 'LEAVE' : d.allowance?.fullDay && d.allowance.disregardsDebits ? 'ALLOWANCE' : f.includes('ABSENCE') ? 'ABSENT' : f.includes('INCOMPLETE') ? 'INCOMPLETE'
         : !(d.expected as { isWorkday: boolean }).isWorkday && !d.punches.length ? 'OFF' : f.includes('LATE') ? 'LATE' : d.punches.length ? 'PRESENT' : 'EXPECTED';
       return { employmentId: e.id, registration: e.registration, name: e.person.socialName ?? e.person.fullName, situation, day: d };
     });

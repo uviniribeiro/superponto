@@ -158,7 +158,7 @@ export class PunchController {
   challenge(@CurrentUser() u: AuthUser) { return this.svc.challenge(u); }
 
   @Post()
-  @Throttle({ default: { limit: 6, ttl: 60_000 } })
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @RequirePermission('time.records:create')
   punch(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Body({ schema: punchSchema }) b: PunchInput, @RequestInfo() m: RequestMeta) { return this.svc.punch(t, u, b, m); }
 }

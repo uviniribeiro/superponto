@@ -187,7 +187,9 @@ export class ClosingsService {
       if (!(await tx.company.findFirst({ where: { id: input.companyId, deletedAt: null } }))) throw new NotFoundException('Empresa não encontrada');
       const overlap = await tx.timeClosing.findFirst({ where: { companyId: input.companyId, status: 'CLOSED', periodStart: { lte: toDate(input.periodEnd) }, periodEnd: { gte: toDate(input.periodStart) } } });
       if (overlap) throw new ConflictException(`Já existe período fechado de ${iso(overlap.periodStart)} a ${iso(overlap.periodEnd)}`);
-      const pending = await tx.timeRecordAdjustment.count({ where: { status: 'PENDING', employment: { companyId: input.companyId }, OR: [{ recordedAt: { gte: toDate(input.periodStart), lt: new Date(toDate(input.periodEnd).getTime() + 86_400_000) } }, { timeRecord: { recordedAt: { gte: toDate(input.periodStart), lt: new Date(toDate(input.periodEnd).getTime() + 86_400_000) } } }] } });
+      const empIds = (await tx.employment.findMany({ where: { companyId: input.companyId }, select: { id: true } })).map((e) => e.id);
+      const start = new Date(`${input.periodStart}T00:00:00-03:00`), end = new Date(new Date(`${input.periodEnd}T00:00:00-03:00`).getTime() + 86_400_000);
+      const pending = await tx.timeRecordAdjustment.count({ where: { status: 'PENDING', employmentId: { in: empIds }, OR: [{ recordedAt: { gte: start, lt: end } }, { timeRecord: { recordedAt: { gte: start, lt: end } } }] } });
       if (pending) throw new ConflictException(`Há ${pending} ajuste(s) de marcação pendente(s) no período: aprove ou recuse antes de fechar`);
       return { emps: await this.timesheet.companyEmployments(tx, input.companyId, input.periodStart, input.periodEnd) };
     });
