@@ -94,6 +94,34 @@ describe('Estrutura: cadastros da fase 1', () => {
     await api(app).post('/v1/job-positions').set(as(admin)).send({ companyId: ids['company-est-b'], name: 'Invasor' }).expect(404); // empresa de outro cliente
   });
 
+  it('unidade: cria por empresa com cerca virtual, valida coordenadas e CNPJ', async () => {
+    const c = ids['company-est-a'];
+    await api(app).get('/v1/units').set(as(admin)).expect(400);
+    await api(app).post('/v1/units').set(as(admin)).send({ companyId: c, name: 'UBS Centro', latitude: '-19,9191' }).expect(400);
+    await api(app).post('/v1/units').set(as(admin)).send({ companyId: c, name: 'UBS Centro', latitude: 95, longitude: 10 }).expect(400);
+    await api(app).post('/v1/units').set(as(admin)).send({ companyId: c, name: 'UBS Centro', cnpj: '11.111.111/1111-11' }).expect(400);
+    const u = await api(app).post('/v1/units').set(as(admin)).send({ companyId: c, name: 'UBS Centro', type: 'UBS', code: 'U1', latitude: '-19,9191', longitude: '-43.9386', geofenceM: '150' }).expect(201);
+    expect(u.body).toMatchObject({ name: 'UBS Centro', type: 'UBS', geofenceM: 150, companyId: c });
+    expect(Number(u.body.latitude)).toBeCloseTo(-19.9191);
+    ids.unit = u.body.id;
+    const list = await api(app).get(`/v1/units?companyId=${c}`).set(as(admin)).expect(200);
+    expect(list.body.data.map((r: { id: string }) => r.id)).toEqual([u.body.id]);
+    await api(app).post('/v1/units').set(as(admin)).send({ companyId: c, name: 'Outra', code: 'U1' }).expect(409);
+    await api(app).get(`/v1/units?companyId=${c}`).set(as(other)).expect(404);
+    await api(app).get(`/v1/units/${u.body.id}`).set(as(other)).expect(404);
+  });
+
+  it('painel: resumo com números reais e só o que o perfil pode ver', async () => {
+    const s = await api(app).get('/v1/dashboard/summary').set(as(admin)).expect(200);
+    expect(s.body.today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(s.body.structure.companies).toBe(1);
+    expect(s.body.employees.months).toHaveLength(6);
+    expect(s.body.access.users).toBeGreaterThanOrEqual(2);
+    const e = await api(app).get('/v1/dashboard/summary').set(as(employee)).expect(200);
+    expect(e.body.structure).toBeUndefined();
+    expect(e.body.access).toBeUndefined();
+  });
+
   describe('departamentos', () => {
     it('árvore com subdepartamentos, caminho e nível', async () => {
       const co = ids['company-est-a'];

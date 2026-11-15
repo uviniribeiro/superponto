@@ -74,8 +74,9 @@ export const SECTIONS: ManualSection[] = [
     title: 'Visão geral (painel)',
     audience: 'Todos',
     body: [
-      'Mostra os números reais da sua organização: empresas cadastradas, permissões do seu perfil e o percentual de cadastros completos (empresas com CNPJ e nome fantasia).',
-      'Para a equipe SuperPonto, mostra também o total de clientes da plataforma.',
+      'Mostra só números reais da sua organização, cada bloco conforme o que o seu perfil pode ver: o cartão amarelo traz o percentual de funcionários ativos com cargo e departamento definidos; o calendário mostra a semana e os próximos feriados da empresa; os cartões trazem funcionários ativos, empresas, usuários ativos (e bloqueios em vigor) e as permissões do seu perfil.',
+      'Abaixo ficam atalhos para as telas mais usadas e o gráfico de admissões e desligamentos dos últimos 6 meses.',
+      'Para a equipe SuperPonto, sem organização escolhida, mostra o total de clientes da plataforma.',
       'O quadro "Marcações de hoje" fica vazio até a liberação do módulo de ponto da V2.',
     ],
   },
@@ -107,8 +108,9 @@ export const SECTIONS: ManualSection[] = [
     title: 'Estrutura da organização',
     audience: 'Administradores da organização e RH',
     body: [
-      'Em Organização › Estrutura ficam os cadastros que organizam as pessoas: Departamentos, Cargos, Funções, Centros de custo, Tipos de funcionário e Sindicatos. Em Organização › Competências ficam os períodos com nome usados como filtro.',
+      'Em Organização › Estrutura ficam os cadastros que organizam as pessoas: Unidades e locais, Departamentos, Cargos, Funções, Centros de custo, Tipos de funcionário e Sindicatos. Em Organização › Competências ficam os períodos com nome usados como filtro.',
       'Departamentos formam uma árvore sem limite de níveis (ex.: Secretaria de Saúde › UBS Centro › Recepção) e cada departamento pode ter seções. O sistema impede colocar um departamento dentro dele mesmo ou de um subdepartamento seu.',
+      'Unidades e locais são os lugares de trabalho de cada empresa (matriz, filial, escola, UBS, base operacional…), com CNPJ próprio opcional e cerca virtual (latitude, longitude e raio de 20 a 5.000 m) para o app de ponto. A unidade é escolhida no cadastro do funcionário.',
       'Cargos pertencem a uma empresa e têm o código CBO usado no eSocial. Funções descrevem o que a pessoa faz, independente do cargo. Centros de custo e códigos externos vão na exportação para a folha.',
       'Sindicatos guardam sigla, CNPJ (numérico ou alfanumérico), tipo de entidade, se representam empregados ou empregadores e o mês da data-base.',
       'Nenhum cadastro em uso por funcionário ativo pode ser excluído: o sistema mostra quantos vínculos usam o registro. Nesse caso, desative em vez de excluir.',
@@ -160,11 +162,11 @@ export const SECTIONS: ManualSection[] = [
     title: 'Agrupamentos',
     audience: 'Administradores e RH',
     body: [
-      'Agrupamentos reúnem funcionários e cargos sem depender da estrutura (ex.: "Plantão noturno", "Motoristas da frota"). Servem de filtro na lista de funcionários e, nas próximas fases, nos relatórios, no cálculo em lote e no envio aos relógios.',
+      'Agrupamentos reúnem funcionários, cargos e unidades sem depender da estrutura (ex.: "Plantão noturno", "Motoristas da frota"). Servem de filtro na lista de funcionários e, nas próximas fases, nos relatórios, no cálculo em lote e no envio aos relógios.',
     ],
     steps: [
       'Abra Organização › Agrupamentos, clique em "Novo" e dê um nome.',
-      'Clique no botão "funcionário(s)" do agrupamento para escolher os funcionários e os cargos.',
+      'Clique no botão "funcionário(s)" do agrupamento para escolher os funcionários, os cargos e as unidades (cargos e unidades seguem a empresa escolhida no painel).',
     ],
   },
   {
@@ -226,6 +228,23 @@ export const SECTIONS: ManualSection[] = [
       'Em Administração › Bloqueios de acesso ficam os bloqueios vigentes e agendados, com a opção de encerrar antes do fim.',
       '"Pedir troca de senha no próximo acesso" leva o usuário direto para Minha conta até ele trocar a senha. Em Conta › Minha conta, qualquer usuário troca a própria senha informando a atual.',
     ],
+  },
+  {
+    id: 'ldap',
+    title: 'Login pela rede da organização (LDAP / Active Directory)',
+    audience: 'Administradores',
+    body: [
+      'Com o login pela rede, o usuário entra no SuperPonto com o mesmo e-mail e senha da rede da organização. A senha é conferida no Active Directory ou OpenLDAP a cada login; o SuperPonto não guarda a senha desses usuários.',
+      'A configuração fica em Administração › Login pela rede (LDAP): servidor (ldaps:// recomendado, ou ldap:// com STARTTLS), base de busca, filtro do usuário ({email} ou {login}) e uma conta de serviço só de leitura. A senha da conta de serviço é guardada cifrada e nunca é exibida.',
+      'Usuários LDAP não recebem convite por e-mail, não trocam nem redefinem a senha no SuperPonto (isso é feito na rede da organização). Perfis, dias de acesso e bloqueios continuam valendo.',
+      'Na nuvem, o servidor do diretório precisa ter endereço público com TLS: por segurança, o SuperPonto recusa endereços internos (10.x, 192.168.x, localhost). Diretório só na rede interna exige instalação própria.',
+    ],
+    steps: [
+      'Abra Administração › Login pela rede (LDAP), preencha servidor, base, filtro (há modelos para Active Directory e OpenLDAP) e a conta de serviço; marque "Login pela rede ativado" e salve.',
+      'Use "Testar" com o e-mail de um usuário da rede (e, se quiser, a senha) para conferir antes de liberar.',
+      'Em Usuários, crie ou edite o usuário e escolha a forma de login "Rede da organização (LDAP)".',
+    ],
+    tips: ['Se o diretório ficar fora do ar, os usuários LDAP veem um aviso para tentar de novo; usuários com senha própria continuam entrando normalmente.'],
   },
   {
     id: 'perfis',

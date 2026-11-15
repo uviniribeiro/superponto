@@ -30,13 +30,14 @@
     "@nestjs/platform-express": "^12.5.0",
     "@nestjs/swagger": "^12.1.2",
     "@nestjs/throttler": "^6.7.1",
+    "@superponto/br-docs": "*",
     "@superponto/database": "*",
+    "@superponto/rep-protocols": "*",
     "@superponto/time-engine": "*",
+    "ldapts": "^9.2.0",
     "nodemailer": "^10.5.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "zod": "^4.6.7",
-    "@superponto/br-docs": "*",
-    "@superponto/rep-protocols": "*"
+    "zod": "^4.6.7"
   }
 }

@@ -82,17 +82,30 @@ function UserForm({ user, roles, onDone }: { user: UserRow | null; roles: RoleRo
   const [roleIds, setRoleIds] = useState<string[]>(user?.roles.map((r) => r.id) ?? []);
   const [days, setDays] = useState<number[]>(user?.accessWeekdays ?? []);
   const [mustChange, setMustChange] = useState(user?.mustChangePassword ?? false);
+  const [source, setSource] = useState<'LOCAL' | 'LDAP'>(user?.authSource ?? 'LOCAL');
+  const ldap = source === 'LDAP';
   const save = useMutation({
     mutationFn: () => (user
-      ? api(`/users/${user.id}`, { method: 'PATCH', json: { displayName: name, isActive: active, roleIds, accessWeekdays: days, mustChangePassword: mustChange } })
-      : api('/users', { method: 'POST', json: { displayName: name, email, roleIds, accessWeekdays: days, mustChangePassword: mustChange } })),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); qc.invalidateQueries({ queryKey: ['roles'] }); toast('success', user ? 'Usuário atualizado' : 'Usuário criado: o convite para definir a senha foi enviado por e-mail'); onDone(); },
+      ? api(`/users/${user.id}`, { method: 'PATCH', json: { displayName: name, isActive: active, roleIds, accessWeekdays: days, mustChangePassword: ldap ? false : mustChange, ...(user.isSelf ? {} : { authSource: source }) } })
+      : api('/users', { method: 'POST', json: { displayName: name, email, roleIds, accessWeekdays: days, mustChangePassword: ldap ? false : mustChange, authSource: source } })),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); qc.invalidateQueries({ queryKey: ['roles'] }); toast('success', user ? 'Usuário atualizado' : ldap ? 'Usuário criado: ele entra com a senha da rede da organização' : 'Usuário criado: o convite para definir a senha foi enviado por e-mail'); onDone(); },
     onError: (e: Error) => toast('error', e.message),
   });
   return (
     <form onSubmit={(e) => { e.preventDefault(); if (!roleIds.length) { toast('error', 'Escolha ao menos um perfil'); return; } save.mutate(); }} className="space-y-4">
       <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} autoFocus />
-      <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={!!user} hint={user ? 'O e-mail é o login e não pode ser trocado' : 'O usuário recebe um convite para criar a própria senha'} />
+      <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={!!user} hint={user ? 'O e-mail é o login e não pode ser trocado' : ldap ? 'O e-mail precisa ser o mesmo do diretório da organização' : 'O usuário recebe um convite para criar a própria senha'} />
+      {!user?.isSelf && (
+        <fieldset className="space-y-1.5">
+          <legend className="text-xs font-semibold uppercase tracking-wider text-subtle">Forma de login</legend>
+          <div className="grid grid-cols-2 gap-1.5 rounded-2xl border border-line p-1">
+            {([['LOCAL', 'Senha do SuperPonto'], ['LDAP', 'Rede da organização (LDAP)']] as const).map(([k, l]) => (
+              <button key={k} type="button" aria-pressed={source === k} onClick={() => setSource(k)} className={cn('h-9 rounded-xl text-xs font-medium transition-colors', source === k ? 'pill-light' : 'text-muted hover:text-fg')}>{l}</button>
+            ))}
+          </div>
+          <span className="text-xs text-subtle">{ldap ? 'A senha é conferida no Active Directory/LDAP configurado em "Login pela rede".' : user?.authSource === 'LDAP' ? 'Ao salvar, o usuário recebe um convite para criar uma senha própria.' : 'O usuário cria a própria senha pelo convite enviado por e-mail.'}</span>
+        </fieldset>
+      )}
       {user && !user.isSelf && (
         <label className="flex items-center justify-between rounded-2xl border border-line px-4 py-3 text-sm">
           <span>Acesso ativo</span>
@@ -112,7 +125,7 @@ function UserForm({ user, roles, onDone }: { user: UserRow | null; roles: RoleRo
           <span className="text-xs text-subtle">{days.length ? 'Fora desses dias o login é recusado (horário de Brasília).' : 'Nenhum dia marcado: acesso todos os dias.'}</span>
         </fieldset>
       )}
-      {!user?.isSelf && (
+      {!user?.isSelf && !ldap && (
         <label className="flex items-center justify-between rounded-2xl border border-line px-4 py-3 text-sm">
           <span>Pedir troca de senha no próximo acesso</span>
           <input type="checkbox" checked={mustChange} onChange={(e) => setMustChange(e.target.checked)} className="size-4 accent-[var(--brand)]" />
@@ -180,6 +193,7 @@ export default function UsersPage() {
                     </div>
                     <div className="hidden flex-wrap justify-end gap-1 md:flex">
                       {u.isSupport && <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-xs text-sky-400">Suporte e treinamento</span>}
+                      {u.authSource === 'LDAP' && <span className="rounded-full border border-line px-2.5 py-1 text-xs text-muted">LDAP</span>}
                       {u.roles.map((r) => <span key={r.id} className="rounded-full border border-line px-2.5 py-1 text-xs text-muted">{r.name}</span>)}
                     </div>
                     {canManage && (u.editable ? (

@@ -15,7 +15,9 @@ export class PasswordResetMailer extends PasswordResetHandler {
   /** O link vai para o e-mail cadastrado, nunca para o digitado; vale enquanto e-mail e senha não mudarem. */
   async findUser(email: string) {
     const found = await this.users.findCredentials(email);
-    return found && { id: found.user.id, email: found.user.email, passwordHash: found.passwordHash };
+    // Conta LDAP não tem senha local: a redefinição é feita no diretório da organização.
+    if (!found || found.authSource === 'LDAP') return null;
+    return { id: found.user.id, email: found.user.email, passwordHash: found.passwordHash };
   }
 
   async send(link: PasswordResetLink) {

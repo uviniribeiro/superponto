@@ -1,4 +1,4 @@
-import { BadgeCheck, Briefcase, CalendarRange, Landmark, Tags, Wallet } from 'lucide-react';
+import { BadgeCheck, Briefcase, CalendarRange, Landmark, MapPinned, Tags, Wallet } from 'lucide-react';
 import { formatCnpj } from '@superponto/br-docs';
 import type { CatalogDef } from '@/components/catalog-page';
 
@@ -74,4 +74,25 @@ export const POSITIONS_DEF: CatalogDef = {
     ] },
   ],
   subtitle: (r) => (r.cbo ? `CBO ${String(r.cbo).replace(/^(\d{4})(\d{2})$/, '$1-$2')}` : 'Sem CBO'),
+};
+
+export const UNIT_TYPES: Array<[string, string]> = [
+  ['HEADQUARTERS', 'Matriz / sede'], ['BRANCH', 'Filial'], ['OFFICE', 'Escritório'], ['SCHOOL', 'Escola'], ['HOSPITAL', 'Hospital'], ['CLINIC', 'Clínica'],
+  ['UPA', 'UPA'], ['UBS', 'UBS'], ['LABORATORY', 'Laboratório'], ['OPERATIONAL_SITE', 'Base operacional'], ['OTHER', 'Outro'],
+];
+
+export const UNITS_DEF: CatalogDef = {
+  title: 'Unidades e locais', singular: 'Unidade', feminine: true, path: 'units', icon: MapPinned, companyScoped: true,
+  description: 'Locais de trabalho de cada empresa (filial, escola, UBS…). A cerca virtual (coordenadas e raio) é usada pelo app de ponto.',
+  readPermission: 'org.units:read', managePermission: 'org.units:manage',
+  fields: [
+    { key: 'name', label: 'Nome', type: 'text', required: true, max: 120 },
+    { key: 'type', label: 'Tipo', type: 'select', options: UNIT_TYPES },
+    { key: 'code', label: 'Código', type: 'text', max: 20, mono: true, hint: 'Opcional; usado na exportação e nas integrações' },
+    { key: 'cnpj', label: 'CNPJ (se tiver próprio)', type: 'cnpj' },
+    { key: 'latitude', label: 'Latitude', type: 'text', max: 14, placeholder: '-19.9191', mono: true },
+    { key: 'longitude', label: 'Longitude', type: 'text', max: 14, placeholder: '-43.9386', mono: true },
+    { key: 'geofenceM', label: 'Raio da cerca (metros)', type: 'text', max: 5, placeholder: '150', mono: true, hint: 'Entre 20 e 5.000 m; deixe vazio para não usar cerca' },
+  ],
+  subtitle: (r) => [UNIT_TYPES.find(([k]) => k === r.type)?.[1], r.code ? `código ${r.code}` : null, r.cnpj ? formatCnpj(String(r.cnpj)) : null, r.geofenceM ? `cerca de ${r.geofenceM} m` : null].filter(Boolean).join(' · '),
 };

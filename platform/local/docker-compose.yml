@@ -46,6 +46,9 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY}
       BIOMETRIC_ENCRYPTION_KEY: ${BIOMETRIC_ENCRYPTION_KEY}
+      SECRETS_ENCRYPTION_KEY: ${SECRETS_ENCRYPTION_KEY:-}
+      # Instalação própria: o diretório LDAP/AD pode estar na rede interna.
+      LDAP_ALLOW_PRIVATE_HOSTS: 'true'
       SUPPORT_EMAIL: ${SUPPORT_EMAIL:-suporte@superponto.local}
       MAIL_TRANSPORT: smtp
       SMTP_HOST: mail

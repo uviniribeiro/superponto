@@ -9,6 +9,7 @@ const list = <T,>(path: string) => api<Page<T>>(`${path}${path.includes('?') ? '
 /** Opções dos cadastros para selects (por empresa quando aplicável). */
 export function useStructureOptions(tenantId: string | null, companyId: string | null) {
   const on = !!tenantId;
+  const units = useQuery({ queryKey: ['opt', 'units', companyId], queryFn: () => list<Ref>(`/units?companyId=${companyId}`), enabled: on && !!companyId, retry: false });
   const departments = useQuery({ queryKey: ['opt', 'departments', companyId], queryFn: () => api<Dept[]>(`/departments?companyId=${companyId}`), enabled: on && !!companyId });
   const positions = useQuery({ queryKey: ['opt', 'positions', companyId], queryFn: () => list<Ref>(`/job-positions?companyId=${companyId}`), enabled: on && !!companyId });
   const functions = useQuery({ queryKey: ['opt', 'functions', tenantId], queryFn: () => list<Ref & { active: boolean }>('/job-functions'), enabled: on, retry: false });
@@ -18,6 +19,7 @@ export function useStructureOptions(tenantId: string | null, companyId: string |
   const groupings = useQuery({ queryKey: ['opt', 'groupings', tenantId], queryFn: () => list<Ref & { active: boolean }>('/groupings'), enabled: on, retry: false });
   const active = <T extends { active?: boolean }>(r: T[] | undefined) => (r ?? []).filter((x) => x.active !== false);
   return {
+    units: units.data ?? [],
     departments: departments.data ?? [],
     positions: positions.data ?? [],
     functions: active(functions.data),

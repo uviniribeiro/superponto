@@ -18,10 +18,12 @@ if (-not (Test-Path .env)) {
   } while ($pass.Length -lt 8)
   @(
     "POSTGRES_PASSWORD=$(Rand 24)", "API_DB_PASSWORD=$(Rand 24)", "JWT_SECRET=$(Rand 48)",
-    "MFA_ENCRYPTION_KEY=$(Key32)", "BIOMETRIC_ENCRYPTION_KEY=$(Key32)", "ADMIN_EMAIL=$email", "ADMIN_PASSWORD=$pass"
+    "MFA_ENCRYPTION_KEY=$(Key32)", "BIOMETRIC_ENCRYPTION_KEY=$(Key32)", "SECRETS_ENCRYPTION_KEY=$(Key32)", "ADMIN_EMAIL=$email", "ADMIN_PASSWORD=$pass"
   ) | Set-Content -Encoding ascii .env
   Write-Host 'Configuração salva em local\.env'
 }
+# Instalações antigas: acrescenta chaves novas sem mexer nas existentes.
+if (-not (Select-String -Path .env -Pattern '^SECRETS_ENCRYPTION_KEY=' -Quiet)) { Add-Content -Encoding ascii .env "SECRETS_ENCRYPTION_KEY=$(Key32)" }
 
 Write-Host 'Montando e subindo o SuperPonto (a primeira vez leva alguns minutos)...'
 docker compose --env-file .env up -d --build

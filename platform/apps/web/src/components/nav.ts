@@ -1,4 +1,4 @@
-import { BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -43,6 +43,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
           icon: Network,
           children: [
             { id: 'companies', label: 'Empresas', href: '/empresas', icon: Building2, dot: '#fcc419' },
+            ...(can(me, 'org.units:read') ? [{ id: 'units', label: 'Unidades e locais', href: '/estrutura/unidades', icon: MapPinned, dot: '#f87171' }] : []),
             ...(can(me, 'org.departments:read') ? [{ id: 'departments', label: 'Departamentos', href: '/estrutura/departamentos', icon: FolderTree, dot: '#60a5fa' }] : []),
             ...(can(me, 'org.positions:read') ? [{ id: 'positions', label: 'Cargos', href: '/estrutura/cargos', icon: Briefcase, dot: '#a78bfa' }] : []),
             ...(can(me, 'org.functions:read') ? [{ id: 'functions', label: 'Funções', href: '/estrutura/funcoes', icon: BadgeCheck, dot: '#34d399' }] : []),
@@ -75,6 +76,7 @@ export function buildNav(me: Me | undefined): NavSection[] {
         { id: 'users', label: 'Usuários', href: '/usuarios', icon: Users },
         { id: 'roles', label: 'Perfis e permissões', href: '/perfis', icon: KeyRound },
         { id: 'blocks', label: 'Bloqueios de acesso', href: '/bloqueios', icon: ShieldBan },
+        ...(can(me, 'admin.ldap:manage') ? [{ id: 'ldap', label: 'Login pela rede (LDAP)', href: '/usuarios/ldap', icon: NetworkIcon } satisfies NavItem] : []),
       ],
     });
   }

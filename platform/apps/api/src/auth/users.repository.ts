@@ -28,7 +28,7 @@ export class UsersRepository {
     return this.prisma.asPlatform(async (tx) => (await tx.user.findFirst({ where: { id, deletedAt: null }, select: { passwordHash: true } }))?.passwordHash ?? null);
   }
 
-  async findCredentials(email: string): Promise<{ user: AuthUser; passwordHash: string | null; denial: string | null } | null> {
+  async findCredentials(email: string): Promise<{ user: AuthUser; passwordHash: string | null; denial: string | null; authSource: 'LOCAL' | 'LDAP' } | null> {
     return this.prisma.asPlatform(async (tx) => {
       const user = await tx.user.findFirst({ where: { email: normalizeEmail(email), isActive: true, deletedAt: null } });
       if (!user) return null;
@@ -36,8 +36,17 @@ export class UsersRepository {
         const tenant = await tx.tenant.findUnique({ where: { id: user.tenantId } });
         if (!tenant || tenant.status === 'SUSPENDED' || tenant.status === 'CANCELLED' || tenant.deletedAt) return null;
       }
-      return { user: await this.toAuthUser(tx, user), passwordHash: user.passwordHash, denial: await accessDenial(tx, user) };
+      return { user: await this.toAuthUser(tx, user), passwordHash: user.passwordHash, denial: await accessDenial(tx, user), authSource: user.authSource };
     });
+  }
+
+  /** Configuração LDAP ativa do cliente (ou null). */
+  async findLdapConfig(tenantId: string) {
+    return this.prisma.asPlatform((tx) => tx.tenantLdapConfig.findFirst({ where: { tenantId, enabled: true } }));
+  }
+
+  async findAuthSource(id: string): Promise<'LOCAL' | 'LDAP' | null> {
+    return this.prisma.asPlatform(async (tx) => (await tx.user.findFirst({ where: { id, deletedAt: null }, select: { authSource: true } }))?.authSource ?? null);
   }
 
   async updatePasswordHash(id: string, passwordHash: string): Promise<void> {

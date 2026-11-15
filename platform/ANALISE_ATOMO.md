@@ -6,7 +6,8 @@
 >   CEI/CNO, código externo e logo.
 > - Fase 2 (pessoas e usuários) concluída: funcionários com vínculos e histórico, desligamento,
 >   importação por planilha com conferência, agrupamentos, dias de acesso, bloqueio por período, troca
->   obrigatória e troca de senha pelo usuário. Captura de digital pelo leitor fica para a fase 6
+>   obrigatória e troca de senha pelo usuário, unidades/locais com cerca virtual e login pela rede
+  (LDAP/Active Directory). Captura de digital pelo leitor fica para a fase 6
 >   (equipamentos), porque depende do aplicativo local do leitor; o cadastro e o envio das digitais
 >   aos relógios já existem na API.
 
@@ -57,7 +58,7 @@ na última seção.
 
 | Átomo | v1 | V2 | Como incluir |
 |---|---|---|---|
-| Agrupamento (vincula funcionários, locais e cargos) | ❌ | ✅ funcionários e cargos (unidades na API) | Nova entidade "Agrupamento" usada como filtro em relatórios, cálculo em lote e permissões |
+| Agrupamento (vincula funcionários, locais e cargos) | ❌ | ✅ funcionários, cargos e unidades | Nova entidade "Agrupamento" usada como filtro em relatórios, cálculo em lote e permissões |
 | Especialidades | ❌ | 🟡 modelo (especialidade do vínculo) | Tela na fase de Pessoas |
 | Cargo | ✅ | ✅ com CBO e categoria | Tela na fase de Estrutura |
 | Centro de custo | ❌ | ✅ | Nova entidade, vinculada ao vínculo e à exportação para folha |
@@ -70,8 +71,8 @@ na última seção.
 | Função | 🟡 | ✅ | Tela simples junto com Cargo |
 | Funcionário (com aba de biometria) | ✅ | ✅ vínculos, histórico, desligamento; digitais na API | Captura pelo leitor na fase 6 |
 | Justificativa (código, limite de uso, desconsidera débitos) | ✅ | ❌ | Tela de justificativas com limite de uso por período |
-| Local de trabalho | ✅ | 🟡 unidades | Tela de unidades/locais |
-| Local georreferenciado (aprovar mobile automaticamente) | ✅ | 🟡 cerca virtual no modelo | Tela de cercas com aprovação automática dentro do raio |
+| Local de trabalho | ✅ | ✅ unidades e locais por empresa | — |
+| Local georreferenciado (aprovar mobile automaticamente) | ✅ | 🟡 cerca virtual na unidade (tela pronta); aprovação automática vem com a marcação mobile | Tela de cercas com aprovação automática dentro do raio |
 | Seção | ❌ | ✅ dentro do departamento | Nível opcional abaixo de departamento |
 | Sindicato | ✅ | ✅ com CNPJ e data-base | Tela + vínculo com regras da convenção |
 | Tipo de funcionário | ❌ | ✅ | Tabela configurável por cliente |
@@ -162,7 +163,7 @@ PDF/Excel/CSV, gerando cada relatório a partir do motor de cálculo.
 | Átomo | v1 | V2 | Como incluir |
 |---|---|---|---|
 | Grupo (telas visíveis por grupo) | 🟡 | ✅ perfis com permissão por recurso | — |
-| Usuário (acesso por dias da semana, troca de senha no login, LDAP) | ✅ | ✅ dias de acesso e troca obrigatória | Falta LDAP/AD |
+| Usuário (acesso por dias da semana, troca de senha no login, LDAP) | ✅ | ✅ dias de acesso, troca obrigatória e LDAP/AD | — |
 | Alterar senha | ✅ | ✅ Minha conta | — |
 | Bloqueio de acesso (motivo, período) | ❌ | ✅ | — |
 | Agendamento de notificação (e-mail de ocorrências) | 🟡 | ❌ | Agendador de e-mails |

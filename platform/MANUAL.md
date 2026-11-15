@@ -21,10 +21,11 @@ _V2 — versão de 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › 
 12. [Clientes da plataforma](#12-clientes)
 13. [Usuários](#13-usuarios)
 14. [Dias de acesso, bloqueios e troca de senha](#14-acesso)
-15. [Perfis e permissões](#15-perfis)
-16. [Segurança, auditoria e privacidade](#16-seguranca)
-17. [Módulos em construção](#17-construcao)
-18. [Suporte](#18-suporte)
+15. [Login pela rede da organização (LDAP / Active Directory)](#15-ldap)
+16. [Perfis e permissões](#16-perfis)
+17. [Segurança, auditoria e privacidade](#17-seguranca)
+18. [Módulos em construção](#18-construcao)
+19. [Suporte](#19-suporte)
 
 <a id="1-visao"></a>
 ## 1. O que é o SuperPonto
@@ -92,9 +93,11 @@ No celular, o menu abre pelo botão no canto superior esquerdo.
 
 **Para:** Todos
 
-Mostra os números reais da sua organização: empresas cadastradas, permissões do seu perfil e o percentual de cadastros completos (empresas com CNPJ e nome fantasia).
+Mostra só números reais da sua organização, cada bloco conforme o que o seu perfil pode ver: o cartão amarelo traz o percentual de funcionários ativos com cargo e departamento definidos; o calendário mostra a semana e os próximos feriados da empresa; os cartões trazem funcionários ativos, empresas, usuários ativos (e bloqueios em vigor) e as permissões do seu perfil.
 
-Para a equipe SuperPonto, mostra também o total de clientes da plataforma.
+Abaixo ficam atalhos para as telas mais usadas e o gráfico de admissões e desligamentos dos últimos 6 meses.
+
+Para a equipe SuperPonto, sem organização escolhida, mostra o total de clientes da plataforma.
 
 O quadro "Marcações de hoje" fica vazio até a liberação do módulo de ponto da V2.
 
@@ -129,9 +132,11 @@ Não é possível cadastrar o mesmo CNPJ duas vezes na mesma organização.
 
 **Para:** Administradores da organização e RH
 
-Em Organização › Estrutura ficam os cadastros que organizam as pessoas: Departamentos, Cargos, Funções, Centros de custo, Tipos de funcionário e Sindicatos. Em Organização › Competências ficam os períodos com nome usados como filtro.
+Em Organização › Estrutura ficam os cadastros que organizam as pessoas: Unidades e locais, Departamentos, Cargos, Funções, Centros de custo, Tipos de funcionário e Sindicatos. Em Organização › Competências ficam os períodos com nome usados como filtro.
 
 Departamentos formam uma árvore sem limite de níveis (ex.: Secretaria de Saúde › UBS Centro › Recepção) e cada departamento pode ter seções. O sistema impede colocar um departamento dentro dele mesmo ou de um subdepartamento seu.
+
+Unidades e locais são os lugares de trabalho de cada empresa (matriz, filial, escola, UBS, base operacional…), com CNPJ próprio opcional e cerca virtual (latitude, longitude e raio de 20 a 5.000 m) para o app de ponto. A unidade é escolhida no cadastro do funcionário.
 
 Cargos pertencem a uma empresa e têm o código CBO usado no eSocial. Funções descrevem o que a pessoa faz, independente do cargo. Centros de custo e códigos externos vão na exportação para a folha.
 
@@ -194,12 +199,12 @@ Opcionalmente, o sistema cria os departamentos, cargos, funções, centros de cu
 
 **Para:** Administradores e RH
 
-Agrupamentos reúnem funcionários e cargos sem depender da estrutura (ex.: "Plantão noturno", "Motoristas da frota"). Servem de filtro na lista de funcionários e, nas próximas fases, nos relatórios, no cálculo em lote e no envio aos relógios.
+Agrupamentos reúnem funcionários, cargos e unidades sem depender da estrutura (ex.: "Plantão noturno", "Motoristas da frota"). Servem de filtro na lista de funcionários e, nas próximas fases, nos relatórios, no cálculo em lote e no envio aos relógios.
 
 **Passo a passo**
 
 1. Abra Organização › Agrupamentos, clique em "Novo" e dê um nome.
-2. Clique no botão "funcionário(s)" do agrupamento para escolher os funcionários e os cargos.
+2. Clique no botão "funcionário(s)" do agrupamento para escolher os funcionários, os cargos e as unidades (cargos e unidades seguem a empresa escolhida no painel).
 
 <a id="11-feriados"></a>
 ## 11. Feriados
@@ -272,8 +277,29 @@ Em Administração › Bloqueios de acesso ficam os bloqueios vigentes e agendad
 
 "Pedir troca de senha no próximo acesso" leva o usuário direto para Minha conta até ele trocar a senha. Em Conta › Minha conta, qualquer usuário troca a própria senha informando a atual.
 
-<a id="15-perfis"></a>
-## 15. Perfis e permissões
+<a id="15-ldap"></a>
+## 15. Login pela rede da organização (LDAP / Active Directory)
+
+**Para:** Administradores
+
+Com o login pela rede, o usuário entra no SuperPonto com o mesmo e-mail e senha da rede da organização. A senha é conferida no Active Directory ou OpenLDAP a cada login; o SuperPonto não guarda a senha desses usuários.
+
+A configuração fica em Administração › Login pela rede (LDAP): servidor (ldaps:// recomendado, ou ldap:// com STARTTLS), base de busca, filtro do usuário ({email} ou {login}) e uma conta de serviço só de leitura. A senha da conta de serviço é guardada cifrada e nunca é exibida.
+
+Usuários LDAP não recebem convite por e-mail, não trocam nem redefinem a senha no SuperPonto (isso é feito na rede da organização). Perfis, dias de acesso e bloqueios continuam valendo.
+
+Na nuvem, o servidor do diretório precisa ter endereço público com TLS: por segurança, o SuperPonto recusa endereços internos (10.x, 192.168.x, localhost). Diretório só na rede interna exige instalação própria.
+
+**Passo a passo**
+
+1. Abra Administração › Login pela rede (LDAP), preencha servidor, base, filtro (há modelos para Active Directory e OpenLDAP) e a conta de serviço; marque "Login pela rede ativado" e salve.
+2. Use "Testar" com o e-mail de um usuário da rede (e, se quiser, a senha) para conferir antes de liberar.
+3. Em Usuários, crie ou edite o usuário e escolha a forma de login "Rede da organização (LDAP)".
+
+> **Dica:** Se o diretório ficar fora do ar, os usuários LDAP veem um aviso para tentar de novo; usuários com senha própria continuam entrando normalmente.
+
+<a id="16-perfis"></a>
+## 16. Perfis e permissões
 
 **Para:** Administradores
 
@@ -285,8 +311,8 @@ Recursos marcados "módulo em construção na V2" já podem ser incluídos nos p
 
 Mudanças num perfil valem a partir do próximo acesso de cada usuário. Perfis com usuários não podem ser excluídos.
 
-<a id="16-seguranca"></a>
-## 16. Segurança, auditoria e privacidade
+<a id="17-seguranca"></a>
+## 17. Segurança, auditoria e privacidade
 
 **Para:** Todos
 
@@ -296,8 +322,8 @@ Senhas são guardadas apenas como hash forte; ninguém, nem a equipe SuperPonto,
 
 O tratamento de dados segue a LGPD: o empregador é o controlador dos dados dos trabalhadores e a SuperPonto atua como operadora.
 
-<a id="17-construcao"></a>
-## 17. Módulos em construção
+<a id="18-construcao"></a>
+## 18. Módulos em construção
 
 **Para:** Todos
 
@@ -309,8 +335,8 @@ Próximas fases: unidades e departamentos, usuários e perfis, pessoas e víncul
 
 A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.
 
-<a id="18-suporte"></a>
-## 18. Suporte
+<a id="19-suporte"></a>
+## 19. Suporte
 
 **Para:** Todos
 

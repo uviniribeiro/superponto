@@ -439,14 +439,15 @@ model Tenant {
   updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt    DateTime?    @map("deleted_at") @db.Timestamptz(6)
 
-  companies     Company[]
-  users         User[]
-  roles         Role[]
-  people        Person[]
-  subscriptions Subscription[]
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  commServers   CommunicationServer[]
+  companies        Company[]
+  users            User[]
+  roles            Role[]
+  people           Person[]
+  subscriptions    Subscription[]
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+  commServers      CommunicationServer[]
+  tenantLdapConfig TenantLdapConfig?
 
   @@map("tenants")
 }
@@ -1794,26 +1795,28 @@ model CommunicationLog {
 // -----------------------------------------------------------------------------
 
 model User {
-  id                 String    @id @default(uuid()) @db.Uuid
-  tenantId           String?   @map("tenant_id") @db.Uuid
-  personId           String?   @unique @map("person_id") @db.Uuid
-  email              String    @unique
-  passwordHash       String?   @map("password_hash")
-  displayName        String    @map("display_name")
-  isPlatformAdmin    Boolean   @default(false) @map("is_platform_admin")
+  id                 String     @id @default(uuid()) @db.Uuid
+  tenantId           String?    @map("tenant_id") @db.Uuid
+  personId           String?    @unique @map("person_id") @db.Uuid
+  email              String     @unique
+  passwordHash       String?    @map("password_hash")
+  displayName        String     @map("display_name")
+  isPlatformAdmin    Boolean    @default(false) @map("is_platform_admin")
   /// Usuário de suporte e treinamento da equipe SuperPonto dentro do cliente: oculto da lista
   /// para os usuários do cliente e não editável por ninguém do cliente.
-  isSupport          Boolean   @default(false) @map("is_support")
-  isActive           Boolean   @default(true) @map("is_active")
+  isSupport          Boolean    @default(false) @map("is_support")
+  isActive           Boolean    @default(true) @map("is_active")
   /// dias da semana com acesso (0 = domingo … 6 = sábado); vazio = todos os dias
-  accessWeekdays     Int[]     @default([]) @map("access_weekdays")
-  mustChangePassword Boolean   @default(false) @map("must_change_password")
-  lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz(6)
-  failedLogins       Int       @default(0) @map("failed_logins")
-  lockedUntil        DateTime? @map("locked_until") @db.Timestamptz(6)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(6)
+  accessWeekdays     Int[]      @default([]) @map("access_weekdays")
+  mustChangePassword Boolean    @default(false) @map("must_change_password")
+  /// LOCAL = senha no SuperPonto; LDAP = senha conferida no diretório do cliente (AD/OpenLDAP)
+  authSource         AuthSource @default(LOCAL) @map("auth_source")
+  lastLoginAt        DateTime?  @map("last_login_at") @db.Timestamptz(6)
+  failedLogins       Int        @default(0) @map("failed_logins")
+  lockedUntil        DateTime?  @map("locked_until") @db.Timestamptz(6)
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime?  @map("deleted_at") @db.Timestamptz(6)
 
   tenant        Tenant?                  @relation(fields: [tenantId], references: [id])
   person        Person?                  @relation(fields: [personId], references: [id])
@@ -2400,4 +2403,35 @@ model UserAccessBlock {
 
   @@index([tenantId, userId])
   @@map("user_access_blocks")
+}
+
+enum AuthSource {
+  LOCAL
+  LDAP
+
+  @@map("auth_source")
+}
+
+/// Login pelo diretório do cliente (Active Directory / OpenLDAP). A senha da conta de serviço é
+/// guardada cifrada (AES-256-GCM) e nunca volta pela API.
+model TenantLdapConfig {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @unique @map("tenant_id") @db.Uuid
+  enabled          Boolean  @default(false)
+  url              String
+  startTls         Boolean  @default(false) @map("start_tls")
+  /// aceita certificado não confiável (somente para servidores internos com certificado próprio)
+  allowInsecureTls Boolean  @default(false) @map("allow_insecure_tls")
+  bindDn           String?  @map("bind_dn")
+  bindPasswordEnc  String?  @map("bind_password_enc")
+  baseDn           String   @map("base_dn")
+  /// filtro de busca; {email} e {login} (parte antes do @) são substituídos com escape
+  userFilter       String   @default("(mail={email})") @map("user_filter")
+  timeoutMs        Int      @default(5000) @map("timeout_ms")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("tenant_ldap_configs")
 }

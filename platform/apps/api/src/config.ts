@@ -13,6 +13,13 @@ const schema = z.object({
   MFA_ENCRYPTION_KEY: z.string().min(40),
   /** Chave AES-256-GCM (base64, 32 bytes) para cifrar digitais. Sem ela, o cadastro de digitais fica desativado. */
   BIOMETRIC_ENCRYPTION_KEY: z.string().min(40).optional(),
+  /** Chave AES-256-GCM (base64, 32 bytes) para segredos de integrações (ex.: senha da conta de serviço LDAP). */
+  SECRETS_ENCRYPTION_KEY: z.string().min(40).optional(),
+  /**
+   * Permite LDAP em endereço interno (10.x, 192.168.x, localhost…). Desligado no SaaS para a API não
+   * servir de ponte até a rede interna; ligue só em instalação própria do cliente.
+   */
+  LDAP_ALLOW_PRIVATE_HOSTS: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   /**
    * Caixa de e-mail do suporte. Cada cliente ganha um usuário de suporte/treinamento com
    * endereço "suporte+<identificador>@dominio" (o e-mail cai nesta mesma caixa).

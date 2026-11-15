@@ -18,6 +18,7 @@ function MembersEditor({ groupingId, onDone }: { groupingId: string; onDone: () 
   const current = useQuery({ queryKey: ['grouping-members', groupingId], queryFn: () => api<Members>(`/groupings/${groupingId}/members`) });
   const [emp, setEmp] = useState<Map<string, string>>(new Map());
   const [pos, setPos] = useState<Map<string, string>>(new Map());
+  const [units, setUnits] = useState<Map<string, string>>(new Map());
   const [ready, setReady] = useState(false);
   const [search, setSearch] = useState('');
   const q = useDeferredValue(search.trim());
@@ -26,6 +27,7 @@ function MembersEditor({ groupingId, onDone }: { groupingId: string; onDone: () 
     if (current.data && !ready) {
       setEmp(new Map(current.data.employments.map((e) => [e.id, `${e.fullName} · ${e.registration}`])));
       setPos(new Map(current.data.positions.map((p) => [p.id, p.name])));
+      setUnits(new Map(current.data.units.map((u) => [u.id, u.name])));
       setReady(true);
     }
   }, [current.data, ready]);
@@ -33,8 +35,9 @@ function MembersEditor({ groupingId, onDone }: { groupingId: string; onDone: () 
   const companies = useQuery({ queryKey: ['companies', tenantId, 'all'], queryFn: () => api<Page<Company>>('/companies?pageSize=200'), enabled: !!tenantId });
   useEffect(() => { const l = companies.data?.data ?? []; if (l.length && !companyId) setCompanyId(l[0]!.id); }, [companies.data, companyId]);
   const positions = useQuery({ queryKey: ['opt', 'positions', companyId], queryFn: () => api<Page<Ref>>(`/job-positions?companyId=${companyId}&pageSize=500`), enabled: !!companyId });
+  const unitOpts = useQuery({ queryKey: ['opt', 'units', companyId], queryFn: () => api<Page<Ref>>(`/units?companyId=${companyId}&pageSize=200`), enabled: !!companyId, retry: false });
   const save = useMutation({
-    mutationFn: () => api(`/groupings/${groupingId}/members`, { method: 'PUT', json: { employmentIds: [...emp.keys()], positionIds: [...pos.keys()] } }),
+    mutationFn: () => api(`/groupings/${groupingId}/members`, { method: 'PUT', json: { employmentIds: [...emp.keys()], positionIds: [...pos.keys()], unitIds: [...units.keys()] } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['catalog', 'groupings'] }); qc.invalidateQueries({ queryKey: ['grouping-members', groupingId] }); toast('success', 'Membros salvos'); onDone(); },
     onError: (e: Error) => toast('error', e.message),
   });
@@ -75,6 +78,18 @@ function MembersEditor({ groupingId, onDone }: { groupingId: string; onDone: () 
           {positions.data && !positions.data.data.length && <span className="text-xs text-subtle">Esta empresa não tem cargos cadastrados.</span>}
         </div>
       </section>
+      <section>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-brand">Unidades e locais ({units.size})</p>
+        <div className="flex flex-wrap gap-1.5">
+          {(unitOpts.data?.data ?? []).map((u) => (
+            <label key={u.id} className={cn('flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs', units.has(u.id) ? 'border-brand/50 bg-brand-soft' : 'border-line text-muted')}>
+              <input type="checkbox" className="accent-[var(--brand)]" checked={units.has(u.id)} onChange={() => toggle(units, setUnits, u.id, u.name)} />{u.name}
+            </label>
+          ))}
+          {unitOpts.data && !unitOpts.data.data.length && <span className="text-xs text-subtle">Esta empresa não tem unidades cadastradas.</span>}
+        </div>
+        <p className="mt-2 text-[11px] text-subtle">Cargos e unidades seguem a empresa escolhida acima; os já marcados em outras empresas continuam no agrupamento.</p>
+      </section>
       <Button onClick={() => save.mutate()} loading={save.isPending} className="h-12 w-full">Salvar membros</Button>
     </div>
   );
@@ -94,7 +109,7 @@ function MembersButton({ id, name, inUse, canManage }: { id: string; name: strin
 
 const DEF: CatalogDef = {
   title: 'Agrupamentos', singular: 'Agrupamento', path: 'groupings', icon: Boxes,
-  description: 'Grupos livres de funcionários e cargos (ex.: "Plantão noturno", "Motoristas da frota") para filtrar relatórios, cálculo em lote e envio aos relógios.',
+  description: 'Grupos livres de funcionários, cargos e unidades (ex.: "Plantão noturno", "Motoristas da frota") para filtrar relatórios, cálculo em lote e envio aos relógios.',
   readPermission: 'org.groupings:read', managePermission: 'org.groupings:manage',
   fields: [
     { key: 'name', label: 'Descrição', type: 'text', required: true, max: 120 },

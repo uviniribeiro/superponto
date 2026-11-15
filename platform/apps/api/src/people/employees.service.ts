@@ -18,6 +18,7 @@ export function maskPis(v: string | null) { return v ? `***.*****.${v.slice(8, 1
 const INCLUDE = {
   person: true,
   company: { select: { id: true, legalName: true, tradeName: true } },
+  unit: { select: { id: true, name: true } },
   department: { select: { id: true, name: true } },
   sector: { select: { id: true, name: true } },
   position: { select: { id: true, name: true, cbo: true } },
@@ -51,7 +52,7 @@ export class EmployeesService {
       company: r.company, department: r.department, sector: r.sector, position: r.position, function: r.jobFunction,
       costCenter: r.costCenter, employeeType: r.employeeType, union: r.laborUnion,
       supervisor: r.supervisor ? { id: r.supervisor.id, fullName: r.supervisor.person.fullName } : null,
-      unitId: r.unitId,
+      unitId: r.unitId, unit: r.unit,
     };
   }
 

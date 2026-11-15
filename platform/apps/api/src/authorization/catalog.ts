@@ -90,6 +90,7 @@ export const PERMISSIONS = {
   'admin.users:read': 'Ver usuários',
   'admin.users:manage': 'Gerenciar usuários',
   'admin.roles:manage': 'Gerenciar perfis e permissões',
+  'admin.ldap:manage': 'Configurar login pela rede da organização (LDAP/Active Directory)',
   'admin.audit:read': 'Ver auditoria',
   'admin.settings:manage': 'Configurações da organização',
   'admin.billing:manage': 'Plano e assinatura',
@@ -117,14 +118,14 @@ export const RESOURCE_LABELS: Record<string, string> = {
   'operational.board': 'Painel operacional', 'operational.occurrences': 'Ocorrências', 'operational.assignments': 'Alocações',
   'devices.devices': 'Equipamentos', 'devices.commands': 'Comandos aos equipamentos', 'devices.servers': 'Servidores de comunicação',
   'reports.reports': 'Relatórios', 'reports.payroll': 'Exportação para folha', 'integrations.api': 'Integrações e chaves de API',
-  'admin.users': 'Usuários', 'admin.roles': 'Perfis e permissões', 'admin.audit': 'Auditoria', 'admin.settings': 'Configurações', 'admin.billing': 'Plano e assinatura',
+  'admin.users': 'Usuários', 'admin.roles': 'Perfis e permissões', 'admin.ldap': 'Login por LDAP/AD', 'admin.audit': 'Auditoria', 'admin.settings': 'Configurações', 'admin.billing': 'Plano e assinatura',
   'platform.tenants': 'Clientes', 'platform.plans': 'Planos', 'platform.monitoring': 'Monitoramento',
 };
 export const ACTION_LABELS: Record<string, string> = {
   read: 'Ver', create: 'Criar', update: 'Editar', delete: 'Excluir', manage: 'Gerenciar', approve: 'Aprovar', import: 'Importar', export: 'Exportar', execute: 'Executar',
 };
 /** Recursos com tela pronta na V2 (os demais aparecem como "em construção"). */
-export const AVAILABLE_RESOURCES = new Set(['org.companies', 'org.holidays', 'org.departments', 'org.positions', 'org.unions', 'org.functions', 'org.costcenters', 'org.employeetypes', 'org.competences', 'org.groupings', 'people.employments', 'people.sensitive', 'people.biometrics', 'devices.commands', 'time.records', 'admin.users', 'admin.roles', 'platform.tenants']);
+export const AVAILABLE_RESOURCES = new Set(['org.companies', 'org.holidays', 'org.departments', 'org.positions', 'org.unions', 'org.functions', 'org.costcenters', 'org.employeetypes', 'org.competences', 'org.groupings', 'people.employments', 'people.sensitive', 'people.biometrics', 'devices.commands', 'time.records', 'admin.users', 'admin.roles', 'admin.ldap', 'org.units', 'platform.tenants']);
 
 export type PermissionKey = keyof typeof PERMISSIONS;
 

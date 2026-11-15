@@ -9,6 +9,8 @@ export const userCreateSchema = z.object({
   /** dias com acesso (0 = domingo … 6 = sábado); vazio = todos */
   accessWeekdays: weekdays.optional(),
   mustChangePassword: z.boolean().optional(),
+  /** LOCAL = senha do SuperPonto (convite por e-mail); LDAP = senha da rede da organização */
+  authSource: z.enum(['LOCAL', 'LDAP']).optional(),
 });
 export type UserCreate = z.infer<typeof userCreateSchema>;
 
@@ -18,6 +20,7 @@ export const userUpdateSchema = z.object({
   roleIds: z.array(z.uuid()).min(1, 'Escolha ao menos um perfil').max(10).optional(),
   accessWeekdays: weekdays.optional(),
   mustChangePassword: z.boolean().optional(),
+  authSource: z.enum(['LOCAL', 'LDAP']).optional(),
 });
 export type UserUpdate = z.infer<typeof userUpdateSchema>;
 
@@ -36,3 +39,18 @@ export const blockSchema = z.object({
   endsAt: z.iso.datetime({ offset: true }).transform((v) => new Date(v)).optional(),
 }).refine((v) => !v.endsAt || v.endsAt > v.startsAt, { message: 'O fim do bloqueio deve ser depois do início', path: ['endsAt'] });
 export type BlockInput = z.infer<typeof blockSchema>;
+
+export const ldapConfigSchema = z.object({
+  enabled: z.boolean(),
+  url: z.string().trim().max(300).regex(/^ldaps?:\/\//i, 'Use ldap:// ou ldaps://'),
+  startTls: z.boolean().default(false),
+  allowInsecureTls: z.boolean().default(false),
+  bindDn: z.string().trim().max(500).nullable().optional(),
+  /** só enviada para trocar; omitida = mantém; null = remove */
+  bindPassword: z.string().max(500).nullable().optional(),
+  baseDn: z.string().trim().min(3).max(500),
+  userFilter: z.string().trim().max(500).refine((v) => v.includes('{email}') || v.includes('{login}'), 'O filtro precisa conter {email} ou {login}').refine((v) => v.startsWith('(') && v.endsWith(')'), 'O filtro deve estar entre parênteses, ex.: (mail={email})').default('(mail={email})'),
+  timeoutMs: z.number().int().min(1000).max(30000).default(5000),
+});
+export type LdapConfigInput = z.infer<typeof ldapConfigSchema>;
+export const ldapTestSchema = z.object({ email: z.email(), password: z.string().max(500).optional() });

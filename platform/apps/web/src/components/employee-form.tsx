@@ -16,7 +16,7 @@ const from = (e: EmployeeDetail | null, companyId: string | null): F => ({
   zipCode: e?.address?.zipCode ? maskCep(e.address.zipCode) : '', street: e?.address?.street ?? '', number: e?.address?.number ?? '',
   complement: e?.address?.complement ?? '', district: e?.address?.district ?? '', city: e?.address?.city ?? '', state: e?.address?.state ?? '', ibge: e?.address?.ibge ?? '',
   registration: e?.registration ?? '', hiredAt: e?.hiredAt ?? '', contractType: e?.contractType ?? 'CLT', weeklyHours: e?.weeklyHours ? String(e.weeklyHours) : '',
-  departmentId: e?.department?.id ?? '', sectorId: e?.sector?.id ?? '', positionId: e?.position?.id ?? '', functionId: e?.function?.id ?? '',
+  unitId: e?.unit?.id ?? '', departmentId: e?.department?.id ?? '', sectorId: e?.sector?.id ?? '', positionId: e?.position?.id ?? '', functionId: e?.function?.id ?? '',
   costCenterId: e?.costCenter?.id ?? '', employeeTypeId: e?.employeeType?.id ?? '', unionId: e?.union?.id ?? '',
   effectiveAt: new Date().toISOString().slice(0, 10), reason: '',
 });
@@ -82,7 +82,7 @@ export function EmployeeForm({ tenantId, employee, defaultCompanyId, onDone }: {
     const body: Record<string, unknown> = {
       fullName: f.fullName.trim(), socialName: val('socialName'), birthDate: val('birthDate'), email: val('email'), phone: f.phone ? digits(f.phone) : editing ? null : undefined, address,
       registration: f.registration.trim(), contractType: f.contractType, weeklyHours: f.weeklyHours ? Number(f.weeklyHours.replace(',', '.')) : editing ? null : undefined,
-      departmentId: val('departmentId'), sectorId: val('sectorId'), positionId: val('positionId'), functionId: val('functionId'), costCenterId: val('costCenterId'), employeeTypeId: val('employeeTypeId'), unionId: val('unionId'),
+      unitId: val('unitId'), departmentId: val('departmentId'), sectorId: val('sectorId'), positionId: val('positionId'), functionId: val('functionId'), costCenterId: val('costCenterId'), employeeTypeId: val('employeeTypeId'), unionId: val('unionId'),
     };
     if (canSeeDocs) { body.cpf = f.cpf ? digits(f.cpf) : editing ? null : undefined; body.pis = f.pis ? digits(f.pis) : editing ? null : undefined; }
     if (editing) { body.effectiveAt = f.effectiveAt; if (f.reason.trim()) body.reason = f.reason.trim(); }
@@ -127,7 +127,7 @@ export function EmployeeForm({ tenantId, employee, defaultCompanyId, onDone }: {
 
       <Section title="Vínculo">
         {!editing && (
-          <Select label="Empresa" value={f.companyId} onChange={(v) => setF((p) => ({ ...p, companyId: v, departmentId: '', sectorId: '', positionId: '' }))} options={(companies.data?.data ?? []).map((c) => [c.id, c.tradeName ?? c.legalName])} empty={null} />
+          <Select label="Empresa" value={f.companyId} onChange={(v) => setF((p) => ({ ...p, companyId: v, unitId: '', departmentId: '', sectorId: '', positionId: '' }))} options={(companies.data?.data ?? []).map((c) => [c.id, c.tradeName ?? c.legalName])} empty={null} />
         )}
         <div className="grid gap-4 sm:grid-cols-3">
           <Input label="Matrícula" value={f.registration} onChange={(e) => set('registration', e.target.value)} error={errors.registration} className="font-mono" />
@@ -138,6 +138,7 @@ export function EmployeeForm({ tenantId, employee, defaultCompanyId, onDone }: {
           <Select label="Tipo de contrato" value={f.contractType} onChange={(v) => set('contractType', v)} options={CONTRACT_TYPES} empty={null} />
           <Select label="Tipo de funcionário" value={f.employeeTypeId} onChange={(v) => set('employeeTypeId', v)} options={opts(opt.types)} />
         </div>
+        <Select label="Unidade / local de trabalho" value={f.unitId} onChange={(v) => set('unitId', v)} options={opts(opt.units)} empty={opt.units.length ? '—' : 'Nenhuma unidade cadastrada'} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Select label="Departamento" value={f.departmentId} onChange={(v) => setF((p) => ({ ...p, departmentId: v, sectorId: '' }))} options={opt.departments.map((d) => [d.id, `${'  '.repeat(d.depth)}${d.name}`])} />
           <Select label="Seção" value={f.sectorId} onChange={(v) => set('sectorId', v)} options={opts(sectors)} empty={sectors.length ? '—' : 'Sem seções'} />

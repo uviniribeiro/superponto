@@ -14,8 +14,11 @@ import { useTheme } from './theme';
 const SPRING = { type: 'spring', stiffness: 420, damping: 36, mass: 0.8 } as const;
 const WIDTH = { collapsed: 76, expanded: 272 };
 
+const matches = (pathname: string, href: string) => (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`));
+/** Todas as rotas do menu: quando duas casam (/funcionarios e /funcionarios/importar), vale a mais específica. */
+let NAV_HREFS: string[] = [];
 function isActive(pathname: string, href: string) {
-  return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
+  return matches(pathname, href) && !NAV_HREFS.some((h) => h.length > href.length && matches(pathname, h));
 }
 
 function initials(name: string) {
@@ -41,6 +44,7 @@ export function Sidebar({ expanded, onToggle, onOpenSearch, mobile, onClose }: S
   const { me } = useSession();
   const { theme, toggle } = useTheme();
   const sections = useMemo(() => buildNav(me), [me]);
+  NAV_HREFS = useMemo(() => sections.flatMap((x) => x.items.flatMap((i) => [i.href, ...(i.children ?? []).map((c) => c.href)])), [sections]);
   const [hovered, setHovered] = useState<string | null>(null);
   // Grupos começam fechados, exceto o que contém a tela atual (menu mais curto, como no vídeo).
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});

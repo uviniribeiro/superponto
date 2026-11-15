@@ -99,12 +99,13 @@ describe('Feriados automáticos e preenchimento por CEP/CNPJ', () => {
 
     it('geração do ano é idempotente (rodar de novo não duplica)', async () => {
       const svc = app.get(HolidaysService);
-      const first = await svc.generateYear(2027);
+      // Anos que nenhum outro teste usa (os arquivos de teste rodam em paralelo no mesmo banco).
+      const first = await svc.generateYear(2041);
       expect(first).toBeGreaterThan(40);
-      expect(await svc.generateYear(2027)).toBe(0);
-      const r = await svc.ensureUpcoming(new Date('2027-01-01T03:00:00Z'));
-      expect(r[2027]).toBe(0);
-      expect(r[2028]).toBeGreaterThan(40); // o ano seguinte já fica pronto antes da virada
+      expect(await svc.generateYear(2041)).toBe(0);
+      const r = await svc.ensureUpcoming(new Date('2041-01-01T03:00:00Z'));
+      expect(r[2041]).toBe(0);
+      expect(r[2042]).toBeGreaterThan(40); // o ano seguinte já fica pronto antes da virada
     });
 
     it('empresa com endereço em BH recebe nacionais, Corpus Christi municipal, 15/08 e 08/12', async () => {

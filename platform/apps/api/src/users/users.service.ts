@@ -8,7 +8,7 @@ import { PrismaService, type Tx } from '../prisma/prisma.service.js';
 import type { BlockInput, UserCreate, UserUpdate } from './users.schemas.js';
 
 const SELECT = {
-  id: true, email: true, displayName: true, isActive: true, isSupport: true, lastLoginAt: true, createdAt: true, accessWeekdays: true, mustChangePassword: true,
+  id: true, email: true, displayName: true, isActive: true, isSupport: true, lastLoginAt: true, createdAt: true, accessWeekdays: true, mustChangePassword: true, authSource: true,
   accessBlocks: { where: { revokedAt: null }, select: { id: true, reason: true, startsAt: true, endsAt: true }, orderBy: { startsAt: 'desc' }, take: 20 },
   roles: { select: { role: { select: { id: true, key: true, name: true } } } },
 } as const;
@@ -21,7 +21,7 @@ const SELECT = {
 export class UsersService {
   constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly passwordReset: PasswordResetService) {}
 
-  private shape(u: { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: Date | null; createdAt: Date; accessWeekdays: number[]; mustChangePassword: boolean; accessBlocks: Array<{ id: string; reason: string; startsAt: Date; endsAt: Date | null }>; roles: Array<{ role: { id: string; key: string; name: string } }> }, viewer: AuthUser) {
+  private shape(u: { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: Date | null; createdAt: Date; accessWeekdays: number[]; mustChangePassword: boolean; authSource: 'LOCAL' | 'LDAP'; accessBlocks: Array<{ id: string; reason: string; startsAt: Date; endsAt: Date | null }>; roles: Array<{ role: { id: string; key: string; name: string } }> }, viewer: AuthUser) {
     const now = new Date();
     const blocks = u.accessBlocks.filter((b) => !b.endsAt || b.endsAt > now);
     const activeBlock = blocks.find((b) => b.startsAt <= now) ?? null;
@@ -44,6 +44,10 @@ export class UsersService {
   }
 
   /** Usuário editável pelo `viewer`; o de suporte some (404) ou fica bloqueado (403) se o próprio suporte pedir. */
+  private async requireLdap(tx: Tx, tenantId: string) {
+    if (!(await tx.tenantLdapConfig.count({ where: { tenantId, enabled: true } }))) throw new BadRequestException('Ative o login por LDAP da organização antes de criar usuários LDAP');
+  }
+
   private async editable(tx: Tx, tenantId: string, viewer: AuthUser, id: string) {
     const u = await tx.user.findFirst({ where: { id, tenantId, deletedAt: null, isPlatformAdmin: false }, select: { ...SELECT } });
     if (!u || (u.isSupport && !viewer.isSupport)) throw new NotFoundException('Usuário não encontrado');
@@ -64,18 +68,21 @@ export class UsersService {
     if (await this.prisma.asPlatform((tx) => tx.user.count({ where: { email } }))) throw new ConflictException('Este e-mail já tem uma conta no SuperPonto');
     const result = await this.prisma.forTenant(tenantId, async (tx) => {
       const roleIds = await this.assignableRoles(tx, tenantId, input.roleIds);
-      const user = await tx.user.create({ data: { tenantId, email, displayName: input.displayName, accessWeekdays: input.accessWeekdays ?? [], mustChangePassword: input.mustChangePassword ?? false } });
+      const ldap = input.authSource === 'LDAP';
+      if (ldap) await this.requireLdap(tx, tenantId);
+      const user = await tx.user.create({ data: { tenantId, email, displayName: input.displayName, accessWeekdays: input.accessWeekdays ?? [], mustChangePassword: ldap ? false : input.mustChangePassword ?? false, authSource: ldap ? 'LDAP' : 'LOCAL' } });
       await tx.userRole.createMany({ data: roleIds.map((roleId) => ({ userId: user.id, roleId, tenantId, scope: 'TENANT' as const })) });
       const saved = await tx.user.findUniqueOrThrow({ where: { id: user.id }, select: SELECT });
       await this.audit.record(tx, { tenantId, actorUserId: actor.id, action: 'CREATE', entity: 'user', entityId: user.id, after: { email, displayName: input.displayName, roleIds }, ...meta });
       return this.shape(saved, actor);
     });
-    this.passwordReset.request(email); // convite: o usuário define a própria senha
+    if (input.authSource !== 'LDAP') this.passwordReset.request(email); // convite: o usuário define a própria senha
     return result;
   }
 
-  update(tenantId: string, actor: AuthUser, id: string, input: UserUpdate, meta: RequestMeta) {
-    return this.prisma.forTenant(tenantId, async (tx) => {
+  async update(tenantId: string, actor: AuthUser, id: string, input: UserUpdate, meta: RequestMeta) {
+    let invite: string | null = null;
+    const result = await this.prisma.forTenant(tenantId, async (tx) => {
       const before = await this.editable(tx, tenantId, actor, id);
       if (id === actor.id && input.isActive === false) throw new BadRequestException('Você não pode desativar o próprio usuário');
       if (input.roleIds) {
@@ -84,11 +91,26 @@ export class UsersService {
         await tx.userRole.createMany({ data: roleIds.map((roleId) => ({ userId: id, roleId, tenantId, scope: 'TENANT' as const })) });
       }
       if (id === actor.id && input.accessWeekdays?.length) throw new BadRequestException('Você não pode limitar os dias do próprio acesso');
-      await tx.user.update({ where: { id }, data: { displayName: input.displayName, isActive: input.isActive, accessWeekdays: input.accessWeekdays, mustChangePassword: input.mustChangePassword } });
+      const toLdap = input.authSource === 'LDAP' && before.authSource !== 'LDAP';
+      const toLocal = input.authSource === 'LOCAL' && before.authSource === 'LDAP';
+      if (toLdap) {
+        if (id === actor.id) throw new BadRequestException('Você não pode mudar a forma de login do próprio usuário');
+        await this.requireLdap(tx, tenantId);
+      }
+      await tx.user.update({ where: { id }, data: {
+        displayName: input.displayName, isActive: input.isActive, accessWeekdays: input.accessWeekdays,
+        mustChangePassword: toLdap || (before.authSource === 'LDAP' && !toLocal) ? false : input.mustChangePassword,
+        // LDAP não guarda senha local; ao voltar para senha própria, o usuário recebe convite para definir uma.
+        ...(toLdap ? { authSource: 'LDAP' as const, passwordHash: null } : toLocal ? { authSource: 'LOCAL' as const } : {}),
+      } });
+      if (toLocal) invite = before.email;
       const after = await tx.user.findUniqueOrThrow({ where: { id }, select: SELECT });
       await this.audit.record(tx, { tenantId, actorUserId: actor.id, action: 'UPDATE', entity: 'user', entityId: id, before: this.shape(before, actor), after: this.shape(after, actor), ...meta });
       return this.shape(after, actor);
     });
+    // Depois do commit: o convite precisa enxergar a conta já como senha própria.
+    if (invite) this.passwordReset.request(invite);
+    return result;
   }
 
   remove(tenantId: string, actor: AuthUser, id: string, meta: RequestMeta) {

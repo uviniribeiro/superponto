@@ -71,4 +71,27 @@ export const POSITIONS: CatalogConfig = {
   usage: used('positionId'),
 };
 
-export const CATALOGS = [FUNCTIONS, COST_CENTERS, EMPLOYEE_TYPES, UNIONS, COMPETENCES, POSITIONS];
+const UNIT_TYPES = ['HEADQUARTERS', 'BRANCH', 'SCHOOL', 'HOSPITAL', 'CLINIC', 'UPA', 'UBS', 'LABORATORY', 'OFFICE', 'OPERATIONAL_SITE', 'OTHER'] as const;
+const coord = (min: number, max: number, label: string) =>
+  z.union([z.number(), z.string().trim().transform((v) => Number(v.replace(',', '.')))]).refine((v) => Number.isFinite(v) && v >= min && v <= max, `${label} inválida`);
+const unitBase = z.object({
+  companyId: z.uuid(),
+  name,
+  code,
+  type: z.enum(UNIT_TYPES).default('OFFICE'),
+  cnpj: z.string().trim().transform(normalizeCnpj).refine((v) => !v || isValidCnpj(v), 'CNPJ inválido').optional(),
+  latitude: coord(-90, 90, 'Latitude').optional(),
+  longitude: coord(-180, 180, 'Longitude').optional(),
+  geofenceM: z.coerce.number().int().min(20, 'Raio mínimo de 20 m').max(5000, 'Raio máximo de 5.000 m').optional(),
+});
+/** Unidades / locais de trabalho da empresa (filial, escola, UBS…), com cerca virtual opcional. */
+export const UNITS: CatalogConfig = {
+  path: 'units', model: 'companyUnit', entity: 'company_unit', label: 'Unidade', gender: 'a',
+  read: 'org.units:read', manage: 'org.units:manage', companyScoped: true,
+  createSchema: unitBase.refine((v) => (v.latitude === undefined) === (v.longitude === undefined), { message: 'Informe latitude e longitude juntas', path: ['longitude'] }),
+  updateSchema: unitBase.omit({ companyId: true }).partial(),
+  searchFields: ['name', 'code'], orderBy: { name: 'asc' },
+  usage: used('unitId'),
+};
+
+export const CATALOGS = [FUNCTIONS, COST_CENTERS, EMPLOYEE_TYPES, UNIONS, COMPETENCES, POSITIONS, UNITS];

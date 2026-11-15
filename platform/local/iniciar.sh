@@ -20,12 +20,15 @@ API_DB_PASSWORD=$(rand 24)
 JWT_SECRET=$(rand 48)
 MFA_ENCRYPTION_KEY=$(key32)
 BIOMETRIC_ENCRYPTION_KEY=$(key32)
+SECRETS_ENCRYPTION_KEY=$(key32)
 ADMIN_EMAIL=$email
 ADMIN_PASSWORD=$pass
 ENV
   chmod 600 .env
   echo "Configuração salva em local/.env"
 fi
+# Instalações antigas: acrescenta chaves novas sem mexer nas existentes.
+grep -q '^SECRETS_ENCRYPTION_KEY=' .env || echo "SECRETS_ENCRYPTION_KEY=$(key32)" >> .env
 
 echo "Montando e subindo o SuperPonto (a primeira vez leva alguns minutos)…"
 docker compose --env-file .env up -d --build

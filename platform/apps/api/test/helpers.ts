@@ -19,6 +19,8 @@ export function testConfig(): AppConfig {
     JWT_SECRET: 'teste-segredo-jwt-com-mais-de-32-caracteres!!',
     MFA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
     BIOMETRIC_ENCRYPTION_KEY: Buffer.alloc(32, 9).toString('base64'),
+    SECRETS_ENCRYPTION_KEY: Buffer.alloc(32, 5).toString('base64'),
+    LDAP_ALLOW_PRIVATE_HOSTS: process.env.TEST_LDAP_ALLOW_PRIVATE ?? 'true',
     MAIL_TRANSPORT: 'memory',
   } as NodeJS.ProcessEnv);
 }
