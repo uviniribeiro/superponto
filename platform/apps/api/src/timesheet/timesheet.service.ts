@@ -343,6 +343,12 @@ export class PunchService {
       const now = new Date();
       const today = local(now).date;
       await assertOpenPeriod(tx, [e.companyId], today, today);
+      let appDevice: { id: string; name: string } | null = null;
+      if (input.appDeviceToken) {
+        appDevice = await tx.appDevice.findFirst({ where: { tokenHash: sha256Hex(input.appDeviceToken), userId: user.id, approvedAt: { not: null }, revokedAt: null }, select: { id: true, name: true } });
+        if (!appDevice) throw new ForbiddenException('Aparelho não liberado ou revogado: libere este aparelho de novo em Meus aparelhos');
+        await tx.appDevice.update({ where: { id: appDevice.id }, data: { lastUsedAt: now } });
+      }
       if (e.unit?.geofenceM && e.unit.latitude !== null && e.unit.longitude !== null) {
         if (input.latitude === undefined || input.longitude === undefined) throw new ForbiddenException(`Sua unidade exige localização: permita o acesso à localização para marcar (${e.unit.name})`);
         const d = distanceM({ lat: Number(e.unit.latitude), lon: Number(e.unit.longitude) }, { lat: input.latitude, lon: input.longitude });
@@ -358,11 +364,12 @@ export class PunchService {
         tenantId, employmentId: e.id, recordedAt: now, source: 'WEB', hash, previousHash: lastHash, idempotencyKey: key,
         latitude: input.latitude ?? null, longitude: input.longitude ?? null, accuracyM: input.accuracy ?? null,
       } });
-      await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'CREATE', entity: 'time_record', entityId: r.id, after: { employmentId: e.id, recordedAt: now, source: 'WEB', ip: meta.ip }, ...meta });
+      await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'CREATE', entity: 'time_record', entityId: r.id, after: { employmentId: e.id, recordedAt: now, source: 'WEB', ip: meta.ip, appDevice: appDevice?.name ?? null }, ...meta });
+      const footer = (await tx.customText.findFirst({ where: { key: 'PUNCH_RECEIPT_FOOTER' }, select: { text: true } }))?.text ?? null;
       // Comprovante (Portaria 671): dados da marcação para o trabalhador conferir.
       return {
         id: r.id, recordedAt: now.toISOString(), date: today, time: local(now).time, hash,
-        employee: e.person.socialName ?? e.person.fullName, registration: e.registration, company: e.company.tradeName ?? e.company.legalName, cnpj: e.company.cnpj,
+        employee: e.person.socialName ?? e.person.fullName, registration: e.registration, company: e.company.tradeName ?? e.company.legalName, cnpj: e.company.cnpj, appDevice: appDevice?.name ?? null, footer,
       };
     });
   }

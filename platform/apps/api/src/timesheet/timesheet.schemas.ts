@@ -69,5 +69,7 @@ export const punchSchema = z.object({
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   accuracy: z.number().int().min(0).max(100000).optional(),
+  /** Token do aparelho liberado (app do funcionário); quando enviado, precisa ser válido e do próprio usuário. */
+  appDeviceToken: z.string().regex(/^spa_[A-Za-z0-9_-]{20,80}$/).optional(),
 });
 export type PunchInput = z.infer<typeof punchSchema>;

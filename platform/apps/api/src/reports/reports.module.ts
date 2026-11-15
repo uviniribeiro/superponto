@@ -32,5 +32,5 @@ export class ReportsController {
   export(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Param('key', keySchema) key: string, @Query({ schema: z.object({ format: z.enum(['csv', 'xlsx']).default('xlsx') }) }) q: { format: 'csv' | 'xlsx' }, @Body({ schema: filtersSchema }) f: Filters) { return this.svc.export(t, u, key, f, q.format); }
 }
 
-@Module({ imports: [TimesheetModule, HolidaysModule], controllers: [ReportsController], providers: [ReportsService] })
+@Module({ imports: [TimesheetModule, HolidaysModule], controllers: [ReportsController], providers: [ReportsService], exports: [ReportsService] })
 export class ReportsModule {}

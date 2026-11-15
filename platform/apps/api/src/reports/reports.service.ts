@@ -4,7 +4,9 @@ import ExcelJS from 'exceljs';
 import { z } from 'zod';
 import type { AuthUser } from '../auth/auth-user.js';
 import { can } from '../authorization/authorization.js';
+import { ACTION_LABELS, MODULE_LABELS, PERMISSIONS, RESOURCE_LABELS } from '../authorization/catalog.js';
 import { HolidaysService } from '../holidays/holidays.service.js';
+import { mirrorHashOf } from '../tools/mirror-hash.js';
 import { maskCpf } from '../people/employees.service.js';
 import { PrismaService, type Tx } from '../prisma/prisma.service.js';
 import { EMP_SELECT, iso, LEAVE_LABEL, local, TimesheetCore, toDate, type DayView, type Emp } from '../timesheet/timesheet.core.js';
@@ -13,7 +15,7 @@ export type ColType = 'text' | 'minutes' | 'number' | 'date' | 'percent' | 'date
 export interface Col { key: string; label: string; type?: ColType }
 type Row = Record<string, unknown>;
 interface Ctx { tenantId: string; user: AuthUser; f: Filters; emps: () => Promise<Array<Emp & Extra>>; days: () => Promise<Map<string, DayView[]>>; tx: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T> }
-type Extra = { department: { name: string } | null; position: { name: string } | null; company: { legalName: string; tradeName: string | null } };
+type Extra = { person: { fullName: string; socialName: string | null; pis?: string | null }; department: { name: string } | null; position: { name: string } | null; company: { legalName: string; tradeName: string | null } };
 interface ReportDef { key: string; title: string; category: string; description: string; period: 'required' | 'optional' | 'none'; permission?: string; columns: Col[] | ((ctx: Ctx) => Promise<Col[]>); run: (ctx: Ctx) => Promise<Row[]> }
 
 const civil = z.iso.date();
@@ -267,6 +269,63 @@ const REPORTS: ReportDef[] = [
     columns: [{ key: 'at', label: 'Data e hora', type: 'datetime' }, { key: 'device', label: 'Equipamento' }, { key: 'level', label: 'Nível' }, { key: 'message', label: 'Evento' }],
     run: async (ctx) => (await ctx.tx((tx) => tx.deviceLog.findMany({ where: { device: { companyId: ctx.f.companyId }, createdAt: { gte: new Date(`${ctx.f.from}T00:00:00-03:00`), lt: new Date(new Date(`${ctx.f.to}T00:00:00-03:00`).getTime() + 86_400_000) } }, include: { device: { select: { name: true } } }, orderBy: { createdAt: 'asc' }, take: 20000 }))).map((l) => ({ at: l.createdAt.toISOString(), device: l.device.name, level: l.level === 'info' ? 'Informação' : l.level === 'warn' ? 'Aviso' : 'Erro', message: l.message })),
   },
+  {
+    key: 'divergencias', title: 'Divergências de jornada', category: 'Ponto', period: 'required', description: 'Marcou sem horário previsto, trabalhou na folga ou marcou muito fora do horário (mais de 2 horas antes ou depois).',
+    columns: [...EMP_COLS.slice(0, 2), { key: 'date', label: 'Data', type: 'date' }, { key: 'expected', label: 'Previsto' }, { key: 'punches', label: 'Marcações' }, { key: 'issue', label: 'Divergência' }],
+    run: async (ctx) => {
+      const out: Row[] = [];
+      const m = (hm: string | null) => (hm ? Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5)) : null);
+      for (const { e, d } of await perDay(ctx)) {
+        const ps = d.punches.filter((p) => p.status === 'ORIGINAL' || p.status === 'INCLUDED');
+        if (!ps.length || d.leave) continue;
+        const x = d.expected as { isWorkday: boolean; isHoliday: boolean; start: string | null; end: string | null; scheduleName: string | null };
+        const issues: string[] = [];
+        if (!x.scheduleName) issues.push('Marcou sem horário atribuído');
+        else if (x.isHoliday) issues.push('Trabalhou no feriado');
+        else if (!x.isWorkday) issues.push('Trabalhou na folga');
+        else {
+          const s0 = m(x.start), e0 = m(x.end), first = m(ps[0]!.time), last = m(ps.at(-1)!.time);
+          if (s0 !== null && first !== null && s0 - first > 120) issues.push(`Entrada ${s0 - first} min antes do horário`);
+          if (e0 !== null && last !== null && e0 > s0! && last - e0 > 120) issues.push(`Saída ${last - e0} min depois do horário`);
+        }
+        if (issues.length) out.push({ registration: e.registration, name: name(e), date: d.date, expected: x.isWorkday ? `${x.start ?? ''}–${x.end ?? ''}` : x.scheduleName ? 'Folga' : 'Sem horário', punches: punchList(d), issue: issues.join('; ') });
+      }
+      return out;
+    },
+  },
+  {
+    key: 'intervalo-nao-calculavel', title: 'Intervalo não calculável', category: 'Ponto', period: 'required', description: 'Dias com intervalo previsto em que as marcações não permitem medir o intervalo (só entrada e saída, ou número ímpar).',
+    columns: [...EMP_COLS.slice(0, 2), { key: 'date', label: 'Data', type: 'date' }, { key: 'breakExpected', label: 'Intervalo previsto', type: 'minutes' }, { key: 'punches', label: 'Marcações' }, { key: 'reason', label: 'Motivo' }],
+    run: async (ctx) => (await perDay(ctx)).flatMap(({ e, d }) => {
+      const n = d.punches.filter((p) => p.status === 'ORIGINAL' || p.status === 'INCLUDED').length;
+      const b = (d.expected as { breakMinutes: number; isWorkday: boolean }).breakMinutes ?? 0;
+      if (!b || !n || n >= 4 && n % 2 === 0) return [];
+      return [{ registration: e.registration, name: name(e), date: d.date, breakExpected: b, punches: punchList(d), reason: n % 2 ? 'Número ímpar de marcações' : 'Intervalo não marcado (só entrada e saída)' }];
+    }),
+  },
+  {
+    key: 'espelho-1510', title: 'Espelho de ponto (Portaria 1.510/2009 e 671/2021)', category: 'Ponto', period: 'required', description: 'Espelho por PIS: identificação, horário contratual e marcações do dia (originais e incluídas, indicadas com (I)), com as desconsideradas indicadas com (D).',
+    columns: [{ key: 'pis', label: 'PIS' }, { key: 'name', label: 'Funcionário' }, { key: 'hiredAt', label: 'Admissão', type: 'date' }, { key: 'date', label: 'Data', type: 'date' }, { key: 'contract', label: 'Horário contratual' }, { key: 'punches', label: 'Marcações' }, { key: 'worked', label: 'Trabalhado', type: 'minutes' }],
+    run: async (ctx) => (await perDay(ctx)).filter(({ d }) => !d.outsideEmployment).map(({ e, d }) => {
+      const x = d.expected as { isWorkday: boolean; start: string | null; end: string | null; breakMinutes: number };
+      const tag = (st: string) => (st === 'INCLUDED' ? '(I)' : st === 'DISREGARDED' ? '(D)' : '');
+      return { pis: e.person.pis ?? '', name: name(e), hiredAt: iso(e.hiredAt), date: d.date, contract: x.isWorkday ? `${x.start ?? ''}–${x.end ?? ''}${x.breakMinutes ? ` (intervalo ${x.breakMinutes} min)` : ''}` : 'Folga', punches: d.punches.filter((p) => !p.status.startsWith('PENDING')).map((p) => `${p.time}${tag(p.status)}`).join(' '), worked: d.result?.workedMinutes ?? 0 };
+    }),
+  },
+  {
+    key: 'ciencia-espelho', title: 'Ciência eletrônica do espelho', category: 'Ponto', period: 'required', description: 'Quem deu ciência no espelho do período exato informado (de acordo ou com ressalva), quando, de qual IP, e se o espelho mudou depois.',
+    columns: [...EMP_COLS, { key: 'status', label: 'Situação' }, { key: 'signedAt', label: 'Ciência em', type: 'datetime' }, { key: 'comment', label: 'Ressalva' }, { key: 'ip', label: 'IP' }, { key: 'changed', label: 'Espelho mudou depois?' }],
+    run: async (ctx) => {
+      const emps = await ctx.emps();
+      const acks = await ctx.tx((tx) => tx.mirrorAcknowledgment.findMany({ where: { employmentId: { in: emps.map((e) => e.id) }, periodStart: toDate(ctx.f.from!), periodEnd: toDate(ctx.f.to!) } }));
+      const days = acks.length ? await ctx.days() : new Map<string, DayView[]>();
+      return emps.map((e) => {
+        const a = acks.find((x) => x.employmentId === e.id);
+        const changed = a ? mirrorHashOf(e.id, ctx.f.from!, ctx.f.to!, days.get(e.id) ?? []).hash !== a.contentHash : false;
+        return { ...base(e), status: a ? (a.decision === 'AGREE' ? 'De acordo' : 'Com ressalva') : 'Pendente', signedAt: a?.createdAt.toISOString() ?? '', comment: a?.comment ?? '', ip: a?.ip ?? '', changed: a ? (changed ? 'Sim' : 'Não') : '' };
+      });
+    },
+  },
   // ------------------------------------------------------------- Segurança
   {
     key: 'auditoria', title: 'Auditoria', category: 'Segurança', period: 'required', permission: 'admin.audit:read', description: 'Quem alterou o quê e quando (sem dados sensíveis).',
@@ -282,6 +341,59 @@ const REPORTS: ReportDef[] = [
     key: 'usuarios-perfis', title: 'Usuários e perfis', category: 'Segurança', period: 'none', permission: 'admin.users:read', description: 'Usuários da organização, perfis, forma de login e último acesso.',
     columns: [{ key: 'name', label: 'Usuário' }, { key: 'email', label: 'E-mail' }, { key: 'roles', label: 'Perfis' }, { key: 'source', label: 'Login' }, { key: 'active', label: 'Ativo' }, { key: 'lastLogin', label: 'Último acesso', type: 'datetime' }],
     run: async (ctx) => (await ctx.tx((tx) => tx.user.findMany({ where: { tenantId: ctx.tenantId, deletedAt: null, isPlatformAdmin: false, ...(ctx.user.isSupport || ctx.user.isPlatformAdmin ? {} : { isSupport: false }) }, include: { roles: { include: { role: { select: { name: true } } } } }, orderBy: { displayName: 'asc' } }))).map((u) => ({ name: u.displayName, email: u.email, roles: u.roles.map((r) => r.role.name).join(', '), source: u.authSource === 'LDAP' ? 'Rede (LDAP)' : 'Senha', active: u.isActive ? 'Sim' : 'Não', lastLogin: u.lastLoginAt?.toISOString() ?? '' })),
+  },
+  {
+    key: 'log-espelho', title: 'Log do espelho (alterações por funcionário)', category: 'Movimentações', period: 'required', permission: 'admin.audit:read', description: 'Ajustes, abonos, afastamentos, sobreaviso e marcações web lançados no período, com quem fez e quando.',
+    columns: [...EMP_COLS.slice(0, 2), { key: 'at', label: 'Quando', type: 'datetime' }, { key: 'user', label: 'Usuário' }, { key: 'action', label: 'Ação' }, { key: 'entity', label: 'O quê' }, { key: 'detail', label: 'Detalhe' }],
+    run: async (ctx) => {
+      const emps = await ctx.emps(); const byId = new Map(emps.map((e) => [e.id, e]));
+      const E: Record<string, string> = { time_adjustment: 'Ajuste de marcação', allowance: 'Abono', leave: 'Afastamento', on_call: 'Sobreaviso', time_record: 'Marcação', mirror_acknowledgment: 'Ciência do espelho', bank_transaction: 'Banco de horas' };
+      const A: Record<string, string> = { CREATE: 'Lançou', UPDATE: 'Alterou', DELETE: 'Excluiu', APPROVE: 'Aprovou', REJECT: 'Recusou' };
+      const logs = await ctx.tx((tx) => tx.auditLog.findMany({ where: { tenantId: ctx.tenantId, entity: { in: Object.keys(E) }, createdAt: { gte: new Date(`${ctx.f.from}T00:00:00-03:00`), lt: new Date(new Date(`${ctx.f.to}T00:00:00-03:00`).getTime() + 86_400_000) } }, orderBy: { createdAt: 'asc' }, take: 20000, select: { createdAt: true, actorUserId: true, action: true, entity: true, before: true, after: true } }));
+      const empOf = (l: { before: unknown; after: unknown }) => ((l.after as { employmentId?: string } | null)?.employmentId ?? (l.before as { employmentId?: string } | null)?.employmentId) ?? null;
+      const mine = logs.filter((l) => { const id = empOf(l); return id && byId.has(id); });
+      const users = await ctx.tx((tx) => tx.user.findMany({ where: { id: { in: [...new Set(mine.map((l) => l.actorUserId).filter(Boolean) as string[])] } }, select: { id: true, displayName: true } }));
+      const detail = (l: { after: unknown; before: unknown }) => {
+        const o = (l.after ?? l.before ?? {}) as Record<string, unknown>;
+        return ['kind', 'date', 'time', 'recordedAt', 'type', 'justification', 'minutes', 'from', 'to', 'decision'].filter((k) => o[k] !== undefined && o[k] !== null).map((k) => `${k}: ${String(o[k])}`).join(', ').slice(0, 300);
+      };
+      return mine.map((l) => { const e = byId.get(empOf(l)!)!; return { registration: e.registration, name: name(e), at: l.createdAt.toISOString(), user: users.find((u) => u.id === l.actorUserId)?.displayName ?? '', action: A[l.action] ?? l.action, entity: E[l.entity] ?? l.entity, detail: detail(l) }; });
+    },
+  },
+  {
+    key: 'acessos', title: 'Acessos (login e falhas)', category: 'Segurança', period: 'required', permission: 'admin.audit:read', description: 'Entradas no sistema e tentativas com senha errada ou fora do horário/bloqueio, com IP e navegador.',
+    columns: [{ key: 'at', label: 'Data e hora', type: 'datetime' }, { key: 'user', label: 'Usuário' }, { key: 'email', label: 'E-mail' }, { key: 'result', label: 'Resultado' }, { key: 'method', label: 'Forma' }, { key: 'ip', label: 'IP' }, { key: 'agent', label: 'Navegador/app' }],
+    run: async (ctx) => {
+      const logs = await ctx.tx((tx) => tx.auditLog.findMany({ where: { tenantId: ctx.tenantId, action: { in: ['LOGIN', 'LOGIN_FAILED'] }, createdAt: { gte: new Date(`${ctx.f.from}T00:00:00-03:00`), lt: new Date(new Date(`${ctx.f.to}T00:00:00-03:00`).getTime() + 86_400_000) } }, orderBy: { createdAt: 'asc' }, take: 20000 }));
+      const users = await ctx.tx((tx) => tx.user.findMany({ where: { id: { in: [...new Set(logs.map((l) => l.actorUserId).filter(Boolean) as string[])] } }, select: { id: true, displayName: true, email: true, isSupport: true } }));
+      const hide = !ctx.user.isSupport && !ctx.user.isPlatformAdmin;
+      return logs.flatMap((l) => {
+        const u = users.find((x) => x.id === l.actorUserId);
+        if (hide && u?.isSupport) return [];
+        const a = (l.after ?? {}) as { method?: string; reason?: string };
+        return [{ at: l.createdAt.toISOString(), user: u?.displayName ?? '', email: u?.email ?? '', result: l.action === 'LOGIN' ? 'Entrou' : a.reason === 'access_denied' ? 'Bloqueado (horário/bloqueio)' : 'Senha incorreta', method: a.method === 'ldap' ? 'Rede (LDAP)' : 'Senha', ip: l.ip ?? '', agent: (l.userAgent ?? '').slice(0, 80) }];
+      });
+    },
+  },
+  {
+    key: 'alteracoes-senha', title: 'Alterações de senha', category: 'Segurança', period: 'required', permission: 'admin.audit:read', description: 'Trocas de senha pelo próprio usuário e redefinições pelo link do e-mail.',
+    columns: [{ key: 'at', label: 'Data e hora', type: 'datetime' }, { key: 'user', label: 'Usuário' }, { key: 'email', label: 'E-mail' }, { key: 'via', label: 'Como' }, { key: 'ip', label: 'IP' }],
+    run: async (ctx) => {
+      const logs = await ctx.tx((tx) => tx.auditLog.findMany({ where: { tenantId: ctx.tenantId, entity: 'user_password', createdAt: { gte: new Date(`${ctx.f.from}T00:00:00-03:00`), lt: new Date(new Date(`${ctx.f.to}T00:00:00-03:00`).getTime() + 86_400_000) } }, orderBy: { createdAt: 'asc' }, take: 20000 }));
+      const users = await ctx.tx((tx) => tx.user.findMany({ where: { id: { in: [...new Set(logs.map((l) => l.actorUserId).filter(Boolean) as string[])] } }, select: { id: true, displayName: true, email: true } }));
+      return logs.map((l) => { const u = users.find((x) => x.id === l.actorUserId); return { at: l.createdAt.toISOString(), user: u?.displayName ?? '', email: u?.email ?? '', via: (l.after as { via?: string } | null)?.via === 'reset' ? 'Redefinição por e-mail' : 'Troca pelo usuário', ip: l.ip ?? '' }; });
+    },
+  },
+  {
+    key: 'funcionalidades-perfil', title: 'Funcionalidades por perfil', category: 'Segurança', period: 'none', permission: 'admin.users:read', description: 'O que cada perfil (do sistema e personalizado) pode fazer: módulo, recurso e ação.',
+    columns: [{ key: 'role', label: 'Perfil' }, { key: 'kind', label: 'Tipo' }, { key: 'module', label: 'Módulo' }, { key: 'resource', label: 'Recurso' }, { key: 'action', label: 'Ação' }, { key: 'description', label: 'Permissão' }],
+    run: async (ctx) => {
+      const roles = await ctx.tx((tx) => tx.role.findMany({ where: { deletedAt: null, OR: [{ tenantId: null }, { tenantId: ctx.tenantId }], NOT: { key: 'super_admin' } }, include: { permissions: { include: { permission: { select: { key: true } } } } }, orderBy: { name: 'asc' } }));
+      return roles.flatMap((r) => r.permissions.map((p) => p.permission.key).filter((k) => !k.startsWith('platform.')).sort().map((k) => {
+        const [res, act] = k.split(':') as [string, string];
+        return { role: r.name, kind: r.tenantId ? 'Personalizado' : 'Do sistema', module: MODULE_LABELS[res.split('.')[0]!] ?? res, resource: RESOURCE_LABELS[res] ?? res, action: ACTION_LABELS[act] ?? act, description: PERMISSIONS[k as keyof typeof PERMISSIONS] ?? k };
+      }));
+    },
   },
 ];
 
@@ -405,7 +517,7 @@ export class ReportsService {
       };
       return tx.employment.findMany({
         where, orderBy: { person: { fullName: 'asc' } }, take: 2000,
-        select: { ...EMP_SELECT, person: { select: { fullName: true, socialName: true, cpf: true, birthDate: true } }, department: { select: { name: true } }, position: { select: { name: true } }, company: { select: { legalName: true, tradeName: true } } },
+        select: { ...EMP_SELECT, person: { select: { fullName: true, socialName: true, cpf: true, birthDate: true, pis: true } }, department: { select: { name: true } }, position: { select: { name: true } }, company: { select: { legalName: true, tradeName: true } } },
       }) as unknown as Promise<Array<Emp & Extra>>;
     });
   }

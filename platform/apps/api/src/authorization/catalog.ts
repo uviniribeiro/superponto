@@ -84,6 +84,9 @@ export const PERMISSIONS = {
   'reports.reports:read': 'Ver relatórios',
   'reports.reports:export': 'Exportar relatórios (PDF, Excel, CSV, AFD, AEJ)',
   'reports.payroll:export': 'Exportar para a folha de pagamento',
+  // Ferramentas
+  'tools.notifications:manage': 'Agendar e-mails de resumo (faltas, atrasos, pendências, equipamentos)',
+  'tools.announcements:manage': 'Publicar avisos aos funcionários',
   // Integrações
   'integrations.api:manage': 'Gerenciar integrações e chaves de API',
   // Administração do tenant
@@ -103,7 +106,7 @@ export const PERMISSIONS = {
 /** Nomes para a tela de permissões: módulo → recurso → ação. */
 export const MODULE_LABELS: Record<string, string> = {
   org: 'Organização', people: 'Pessoas', schedules: 'Jornadas e escalas', time: 'Ponto', requests: 'Solicitações',
-  education: 'Educação', health: 'Saúde', operational: 'Operacional', devices: 'Equipamentos', reports: 'Relatórios',
+  education: 'Educação', health: 'Saúde', operational: 'Operacional', devices: 'Equipamentos', reports: 'Relatórios', tools: 'Ferramentas',
   integrations: 'Integrações', admin: 'Administração', platform: 'Plataforma',
 };
 export const RESOURCE_LABELS: Record<string, string> = {
@@ -117,7 +120,7 @@ export const RESOURCE_LABELS: Record<string, string> = {
   'education.academic': 'Turmas e grades', 'education.sessions': 'Aulas', 'health.shifts': 'Plantões', 'health.rooms': 'Salas e agenda',
   'operational.board': 'Painel operacional', 'operational.occurrences': 'Ocorrências', 'operational.assignments': 'Alocações',
   'devices.devices': 'Equipamentos', 'devices.commands': 'Comandos aos equipamentos', 'devices.servers': 'Servidores de comunicação',
-  'reports.reports': 'Relatórios', 'reports.payroll': 'Exportação para folha', 'integrations.api': 'Integrações e chaves de API',
+  'reports.reports': 'Relatórios', 'reports.payroll': 'Exportação para folha', 'tools.notifications': 'E-mails agendados', 'tools.announcements': 'Avisos', 'integrations.api': 'Integrações e chaves de API',
   'admin.users': 'Usuários', 'admin.roles': 'Perfis e permissões', 'admin.ldap': 'Login por LDAP/AD', 'admin.audit': 'Auditoria', 'admin.settings': 'Configurações', 'admin.billing': 'Plano e assinatura',
   'platform.tenants': 'Clientes', 'platform.plans': 'Planos', 'platform.monitoring': 'Monitoramento',
 };
@@ -125,7 +128,7 @@ export const ACTION_LABELS: Record<string, string> = {
   read: 'Ver', create: 'Criar', update: 'Editar', delete: 'Excluir', manage: 'Gerenciar', approve: 'Aprovar', import: 'Importar', export: 'Exportar', execute: 'Executar',
 };
 /** Recursos com tela pronta na V2 (os demais aparecem como "em construção"). */
-export const AVAILABLE_RESOURCES = new Set(['org.companies', 'org.holidays', 'org.departments', 'org.positions', 'org.unions', 'org.functions', 'org.costcenters', 'org.employeetypes', 'org.competences', 'org.groupings', 'people.employments', 'people.sensitive', 'people.biometrics', 'devices.commands', 'time.records', 'admin.users', 'admin.roles', 'admin.ldap', 'org.units', 'schedules.schedules', 'schedules.timetables', 'schedules.scheduled', 'time.calculations', 'time.adjustments', 'time.allowances', 'time.justifications', 'time.closings', 'time.bank', 'time.compensation', 'requests.requests', 'requests.flows', 'devices.devices', 'reports.reports', 'platform.tenants']);
+export const AVAILABLE_RESOURCES = new Set(['org.companies', 'org.holidays', 'org.departments', 'org.positions', 'org.unions', 'org.functions', 'org.costcenters', 'org.employeetypes', 'org.competences', 'org.groupings', 'people.employments', 'people.sensitive', 'people.biometrics', 'devices.commands', 'time.records', 'admin.users', 'admin.roles', 'admin.ldap', 'org.units', 'schedules.schedules', 'schedules.timetables', 'schedules.scheduled', 'time.calculations', 'time.adjustments', 'time.allowances', 'time.justifications', 'time.closings', 'time.bank', 'time.compensation', 'requests.requests', 'requests.flows', 'devices.devices', 'reports.reports', 'reports.payroll', 'tools.notifications', 'tools.announcements', 'admin.settings', 'platform.tenants']);
 
 export type PermissionKey = keyof typeof PERMISSIONS;
 
@@ -147,7 +150,7 @@ export const SYSTEM_ROLES: SystemRole[] = [
   { key: 'super_admin', name: 'SuperAdministrador', description: 'Equipe SuperPonto: administração global da plataforma', permissions: all },
   { key: 'company_admin', name: 'Administrador da empresa', description: 'Acesso total à organização', permissions: tenantAll },
   { key: 'director', name: 'Diretor', description: 'Visão completa, sem administração técnica', permissions: [...readOnly(tenantAll), 'requests.requests:approve', 'reports.reports:export'] },
-  { key: 'hr', name: 'RH', description: 'Pessoas, vínculos, ponto e banco de horas', permissions: [...pick('people.', 'schedules.', 'time.', 'requests.', 'reports.'), 'org.companies:read', 'org.units:read', 'org.departments:read', 'org.positions:read', 'org.holidays:read', 'org.holidays:manage', 'org.unions:read', 'org.functions:read', 'org.costcenters:read', 'org.employeetypes:read', 'org.competences:read', 'org.competences:manage', 'org.groupings:read', 'org.groupings:manage', 'admin.users:read'] },
+  { key: 'hr', name: 'RH', description: 'Pessoas, vínculos, ponto e banco de horas', permissions: [...pick('people.', 'schedules.', 'time.', 'requests.', 'reports.', 'tools.'), 'org.companies:read', 'org.units:read', 'org.departments:read', 'org.positions:read', 'org.holidays:read', 'org.holidays:manage', 'org.unions:read', 'org.functions:read', 'org.costcenters:read', 'org.employeetypes:read', 'org.competences:read', 'org.competences:manage', 'org.groupings:read', 'org.groupings:manage', 'admin.users:read'] },
   { key: 'manager', name: 'Gestor', description: 'Equipe sob sua gestão', permissions: [...SELF, 'people.people:read', 'people.employments:read', 'schedules.schedules:read', 'time.records:read', 'time.calculations:read', 'time.bank:read', 'time.adjustments:create', 'time.adjustments:approve', 'requests.requests:read', 'requests.requests:approve', 'reports.reports:read', 'org.units:read'] },
   { key: 'supervisor', name: 'Supervisor', description: 'Acompanhamento da equipe e ocorrências', permissions: [...SELF, 'people.employments:read', 'time.records:read', 'time.calculations:read', 'requests.requests:read', 'operational.board:read', 'operational.occurrences:manage', 'org.units:read'] },
   { key: 'school_coordinator', name: 'Coordenador escolar', description: 'Gestão acadêmica e jornada docente', permissions: [...SELF, ...pick('education.'), 'people.employments:read', 'schedules.schedules:read', 'time.calculations:read', 'requests.requests:read', 'requests.requests:approve', 'reports.reports:read', 'org.units:read'] },

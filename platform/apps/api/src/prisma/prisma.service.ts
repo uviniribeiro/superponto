@@ -18,11 +18,11 @@ export class PrismaService implements OnModuleDestroy {
     this.client = createPrismaClient(config.DATABASE_URL);
   }
 
-  forTenant<T>(tenantId: string, fn: (tx: Tx) => Promise<T>): Promise<T> {
+  forTenant<T>(tenantId: string, fn: (tx: Tx) => Promise<T>, opts?: { timeout?: number }): Promise<T> {
     return this.client.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
       return fn(tx);
-    });
+    }, opts?.timeout ? { timeout: opts.timeout, maxWait: 10_000 } : undefined);
   }
 
   asPlatform<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {

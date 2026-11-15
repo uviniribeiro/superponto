@@ -29,7 +29,8 @@ export class PasswordResetMailer extends PasswordResetHandler {
     });
   }
 
-  updatePassword(userId: string, passwordHash: string) {
-    return this.users.updatePasswordHash(userId, passwordHash);
+  async updatePassword(userId: string, passwordHash: string) {
+    await this.users.updatePasswordHash(userId, passwordHash);
+    await this.users.logAccess(userId, 'UPDATE', 'user_password', { via: 'reset' });
   }
 }

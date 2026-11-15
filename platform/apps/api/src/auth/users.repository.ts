@@ -55,6 +55,15 @@ export class UsersRepository {
     );
   }
 
+  /** Trilha de acesso (login, falha de login, troca/redefinição de senha) na auditoria do cliente. */
+  async logAccess(userId: string, action: 'LOGIN' | 'LOGIN_FAILED' | 'UPDATE', entity: 'session' | 'user_password', after: Record<string, unknown>, meta?: { ip: string | null; userAgent: string | null }): Promise<void> {
+    await this.prisma.asPlatform(async (tx) => {
+      const u = await tx.user.findUnique({ where: { id: userId }, select: { tenantId: true } });
+      if (!u) return;
+      await tx.auditLog.create({ data: { tenantId: u.tenantId, actorUserId: userId, action, entity, entityId: userId, after: after as never, ip: meta?.ip ?? null, userAgent: meta?.userAgent?.slice(0, 300) ?? null } });
+    });
+  }
+
   async recordLogin(id: string): Promise<void> {
     await this.prisma.asPlatform((tx) => tx.user.update({ where: { id }, data: { lastLoginAt: new Date(), failedLogins: 0 } }));
   }

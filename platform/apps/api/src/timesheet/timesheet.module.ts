@@ -263,7 +263,7 @@ export class RequestsController {
     TimesheetController, AdjustmentsController, AbsencesController, ClosingsController, PunchController, BankController, ApprovalFlowsController, RequestsController,
     catalogController(JUSTIFICATIONS),
   ],
-  exports: [TimesheetCore],
+  exports: [TimesheetCore, TimesheetService],
   providers: [AejService, TimesheetCore, TimesheetService, AdjustmentsService, AbsencesService, PunchService, BankService, ClosingsService, ApprovalFlowsService, RequestsService, CatalogService],
 })
 export class TimesheetModule {}

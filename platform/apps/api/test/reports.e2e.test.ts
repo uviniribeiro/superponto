@@ -134,10 +134,47 @@ describe('Relatórios', () => {
     const x = await api(app).post('/v1/reports/horas-trabalhadas/export?format=xlsx').set(as('admin')).send({ companyId: ids.co, ...P }).expect(200);
     expect(x.body.filename).toBe('horas-trabalhadas_2026-03-02_2026-03-06.xlsx');
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(Buffer.from(x.body.base64, 'base64'));
+    await wb.xlsx.load(Buffer.from(x.body.base64, 'base64') as never);
     const ws = wb.worksheets[0]!;
     expect(ws.getRow(4).getCell(1).value).toBe('Matrícula');
     expect(ws.getRow(5).getCell(2).value).toBe('Ana Relatório');
+  });
+
+  it('fase 7 final: divergências, intervalo não calculável, espelho 1510 e ciência', async () => {
+    await owner.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT set_config('app.bypass_rls', 'on', true)`;
+      for (const [h, n] of [['08:00', 1], ['12:00', 2]] as const) await tx.timeRecord.create({ data: { tenantId: ids['rel-a']!, employmentId: ids.beto!, recordedAt: at('2026-03-07', h), source: 'DEVICE', hash: `sab${n}`, idempotencyKey: `rel-sab-${n}` } });
+    });
+    const div = (await run('divergencias', { from: '2026-03-02', to: '2026-03-07' }).expect(200)).body.rows;
+    expect(div).toEqual([expect.objectContaining({ registration: '2', date: '2026-03-07', issue: 'Trabalhou na folga', punches: '08:00 12:00' })]);
+    const inc = (await run('intervalo-nao-calculavel', P).expect(200)).body.rows;
+    expect(inc).toEqual([expect.objectContaining({ registration: '1', date: '2026-03-06', breakExpected: 60, reason: 'Número ímpar de marcações' })]);
+    const e1510 = await run('espelho-1510', P).expect(200);
+    expect(e1510.body.columns[0]).toMatchObject({ key: 'pis', label: 'PIS' });
+    expect(e1510.body.rows.find((r: { name: string; date: string }) => r.name === 'Ana Relatório' && r.date === '2026-03-02')).toMatchObject({ contract: '08:00–17:00 (intervalo 60 min)', punches: '08:00 12:00 13:00 17:00', hiredAt: '2025-01-01' });
+    const ack = (await run('ciencia-espelho', { from: '2026-03-01', to: '2026-03-31' }).expect(200)).body.rows;
+    expect(ack.map((r: { status: string }) => r.status)).toEqual(['Pendente', 'Pendente']);
+  });
+
+  it('segurança: acessos com falha, alteração de senha, funcionalidades por perfil e log do espelho', async () => {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+    await api(app).post('/v1/auth/token').send({ email: 'func@rel-a.test', password: 'errada-errada' }).expect(401);
+    await api(app).post('/v1/auth/token').send({ email: 'ninguem@rel-a.test', password: 'errada-errada' }).expect(401); // conta inexistente: nada é gravado
+    await api(app).post('/v1/auth/password/change').set(as('func')).send({ currentPassword: PASSWORD, newPassword: 'Outra-Senha-Forte-2026' }).expect(204);
+    const acc = (await run('acessos', { from: today, to: today }).expect(200)).body.rows;
+    expect(acc.filter((r: { email: string; result: string }) => r.email === 'func@rel-a.test' && r.result === 'Senha incorreta')).toHaveLength(1);
+    expect(acc.some((r: { email: string; result: string }) => r.email === 'admin@rel-a.test' && r.result === 'Entrou')).toBe(true);
+    expect(acc.some((r: { email: string }) => r.email.endsWith('@rel-b.test'))).toBe(false); // só o próprio cliente
+    const pw = (await run('alteracoes-senha', { from: today, to: today }).expect(200)).body.rows;
+    expect(pw).toEqual([expect.objectContaining({ email: 'func@rel-a.test', via: 'Troca pelo usuário' })]);
+    const roles = (await run('funcionalidades-perfil', {}).expect(200)).body.rows;
+    expect(roles).toContainEqual(expect.objectContaining({ role: 'Funcionário', kind: 'Do sistema', module: 'Ponto', description: 'Registrar marcação própria' }));
+    expect(roles.some((r: { role: string }) => r.role === 'SuperAdministrador')).toBe(false);
+    // Log do espelho: o ajuste lançado hoje aparece para a Ana.
+    await api(app).post('/v1/time-adjustments').set(as('admin')).send({ employmentId: ids.ana, kind: 'INCLUDE', date: '2026-03-06', time: '17:00', justification: 'Esqueceu a saída' }).expect(201);
+    const log = (await run('log-espelho', { from: today, to: today }).expect(200)).body.rows;
+    expect(log).toContainEqual(expect.objectContaining({ registration: '1', entity: 'Ajuste de marcação', user: 'Admin' }));
+    await run('log-espelho', { from: today, to: today }, 'func').expect(403);
   });
 
   it('isolamento: outro cliente não roda relatório desta empresa', async () => {

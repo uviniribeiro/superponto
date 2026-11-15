@@ -15,6 +15,7 @@ import {
   type ForgotDto, type RefreshDto, type ResetDto, type SignInDto,
 } from './auth.schemas.js';
 import { CredentialsService } from './credentials.service.js';
+import { RequestInfo, type RequestMeta } from '../common/tenant.js';
 
 const changePasswordSchema = z.object({ currentPassword: z.string().min(1).max(256), newPassword: z.string().min(12, 'A nova senha precisa de 12 caracteres ou mais').max(128) });
 
@@ -39,8 +40,8 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('sign-in')
   @HttpCode(200)
-  async signInWithPassword(@Body({ schema: signInSchema }) body: SignInDto) {
-    const user = await this.credentials.verify(body.email, body.password);
+  async signInWithPassword(@Body({ schema: signInSchema }) body: SignInDto, @RequestInfo() meta: RequestMeta) {
+    const user = await this.credentials.verify(body.email, body.password, meta);
     if (!user) throw new UnauthorizedException('E-mail ou senha incorretos');
     const { session } = await this.signIn.signIn(user.id, { method: 'password' });
     return { user: publicUser(user), mfaRequired: session.mfa === 'pending' };
@@ -51,8 +52,8 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('token')
   @HttpCode(200)
-  async issueToken(@Body({ schema: signInSchema }) body: SignInDto) {
-    const user = await this.credentials.verify(body.email, body.password);
+  async issueToken(@Body({ schema: signInSchema }) body: SignInDto, @RequestInfo() meta: RequestMeta) {
+    const user = await this.credentials.verify(body.email, body.password, meta);
     if (!user) throw new UnauthorizedException('E-mail ou senha incorretos');
     return this.tokens.issue(user.id, { method: 'password', claims: { amr: ['pwd'] } });
   }
@@ -76,8 +77,8 @@ export class AuthController {
   @Post('password/change')
   @HttpCode(204)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  async changePassword(@CurrentUser() user: AuthUser, @Body({ schema: changePasswordSchema }) body: { currentPassword: string; newPassword: string }) {
-    await this.credentials.change(user.id, body.currentPassword, body.newPassword);
+  async changePassword(@CurrentUser() user: AuthUser, @Body({ schema: changePasswordSchema }) body: { currentPassword: string; newPassword: string }, @RequestInfo() meta: RequestMeta) {
+    await this.credentials.change(user.id, body.currentPassword, body.newPassword, meta);
   }
 
   @Get('me')
