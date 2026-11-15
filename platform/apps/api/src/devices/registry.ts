@@ -256,9 +256,58 @@ export class DeviceRegistryService {
         where: { deviceId: id, kind: 'TIME_RECORD', occurredAt: { gte: new Date(`${from}T00:00:00-03:00`), lt: new Date(new Date(`${to}T00:00:00-03:00`).getTime() + 86_400_000) } },
         orderBy: { nsr: 'asc' }, select: { payload: true, nsr: true },
       });
-      const lines = events.map((e) => (e.payload as { line?: string }).line).filter((l): l is string => !!l);
+      const lines = events.map((e) => (e.payload as { text?: string | null }).text).filter((l): l is string => !!l);
       return { filename: `registros-${(d.repNumber ?? d.serialNumber ?? d.name).replace(/[^\w-]/g, '_')}-${from}-${to}.txt`, lines: lines.length, content: lines.join('\r\n') + (lines.length ? '\r\n' : '') };
     });
+  }
+}
+
+/** Status e alertas: marca sem comunicação e avisa por e-mail quando cai e quando volta. */
+@Injectable()
+export class DeviceMonitor implements OnApplicationBootstrap, OnApplicationShutdown {
+  private readonly log = new Logger('Equipamentos');
+  private timer?: NodeJS.Timeout;
+  constructor(private readonly prisma: PrismaService, private readonly mail: MailService, @Inject(APP_CONFIG) private readonly config: AppConfig) {}
+
+  onApplicationBootstrap() {
+    if (this.config.NODE_ENV === 'test') return;
+    this.timer = setInterval(() => void this.checkOffline().catch((e: Error) => this.log.error(e.message)), 60_000);
+    this.timer.unref();
+  }
+  onApplicationShutdown() { if (this.timer) clearInterval(this.timer); }
+
+  private async notify(emails: string[], subject: string, text: string) {
+    for (const to of emails) await this.mail.send({ to, subject, text, html: `<p>${text.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`)}</p>` }).catch((e: Error) => this.log.warn(`Falha ao enviar alerta: ${e.message}`));
+  }
+
+  /** O agente falou com a API: atualiza o contato e avisa se o equipamento voltou. */
+  async seen(tenantId: string, deviceId: string, info: { firmware?: string; adapterVersion?: string; message?: string }) {
+    const back = await this.prisma.forTenant(tenantId, async (tx) => {
+      const d = await tx.device.findFirstOrThrow({ where: { id: deviceId }, select: { status: true, name: true, alertEmails: true } });
+      await tx.device.update({ where: { id: deviceId }, data: { lastSeenAt: new Date(), status: 'ONLINE', ...(info.firmware ? { firmware: info.firmware } : {}), ...(info.adapterVersion ? { adapterVersion: info.adapterVersion } : {}) } });
+      await tx.deviceLog.create({ data: { tenantId, deviceId, level: 'info', message: info.message ? `Contato: ${info.message}` : 'Contato do agente' } });
+      return d.status === 'OFFLINE' ? d : null;
+    });
+    if (back) {
+      await this.prisma.forTenant(tenantId, (tx) => tx.deviceLog.create({ data: { tenantId, deviceId, level: 'warn', message: 'Comunicação restabelecida' } }));
+      await this.notify(back.alertEmails, `SuperPonto: ${back.name} voltou a se comunicar`, `O equipamento ${back.name} voltou a se comunicar em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}.`);
+    }
+  }
+
+  /** Equipamentos sem contato além do limite viram OFFLINE e disparam o alerta (uma vez por queda). */
+  async checkOffline(now = new Date()) {
+    const candidates = await this.prisma.asPlatform((tx) => tx.device.findMany({ where: { deletedAt: null, status: 'ONLINE', lastSeenAt: { not: null } }, select: { id: true, tenantId: true, name: true, lastSeenAt: true, collectIntervalMinutes: true, alertEmails: true } }));
+    let n = 0;
+    for (const d of candidates) {
+      if (now.getTime() - d.lastSeenAt!.getTime() < offlineAfterMinutes(d) * 60_000) continue;
+      await this.prisma.asPlatform(async (tx) => {
+        await tx.device.update({ where: { id: d.id }, data: { status: 'OFFLINE' } });
+        await tx.deviceLog.create({ data: { tenantId: d.tenantId, deviceId: d.id, level: 'error', message: `Sem comunicação desde ${d.lastSeenAt!.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}` } });
+      });
+      await this.notify(d.alertEmails, `SuperPonto: ${d.name} sem comunicação`, `O equipamento ${d.name} não se comunica desde ${d.lastSeenAt!.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}. Verifique energia, rede e o agente local.`);
+      n++;
+    }
+    return n;
   }
 }
 
@@ -390,55 +439,6 @@ export class AgentService {
     const r = await this.devices.importAfd(dev.tenantId, { id: null } as unknown as AuthUser, dev.id, content, { ip: null, userAgent: 'agente-local' });
     await this.prisma.forTenant(dev.tenantId, (tx) => tx.device.update({ where: { id: dev.id }, data: { lastSyncAt: new Date() } }));
     return { imported: r.imported, duplicates: r.duplicates, unmatched: r.unmatched.length, warnings: r.warnings };
-  }
-}
-
-/** Status e alertas: marca sem comunicação e avisa por e-mail quando cai e quando volta. */
-@Injectable()
-export class DeviceMonitor implements OnApplicationBootstrap, OnApplicationShutdown {
-  private readonly log = new Logger('Equipamentos');
-  private timer?: NodeJS.Timeout;
-  constructor(private readonly prisma: PrismaService, private readonly mail: MailService, @Inject(APP_CONFIG) private readonly config: AppConfig) {}
-
-  onApplicationBootstrap() {
-    if (this.config.NODE_ENV === 'test') return;
-    this.timer = setInterval(() => void this.checkOffline().catch((e: Error) => this.log.error(e.message)), 60_000);
-    this.timer.unref();
-  }
-  onApplicationShutdown() { if (this.timer) clearInterval(this.timer); }
-
-  private async notify(emails: string[], subject: string, text: string) {
-    for (const to of emails) await this.mail.send({ to, subject, text, html: `<p>${text.replace(/[&<>]/g, (c) => `&#${c.charCodeAt(0)};`)}</p>` }).catch((e: Error) => this.log.warn(`Falha ao enviar alerta: ${e.message}`));
-  }
-
-  /** O agente falou com a API: atualiza o contato e avisa se o equipamento voltou. */
-  async seen(tenantId: string, deviceId: string, info: { firmware?: string; adapterVersion?: string; message?: string }) {
-    const back = await this.prisma.forTenant(tenantId, async (tx) => {
-      const d = await tx.device.findFirstOrThrow({ where: { id: deviceId }, select: { status: true, name: true, alertEmails: true } });
-      await tx.device.update({ where: { id: deviceId }, data: { lastSeenAt: new Date(), status: 'ONLINE', ...(info.firmware ? { firmware: info.firmware } : {}), ...(info.adapterVersion ? { adapterVersion: info.adapterVersion } : {}) } });
-      await tx.deviceLog.create({ data: { tenantId, deviceId, level: 'info', message: info.message ? `Contato: ${info.message}` : 'Contato do agente' } });
-      return d.status === 'OFFLINE' ? d : null;
-    });
-    if (back) {
-      await this.prisma.forTenant(tenantId, (tx) => tx.deviceLog.create({ data: { tenantId, deviceId, level: 'warn', message: 'Comunicação restabelecida' } }));
-      await this.notify(back.alertEmails, `SuperPonto: ${back.name} voltou a se comunicar`, `O equipamento ${back.name} voltou a se comunicar em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}.`);
-    }
-  }
-
-  /** Equipamentos sem contato além do limite viram OFFLINE e disparam o alerta (uma vez por queda). */
-  async checkOffline(now = new Date()) {
-    const candidates = await this.prisma.asPlatform((tx) => tx.device.findMany({ where: { deletedAt: null, status: 'ONLINE', lastSeenAt: { not: null } }, select: { id: true, tenantId: true, name: true, lastSeenAt: true, collectIntervalMinutes: true, alertEmails: true } }));
-    let n = 0;
-    for (const d of candidates) {
-      if (now.getTime() - d.lastSeenAt!.getTime() < offlineAfterMinutes(d) * 60_000) continue;
-      await this.prisma.asPlatform(async (tx) => {
-        await tx.device.update({ where: { id: d.id }, data: { status: 'OFFLINE' } });
-        await tx.deviceLog.create({ data: { tenantId: d.tenantId, deviceId: d.id, level: 'error', message: `Sem comunicação desde ${d.lastSeenAt!.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}` } });
-      });
-      await this.notify(d.alertEmails, `SuperPonto: ${d.name} sem comunicação`, `O equipamento ${d.name} não se comunica desde ${d.lastSeenAt!.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}. Verifique energia, rede e o agente local.`);
-      n++;
-    }
-    return n;
   }
 }
 

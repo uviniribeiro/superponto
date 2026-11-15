@@ -45,9 +45,10 @@ export class DevicesService {
       }
       if (!afd.punches.length) return { layout: afd.layout, header: afd.header, punches: 0, imported: 0, duplicates: 0, unmatched: [], warnings };
 
-      // Eventos brutos (idempotentes pela chave equipamento + tipo + NSR + horário).
+      // Eventos brutos (idempotentes pela chave equipamento + tipo + NSR + horário), com o texto original da linha.
+      const rawLines = content.split(/\r?\n/);
       const events = await tx.deviceEvent.createMany({
-        data: afd.punches.map((p) => ({ tenantId, deviceId, kind: 'TIME_RECORD' as const, occurredAt: p.occurredAt, identifier: p.workerId, nsr: BigInt(p.nsr), payload: { layout: afd.layout, recordType: p.recordType, workerIdType: p.workerIdType, line: p.line, hash: p.hash ?? null } })),
+        data: afd.punches.map((p) => ({ tenantId, deviceId, kind: 'TIME_RECORD' as const, occurredAt: p.occurredAt, identifier: p.workerId, nsr: BigInt(p.nsr), payload: { layout: afd.layout, recordType: p.recordType, workerIdType: p.workerIdType, line: p.line, text: rawLines[p.line - 1]?.trimEnd() ?? null, hash: p.hash ?? null } })),
         skipDuplicates: true,
       });
 

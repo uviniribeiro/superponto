@@ -115,7 +115,7 @@ describe('Equipamentos: portarias 1.510, 373 e 671, cadastros e digitais', () =>
     const row = await owner.biometricTemplate.findFirstOrThrow({ where: { id: res.body.id } });
     expect(row.templateEnc.startsWith('v1.')).toBe(true);
     expect(row.templateEnc).not.toContain(template.slice(0, 40));
-    const jobs = await owner.deviceSyncJob.findMany({ where: { action: 'UPSERT_FINGERPRINT' } });
+    const jobs = await owner.deviceSyncJob.findMany({ where: { action: 'UPSERT_FINGERPRINT', tenantId: ids['equip-a'] } });
     expect(jobs).toHaveLength(2);
     expect(JSON.stringify(jobs.map((j) => j.payload))).not.toContain(template.slice(0, 40)); // fila só com referência
     const list = await api(app).get(`/v1/employments/${ids.maria}/fingerprints`).set(as(token)).expect(200);
