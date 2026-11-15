@@ -170,6 +170,41 @@ export const SECTIONS: ManualSection[] = [
     ],
   },
   {
+    id: 'horarios',
+    title: 'Horários (jornadas e escalas)',
+    audience: 'Administradores e RH',
+    body: [
+      'Em Jornada › Horários ficam as jornadas de cada empresa: semanais (dia a dia da semana), flexíveis (só a carga do dia) e escalas em ciclo (12x36, 6x1, 5x2, 4x2, revezamento ou ciclo personalizado de até 62 dias). Há modelos prontos para começar.',
+      'Cada dia tem entrada, saída, intervalo e o início previsto do intervalo; jornada que passa da meia-noite (ex.: 19h às 7h) é reconhecida. A carga semanal (média, nas escalas em ciclo) é calculada sozinha e o sistema avisa quando passa de 44h.',
+      'Configuração avançada: "Feriado vira folga" (desmarque em 12x36 e plantões, que seguem o ciclo no feriado); hora in itinere (minutos de deslocamento somados nos dias trabalhados, quando a convenção coletiva prevê); mobilidade da entrada (a entrada pode variar até N minutos e a saída prevista acompanha, sem atraso nem extra); mobilidade do intervalo (o intervalo pode começar até N minutos antes ou depois do previsto); e a regra de apuração usada.',
+      'Horário em uso não pode ser excluído; desative ou atribua outro antes. Alterar um horário em uso é bloqueado enquanto o período atual estiver fechado.',
+    ],
+    steps: ['Abra Jornada › Horários e clique em "Novo horário".', 'Escolha um modelo, ajuste nome, dias e horários e salve.', 'Use "Duplicar" para criar variações (ex.: o mesmo horário com sábado).'],
+  },
+  {
+    id: 'regras-apuracao',
+    title: 'Regras de apuração',
+    audience: 'Administradores e RH',
+    body: [
+      'Em Jornada › Regras de apuração ficam as regras do cálculo: tolerância por marcação (até 5 min) e no dia (até 10 min), conforme a CLT art. 58 §1º; percentuais de hora extra (mínimo de 50%) no dia útil, noturna, descanso, feriado e intervalo suprimido; limite diário de extra; adicional noturno (22h às 5h, com hora reduzida de 52min30s); intervalo mínimo; desconto de faltas e arredondamento.',
+      'Faixas de hora extra permitem, por exemplo, as 2 primeiras horas a 50% e o restante a 100%, como em muitas convenções.',
+      'Uma regra é a padrão da empresa; os horários podem usar outra. O sistema recusa valores abaixo do mínimo legal.',
+    ],
+  },
+  {
+    id: 'escalas',
+    title: 'Escalas, escala agendada e trocas',
+    audience: 'Administradores, RH e responsáveis por escalas',
+    body: [
+      'Jornada › Escalas mostra, dia a dia, quem trabalha e em que horário, com feriados, folgas, escala agendada (contorno amarelo) e trocas (contorno azul). Filtre por departamento, agrupamento ou nome e veja 7, 14 ou 28 dias.',
+      'Atribuir horário: selecione os funcionários e escolha o horário e a data de início. A jornada anterior termina na véspera e fica no histórico do funcionário. Nas escalas em ciclo, informe o primeiro dia do ciclo.',
+      'Escala agendada: define trabalho ou folga em dias específicos (um período, opcionalmente só alguns dias da semana), por cima do horário e do feriado. Ex.: sábados de mutirão ou uma folga concedida.',
+      'Troca de escala: com dois funcionários selecionados, cada um faz o horário do outro naquele dia. Troca de folga: com um funcionário, ele folga num dia de trabalho e trabalha numa folga, no mesmo horário. O motivo é obrigatório e tudo fica na auditoria.',
+      'Período fechado (fechamento de ponto) não aceita atribuição, escala agendada nem troca: reabra o fechamento antes.',
+    ],
+    steps: ['Abra Jornada › Escalas e marque os funcionários.', 'Na barra que aparece embaixo, escolha "Atribuir horário", "Escala agendada" ou "Trocar escala/folga".', 'Clique num dia para ver os detalhes e, se for escala agendada ou troca, remover o lançamento.'],
+  },
+  {
     id: 'feriados',
     title: 'Feriados',
     audience: 'Administradores da organização e RH',
@@ -272,9 +307,9 @@ export const SECTIONS: ManualSection[] = [
     title: 'Módulos em construção',
     audience: 'Todos',
     body: [
-      'A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha, clientes, empresas (com CNPJ alfanumérico), permissões, auditoria, o motor de cálculo de jornada e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.',
+      'A V2 é liberada por fases. Já estão prontos: acesso e recuperação de senha (inclusive login pela rede LDAP/AD), clientes, empresas (com CNPJ alfanumérico), estrutura, unidades, funcionários e importação, usuários, perfis e permissões, auditoria, horários, regras de apuração e escalas, o motor de cálculo de jornada e, na API, a importação de AFD de relógios das Portarias 1.510/2009, 373/2011 e 671/2021, o cadastro de digitais cifradas e a fila de envio de empregador, funcionários e digitais aos relógios.',
       'O app do terminal (tablet de ponto) é instalado por APK e abre em tela cheia, com a tela sempre ligada e opção de modo quiosque.',
-      'Próximas fases: unidades e departamentos, usuários e perfis, pessoas e vínculos, jornadas e escalas, registro de ponto (REP-P e relógios), espelho de ponto, AFD/AEJ, banco de horas, solicitações, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.',
+      'Próximas fases: registro de ponto (REP-P e relógios), espelho de ponto, AFD/AEJ, banco de horas, solicitações, módulos de Educação, Saúde e Operações, equipamentos e Servidor de Comunicação.',
       'A tela "Conformidade MTE" mostra, item por item, o que a legislação exige e o que já está atendido.',
     ],
   },

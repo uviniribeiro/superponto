@@ -4,6 +4,10 @@
 > - Fase 1 (estrutura) concluída: departamentos em árvore com seções, cargos (CBO), funções, centros
 >   de custo, tipos de funcionário, sindicatos, competências e empresa com inscrição estadual,
 >   CEI/CNO, código externo e logo.
+> - Fase 3 (jornada) concluída: horários semanais, flexíveis e em ciclo com configuração avançada
+>   (considera feriado, in itinere, mobilidade de entrada e de intervalo), regras de apuração com
+>   faixas de extra, atribuição com vigência, escala agendada, troca de escala e de folga e grade da
+>   equipe.
 > - Fase 2 (pessoas e usuários) concluída: funcionários com vínculos e histórico, desligamento,
 >   importação por planilha com conferência, agrupamentos, dias de acesso, bloqueio por período, troca
 >   obrigatória e troca de senha pelo usuário, unidades/locais com cerca virtual e login pela rede
@@ -81,13 +85,13 @@ na última seção.
 
 | Átomo | v1 | V2 | Como incluir |
 |---|---|---|---|
-| Escala agendada | ✅ | ❌ | Tela + API (também recebida pela integração Átomo) |
-| Escala fixa (ciclo, DSR, considera feriado) | ✅ | 🟡 motor calcula escalas cíclicas | Tela de escalas |
+| Escala agendada | ✅ | ✅ trabalho/folga por dia, em lote por período e dias da semana | — |
+| Escala fixa (ciclo, DSR, considera feriado) | ✅ | ✅ ciclos até 62 dias, considera feriado, grade da equipe | — |
 | Gerenciar banco de dados (backup/restauração) | ❌ | ❌ | Backup automático do servidor + exportação dos dados do cliente; restauração só pela equipe SuperPonto |
-| Hora in itinere | ✅ | ❌ | Regra no horário/escala, somada à jornada |
-| Horário (códigos, carga, noturno, DSR, mobilidade de jornada) | ✅ | 🟡 motor | Tela de horários com configuração avançada |
-| Mobilidade de intervalo | ❌ | ❌ | Regra no motor: intervalo pode deslizar dentro de uma janela sem gerar atraso/extra |
-| Percentual extra | ✅ | 🟡 motor | Tela de faixas de percentual |
+| Hora in itinere | ✅ | ✅ no horário, somada nos dias trabalhados | — |
+| Horário (códigos, carga, noturno, DSR, mobilidade de jornada) | ✅ | ✅ código, carga semanal, noturno, mobilidade de entrada | — |
+| Mobilidade de intervalo | ❌ | ✅ janela para o início do intervalo | — |
+| Percentual extra | ✅ | ✅ percentuais por tipo de dia e faixas | — |
 | Política de aprovação (níveis de hierarquia) | ❌ | 🟡 fluxos no modelo | Tela de fluxos de aprovação em níveis |
 
 ## Comunicação com equipamentos

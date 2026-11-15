@@ -11,8 +11,8 @@ _Revisado em 15/11/2026. O mesmo conteúdo está no sistema, em Ajuda › Confor
 
 | Situação | Itens |
 |---|---|
-| Atendido no sistema | 8 |
-| Em desenvolvimento | 7 |
+| Atendido no sistema | 9 |
+| Em desenvolvimento | 6 |
 | Planejado | 15 |
 | Ação da SuperPonto (fornecedor) | 2 |
 | Obrigação do empregador | 2 |
@@ -227,7 +227,7 @@ Regras da CLT aplicadas pelo motor de cálculo. Convenções coletivas podem alt
 |---|---|---|
 | [Tolerância de 5 minutos por marcação](#clt-58) | Atendido no sistema | CLT, art. 58, § 1º |
 | [Horas extras e banco de horas](#clt-59) | Em desenvolvimento | CLT, art. 59, §§ 1º, 2º, 5º e 6º; CF/88, art. 7º, XVI |
-| [Escala 12x36](#clt-59a) | Em desenvolvimento | CLT, art. 59-A |
+| [Escala 12x36](#clt-59a) | Atendido no sistema | CLT, art. 59-A |
 | [Descanso entre jornadas e semanal](#clt-66-67) | Planejado | CLT, arts. 66 e 67; Lei nº 605/1949 |
 | [Intervalo para repouso e alimentação](#clt-71) | Em desenvolvimento | CLT, art. 71, caput, § 1º e § 4º |
 | [Trabalho noturno](#clt-73) | Atendido no sistema | CLT, art. 73 |
@@ -247,15 +247,15 @@ Regras da CLT aplicadas pelo motor de cálculo. Convenções coletivas podem alt
 - **O que a norma exige:** Até 2 horas extras por dia, com adicional mínimo de 50%. Banco de horas por acordo individual escrito (compensação em até 6 meses) ou por convenção ou acordo coletivo (até 1 ano); compensação no mesmo mês pode ser por acordo tácito ou escrito.
 - **Base legal:** CLT, art. 59, §§ 1º, 2º, 5º e 6º; CF/88, art. 7º, XVI
 - **Situação:** Em desenvolvimento
-- **No SuperPonto:** Horas extras (50% e 100%), limite diário e banco de horas com vencimento dos créditos já calculados e testados no motor; telas e alertas entram com o módulo de Ponto.
+- **No SuperPonto:** Percentuais (mínimo de 50% validado), faixas de extra e limite diário configuráveis em Jornada › Regras de apuração e calculados no motor; banco de horas com vencimento dos créditos calculado no motor; espelho, alertas e telas do banco entram com os módulos de Ponto e Bancos.
 
 <a id="clt-59a"></a>
 ### Escala 12x36
 
 - **O que a norma exige:** Permitida por acordo individual escrito, convenção ou acordo coletivo, com intervalos para repouso e alimentação observados ou indenizados.
 - **Base legal:** CLT, art. 59-A
-- **Situação:** Em desenvolvimento
-- **No SuperPonto:** Escalas cíclicas suportadas no motor; a tela de escalas vem na fase de Jornadas.
+- **Situação:** Atendido no sistema
+- **No SuperPonto:** Escala 12x36 (e outros ciclos) em Jornada › Horários, com opção de seguir o ciclo no feriado; atribuição com vigência e grade da equipe em Jornada › Escalas. A previsão em convenção ou acordo é responsabilidade da empresa.
 
 <a id="clt-66-67"></a>
 ### Descanso entre jornadas e semanal

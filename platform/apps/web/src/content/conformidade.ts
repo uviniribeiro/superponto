@@ -230,15 +230,15 @@ export const GROUPS: RequirementGroup[] = [
         rule: 'Até 2 horas extras por dia, com adicional mínimo de 50%. Banco de horas por acordo individual escrito (compensação em até 6 meses) ou por convenção ou acordo coletivo (até 1 ano); compensação no mesmo mês pode ser por acordo tácito ou escrito.',
         basis: 'CLT, art. 59, §§ 1º, 2º, 5º e 6º; CF/88, art. 7º, XVI',
         status: 'andamento',
-        howWe: 'Horas extras (50% e 100%), limite diário e banco de horas com vencimento dos créditos já calculados e testados no motor; telas e alertas entram com o módulo de Ponto.',
+        howWe: 'Percentuais (mínimo de 50% validado), faixas de extra e limite diário configuráveis em Jornada › Regras de apuração e calculados no motor; banco de horas com vencimento dos créditos calculado no motor; espelho, alertas e telas do banco entram com os módulos de Ponto e Bancos.',
       },
       {
         id: 'clt-59a',
         title: 'Escala 12x36',
         rule: 'Permitida por acordo individual escrito, convenção ou acordo coletivo, com intervalos para repouso e alimentação observados ou indenizados.',
         basis: 'CLT, art. 59-A',
-        status: 'andamento',
-        howWe: 'Escalas cíclicas suportadas no motor; a tela de escalas vem na fase de Jornadas.',
+        status: 'feito',
+        howWe: 'Escala 12x36 (e outros ciclos) em Jornada › Horários, com opção de seguir o ciclo no feriado; atribuição com vigência e grade da equipe em Jornada › Escalas. A previsão em convenção ou acordo é responsabilidade da empresa.',
       },
       {
         id: 'clt-66-67',

@@ -1,4 +1,4 @@
-import { Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { CalendarClock, Clock3, Gauge, Network as NetworkIcon, MapPinned, BadgeCheck, Boxes, BookOpen, FileSpreadsheet, ShieldBan, UserRound, UsersRound, Briefcase, Building2, CalendarDays, CalendarRange, FolderTree, KeyRound, Landmark, Tags, Users, Wallet, LayoutDashboard, Network, Scale, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { Me } from '@/lib/api';
 import { can } from './providers';
 
@@ -68,6 +68,11 @@ export function buildNav(me: Me | undefined): NavSection[] {
       ],
     });
   }
+  const jornada: NavItem[] = [
+    ...(can(me, 'schedules.schedules:read') ? [{ id: 'grid', label: 'Escalas', href: '/jornada/escalas', icon: CalendarClock } satisfies NavItem] : []),
+    ...(can(me, 'schedules.timetables:read') ? [{ id: 'timetables', label: 'Horários', href: '/jornada/horarios', icon: Clock3 } satisfies NavItem, { id: 'rules', label: 'Regras de apuração', href: '/jornada/regras', icon: Gauge } satisfies NavItem] : []),
+  ];
+  if (jornada.length) sections.push({ id: 'jornada', label: 'Jornada', items: jornada });
   if (can(me, 'admin.users:read')) {
     sections.push({
       id: 'admin',
