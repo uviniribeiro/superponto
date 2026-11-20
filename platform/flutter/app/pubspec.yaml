@@ -46,6 +46,7 @@ dependencies:
   web: ^1.1.2
   file_picker: ^13.4.0
   geolocator: ^14.0.1
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +69,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/content/
   fonts:
     - family: Jakarta
       fonts:

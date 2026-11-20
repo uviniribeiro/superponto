@@ -1,9 +1,12 @@
 // Espelho de ponto: dia a dia com previsto, marcações, trabalhado, saldo e ocorrências; ajustes, abonos e ciência.
+import 'dart:convert';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../core/api.dart';
 import '../core/format.dart';
 import '../core/glass.dart';
+import '../core/save_file.dart';
 import '../core/timesheet.dart';
 import '../core/tokens.dart';
 import '../widgets/employee_picker.dart';
@@ -99,20 +102,35 @@ class _MirrorView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '${emp['name']}',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                padding: const EdgeInsets.fromLTRB(12, 10, 4, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '${emp['name']}',
+                              style: const TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            TextSpan(
+                              text: ' · matrícula ${emp['registration']}',
+                              style: TextStyle(color: t.muted),
+                            ),
+                          ],
+                        ),
                       ),
-                      TextSpan(
-                        text: ' · matrícula ${emp['registration']}',
-                        style: TextStyle(color: t.muted),
-                      ),
-                    ],
-                  ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () async {
+                        final f = await footer;
+                        final path = await printHtml(_printable(m, f), 'espelho_${emp['registration']}_${range.from}.html');
+                        if (context.mounted) toast(context, 'Espelho aberto para impressão: $path');
+                      },
+                      icon: const Icon(Icons.print_rounded, size: 18),
+                      label: const Text('Imprimir / PDF'),
+                    ),
+                  ],
                 ),
               ),
               for (final d in days) _DayRow(d: d, today: d['date'] == today, onTap: () => _open(context, d)),
@@ -131,6 +149,49 @@ class _MirrorView extends StatelessWidget {
         if (!team) ...[const SizedBox(height: 14), MirrorAck(from: range.from, to: range.to, employmentId: emp['id'] as String)],
       ],
     );
+  }
+
+  String _printable(Map<String, dynamic> m, String footerText) {
+    String esc(Object? v) => const HtmlEscape().convert('${v ?? ''}');
+    final emp = asMap(m['employment']);
+    final s = asMap(m['summary']);
+    final b = StringBuffer()
+      ..write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Espelho de ponto</title>')
+      ..write(
+        '<style>body{font-family:system-ui,sans-serif;margin:24px;color:#111}h1{font-size:18px;margin:0}p{margin:4px 0}table{border-collapse:collapse;width:100%;font-size:11px;margin-top:12px}th,td{border-bottom:1px solid #ddd;padding:4px 6px;text-align:left}th{background:#fcc419}.n{text-align:right}.sum{display:flex;flex-wrap:wrap;gap:18px;margin-top:10px;font-size:12px}.sig{margin-top:48px;display:flex;gap:60px}.sig div{border-top:1px solid #333;padding-top:4px;width:240px;font-size:11px}</style></head><body>',
+      )
+      ..write('<h1>Espelho de ponto</h1><p>${esc(emp['name'])} · matrícula ${esc(emp['registration'])}</p><p>Período: ${brDate(range.from)} a ${brDate(range.to)}</p>')
+      ..write(
+        '<div class="sum"><span>Previsto: ${hhmm(s['expectedMinutes'])}</span><span>Trabalhado: ${hhmm(s['workedMinutes'])}</span><span>Saldo: ${hhmm(s['balanceMinutes'], signed: true)}</span><span>Extras: ${hhmm(s['overtimeMinutes'])}</span><span>Noturno: ${hhmm(s['nightReducedMinutes'])}</span><span>Faltas: ${s['absenceDays'] ?? 0}</span></div>',
+      )
+      ..write('<table><thead><tr><th>Dia</th><th>Previsto</th><th>Marcações</th><th class="n">Trabalhado</th><th class="n">Saldo</th><th>Ocorrências</th></tr></thead><tbody>');
+    for (final d in asList(m['days'])) {
+      final e = asMap(d['expected']);
+      final r = d['result'] == null ? null : asMap(d['result']);
+      final leave = d['leave'] == null ? null : asMap(d['leave']);
+      final exp = leave != null
+          ? '${leave['label']}'
+          : e['isHoliday'] == true
+          ? '${e['holidayName'] ?? 'Feriado'}'
+          : e['isWorkday'] == true
+          ? (e['start'] != null ? '${e['start']}–${e['end']}' : hhmm(e['expectedMinutes']))
+          : 'folga';
+      final punches = asList(d['punches']).map((p) => '${p['time']}${p['status'] == 'INCLUDED' ? ' (I)' : ''}${'${p['status']}'.contains('DISREGARD') ? ' (D)' : ''}').join(' ');
+      final flags = [
+        for (final f in (r?['flags'] as List? ?? const []))
+          if (f != 'WITHIN_TOLERANCE') flagLabel[f] ?? '$f',
+      ].join(', ');
+      final worked = r != null && (r['workedMinutes'] as num? ?? 0) > 0 ? hhmm(r['workedMinutes']) : '';
+      final bal = (r?['balanceMinutes'] as num? ?? 0) != 0 ? hhmm(r!['balanceMinutes'], signed: true) : '';
+      b.write(
+        '<tr><td>${dm('${d['date']}')} ${wdShort[weekdayOf('${d['date']}')]}</td><td>${esc(exp)}</td><td>${esc(punches)}</td><td class="n">$worked</td><td class="n">$bal</td><td>${esc(flags)}</td></tr>',
+      );
+    }
+    b
+      ..write('</tbody></table><p style="font-size:10px;color:#555;margin-top:8px">(I) marcação incluída · (D) marcação desconsiderada. A marcação original nunca é alterada.</p>')
+      ..write(footerText.isEmpty ? '' : '<p style="font-size:11px;margin-top:10px">${esc(footerText)}</p>')
+      ..write('<div class="sig"><div>Funcionário</div><div>Empregador</div></div><script>window.onload=()=>window.print()</script></body></html>');
+    return b.toString();
   }
 
   Future<void> _open(BuildContext context, Map<String, dynamic> d) async {

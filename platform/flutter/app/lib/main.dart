@@ -50,6 +50,7 @@ final router = GoRouter(
     }
     if (!api.signedIn && !isPublic) return '/login${loc == '/' ? '' : '?next=${Uri.encodeComponent(state.uri.toString())}'}';
     if (api.signedIn && loc == '/login') return '/';
+    if (api.signedIn && api.me!.mustChangePassword && loc != '/minha-conta') return '/minha-conta';
     return null;
   },
   routes: [

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
@@ -15,3 +16,6 @@ Future<String> saveBytes(Uint8List bytes, String name, {String mime = 'applicati
   await file.writeAsBytes(bytes, flush: true);
   return file.path;
 }
+
+/// Grava o HTML para impressão (abra no navegador e imprima/salve em PDF).
+Future<String> printHtml(String html, String name) => saveBytes(Uint8List.fromList(utf8.encode(html)), name, mime: 'text/html');
