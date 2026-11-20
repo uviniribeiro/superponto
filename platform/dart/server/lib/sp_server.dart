@@ -10,6 +10,7 @@ import 'src/modules/dashboard.dart';
 import 'src/modules/devices.dart';
 import 'src/modules/health.dart';
 import 'src/modules/holidays.dart';
+import 'src/modules/ldap_config.dart';
 import 'src/modules/lookup.dart';
 import 'src/modules/payroll.dart';
 import 'src/modules/people.dart';
@@ -36,6 +37,9 @@ App buildApp(AppConfig config) {
   platformTenantsRoutes(app, support);
   plansRoutes(app);
   UsersModule(app).routes();
+  final ldap = LdapService(allowPrivateHosts: config.ldapAllowPrivateHosts, secretsKey: config.secretsEncryptionKey);
+  app.credentials.ldap = ldap;
+  ldapConfigRoutes(app, ldap);
   structureRoutes(app);
   PeopleModule(app).routes();
   final holidays = HolidaysService(app)..routes();
