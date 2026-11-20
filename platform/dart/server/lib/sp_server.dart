@@ -13,6 +13,7 @@ import 'src/modules/holidays.dart';
 import 'src/modules/lookup.dart';
 import 'src/modules/payroll.dart';
 import 'src/modules/people.dart';
+import 'src/modules/plans.dart';
 import 'src/modules/platform_tenants.dart';
 import 'src/modules/reports.dart';
 import 'src/modules/schedules.dart';
@@ -32,6 +33,7 @@ App buildApp(AppConfig config) {
   authRoutes(app);
   companiesRoutes(app);
   platformTenantsRoutes(app, support);
+  plansRoutes(app);
   UsersModule(app).routes();
   structureRoutes(app);
   PeopleModule(app).routes();
