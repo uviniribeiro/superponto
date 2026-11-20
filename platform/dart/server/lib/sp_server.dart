@@ -11,6 +11,7 @@ import 'src/modules/devices.dart';
 import 'src/modules/health.dart';
 import 'src/modules/holidays.dart';
 import 'src/modules/lookup.dart';
+import 'src/modules/payroll.dart';
 import 'src/modules/people.dart';
 import 'src/modules/platform_tenants.dart';
 import 'src/modules/reports.dart';
@@ -39,7 +40,8 @@ App buildApp(AppConfig config) {
   dashboardRoutes(app, holidays);
   final schedules = SchedulesModule(app, holidays)..routes();
   final timesheet = TimesheetModule(app, schedules)..routes();
-  ReportsModule(app, timesheet.core0, holidays).routes();
+  final reports = ReportsModule(app, timesheet.core0, holidays)..routes();
+  PayrollModule(app, reports).routes();
   final tools = ToolsModule(app, timesheet)..routes();
   final devices = DevicesModule(app)..routes();
   if (config.testHooks) _testHooks(app, support, holidays, lookup, devices, tools);
