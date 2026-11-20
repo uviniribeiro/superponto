@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:sp_server/sp_server.dart';
+import 'package:sp_server/src/web_static.dart';
 
 Future<void> main() async {
   final AppConfig config;
@@ -13,7 +14,9 @@ Future<void> main() async {
     exit(1);
   }
   final app = buildApp(config);
-  final server = await io.serve(app.handler, InternetAddress.anyIPv4, config.port);
+  final webDir = Platform.environment['WEB_DIR'];
+  final handler = webDir == null || webDir.isEmpty ? app.handler : webStatic(webDir, app.handler);
+  final server = await io.serve(handler, InternetAddress.anyIPv4, config.port);
   server.autoCompress = true;
   stdout.writeln('SuperPonto API (Dart) em ${config.apiUrl} — porta ${server.port}');
   late final StreamSubscription<ProcessSignal> a, b;
