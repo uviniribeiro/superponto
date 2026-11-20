@@ -4,5 +4,6 @@ environment:
   sdk: ^3.14.0
 workspace:
   - packages/sp_core
+  - server
 dev_dependencies:
   lints: ^6.0.0

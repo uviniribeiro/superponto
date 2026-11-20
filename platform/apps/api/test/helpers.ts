@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { existsSync, readFileSync } from 'node:fs';
 import { createAppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
 import { loadConfig, type AppConfig } from '../src/config.js';
@@ -25,7 +26,33 @@ export function testConfig(): AppConfig {
   } as NodeJS.ProcessEnv);
 }
 
+/**
+ * API_TARGET=dart: os mesmos testes rodam contra o servidor Dart (iniciado no global-setup).
+ * O "app" vira um endereço HTTP e a caixa de e-mail é lida do arquivo que o servidor grava.
+ */
+export const dartTarget = process.env.API_TARGET === 'dart';
+export const dartUrl = process.env.DART_API_URL ?? 'http://127.0.0.1:3999';
+export const dartOutbox = process.env.DART_MAIL_OUTBOX ?? '';
+
+function dartMail(): MailService {
+  return {
+    get outbox() {
+      if (!dartOutbox || !existsSync(dartOutbox)) return [];
+      return readFileSync(dartOutbox, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    },
+  } as unknown as MailService;
+}
+
+function dartApp(): INestApplication {
+  return {
+    getHttpServer: () => dartUrl,
+    close: async () => undefined,
+    get: () => { throw new Error('app.get() não existe no alvo Dart: use a rota de teste correspondente'); },
+  } as unknown as INestApplication;
+}
+
 export async function createApp(opts: { fetch?: typeof fetch } = {}): Promise<{ app: INestApplication; mail: MailService }> {
+  if (dartTarget) return { app: dartApp(), mail: dartMail() };
   const config = testConfig();
   const builder = Test.createTestingModule({ imports: [createAppModule(config)] });
   // Testes nunca acessam serviços externos: a consulta de CEP/CNPJ usa um fetch falso.
@@ -59,4 +86,4 @@ export async function waitFor<T>(fn: () => T | undefined, timeoutMs = 5000): Pro
   }
 }
 
-export const api = (app: INestApplication) => request(app.getHttpServer());
+export const api = (app: INestApplication) => request(app.getHttpServer() as Parameters<typeof request>[0]);
