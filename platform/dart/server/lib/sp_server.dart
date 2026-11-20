@@ -7,6 +7,7 @@ import 'src/http.dart';
 import 'src/modules/auth_routes.dart';
 import 'src/modules/companies.dart';
 import 'src/modules/dashboard.dart';
+import 'src/modules/devices.dart';
 import 'src/modules/health.dart';
 import 'src/modules/holidays.dart';
 import 'src/modules/lookup.dart';
@@ -36,7 +37,8 @@ App buildApp(AppConfig config) {
   dashboardRoutes(app, holidays);
   final schedules = SchedulesModule(app, holidays)..routes();
   TimesheetModule(app, schedules).routes();
-  if (config.testHooks) _testHooks(app, support, holidays, lookup);
+  final devices = DevicesModule(app)..routes();
+  if (config.testHooks) _testHooks(app, support, holidays, lookup, devices);
   app.router.sort();
   if (!config.testHooks) {
     support.backfill().catchError((Object e) => 0);
@@ -45,7 +47,7 @@ App buildApp(AppConfig config) {
 }
 
 /// Somente NODE_ENV=test: deixa os testes de contrato esperarem tarefas de fundo.
-void _testHooks(App app, SupportProvisioning support, HolidaysService holidays, LookupService lookup) {
+void _testHooks(App app, SupportProvisioning support, HolidaysService holidays, LookupService lookup, DevicesModule devices) {
   app.router.post('/__test/drain', access: Access.public, status: 200, (ctx) async {
     await app.passwordReset.drain();
     return {'ok': true};
@@ -57,5 +59,6 @@ void _testHooks(App app, SupportProvisioning support, HolidaysService holidays, 
     lookup.useStub(ctx.json['url']! as String);
     return {'ok': true};
   });
+  app.router.post('/__test/device-check-offline', access: Access.public, status: 200, (ctx) async => {'offline': await devices.checkOffline()});
   app.router.post('/__test/support-backfill', access: Access.public, status: 200, (ctx) async => {'created': await support.backfill()});
 }

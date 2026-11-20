@@ -6,7 +6,7 @@ import { createPrismaClient } from '@superponto/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DeviceMonitor } from '../src/devices/registry.js';
 import type { MailService } from '../src/mail/mail.service.js';
-import { api, createApp, ownerUrl } from './helpers.js';
+import { api, createApp, hook, ownerUrl } from './helpers.js';
 
 const PASSWORD = 'Senha-Muito-Forte-2026';
 const owner = createPrismaClient(ownerUrl);
@@ -157,10 +157,10 @@ describe('Equipamentos: cadastro, agente local, alertas, AFD e AEJ', () => {
   it('alertas: sem comunicação vira OFFLINE e avisa por e-mail; ao voltar, avisa de novo', async () => {
     await owner.$transaction(async (tx) => { await tx.$queryRaw`SELECT set_config('app.bypass_rls', 'on', true)`; await tx.device.update({ where: { id: ids.dev! }, data: { lastSeenAt: new Date(Date.now() - 2 * 3600_000) } }); });
     const before = mail.outbox.length;
-    expect(await app.get(DeviceMonitor).checkOffline()).toBeGreaterThanOrEqual(1);
+    expect(await hook('device-check-offline', () => app.get(DeviceMonitor).checkOffline(), (b) => b.offline as number)).toBeGreaterThanOrEqual(1);
     expect((await api(app).get(`/v1/devices/${ids.dev}`).set(as('admin')).expect(200)).body.status).toBe('OFFLINE');
     expect(mail.outbox.slice(before).find((m) => m.to === 'ti@clinica.test')?.subject).toMatch(/sem comunicação/);
-    expect(await app.get(DeviceMonitor).checkOffline()).toBe(0); // um alerta por queda
+    expect(await hook('device-check-offline', () => app.get(DeviceMonitor).checkOffline(), (b) => b.offline as number)).toBe(0); // um alerta por queda
     await api(app).post('/v1/agent/heartbeat').set(agent()).send({}).expect(200);
     expect(mail.outbox.slice(before).some((m) => /voltou/.test(m.subject))).toBe(true);
     const st = await api(app).get(`/v1/devices/${ids.dev}/stats?days=7`).set(as('admin')).expect(200);
