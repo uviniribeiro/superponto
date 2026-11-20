@@ -79,3 +79,20 @@ jobs:
         run: npm run build -w @superponto/api
       - name: Build do site (Next.js)
         run: npm run build -w @superponto/web
+
+  dart-core:
+    name: Dart (regras, motor de jornada e protocolos)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/dart
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.14.0
+      - run: dart pub get
+      - run: dart analyze --fatal-infos
+      - name: Testes (inclui paridade com o motor TypeScript)
+        working-directory: platform/dart/packages/sp_core
+        run: dart test
