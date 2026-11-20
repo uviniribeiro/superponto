@@ -10,6 +10,7 @@ import 'src/modules/dashboard.dart';
 import 'src/modules/health.dart';
 import 'src/modules/holidays.dart';
 import 'src/modules/lookup.dart';
+import 'src/modules/people.dart';
 import 'src/modules/platform_tenants.dart';
 import 'src/modules/structure.dart';
 import 'src/modules/users.dart';
@@ -27,6 +28,7 @@ App buildApp(AppConfig config) {
   platformTenantsRoutes(app, support);
   UsersModule(app).routes();
   structureRoutes(app);
+  PeopleModule(app).routes();
   final holidays = HolidaysService(app)..routes();
   final lookup = LookupService()..routes(app);
   dashboardRoutes(app, holidays);

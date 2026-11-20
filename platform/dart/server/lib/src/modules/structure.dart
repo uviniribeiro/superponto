@@ -12,7 +12,7 @@ class Catalog {
   const Catalog({
     required this.path, required this.table, required this.entity, required this.label, required this.gender, required this.read,
     required this.manage, required this.create, required this.update, required this.searchFields, required this.orderBy,
-    this.companyScoped = false, this.usageColumn,
+    this.companyScoped = false, this.usageColumn, this.usageSql,
   });
   final String path, table, entity, label, gender, read, manage, orderBy;
   final Obj create, update;
@@ -20,6 +20,8 @@ class Catalog {
   final bool companyScoped;
   /// coluna do vínculo que usa o registro (bloqueia a exclusão)
   final String? usageColumn;
+  /// contagem própria de uso (parâmetro @id)
+  final String? usageSql;
 }
 
 final _name = const Str(trim: true, min: 3, max: 120, message: 'Mínimo de 3 caracteres');
@@ -100,6 +102,9 @@ final catalogs = <Catalog>[
       companyScoped: true,
       create: _unit.check((v) => v.containsKey('latitude') == v.containsKey('longitude'), 'Informe latitude e longitude juntas', path: ['longitude']),
       update: _unit.omit(['companyId']).partial, searchFields: ['name', 'code'], orderBy: 'name ASC', usageColumn: 'unit_id'),
+  Catalog(path: 'groupings', table: 'groupings', entity: 'grouping', label: 'Agrupamento', gender: 'o', read: 'org.groupings:read', manage: 'org.groupings:manage',
+      create: _simple, update: _simple.partial, searchFields: ['name', 'code'], orderBy: 'name ASC',
+      usageSql: 'SELECT count(*)::int FROM grouping_employments WHERE grouping_id = @id'),
 ];
 
 final _department = Obj({
@@ -133,7 +138,9 @@ void structureRoutes(App app) {
 
   for (final c in catalogs) {
     HttpError conflictErr() => conflict('Já existe ${c.gender == 'a' ? 'uma' : 'um'} ${c.label.toLowerCase()} com este nome ou código');
-    Future<int> usage(Tx tx, String id) async => c.usageColumn == null
+    Future<int> usage(Tx tx, String id) async => c.usageSql != null
+        ? await tx.scalar<int>(c.usageSql!, {'id': id}) ?? 0
+        : c.usageColumn == null
         ? 0
         : await tx.scalar<int>("SELECT count(*)::int FROM employment_relationships WHERE ${c.usageColumn} = @id AND deleted_at IS NULL AND status = 'ACTIVE'", {'id': id}) ?? 0;
     Future<Row> one(Tx tx, String id) async {
@@ -164,7 +171,7 @@ void structureRoutes(App app) {
           final data = await tx.query('SELECT * FROM ${c.table} WHERE $w ORDER BY ${c.orderBy} LIMIT $size OFFSET ${(page - 1) * size}', p);
           final total = await tx.scalar<int>('SELECT count(*)::int FROM ${c.table} WHERE $w', p);
           return {
-            'data': c.usageColumn == null ? data : [for (final row in data) {...row, 'inUse': await usage(tx, row['id']! as String)}],
+            'data': c.usageColumn == null && c.usageSql == null ? data : [for (final row in data) {...row, 'inUse': await usage(tx, row['id']! as String)}],
             'page': page, 'pageSize': size, 'total': total,
           };
         });
