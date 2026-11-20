@@ -46,8 +46,11 @@ class TokenService {
     return token;
   }
 
-  Map<String, Object?> _pair(String refresh, String userId, Map<String, Object?>? claims) =>
-      {'accessToken': signer.sign({...?claims, 'sub': userId}), 'refreshToken': refresh, 'expiresIn': signer.ttlSeconds};
+  Map<String, Object?> _pair(String refresh, String userId, Map<String, Object?>? claims) => {
+    'accessToken': signer.sign({...?claims, 'sub': userId}),
+    'refreshToken': refresh,
+    'expiresIn': signer.ttlSeconds,
+  };
 
   static HttpError _refusal(String reason) => HttpError(401, 'Refresh token $reason');
 
@@ -88,7 +91,7 @@ class TokenService {
 
   /// Revoga todos os refresh tokens e sessões do usuário (troca ou redefinição de senha).
   Future<void> revokeAll(String userId) => db.plain((tx) async {
-        await tx.execute('UPDATE auth_refresh_tokens SET revoked = true WHERE user_id = @u', {'u': userId});
-        await tx.execute('DELETE FROM auth_sessions WHERE user_id = @u', {'u': userId});
-      });
+    await tx.execute('UPDATE auth_refresh_tokens SET revoked = true WHERE user_id = @u', {'u': userId});
+    await tx.execute('DELETE FROM auth_sessions WHERE user_id = @u', {'u': userId});
+  });
 }

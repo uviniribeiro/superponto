@@ -39,8 +39,9 @@ class SupportProvisioning {
 
   /// Clientes antigos sem usuário de suporte recebem um na subida do servidor.
   Future<int> backfill() async {
-    final tenants = await app.db.asPlatform((tx) => tx.query(
-        'SELECT id, slug FROM tenants t WHERE deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM users u WHERE u.tenant_id = t.id AND u.is_support AND u.deleted_at IS NULL)'));
+    final tenants = await app.db.asPlatform(
+      (tx) => tx.query('SELECT id, slug FROM tenants t WHERE deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM users u WHERE u.tenant_id = t.id AND u.is_support AND u.deleted_at IS NULL)'),
+    );
     var created = 0;
     for (final t in tenants) {
       final r = await app.db.asPlatform((tx) => ensureInTx(tx, t['id']! as String, t['slug']! as String));
@@ -65,7 +66,8 @@ void platformTenantsRoutes(App app, SupportProvisioning support) {
         final page = q['page']! as int, size = q['pageSize']! as int;
         return {
           'data': await tx.query('SELECT * FROM tenants WHERE $w ORDER BY name ASC LIMIT $size OFFSET ${(page - 1) * size}', p),
-          'page': page, 'pageSize': size,
+          'page': page,
+          'pageSize': size,
           'total': await tx.scalar<int>('SELECT count(*)::int FROM tenants WHERE $w', p),
         };
       });
@@ -84,8 +86,16 @@ void platformTenantsRoutes(App app, SupportProvisioning support) {
         final user = await tx.insert('users', {'tenantId': tenant['id'], 'email': adminEmail, 'displayName': admin['displayName']});
         await tx.insert('user_roles', {'userId': user['id'], 'roleId': roleId, 'tenantId': tenant['id'], 'scope': 'TENANT'}, updatedAt: false);
         final s = await support.ensureInTx(tx, tenant['id']! as String, tenant['slug']! as String);
-        await app.audit.record(tx, tenantId: tenant['id'] as String?, actorUserId: ctx.user.id, action: 'CREATE', entity: 'tenant',
-            entityId: tenant['id'] as String?, after: {'tenant': tenant, 'adminEmail': adminEmail}, meta: ctx.meta);
+        await app.audit.record(
+          tx,
+          tenantId: tenant['id'] as String?,
+          actorUserId: ctx.user.id,
+          action: 'CREATE',
+          entity: 'tenant',
+          entityId: tenant['id'] as String?,
+          after: {'tenant': tenant, 'adminEmail': adminEmail},
+          meta: ctx.meta,
+        );
         return {'tenant': tenant, 'adminId': user['id'], 'supportEmail': s.email};
       });
       app.passwordReset.request(adminEmail);

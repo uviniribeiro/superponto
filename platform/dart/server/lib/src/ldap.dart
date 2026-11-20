@@ -7,6 +7,7 @@ import 'dart:typed_data';
 
 class LdapError implements Exception {
   LdapError(this.code, this.message);
+
   /// código de resultado LDAP (49 = credenciais inválidas, 32 = objeto inexistente...) ou -1 (rede/protocolo)
   final int code;
   final String message;
@@ -139,12 +140,21 @@ List<int> encodeFilter(String f) {
         final subs = <List<int>>[];
         for (var i = 0; i < parts.length; i++) {
           if (parts[i].isEmpty) continue;
-          final tag = i == 0 ? 0x80 : i == parts.length - 1 ? 0x82 : 0x81;
+          final tag = i == 0
+              ? 0x80
+              : i == parts.length - 1
+              ? 0x82
+              : 0x81;
           subs.add(_str(tag, _unescape(parts[i])));
         }
         out = _seq(0xa4, [_str(0x04, attr), _seq(0x30, subs)]);
       } else {
-        final tag = switch (op) { '~=' => 0xa8, '>=' => 0xa5, '<=' => 0xa6, _ => 0xa3 };
+        final tag = switch (op) {
+          '~=' => 0xa8,
+          '>=' => 0xa5,
+          '<=' => 0xa6,
+          _ => 0xa3,
+        };
         out = _seq(tag, [_str(0x04, attr), _str(0x04, _unescape(val))]);
       }
     }
@@ -195,28 +205,33 @@ class LdapClient {
   }
 
   void _listen() {
-    _sub = _socket.listen((data) {
-      _buf.add(data);
-      var bytes = _buf.takeBytes();
-      var i = 0;
-      while (true) {
-        final r = _readTlv(bytes, i);
-        if (r == null) break;
-        i = r.$2;
-        final msg = r.$1.children;
-        if (msg.length < 2) continue;
-        final id = msg[0].asInt, op = msg[1];
-        final w = _waiting[id];
-        if (w == null) continue;
-        w.$2.add(op);
-        if (w.$3.contains(op.tag)) {
-          _waiting.remove(id);
-          w.$1.complete(w.$2);
+    _sub = _socket.listen(
+      (data) {
+        _buf.add(data);
+        var bytes = _buf.takeBytes();
+        var i = 0;
+        while (true) {
+          final r = _readTlv(bytes, i);
+          if (r == null) break;
+          i = r.$2;
+          final msg = r.$1.children;
+          if (msg.length < 2) continue;
+          final id = msg[0].asInt, op = msg[1];
+          final w = _waiting[id];
+          if (w == null) continue;
+          w.$2.add(op);
+          if (w.$3.contains(op.tag)) {
+            _waiting.remove(id);
+            w.$1.complete(w.$2);
+          }
         }
-      }
-      if (i < bytes.length) _buf.add(Uint8List.sublistView(bytes, i));
-      bytes = Uint8List(0);
-    }, onError: (Object e) => _fail(e), onDone: () => _fail(LdapError(-1, 'Conexão encerrada pelo servidor')), cancelOnError: true);
+        if (i < bytes.length) _buf.add(Uint8List.sublistView(bytes, i));
+        bytes = Uint8List(0);
+      },
+      onError: (Object e) => _fail(e),
+      onDone: () => _fail(LdapError(-1, 'Conexão encerrada pelo servidor')),
+      cancelOnError: true,
+    );
   }
 
   void _fail(Object e) {
@@ -233,10 +248,13 @@ class LdapClient {
     final c = Completer<List<_Ber>>();
     _waiting[id] = (c, <_Ber>[], doneTags);
     _socket.add(_seq(0x30, [_int(0x02, id), op]));
-    return c.future.timeout(_timeout, onTimeout: () {
-      _waiting.remove(id);
-      throw LdapError(-1, 'Tempo esgotado esperando o servidor LDAP');
-    });
+    return c.future.timeout(
+      _timeout,
+      onTimeout: () {
+        _waiting.remove(id);
+        throw LdapError(-1, 'Tempo esgotado esperando o servidor LDAP');
+      },
+    );
   }
 
   static void _check(_Ber result) {
@@ -263,21 +281,37 @@ class LdapClient {
   Future<List<String>> search(String base, String filter, {int sizeLimit = 2, List<String> attributes = const ['dn']}) async {
     final f = encodeFilter(filter);
     final req = _seq(0x63, [
-      _str(0x04, base), _int(0x0a, 2), _int(0x0a, 0), _int(0x02, sizeLimit), _int(0x02, _timeout.inSeconds.clamp(1, 3600)), _tlv(0x01, [0]), f,
+      _str(0x04, base),
+      _int(0x0a, 2),
+      _int(0x0a, 0),
+      _int(0x02, sizeLimit),
+      _int(0x02, _timeout.inSeconds.clamp(1, 3600)),
+      _tlv(0x01, [0]),
+      f,
       _seq(0x30, [for (final a in attributes) _str(0x04, a)]),
     ]);
     final res = await _send(req, {0x65});
     _check(res.last);
-    return [for (final r in res) if (r.tag == 0x64) r.children.first.asString];
+    return [
+      for (final r in res)
+        if (r.tag == 0x64) r.children.first.asString,
+    ];
   }
 
   Future<void> close() async {
     try {
       if (_closedWith == null) {
-        _socket.add(_seq(0x30, [_int(0x02, ++_id), [0x42, 0x00]]));
+        _socket.add(
+          _seq(0x30, [
+            _int(0x02, ++_id),
+            [0x42, 0x00],
+          ]),
+        );
         await _socket.flush().timeout(const Duration(seconds: 1));
       }
-    } catch (_) {/* já fechado */}
+    } catch (_) {
+      /* já fechado */
+    }
     await _sub?.cancel();
     _socket.destroy();
   }

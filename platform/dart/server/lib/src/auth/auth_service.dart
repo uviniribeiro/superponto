@@ -97,9 +97,11 @@ class PasswordResetService {
     final requested = normalizeEmail(email);
     if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(requested) || requested.length > 320) return;
     late final Future<void> work;
-    work = Future<void>(() => _issue(requested)).catchError((Object e, StackTrace s) {
-      stderr.writeln('Falha ao enviar redefinição de senha: $e');
-    }).whenComplete(() => _inFlight.remove(work));
+    work = Future<void>(() => _issue(requested))
+        .catchError((Object e, StackTrace s) {
+          stderr.writeln('Falha ao enviar redefinição de senha: $e');
+        })
+        .whenComplete(() => _inFlight.remove(work));
     _inFlight.add(work);
   }
 
@@ -119,30 +121,36 @@ class PasswordResetService {
     final now = DateTime.now();
     final expiresAt = now.add(_ttl);
     await db.plain((tx) async {
-      await tx.execute(
-        'INSERT INTO auth_email_tokens (id, purpose, user_id, email, fingerprint, created_at, expires_at) VALUES (@id, @p, @u, @e, @f, @c, @x)',
-        {'id': sha256B64url(token), 'p': 'password-reset', 'u': account.id, 'e': account.email, 'f': passwordFingerprint(account.hash), 'c': now, 'x': expiresAt},
-      );
+      await tx.execute('INSERT INTO auth_email_tokens (id, purpose, user_id, email, fingerprint, created_at, expires_at) VALUES (@id, @p, @u, @e, @f, @c, @x)', {
+        'id': sha256B64url(token),
+        'p': 'password-reset',
+        'u': account.id,
+        'e': account.email,
+        'f': passwordFingerprint(account.hash),
+        'c': now,
+        'x': expiresAt,
+      });
       await tx.execute('DELETE FROM auth_email_tokens WHERE expires_at <= @n', {'n': now});
     });
     final url = Uri.parse('$appUrl/reset-password').replace(queryParameters: {'token': token}).toString();
-    await mail.send(OutgoingMail(
-      to: account.email,
-      subject: 'SuperPonto — redefinição de senha',
-      text: 'Recebemos um pedido para redefinir sua senha.\n\nAbra o link (válido uma vez, por 1 hora):\n$url\n\nSe não foi você, ignore este e-mail: sua senha continua a mesma.',
-      html: '<p>Recebemos um pedido para redefinir sua senha do SuperPonto.</p><p><a href="${escapeHtml(url)}">Definir nova senha</a></p><p>O link funciona uma vez, por 1 hora. Se não foi você, ignore este e-mail.</p>',
-    ));
+    await mail.send(
+      OutgoingMail(
+        to: account.email,
+        subject: 'SuperPonto — redefinição de senha',
+        text: 'Recebemos um pedido para redefinir sua senha.\n\nAbra o link (válido uma vez, por 1 hora):\n$url\n\nSe não foi você, ignore este e-mail: sua senha continua a mesma.',
+        html:
+            '<p>Recebemos um pedido para redefinir sua senha do SuperPonto.</p><p><a href="${escapeHtml(url)}">Definir nova senha</a></p><p>O link funciona uma vez, por 1 hora. Se não foi você, ignore este e-mail.</p>',
+      ),
+    );
   }
 
   /// true se a senha foi trocada. O link vale uma vez, por 1 hora, enquanto e-mail e senha não mudarem.
   Future<bool> reset(String token, String password) async {
     if (!tokenPattern.hasMatch(token) || !isHashablePassword(password)) return false;
-    final record = await db.plain((tx) => tx.one(
-        'DELETE FROM auth_email_tokens WHERE id = @id AND purpose = @p RETURNING *', {'id': sha256B64url(token), 'p': 'password-reset'}));
+    final record = await db.plain((tx) => tx.one('DELETE FROM auth_email_tokens WHERE id = @id AND purpose = @p RETURNING *', {'id': sha256B64url(token), 'p': 'password-reset'}));
     if (record == null || !DateTime.now().isBefore(record['expiresAt']! as DateTime)) return false;
     final account = await _findUser(normalizeEmail(record['email']! as String));
-    if (account == null || account.id != record['userId'] || account.email != record['email'] ||
-        !safeEqual(passwordFingerprint(account.hash), record['fingerprint'] as String? ?? '')) {
+    if (account == null || account.id != record['userId'] || account.email != record['email'] || !safeEqual(passwordFingerprint(account.hash), record['fingerprint'] as String? ?? '')) {
       return false;
     }
     final hash = await hasher.hash(password);

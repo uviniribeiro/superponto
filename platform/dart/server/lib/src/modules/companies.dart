@@ -26,13 +26,11 @@ final companyInput = Obj({
   'ibgeCode': Str(trim: true, pattern: RegExp(r'^\d{7}$'), patternMessage: 'Código IBGE inválido').optional,
   'phone': const Str(trim: true, digitsOnly: true, min: 10, max: 11).optional,
   'email': email.optional,
-  'stateRegistration': const Str(trim: true, upper: true)
-      .map((v) => v == 'ISENTO' ? v : (v as String).replaceAll(RegExp('[^0-9A-Z]'), ''))
-      .refine((v) => RegExp(r'^(ISENTO|[0-9A-Z]{2,18})$').hasMatch(v as String), 'Inscrição estadual inválida')
-      .optional,
-  'cno': const Str(trim: true, digitsOnly: true)
-      .refine((v) => RegExp(r'^\d{12,14}$').hasMatch(v as String), 'CEI/CNO deve ter de 12 a 14 dígitos')
-      .optional,
+  'stateRegistration': const Str(
+    trim: true,
+    upper: true,
+  ).map((v) => v == 'ISENTO' ? v : (v as String).replaceAll(RegExp('[^0-9A-Z]'), '')).refine((v) => RegExp(r'^(ISENTO|[0-9A-Z]{2,18})$').hasMatch(v as String), 'Inscrição estadual inválida').optional,
+  'cno': const Str(trim: true, digitsOnly: true).refine((v) => RegExp(r'^\d{12,14}$').hasMatch(v as String), 'CEI/CNO deve ter de 12 a 14 dígitos').optional,
   'externalCode': const Str(trim: true, max: 30).optional,
 });
 final companyUpdate = companyInput.partial;
@@ -43,7 +41,10 @@ List<String>? companyFilter(AuthUser user, String permission) {
   if (user.isPlatformAdmin) return null;
   final grants = user.grants.where((g) => g.permission == permission);
   if (grants.any((g) => g.scope == 'TENANT' || g.scope == 'PLATFORM')) return null;
-  return [for (final g in grants) if (g.scope == 'COMPANY' && g.companyId != null) g.companyId!];
+  return [
+    for (final g in grants)
+      if (g.scope == 'COMPANY' && g.companyId != null) g.companyId!,
+  ];
 }
 
 /// Tipo real da imagem pelos primeiros bytes.
@@ -130,9 +131,7 @@ void companiesRoutes(App app) {
       final allowed = companyFilter(ctx.user, 'org.companies:read');
       return db.forTenant(ctx.tenant, (tx) async {
         if (allowed != null && !allowed.contains(id)) throw notFound('Logo não encontrado');
-        final logo = await tx.one(
-            'SELECT l.mime, l.data, l.updated_at FROM company_logos l JOIN companies c ON c.id = l.company_id AND c.deleted_at IS NULL WHERE l.company_id = @id',
-            {'id': id});
+        final logo = await tx.one('SELECT l.mime, l.data, l.updated_at FROM company_logos l JOIN companies c ON c.id = l.company_id AND c.deleted_at IS NULL WHERE l.company_id = @id', {'id': id});
         if (logo == null) throw notFound('Logo não encontrado');
         return {'dataUrl': 'data:${logo['mime']};base64,${base64.encode(logo['data']! as List<int>)}', 'updatedAt': logo['updatedAt']};
       });
@@ -161,8 +160,18 @@ void companiesRoutes(App app) {
           {'id': id, 't': tenantId, 'm': mime, 'd': data},
         );
         final updated = await tx.update('companies', id, {'logoUpdatedAt': DateTime.now()});
-        await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'UPDATE', entity: 'company', entityId: id,
-            after: {'logo': {'mime': mime, 'bytes': data.length}}, meta: ctx.meta);
+        await app.audit.record(
+          tx,
+          tenantId: tenantId,
+          actorUserId: ctx.user.id,
+          action: 'UPDATE',
+          entity: 'company',
+          entityId: id,
+          after: {
+            'logo': {'mime': mime, 'bytes': data.length},
+          },
+          meta: ctx.meta,
+        );
         return {'logoUpdatedAt': updated!['logoUpdatedAt']};
       });
     });
@@ -186,8 +195,7 @@ void companiesRoutes(App app) {
       final tenantId = ctx.tenant;
       return db.forTenant(tenantId, (tx) async {
         final before = await findCompany(tx, id, companyFilter(ctx.user, 'org.companies:delete'));
-        final active = await tx.scalar<int>(
-            "SELECT count(*)::int FROM employment_relationships WHERE company_id = @id AND status <> 'TERMINATED' AND deleted_at IS NULL", {'id': id}) ?? 0;
+        final active = await tx.scalar<int>("SELECT count(*)::int FROM employment_relationships WHERE company_id = @id AND status <> 'TERMINATED' AND deleted_at IS NULL", {'id': id}) ?? 0;
         if (active > 0) throw conflict('A empresa tem $active vínculo(s) ativo(s); desligue-os antes de excluir');
         await tx.execute('UPDATE companies SET deleted_at = now(), updated_at = now() WHERE id = @id', {'id': id});
         await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'DELETE', entity: 'company', entityId: id, before: before, meta: ctx.meta);

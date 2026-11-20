@@ -9,14 +9,22 @@ import 'auth/auth_user.dart';
 import 'db.dart';
 
 const _phrases = {
-  400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 409: 'Conflict', 413: 'Payload Too Large',
-  422: 'Unprocessable Entity', 429: 'Too Many Requests', 500: 'Internal Server Error', 502: 'Bad Gateway', 503: 'Service Unavailable',
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  409: 'Conflict',
+  413: 'Payload Too Large',
+  422: 'Unprocessable Entity',
+  429: 'Too Many Requests',
+  500: 'Internal Server Error',
+  502: 'Bad Gateway',
+  503: 'Service Unavailable',
 };
 
 class HttpError implements Exception {
   /// Mensagem simples: corpo `{message, error, statusCode}`.
-  HttpError(this.status, Object message, {Map<String, Object?>? extra})
-      : body = {'message': message, 'error': _phrases[status] ?? 'Error', 'statusCode': status, ...?extra};
+  HttpError(this.status, Object message, {Map<String, Object?>? extra}) : body = {'message': message, 'error': _phrases[status] ?? 'Error', 'statusCode': status, ...?extra};
 
   /// Corpo exato (como `new UnauthorizedException({ ... })` no Nest).
   HttpError.body(this.status, this.body);
@@ -30,8 +38,7 @@ class HttpError implements Exception {
 }
 
 HttpError badRequest(Object message) => HttpError(400, message);
-HttpError unauthorized([String? message]) =>
-    message == null ? HttpError.body(401, {'message': 'Unauthorized', 'statusCode': 401}) : HttpError(401, message);
+HttpError unauthorized([String? message]) => message == null ? HttpError.body(401, {'message': 'Unauthorized', 'statusCode': 401}) : HttpError(401, message);
 HttpError forbidden(String message) => HttpError(403, message);
 HttpError notFound(String message) => HttpError(404, message);
 HttpError conflict(String message) => HttpError(409, message);
@@ -108,11 +115,15 @@ class Route {
   final Access access;
   final String? permission;
   final int? status;
+
   /// limite por minuto e IP desta rota (além do global)
   final int? throttle;
   final String? tag;
   late final RegExp _re = RegExp('^${path.split('/').map((s) => s.startsWith(':') ? '([^/]+)' : RegExp.escape(s)).join('/')}\$');
-  late final List<String> _names = [for (final s in path.split('/')) if (s.startsWith(':')) s.substring(1)];
+  late final List<String> _names = [
+    for (final s in path.split('/'))
+      if (s.startsWith(':')) s.substring(1),
+  ];
   late final int _literalScore = path.split('/').where((s) => !s.startsWith(':')).length;
 
   Map<String, String>? match(String p) {
@@ -153,9 +164,7 @@ class Router {
       add('DELETE', p, h, access: access, permission: permission, status: status, throttle: throttle);
 
   /// Rotas literais antes das com parâmetro (como "/stats" antes de "/:id").
-  void sort() => routes.sort((a, b) => b._literalScore.compareTo(a._literalScore) != 0
-      ? b._literalScore.compareTo(a._literalScore)
-      : b.path.split('/').length.compareTo(a.path.split('/').length));
+  void sort() => routes.sort((a, b) => b._literalScore.compareTo(a._literalScore) != 0 ? b._literalScore.compareTo(a._literalScore) : b.path.split('/').length.compareTo(a.path.split('/').length));
 
   Map<String, Object?> openApi() {
     final paths = <String, Map<String, Object?>>{};
@@ -164,14 +173,23 @@ class Router {
       paths.putIfAbsent(p, () => {})[r.method.toLowerCase()] = {
         if (r.tag != null) 'tags': [r.tag],
         if (r.permission != null) 'description': 'Permissão: ${r.permission}',
-        if (r.access != Access.public) 'security': [{'bearer': <String>[]}],
-        'responses': {'${r.status ?? (r.method == 'POST' ? 201 : 200)}': {'description': 'OK'}},
+        if (r.access != Access.public)
+          'security': [
+            {'bearer': <String>[]},
+          ],
+        'responses': {
+          '${r.status ?? (r.method == 'POST' ? 201 : 200)}': {'description': 'OK'},
+        },
       };
     }
     return {
       'openapi': '3.0.0',
       'info': {'title': 'SuperPonto API', 'description': 'Plataforma de gestão de pessoas, jornadas, ponto e equipamentos', 'version': '2.0.0'},
-      'components': {'securitySchemes': {'bearer': {'type': 'http', 'scheme': 'bearer', 'bearerFormat': 'JWT'}}},
+      'components': {
+        'securitySchemes': {
+          'bearer': {'type': 'http', 'scheme': 'bearer', 'bearerFormat': 'JWT'},
+        },
+      },
       'paths': paths,
     };
   }
@@ -190,11 +208,8 @@ class RateLimiter {
   }
 }
 
-Response jsonResponse(int status, Object? body, {Map<String, String> headers = const {}}) => Response(
-      status,
-      body: body == null ? null : jsonEncode(toJsonValue(body)),
-      headers: {if (body != null) 'content-type': 'application/json; charset=utf-8', ...headers},
-    );
+Response jsonResponse(int status, Object? body, {Map<String, String> headers = const {}}) =>
+    Response(status, body: body == null ? null : jsonEncode(toJsonValue(body)), headers: {if (body != null) 'content-type': 'application/json; charset=utf-8', ...headers});
 
 /// Corpo JSON (até 25 MB, como a API em Node).
 Future<Object?> readJson(Request req) async {

@@ -22,8 +22,8 @@ import 'timesheet_core.dart';
 
 final _hm = Str(pattern: RegExp(r'^([01]\d|2[0-3]):[0-5]\d$'), patternMessage: 'Horário no formato HH:mm');
 int _days(String a, String b) => DateTime.parse('${b}T00:00:00Z').difference(DateTime.parse('${a}T00:00:00Z')).inDays;
-Obj _period(Map<String, S> extra, int max, String message, {String from = 'from', String to = 'to'}) => Obj({from: date, to: date, ...extra})
-    .check((v) => (v[to]! as String).compareTo(v[from]! as String) >= 0 && _days(v[from]! as String, v[to]! as String) <= max - 1, message, path: [to]);
+Obj _period(Map<String, S> extra, int max, String message, {String from = 'from', String to = 'to'}) =>
+    Obj({from: date, to: date, ...extra}).check((v) => (v[to]! as String).compareTo(v[from]! as String) >= 0 && _days(v[from]! as String, v[to]! as String) <= max - 1, message, path: [to]);
 
 final _mirror = _period({'employmentId': uuid}, 63, 'Período de até 63 dias');
 final _periodQ = _period({'employmentId': uuid.optional}, 63, 'Período de até 63 dias');
@@ -36,30 +36,42 @@ final _decide = Obj({'approve': const Bool(), 'comment': const Str(trim: true, m
 final justificationSchema = Obj({
   'code': const Str(trim: true, min: 1, max: 20).optional,
   'name': const Str(trim: true, min: 3, max: 120),
-  'disregardsDebits': const AnyS().map((v) => v == 'true' ? true : v == 'false' ? false : v).refine((v) => v is bool, 'Invalid input').def(true),
+  'disregardsDebits': const AnyS()
+      .map(
+        (v) => v == 'true'
+            ? true
+            : v == 'false'
+            ? false
+            : v,
+      )
+      .refine((v) => v is bool, 'Invalid input')
+      .def(true),
   'usageLimit': const Num(int: true, coerce: true, min: 1, max: 366).nullish,
   'limitPeriod': const Enum(['MONTH', 'YEAR']).def('MONTH'),
   'active': const Bool().optional,
 });
-final _allowance = Obj({
-  'employmentIds': const Arr(uuid, min: 1, max: 500),
-  'from': date, 'to': date,
-  'justificationId': uuid,
-  'fullDay': const Bool().def(true),
-  'minutes': const Num(int: true, min: 1, max: 1440).optional,
-  'onlyWorkdays': const Bool().def(true),
-  'note': const Str(trim: true, max: 300).optional,
-}).superRefine((v, add) {
-  if ((v['to']! as String).compareTo(v['from']! as String) < 0) add('A data final deve ser igual ou posterior à inicial', ['to']);
-  if (_days(v['from']! as String, v['to']! as String) > 92) add('Período máximo de 93 dias por lançamento', ['to']);
-  if (v['fullDay'] != true && v['minutes'] == null) add('Informe os minutos abonados', ['minutes']);
-});
+final _allowance =
+    Obj({
+      'employmentIds': const Arr(uuid, min: 1, max: 500),
+      'from': date,
+      'to': date,
+      'justificationId': uuid,
+      'fullDay': const Bool().def(true),
+      'minutes': const Num(int: true, min: 1, max: 1440).optional,
+      'onlyWorkdays': const Bool().def(true),
+      'note': const Str(trim: true, max: 300).optional,
+    }).superRefine((v, add) {
+      if ((v['to']! as String).compareTo(v['from']! as String) < 0) add('A data final deve ser igual ou posterior à inicial', ['to']);
+      if (_days(v['from']! as String, v['to']! as String) > 92) add('Período máximo de 93 dias por lançamento', ['to']);
+      if (v['fullDay'] != true && v['minutes'] == null) add('Informe os minutos abonados', ['minutes']);
+    });
 const leaveTypes = ['MEDICAL', 'VACATION', 'MATERNITY', 'PATERNITY', 'WORK_ACCIDENT', 'UNPAID', 'SUSPENSION', 'OTHER'];
-final _leave = Obj({
-  'employmentId': uuid, 'type': const Enum(leaveTypes), 'startDate': date, 'endDate': date,
-  'justificationId': uuid.optional, 'note': const Str(trim: true, max: 300).optional,
-}).check((v) => (v['endDate']! as String).compareTo(v['startDate']! as String) >= 0 && _days(v['startDate']! as String, v['endDate']! as String) <= 730,
-    'Período inválido (fim antes do início ou acima de 2 anos)', path: ['endDate']);
+final _leave = Obj({'employmentId': uuid, 'type': const Enum(leaveTypes), 'startDate': date, 'endDate': date, 'justificationId': uuid.optional, 'note': const Str(trim: true, max: 300).optional})
+    .check(
+      (v) => (v['endDate']! as String).compareTo(v['startDate']! as String) >= 0 && _days(v['startDate']! as String, v['endDate']! as String) <= 730,
+      'Período inválido (fim antes do início ou acima de 2 anos)',
+      path: ['endDate'],
+    );
 final _onCall = Obj({'employmentIds': const Arr(uuid, min: 1, max: 200), 'date': date, 'startTime': _hm, 'endTime': _hm, 'note': const Str(trim: true, max: 300).optional})
     .check((v) => v['startTime'] != v['endTime'], 'Início e fim iguais', path: ['endTime']);
 final _listRange = _period({'companyId': uuid.optional, 'employmentId': uuid.optional}, 367, 'Período de até 1 ano');
@@ -91,35 +103,72 @@ final _bankTx = Obj({
   'description': const Str(trim: true, min: 3, max: 300, message: 'Descreva o lançamento'),
 });
 final _bankReset = Obj({
-  'companyId': uuid, 'employmentIds': const Arr(uuid, max: 5000).optional, 'refDate': date,
-  'type': const Enum(['PAYOUT', 'ADJUSTMENT']), 'description': const Str(trim: true, min: 3, max: 300),
+  'companyId': uuid,
+  'employmentIds': const Arr(uuid, max: 5000).optional,
+  'refDate': date,
+  'type': const Enum(['PAYOUT', 'ADJUSTMENT']),
+  'description': const Str(trim: true, min: 3, max: 300),
   'only': const Enum(['POSITIVE', 'NEGATIVE', 'ALL']).def('ALL'),
 });
 const requestTypes = ['RECORD_CORRECTION', 'ABSENCE_JUSTIFICATION', 'SCHEDULE_CHANGE', 'OVERTIME_AUTHORIZATION', 'OTHER'];
 const _typeLabel = {
-  'RECORD_CORRECTION': 'Inclusão de marcação', 'ABSENCE_JUSTIFICATION': 'Justificativa de falta/atraso', 'SCHEDULE_CHANGE': 'Troca de folga',
-  'OVERTIME_AUTHORIZATION': 'Autorização de hora extra', 'OTHER': 'Outro pedido',
+  'RECORD_CORRECTION': 'Inclusão de marcação',
+  'ABSENCE_JUSTIFICATION': 'Justificativa de falta/atraso',
+  'SCHEDULE_CHANGE': 'Troca de folga',
+  'OVERTIME_AUTHORIZATION': 'Autorização de hora extra',
+  'OTHER': 'Outro pedido',
 };
-final _step = Obj({'label': const Str(trim: true, min: 2, max: 60), 'approver': const Enum(['SUPERVISOR', 'ROLE', 'PERMISSION']), 'roleId': uuid.optional})
-    .check((s) => s['approver'] != 'ROLE' || s['roleId'] != null, 'Escolha o perfil que aprova', path: ['roleId']);
+final _step = Obj({
+  'label': const Str(trim: true, min: 2, max: 60),
+  'approver': const Enum(['SUPERVISOR', 'ROLE', 'PERMISSION']),
+  'roleId': uuid.optional,
+}).check((s) => s['approver'] != 'ROLE' || s['roleId'] != null, 'Escolha o perfil que aprova', path: ['roleId']);
 final _flow = Obj({'companyId': uuid, 'requestType': const Enum(requestTypes), 'steps': Arr(_step, min: 1, max: 5), 'isActive': const Bool().def(true)});
 const _reqJust = Str(trim: true, min: 5, max: 500);
 final _requestSchemas = {
-  'RECORD_CORRECTION': Obj({'type': const Literal('RECORD_CORRECTION'), 'employmentId': uuid.optional, 'refDate': date, 'payload': Obj({'time': _hm}), 'justification': _reqJust}),
+  'RECORD_CORRECTION': Obj({
+    'type': const Literal('RECORD_CORRECTION'),
+    'employmentId': uuid.optional,
+    'refDate': date,
+    'payload': Obj({'time': _hm}),
+    'justification': _reqJust,
+  }),
   'ABSENCE_JUSTIFICATION': Obj({
-    'type': const Literal('ABSENCE_JUSTIFICATION'), 'employmentId': uuid.optional, 'refDate': date,
-    'payload': Obj({'justificationId': uuid, 'fullDay': const Bool().def(true), 'minutes': const Num(int: true, min: 1, max: 1440).optional}), 'justification': _reqJust,
+    'type': const Literal('ABSENCE_JUSTIFICATION'),
+    'employmentId': uuid.optional,
+    'refDate': date,
+    'payload': Obj({'justificationId': uuid, 'fullDay': const Bool().def(true), 'minutes': const Num(int: true, min: 1, max: 1440).optional}),
+    'justification': _reqJust,
   }),
-  'SCHEDULE_CHANGE': Obj({'type': const Literal('SCHEDULE_CHANGE'), 'employmentId': uuid.optional, 'refDate': date, 'payload': Obj({'offDate': date}), 'justification': _reqJust}),
+  'SCHEDULE_CHANGE': Obj({
+    'type': const Literal('SCHEDULE_CHANGE'),
+    'employmentId': uuid.optional,
+    'refDate': date,
+    'payload': Obj({'offDate': date}),
+    'justification': _reqJust,
+  }),
   'OVERTIME_AUTHORIZATION': Obj({
-    'type': const Literal('OVERTIME_AUTHORIZATION'), 'employmentId': uuid.optional, 'refDate': date,
-    'payload': Obj({'maxMinutes': const Num(int: true, min: 1, max: 720)}), 'justification': _reqJust,
+    'type': const Literal('OVERTIME_AUTHORIZATION'),
+    'employmentId': uuid.optional,
+    'refDate': date,
+    'payload': Obj({'maxMinutes': const Num(int: true, min: 1, max: 720)}),
+    'justification': _reqJust,
   }),
-  'OTHER': Obj({'type': const Literal('OTHER'), 'employmentId': uuid.optional, 'refDate': date.optional, 'payload': Obj({'subject': const Str(trim: true, min: 3, max: 120)}), 'justification': _reqJust}),
+  'OTHER': Obj({
+    'type': const Literal('OTHER'),
+    'employmentId': uuid.optional,
+    'refDate': date.optional,
+    'payload': Obj({'subject': const Str(trim: true, min: 3, max: 120)}),
+    'justification': _reqJust,
+  }),
 };
-final _requestDecision = Obj({'decision': const Enum(['APPROVED', 'REJECTED']), 'comment': const Str(trim: true, max: 500).optional})
-    .check((v) => v['decision'] == 'APPROVED' || ((v['comment'] as String?)?.length ?? 0) >= 3, 'Explique o motivo da recusa', path: ['comment']);
-const _defaultSteps = [{'label': 'Aprovação', 'approver': 'PERMISSION'}];
+final _requestDecision = Obj({
+  'decision': const Enum(['APPROVED', 'REJECTED']),
+  'comment': const Str(trim: true, max: 500).optional,
+}).check((v) => v['decision'] == 'APPROVED' || ((v['comment'] as String?)?.length ?? 0) >= 3, 'Explique o motivo da recusa', path: ['comment']);
+const _defaultSteps = [
+  {'label': 'Aprovação', 'approver': 'PERMISSION'},
+];
 final _repPSettings = Obj({'companyId': uuid, 'inpiNumber': Str(pattern: RegExp(r'^\d{17}$'), patternMessage: 'Número do INPI com 17 dígitos').nullable});
 final _repPAfd = Obj({'companyId': uuid, 'from': date, 'to': date}).check((v) => (v['to']! as String).compareTo(v['from']! as String) >= 0, 'Período inválido', path: ['to']);
 
@@ -149,8 +198,14 @@ String periodKey(String d, String period) {
         final negative = e.value.fold<int>(0, (s, d) => s + math.min(0, d.balanceMinutes));
         final net = positive + negative;
         return <String, Object?>{
-          'key': e.key, 'from': e.value.first.date, 'to': e.value.last.date, 'positive': positive, 'negative': negative, 'net': net,
-          'toBank': net < 0 || leftover == 'BANK' ? net : 0, 'toPay': net > 0 && leftover == 'PAY' ? net : 0,
+          'key': e.key,
+          'from': e.value.first.date,
+          'to': e.value.last.date,
+          'positive': positive,
+          'negative': negative,
+          'net': net,
+          'toBank': net < 0 || leftover == 'BANK' ? net : 0,
+          'toPay': net > 0 && leftover == 'PAY' ? net : 0,
         };
       }(),
   ];
@@ -223,15 +278,21 @@ class TimesheetModule {
   Future<Map<String, Object?>> mirror(String tenantId, String employmentId, String from, String to) async {
     final e = await _emp(tenantId, employmentId);
     final days = (await core0.compute(tenantId, [e], from, to))[e.id]!;
-    return {'employment': {'id': e.id, 'registration': e.registration, 'name': e.name, 'companyId': e.companyId}, 'from': from, 'to': to, 'days': days, 'summary': core0.summary(days)};
+    return {
+      'employment': {'id': e.id, 'registration': e.registration, 'name': e.name, 'companyId': e.companyId},
+      'from': from,
+      'to': to,
+      'days': days,
+      'summary': core0.summary(days),
+    };
   }
 
   Future<List<Emp>> companyEmployments(Tx tx, String companyId, String from, String to, [List<String>? ids]) => loadEmps(
-        tx,
-        'e.company_id = @c AND e.deleted_at IS NULL AND e.hired_at <= @to AND (e.terminated_at IS NULL OR e.terminated_at >= @from)'
-        '${ids != null && ids.isNotEmpty ? ' AND e.id::text = ANY(@ids)' : ''}',
-        {'c': companyId, 'from': from, 'to': to, 'ids': ids},
-      );
+    tx,
+    'e.company_id = @c AND e.deleted_at IS NULL AND e.hired_at <= @to AND (e.terminated_at IS NULL OR e.terminated_at >= @from)'
+    '${ids != null && ids.isNotEmpty ? ' AND e.id::text = ANY(@ids)' : ''}',
+    {'c': companyId, 'from': from, 'to': to, 'ids': ids},
+  );
 
   // ------------------------------------------------------------------ ajustes
   Future<Row> createAdjustment(String tenantId, AuthUser user, Map<String, Object?> input, Map<String, Object?> meta, [String? requestId]) {
@@ -255,9 +316,17 @@ class TimesheetModule {
       }
       await assertOpenPeriod(tx, [e['companyId']! as String], date, date);
       final a = await tx.insert('time_record_adjustments', {
-        'tenantId': tenantId, 'employmentId': e['id'], 'kind': input['kind'], 'timeRecordId': input['kind'] == 'DISREGARD' ? input['timeRecordId'] : null,
-        'recordedAt': recordedAt, 'justification': input['justification'], 'status': autoApprove ? 'APPROVED' : 'PENDING', 'createdById': user.id, 'requestId': requestId,
-        if (autoApprove) 'decidedById': user.id, if (autoApprove) 'decidedAt': DateTime.now(),
+        'tenantId': tenantId,
+        'employmentId': e['id'],
+        'kind': input['kind'],
+        'timeRecordId': input['kind'] == 'DISREGARD' ? input['timeRecordId'] : null,
+        'recordedAt': recordedAt,
+        'justification': input['justification'],
+        'status': autoApprove ? 'APPROVED' : 'PENDING',
+        'createdById': user.id,
+        'requestId': requestId,
+        if (autoApprove) 'decidedById': user.id,
+        if (autoApprove) 'decidedAt': DateTime.now(),
       });
       await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'time_adjustment', entityId: a['id'] as String?, after: a, meta: meta);
       return a;
@@ -285,7 +354,12 @@ class TimesheetModule {
       final rows = <({String employmentId, String date})>[];
       for (final e in emps) {
         final eid = e['id']! as String;
-        final dates = plan == null ? all : [for (var i = 0; i < all.length; i++) if (plan[eid]![i].engine.isWorkday) all[i]];
+        final dates = plan == null
+            ? all
+            : [
+                for (var i = 0; i < all.length; i++)
+                  if (plan[eid]![i].engine.isWorkday) all[i],
+              ];
         final limit = j['usageLimit'] as int?;
         if (limit != null) {
           final year = j['limitPeriod'] == 'YEAR';
@@ -297,9 +371,15 @@ class TimesheetModule {
           for (final b in buckets.entries) {
             final start = year ? '${b.key}-01-01' : '${b.key}-01';
             final end = year ? '${b.key}-12-31' : core.addDays(isoDay(DateTime.utc(int.parse(b.key.substring(0, 4)), int.parse(b.key.substring(5, 7)) + 1, 1)), -1);
-            final used = await tx.scalar<int>(
-                'SELECT count(*)::int FROM allowances WHERE employment_id = @e AND justification_id = @j AND date BETWEEN @s AND @f AND NOT (date::text = ANY(@d))',
-                {'e': eid, 'j': j['id'], 's': start, 'f': end, 'd': dates}) ?? 0;
+            final used =
+                await tx.scalar<int>('SELECT count(*)::int FROM allowances WHERE employment_id = @e AND justification_id = @j AND date BETWEEN @s AND @f AND NOT (date::text = ANY(@d))', {
+                  'e': eid,
+                  'j': j['id'],
+                  's': start,
+                  'f': end,
+                  'd': dates,
+                }) ??
+                0;
             if (used + b.value > limit) {
               throw conflict('Limite de "${j['name']}" excedido para a matrícula ${e['registration']}: $limit por ${year ? 'ano' : 'mês'} (já usado $used)');
             }
@@ -313,44 +393,74 @@ class TimesheetModule {
       for (final r in rows) {
         await tx.execute('DELETE FROM allowances WHERE employment_id = @e AND date = @d', {'e': r.employmentId, 'd': r.date});
         await tx.insert('allowances', {
-          'tenantId': tenantId, 'employmentId': r.employmentId, 'date': r.date, 'justificationId': j['id'], 'fullDay': input['fullDay'],
-          'minutes': input['fullDay'] == true ? 0 : input['minutes'], 'note': input['note'], 'createdById': user.id,
+          'tenantId': tenantId,
+          'employmentId': r.employmentId,
+          'date': r.date,
+          'justificationId': j['id'],
+          'fullDay': input['fullDay'],
+          'minutes': input['fullDay'] == true ? 0 : input['minutes'],
+          'note': input['note'],
+          'createdById': user.id,
         });
       }
-      await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'allowance', after: {
-        'employments': emps.length, 'days': rows.length, 'justification': j['name'], 'from': from, 'to': to, 'fullDay': input['fullDay'], 'minutes': input['minutes'],
-      }, meta: meta);
+      await app.audit.record(
+        tx,
+        tenantId: tenantId,
+        actorUserId: user.id,
+        action: 'CREATE',
+        entity: 'allowance',
+        after: {'employments': emps.length, 'days': rows.length, 'justification': j['name'], 'from': from, 'to': to, 'fullDay': input['fullDay'], 'minutes': input['minutes']},
+        meta: meta,
+      );
       return {'created': rows.length};
     });
   }
 
   // ------------------------------------------------------------------ banco de horas
   Future<Row> _account(Tx tx, String tenantId, String employmentId) async =>
-      await tx.one('SELECT * FROM bank_hours WHERE employment_id = @e', {'e': employmentId}) ??
-      await tx.insert('bank_hours', {'tenantId': tenantId, 'employmentId': employmentId});
+      await tx.one('SELECT * FROM bank_hours WHERE employment_id = @e', {'e': employmentId}) ?? await tx.insert('bank_hours', {'tenantId': tenantId, 'employmentId': employmentId});
 
   Future<int> _applyClosing(Tx tx, String tenantId, String companyId, String closingId, Map<String, List<Map<String, Object?>>> results, String userId) async {
     final policy = await tx.one('SELECT * FROM bank_policies WHERE company_id = @c', {'c': companyId});
     if (policy?['enabled'] != true) return 0;
     var n = 0;
     for (final entry in results.entries) {
-      final raw = [for (final d in entry.value) if (d['result'] is Map) resultFromJson((d['result']! as Map).cast<String, Object?>())];
+      final raw = [
+        for (final d in entry.value)
+          if (d['result'] is Map) resultFromJson((d['result']! as Map).cast<String, Object?>()),
+      ];
       final dayResults = policy!['compensationEnabled'] == true ? compensate(raw, policy['compensationPeriod']! as String, policy['compensationLeftover']! as String).toBank : raw;
       if (dayResults.isEmpty) continue;
       final acc = await _account(tx, tenantId, entry.key);
       final before = replay(await tx.query('SELECT minutes, ref_date, expires_on FROM bank_hour_transactions WHERE account_id = @a', {'a': acc['id']}));
       final mult = (policy['creditMultipliers'] as Map?) ?? const {};
-      final after = core.applyToBank(before, dayResults, core.BankPolicy(
-        enabled: true, expirationDays: policy['expirationDays'] as int?, maxDailyCreditMinutes: policy['maxDailyCreditMinutes'] as int?,
-        creditMultiplierByPercent: {for (final e in mult.entries) num.parse(e.key as String): e.value as num},
-      ));
+      final after = core.applyToBank(
+        before,
+        dayResults,
+        core.BankPolicy(
+          enabled: true,
+          expirationDays: policy['expirationDays'] as int?,
+          maxDailyCreditMinutes: policy['maxDailyCreditMinutes'] as int?,
+          creditMultiplierByPercent: {for (final e in mult.entries) num.parse(e.key as String): e.value as num},
+        ),
+      );
       final fresh = after.entries.sublist(before.entries.length);
       if (fresh.isEmpty) continue;
       for (final e in fresh) {
         await tx.insert('bank_hour_transactions', {
-          'tenantId': tenantId, 'accountId': acc['id'], 'type': e.type, 'minutes': e.minutes, 'refDate': e.refDate, 'expiresOn': e.expiresOn,
-          'description': e.type == 'CREDIT' ? 'Crédito do fechamento' : e.type == 'DEBIT' ? 'Débito do fechamento' : 'Crédito vencido',
-          'closingId': closingId, 'createdById': userId,
+          'tenantId': tenantId,
+          'accountId': acc['id'],
+          'type': e.type,
+          'minutes': e.minutes,
+          'refDate': e.refDate,
+          'expiresOn': e.expiresOn,
+          'description': e.type == 'CREDIT'
+              ? 'Crédito do fechamento'
+              : e.type == 'DEBIT'
+              ? 'Débito do fechamento'
+              : 'Crédito vencido',
+          'closingId': closingId,
+          'createdById': userId,
         });
       }
       await tx.update('bank_hours', acc['id']! as String, {'balanceMinutes': after.balance});
@@ -369,35 +479,36 @@ class TimesheetModule {
   }
 
   Future<Map<String, Object?>> statement(String tenantId, String employmentId, [String? from, String? to]) => db.forTenant(tenantId, (tx) async {
-        final e = await tx.one(
-            'SELECT e.id, e.registration, p.full_name, p.social_name FROM employment_relationships e JOIN people p ON p.id = e.person_id WHERE e.id = @id AND e.deleted_at IS NULL',
-            {'id': employmentId});
-        if (e == null) throw notFound('Funcionário não encontrado');
-        final acc = await tx.one('SELECT id FROM bank_hours WHERE employment_id = @e', {'e': employmentId});
-        final all = acc == null
-            ? <Row>[]
-            : await tx.query('SELECT *, type::text AS type FROM bank_hour_transactions WHERE account_id = @a ORDER BY ref_date ASC, created_at ASC', {'a': acc['id']});
-        var running = 0;
-        final rows = [
-          for (final t in all)
-            () {
-              running += t['minutes']! as int;
-              return <String, Object?>{...t, 'refDate': isoDay(t['refDate']), 'expiresOn': t['expiresOn'] == null ? null : isoDay(t['expiresOn']), 'balanceAfter': running};
-            }(),
-        ];
-        final filtered = rows.where((r) => (from == null || (r['refDate']! as String).compareTo(from) >= 0) && (to == null || (r['refDate']! as String).compareTo(to) <= 0)).toList();
-        final opening = from == null ? 0 : rows.where((r) => (r['refDate']! as String).compareTo(from) < 0).fold<int>(0, (s, r) => s + (r['minutes']! as int));
-        final state = replay(all);
-        final open = state.openCredits.where((c) => c.expiresOn != null).toList()..sort((a, b) => a.expiresOn!.compareTo(b.expiresOn!));
-        return {
-          'employment': {'id': e['id'], 'registration': e['registration'], 'name': e['socialName'] ?? e['fullName']},
-          'balanceMinutes': running, 'openingMinutes': opening, 'transactions': filtered.reversed.toList(),
-          'nextExpiration': open.isEmpty ? null : {'minutes': open.first.minutes, 'expiresOn': open.first.expiresOn},
-        };
-      });
+    final e = await tx.one('SELECT e.id, e.registration, p.full_name, p.social_name FROM employment_relationships e JOIN people p ON p.id = e.person_id WHERE e.id = @id AND e.deleted_at IS NULL', {
+      'id': employmentId,
+    });
+    if (e == null) throw notFound('Funcionário não encontrado');
+    final acc = await tx.one('SELECT id FROM bank_hours WHERE employment_id = @e', {'e': employmentId});
+    final all = acc == null ? <Row>[] : await tx.query('SELECT *, type::text AS type FROM bank_hour_transactions WHERE account_id = @a ORDER BY ref_date ASC, created_at ASC', {'a': acc['id']});
+    var running = 0;
+    final rows = [
+      for (final t in all)
+        () {
+          running += t['minutes']! as int;
+          return <String, Object?>{...t, 'refDate': isoDay(t['refDate']), 'expiresOn': t['expiresOn'] == null ? null : isoDay(t['expiresOn']), 'balanceAfter': running};
+        }(),
+    ];
+    final filtered = rows.where((r) => (from == null || (r['refDate']! as String).compareTo(from) >= 0) && (to == null || (r['refDate']! as String).compareTo(to) <= 0)).toList();
+    final opening = from == null ? 0 : rows.where((r) => (r['refDate']! as String).compareTo(from) < 0).fold<int>(0, (s, r) => s + (r['minutes']! as int));
+    final state = replay(all);
+    final open = state.openCredits.where((c) => c.expiresOn != null).toList()..sort((a, b) => a.expiresOn!.compareTo(b.expiresOn!));
+    return {
+      'employment': {'id': e['id'], 'registration': e['registration'], 'name': e['socialName'] ?? e['fullName']},
+      'balanceMinutes': running,
+      'openingMinutes': opening,
+      'transactions': filtered.reversed.toList(),
+      'nextExpiration': open.isEmpty ? null : {'minutes': open.first.minutes, 'expiresOn': open.first.expiresOn},
+    };
+  });
 
   // ------------------------------------------------------------------ solicitações
-  static const _reqSelect = 'SELECT r.*, r.type::text AS type, r.status::text AS status, f.steps AS f_steps, e.registration AS e_registration, e.company_id AS e_company_id, '
+  static const _reqSelect =
+      'SELECT r.*, r.type::text AS type, r.status::text AS status, f.steps AS f_steps, e.registration AS e_registration, e.company_id AS e_company_id, '
       'p.full_name AS e_full_name, p.social_name AS e_social_name FROM time_requests r LEFT JOIN approval_flows f ON f.id = r.flow_id '
       'JOIN employment_relationships e ON e.id = r.employment_id JOIN people p ON p.id = e.person_id';
 
@@ -406,9 +517,17 @@ class TimesheetModule {
   Future<Map<String, Object?>> _shapeRequest(Tx tx, Row r) async {
     final decisions = await tx.query('SELECT step, decision::text AS decision, comment, decider_id, created_at FROM request_decisions WHERE request_id = @id ORDER BY created_at ASC', {'id': r['id']});
     return {
-      'id': r['id'], 'type': r['type'], 'typeLabel': _typeLabel[r['type']], 'status': r['status'], 'currentStep': r['currentStep'], 'steps': _steps(r),
-      'refDate': r['refDate'] == null ? null : isoDay(r['refDate']), 'payload': r['payload'], 'justification': r['justification'],
-      'createdAt': r['createdAt'], 'createdById': r['createdById'],
+      'id': r['id'],
+      'type': r['type'],
+      'typeLabel': _typeLabel[r['type']],
+      'status': r['status'],
+      'currentStep': r['currentStep'],
+      'steps': _steps(r),
+      'refDate': r['refDate'] == null ? null : isoDay(r['refDate']),
+      'payload': r['payload'],
+      'justification': r['justification'],
+      'createdAt': r['createdAt'],
+      'createdById': r['createdById'],
       'employee': {'id': r['employmentId'], 'registration': r['eRegistration'], 'name': r['eSocialName'] ?? r['eFullName']},
       'decisions': decisions,
     };
@@ -443,19 +562,28 @@ class TimesheetModule {
         await createAdjustment(tenantId, user, {'kind': 'INCLUDE', 'employmentId': r['employmentId'], 'date': d, 'time': p['time'], 'justification': note()}, meta, r['id']! as String);
       case 'ABSENCE_JUSTIFICATION':
         await createAllowances(tenantId, user, {
-          'employmentIds': [r['employmentId']], 'from': d, 'to': d, 'justificationId': p['justificationId'], 'fullDay': p['fullDay'] != false,
-          'minutes': p['minutes'], 'onlyWorkdays': false, 'note': note(),
+          'employmentIds': [r['employmentId']],
+          'from': d,
+          'to': d,
+          'justificationId': p['justificationId'],
+          'fullDay': p['fullDay'] != false,
+          'minutes': p['minutes'],
+          'onlyWorkdays': false,
+          'note': note(),
         }, meta);
       case 'SCHEDULE_CHANGE':
         final res = await _swapViaHttp(tenantId, user, {'kind': 'DAY_OFF', 'employmentId': r['employmentId'], 'workDate': d, 'offDate': p['offDate'], 'note': note()}, meta);
         if (res != null) throw res;
       case 'OVERTIME_AUTHORIZATION':
         final j = r['justification']! as String;
-        await db.forTenant(tenantId, (tx) => tx.execute(
-              'INSERT INTO overtime_authorizations (id, tenant_id, employment_id, date, max_minutes, request_id, note, created_by_id) VALUES (gen_random_uuid(), @t, @e, @d, @m, @r, @n, @u) '
-              'ON CONFLICT (employment_id, date) DO UPDATE SET max_minutes = EXCLUDED.max_minutes, request_id = EXCLUDED.request_id, note = EXCLUDED.note',
-              {'t': tenantId, 'e': r['employmentId'], 'd': d, 'm': p['maxMinutes'], 'r': r['id'], 'n': j.length > 300 ? j.substring(0, 300) : j, 'u': user.id},
-            ));
+        await db.forTenant(
+          tenantId,
+          (tx) => tx.execute(
+            'INSERT INTO overtime_authorizations (id, tenant_id, employment_id, date, max_minutes, request_id, note, created_by_id) VALUES (gen_random_uuid(), @t, @e, @d, @m, @r, @n, @u) '
+            'ON CONFLICT (employment_id, date) DO UPDATE SET max_minutes = EXCLUDED.max_minutes, request_id = EXCLUDED.request_id, note = EXCLUDED.note',
+            {'t': tenantId, 'e': r['employmentId'], 'd': d, 'm': p['maxMinutes'], 'r': r['id'], 'n': j.length > 300 ? j.substring(0, 300) : j, 'u': user.id},
+          ),
+        );
       default:
         break; // "Outro pedido": só registra a decisão
     }
@@ -475,46 +603,59 @@ class TimesheetModule {
 
   /// Espelho diário: todos os funcionários da empresa num dia, com a situação de cada um.
   Future<Map<String, Object?>> daily(String tenantId, Map<String, Object?> q) async {
-      final d = q['date']! as String;
-      final emps = await db.forTenant(tenantId, (tx) => loadEmps(tx,
-          'e.company_id = @c AND e.deleted_at IS NULL AND e.hired_at <= @d AND (e.terminated_at IS NULL OR e.terminated_at >= @d)'
-          '${q['departmentId'] != null ? ' AND e.department_id = @dep' : ''}'
-          '${q['groupingId'] != null ? ' AND EXISTS (SELECT 1 FROM grouping_employments g WHERE g.employment_id = e.id AND g.grouping_id = @g)' : ''}',
-          {'c': q['companyId'], 'd': d, 'dep': q['departmentId'], 'g': q['groupingId']}, order: 'ORDER BY p.full_name ASC', limit: 'LIMIT 500'));
-      final map = await core0.compute(tenantId, emps, d, d);
-      final rows = [
-        for (final e in emps)
-          () {
-            final day = map[e.id]!.first;
-            final f = ((day['result'] as Map?)?['flags'] as List?) ?? const [];
-            final punches = (day['punches'] as List?) ?? const [];
-            final al = day['allowance'] as Map?;
-            final situation = day['leave'] != null
-                ? 'LEAVE'
-                : al?['fullDay'] == true && al?['disregardsDebits'] == true
-                    ? 'ALLOWANCE'
-                    : f.contains('ABSENCE')
-                        ? 'ABSENT'
-                        : f.contains('INCOMPLETE')
-                            ? 'INCOMPLETE'
-                            : (day['expected'] as Map?)?['isWorkday'] != true && punches.isEmpty
-                                ? 'OFF'
-                                : f.contains('LATE')
-                                    ? 'LATE'
-                                    : punches.isNotEmpty
-                                        ? 'PRESENT'
-                                        : 'EXPECTED';
-            return {'employmentId': e.id, 'registration': e.registration, 'name': e.name, 'situation': situation, 'day': day};
-          }(),
-      ];
-      int count(String s) => rows.where((x) => x['situation'] == s).length;
-      return {
-        'date': d, 'rows': rows,
-        'totals': {
-          'present': count('PRESENT') + count('LATE'), 'late': count('LATE'), 'absent': count('ABSENT'), 'incomplete': count('INCOMPLETE'), 'off': count('OFF'),
-          'leave': count('LEAVE') + count('ALLOWANCE'), 'expected': count('EXPECTED'),
-        },
-      };
+    final d = q['date']! as String;
+    final emps = await db.forTenant(
+      tenantId,
+      (tx) => loadEmps(
+        tx,
+        'e.company_id = @c AND e.deleted_at IS NULL AND e.hired_at <= @d AND (e.terminated_at IS NULL OR e.terminated_at >= @d)'
+        '${q['departmentId'] != null ? ' AND e.department_id = @dep' : ''}'
+        '${q['groupingId'] != null ? ' AND EXISTS (SELECT 1 FROM grouping_employments g WHERE g.employment_id = e.id AND g.grouping_id = @g)' : ''}',
+        {'c': q['companyId'], 'd': d, 'dep': q['departmentId'], 'g': q['groupingId']},
+        order: 'ORDER BY p.full_name ASC',
+        limit: 'LIMIT 500',
+      ),
+    );
+    final map = await core0.compute(tenantId, emps, d, d);
+    final rows = [
+      for (final e in emps)
+        () {
+          final day = map[e.id]!.first;
+          final f = ((day['result'] as Map?)?['flags'] as List?) ?? const [];
+          final punches = (day['punches'] as List?) ?? const [];
+          final al = day['allowance'] as Map?;
+          final situation = day['leave'] != null
+              ? 'LEAVE'
+              : al?['fullDay'] == true && al?['disregardsDebits'] == true
+              ? 'ALLOWANCE'
+              : f.contains('ABSENCE')
+              ? 'ABSENT'
+              : f.contains('INCOMPLETE')
+              ? 'INCOMPLETE'
+              : (day['expected'] as Map?)?['isWorkday'] != true && punches.isEmpty
+              ? 'OFF'
+              : f.contains('LATE')
+              ? 'LATE'
+              : punches.isNotEmpty
+              ? 'PRESENT'
+              : 'EXPECTED';
+          return {'employmentId': e.id, 'registration': e.registration, 'name': e.name, 'situation': situation, 'day': day};
+        }(),
+    ];
+    int count(String s) => rows.where((x) => x['situation'] == s).length;
+    return {
+      'date': d,
+      'rows': rows,
+      'totals': {
+        'present': count('PRESENT') + count('LATE'),
+        'late': count('LATE'),
+        'absent': count('ABSENT'),
+        'incomplete': count('INCOMPLETE'),
+        'off': count('OFF'),
+        'leave': count('LEAVE') + count('ALLOWANCE'),
+        'expected': count('EXPECTED'),
+      },
+    };
   }
 
   // ------------------------------------------------------------------ REP-P
@@ -526,11 +667,23 @@ class TimesheetModule {
     final companyQuery = Obj({'companyId': uuid});
 
     // Justificativas (cadastro simples).
-    catalogRoutes(app, Catalog(
-      path: 'justifications', table: 'justifications', entity: 'justification', label: 'Justificativa', gender: 'a', read: 'time.calculations:read',
-      manage: 'time.justifications:manage', create: justificationSchema, update: justificationSchema.partial, searchFields: ['name', 'code'], orderBy: 'name ASC',
-      usageSql: 'SELECT (SELECT count(*) FROM allowances WHERE justification_id = @id) + (SELECT count(*) FROM leaves WHERE justification_id = @id AND deleted_at IS NULL)',
-    ));
+    catalogRoutes(
+      app,
+      Catalog(
+        path: 'justifications',
+        table: 'justifications',
+        entity: 'justification',
+        label: 'Justificativa',
+        gender: 'a',
+        read: 'time.calculations:read',
+        manage: 'time.justifications:manage',
+        create: justificationSchema,
+        update: justificationSchema.partial,
+        searchFields: ['name', 'code'],
+        orderBy: 'name ASC',
+        usageSql: 'SELECT (SELECT count(*) FROM allowances WHERE justification_id = @id) + (SELECT count(*) FROM leaves WHERE justification_id = @id AND deleted_at IS NULL)',
+      ),
+    );
 
     r.group('/v1/timesheet', tag: 'ponto', () {
       r.get('/rep-p', permission: 'time.calculations:read', (ctx) {
@@ -553,8 +706,17 @@ class TimesheetModule {
             'ON CONFLICT (company_id) DO UPDATE SET inpi_number = EXCLUDED.inpi_number, updated_at = now() RETURNING *',
             {'t': tenantId, 'c': input['companyId'], 'i': input['inpiNumber']},
           ))!;
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'UPDATE', entity: 'rep_p_register', entityId: x['id'] as String?,
-              before: {'inpiNumber': before?['inpiNumber']}, after: {'inpiNumber': x['inpiNumber']}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: 'UPDATE',
+            entity: 'rep_p_register',
+            entityId: x['id'] as String?,
+            before: {'inpiNumber': before?['inpiNumber']},
+            after: {'inpiNumber': x['inpiNumber']},
+            meta: ctx.meta,
+          );
           return {'companyId': x['companyId'], 'inpiNumber': x['inpiNumber'], 'lastNsr': x['lastNsr']};
         });
       });
@@ -569,9 +731,10 @@ class TimesheetModule {
           if (company == null) throw notFound('Empresa não encontrada');
           final reg = await tx.one('SELECT * FROM rep_p_registers WHERE company_id = @c', {'c': q['companyId']});
           final rows = await tx.query(
-              'SELECT t.rep_p_nsr, t.rep_p_hash, t.recorded_at, p.cpf FROM time_records t JOIN employment_relationships e ON e.id = t.employment_id JOIN people p ON p.id = e.person_id '
-              'WHERE t.rep_p_company_id = @c AND t.recorded_at >= @f AND t.recorded_at < @to ORDER BY t.rep_p_nsr ASC',
-              {'c': q['companyId'], 'f': from, 'to': to});
+            'SELECT t.rep_p_nsr, t.rep_p_hash, t.recorded_at, p.cpf FROM time_records t JOIN employment_relationships e ON e.id = t.employment_id JOIN people p ON p.id = e.person_id '
+            'WHERE t.rep_p_company_id = @c AND t.recorded_at >= @f AND t.recorded_at < @to ORDER BY t.rep_p_nsr ASC',
+            {'c': q['companyId'], 'f': from, 'to': to},
+          );
           final first = rows.isEmpty ? null : rows.first['repPNsr'] as int?;
           final prevHash = first != null && first > 1
               ? await tx.scalar<String>('SELECT rep_p_hash FROM time_records WHERE rep_p_company_id = @c AND rep_p_nsr = @n', {'c': q['companyId'], 'n': first - 1})
@@ -584,15 +747,26 @@ class TimesheetModule {
         if (data.reg?['inpiNumber'] == null) warnings.add('Número do REP-P no INPI não informado: o cabeçalho saiu com zeros.');
         if (_developerId.isEmpty) warnings.add('CNPJ do desenvolvedor do programa (REP_P_DEVELOPER_CNPJ) não configurado.');
         final lines = [
-          core.afdHeader671(employerIdType: 'CNPJ', employerId: cnpj, secondaryId: data.company['cno'] as String? ?? '', employerName: data.company['legalName']! as String,
-              repId: data.reg?['inpiNumber'] as String? ?? '', periodStart: q['from']! as String, periodEnd: q['to']! as String, generatedAt: DateTime.now(),
-              developerId: _developerId, model: 'SuperPonto'),
+          core.afdHeader671(
+            employerIdType: 'CNPJ',
+            employerId: cnpj,
+            secondaryId: data.company['cno'] as String? ?? '',
+            employerName: data.company['legalName']! as String,
+            repId: data.reg?['inpiNumber'] as String? ?? '',
+            periodStart: q['from']! as String,
+            periodEnd: q['to']! as String,
+            generatedAt: DateTime.now(),
+            developerId: _developerId,
+            model: 'SuperPonto',
+          ),
         ];
         String? prev = data.prevHash;
         var broken = 0;
         for (final x in data.rows) {
           final at = x['recordedAt']! as DateTime;
-          final tries = [for (final col in ['02', '01']) core.afdRecord7(nsr: x['repPNsr']! as int, at: at, cpf: x['cpf'] as String? ?? '', recordedAt: at, collector: col, offline: false, previousHash: prev)];
+          final tries = [
+            for (final col in ['02', '01']) core.afdRecord7(nsr: x['repPNsr']! as int, at: at, cpf: x['cpf'] as String? ?? '', recordedAt: at, collector: col, offline: false, previousHash: prev),
+          ];
           final ok = tries.where((t) => t.hash == x['repPHash']).firstOrNull;
           if (ok == null) broken++;
           lines.add((ok ?? tries.first).line);
@@ -601,12 +775,25 @@ class TimesheetModule {
         }
         if (broken > 0) warnings.add('$broken registro(s) não conferem com o hash gravado: verifique a integridade do banco.');
         lines.add(core.afdTrailer671({'7': data.rows.length}));
-        await db.forTenant(tenantId, (tx) => app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'EXPORT', entity: 'afd_rep_p',
-            after: {'companyId': q['companyId'], 'from': q['from'], 'to': q['to'], 'records': data.rows.length}, meta: ctx.meta));
+        await db.forTenant(
+          tenantId,
+          (tx) => app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: 'EXPORT',
+            entity: 'afd_rep_p',
+            after: {'companyId': q['companyId'], 'from': q['from'], 'to': q['to'], 'records': data.rows.length},
+            meta: ctx.meta,
+          ),
+        );
         final content = '${lines.join('\r\n')}\r\n';
         return {
-          'filename': 'AFD_REP-P_${cnpj.replaceAll(RegExp(r'\W'), '')}_${q['from']}_${q['to']}.txt', 'mime': 'text/plain;charset=iso-8859-1',
-          'base64': base64.encode(latin1.encode(content.replaceAll(RegExp(r'[^\x00-\xFF]'), '?'))), 'records': data.rows.length, 'warnings': warnings,
+          'filename': 'AFD_REP-P_${cnpj.replaceAll(RegExp(r'\W'), '')}_${q['from']}_${q['to']}.txt',
+          'mime': 'text/plain;charset=iso-8859-1',
+          'base64': base64.encode(latin1.encode(content.replaceAll(RegExp(r'[^\x00-\xFF]'), '?'))),
+          'records': data.rows.length,
+          'warnings': warnings,
         };
       });
 
@@ -641,8 +828,15 @@ class TimesheetModule {
         final map = await core0.compute(tenantId, emps, from, to);
         final saved = await db.forTenant(tenantId, (tx) async {
           final n = await core0.persist(tx, tenantId, map);
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'UPDATE', entity: 'time_calculation',
-              after: {'companyId': q['companyId'], 'from': from, 'to': to, 'employments': emps.length, 'days': n}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: 'UPDATE',
+            entity: 'time_calculation',
+            after: {'companyId': q['companyId'], 'from': from, 'to': to, 'employments': emps.length, 'days': n},
+            meta: ctx.meta,
+          );
           return n;
         });
         var pending = 0, unauthorized = 0, incomplete = 0;
@@ -659,7 +853,11 @@ class TimesheetModule {
     // ------------------------------------------------------------------ ajustes
     r.group('/v1/time-adjustments', tag: 'ponto', () {
       r.get('', permission: 'time.records:read', (ctx) {
-        final q = Obj({'status': const Enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']).optional, 'companyId': uuid.optional, 'employmentId': uuid.optional}).parse(ctx.query);
+        final q = Obj({
+          'status': const Enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']).optional,
+          'companyId': uuid.optional,
+          'employmentId': uuid.optional,
+        }).parse(ctx.query);
         return db.forTenant(ctx.tenant, (tx) async {
           final rows = await tx.query(
             'SELECT a.*, a.kind::text AS kind, a.status::text AS status, t.recorded_at AS t_recorded_at, t.source::text AS t_source, '
@@ -675,7 +873,8 @@ class TimesheetModule {
                 final at = (a['recordedAt'] ?? a['tRecordedAt']) as DateTime?;
                 final l = at == null ? null : localBr(at);
                 return {
-                  for (final e in a.entries) if (!RegExp('^[te][A-Z]').hasMatch(e.key)) e.key: e.value,
+                  for (final e in a.entries)
+                    if (!RegExp('^[te][A-Z]').hasMatch(e.key)) e.key: e.value,
                   'timeRecord': a['timeRecordId'] == null ? null : {'recordedAt': a['tRecordedAt'], 'source': a['tSource']},
                   'employee': {'id': a['employmentId'], 'registration': a['eRegistration'], 'name': a['eSocialName'] ?? a['eFullName']},
                   'when': l == null ? null : {'date': l.date, 'time': l.time},
@@ -687,7 +886,11 @@ class TimesheetModule {
 
       r.post('', permission: 'time.adjustments:create', (ctx) {
         final kind = ctx.json['kind'];
-        final input = kind == 'INCLUDE' ? _adjInclude.parse(ctx.body) : kind == 'DISREGARD' ? _adjDisregard.parse(ctx.body) : throw badRequest(['kind: Invalid input']);
+        final input = kind == 'INCLUDE'
+            ? _adjInclude.parse(ctx.body)
+            : kind == 'DISREGARD'
+            ? _adjDisregard.parse(ctx.body)
+            : throw badRequest(['kind: Invalid input']);
         return createAdjustment(ctx.tenant, ctx.user, input, ctx.meta);
       });
 
@@ -697,9 +900,10 @@ class TimesheetModule {
         final user = ctx.user, tenantId = ctx.tenant;
         return db.forTenant(tenantId, (tx) async {
           final a = await tx.one(
-              'SELECT a.*, a.kind::text AS kind, a.status::text AS status, t.recorded_at AS t_recorded_at, e.company_id AS e_company_id FROM time_record_adjustments a '
-              'LEFT JOIN time_records t ON t.id = a.time_record_id JOIN employment_relationships e ON e.id = a.employment_id WHERE a.id = @id',
-              {'id': id});
+            'SELECT a.*, a.kind::text AS kind, a.status::text AS status, t.recorded_at AS t_recorded_at, e.company_id AS e_company_id FROM time_record_adjustments a '
+            'LEFT JOIN time_records t ON t.id = a.time_record_id JOIN employment_relationships e ON e.id = a.employment_id WHERE a.id = @id',
+            {'id': id},
+          );
           if (a == null) throw notFound('Ajuste não encontrado');
           if (a['status'] != 'PENDING') throw conflict('Este ajuste já foi decidido');
           if (a['createdById'] == user.id) throw forbidden('Quem pediu o ajuste não pode aprová-lo');
@@ -707,8 +911,17 @@ class TimesheetModule {
           await assertOpenPeriod(tx, [a['eCompanyId']! as String], d, d);
           final approve = b['approve'] == true;
           final saved = await tx.update('time_record_adjustments', id, {'status': approve ? 'APPROVED' : 'REJECTED', 'decidedById': user.id, 'decidedAt': DateTime.now()});
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: approve ? 'APPROVE' : 'REJECT', entity: 'time_adjustment', entityId: id,
-              before: a, after: {...?saved, 'comment': b['comment']}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: approve ? 'APPROVE' : 'REJECT',
+            entity: 'time_adjustment',
+            entityId: id,
+            before: a,
+            after: {...?saved, 'comment': b['comment']},
+            meta: ctx.meta,
+          );
           return saved;
         });
       });
@@ -718,9 +931,10 @@ class TimesheetModule {
         final user = ctx.user, tenantId = ctx.tenant;
         return db.forTenant(tenantId, (tx) async {
           final a = await tx.one(
-              'SELECT a.*, a.status::text AS status, t.recorded_at AS t_recorded_at, e.company_id AS e_company_id FROM time_record_adjustments a '
-              'LEFT JOIN time_records t ON t.id = a.time_record_id JOIN employment_relationships e ON e.id = a.employment_id WHERE a.id = @id',
-              {'id': id});
+            'SELECT a.*, a.status::text AS status, t.recorded_at AS t_recorded_at, e.company_id AS e_company_id FROM time_record_adjustments a '
+            'LEFT JOIN time_records t ON t.id = a.time_record_id JOIN employment_relationships e ON e.id = a.employment_id WHERE a.id = @id',
+            {'id': id},
+          );
           if (a == null) throw notFound('Ajuste não encontrado');
           if (a['status'] != 'PENDING' && !(a['status'] == 'APPROVED' && can(user, 'time.adjustments:approve'))) throw conflict('Só ajustes pendentes podem ser cancelados');
           final d = localBr((a['recordedAt'] ?? a['tRecordedAt'])! as DateTime).date;
@@ -748,7 +962,8 @@ class TimesheetModule {
         return [
           for (final a in rows)
             {
-              for (final e in a.entries) if (!RegExp('^[je][A-Z]').hasMatch(e.key)) e.key: e.value,
+              for (final e in a.entries)
+                if (!RegExp('^[je][A-Z]').hasMatch(e.key)) e.key: e.value,
               'date': isoDay(a['date']),
               'justification': {'id': a['justificationId'], 'name': a['jName'], 'code': a['jCode'], 'disregardsDebits': a['jDisregardsDebits']},
               'employment': empOf(a),
@@ -784,8 +999,10 @@ class TimesheetModule {
         return [
           for (final l in rows)
             {
-              for (final e in l.entries) if (!RegExp('^[je][A-Z]').hasMatch(e.key)) e.key: e.value,
-              'startDate': isoDay(l['startDate']), 'endDate': isoDay(l['endDate']),
+              for (final e in l.entries)
+                if (!RegExp('^[je][A-Z]').hasMatch(e.key)) e.key: e.value,
+              'startDate': isoDay(l['startDate']),
+              'endDate': isoDay(l['endDate']),
               'justification': l['justificationId'] == null ? null : {'id': l['justificationId'], 'name': l['jName']},
               'employment': empOf(l),
             },
@@ -803,12 +1020,21 @@ class TimesheetModule {
           throw notFound('Justificativa não encontrada');
         }
         await assertOpenPeriod(tx, [e['companyId']! as String], input['startDate']! as String, input['endDate']! as String);
-        final overlap = await tx.one('SELECT start_date, end_date FROM leaves WHERE employment_id = @e AND deleted_at IS NULL AND start_date <= @end AND end_date >= @start LIMIT 1',
-            {'e': e['id'], 'start': input['startDate'], 'end': input['endDate']});
+        final overlap = await tx.one('SELECT start_date, end_date FROM leaves WHERE employment_id = @e AND deleted_at IS NULL AND start_date <= @end AND end_date >= @start LIMIT 1', {
+          'e': e['id'],
+          'start': input['startDate'],
+          'end': input['endDate'],
+        });
         if (overlap != null) throw conflict('Já existe afastamento de ${isoDay(overlap['startDate'])} a ${isoDay(overlap['endDate'])} neste período');
         final l = await tx.insert('leaves', {
-          'tenantId': tenantId, 'employmentId': e['id'], 'type': input['type'], 'startDate': input['startDate'], 'endDate': input['endDate'],
-          'justificationId': input['justificationId'], 'note': input['note'], 'createdById': user.id,
+          'tenantId': tenantId,
+          'employmentId': e['id'],
+          'type': input['type'],
+          'startDate': input['startDate'],
+          'endDate': input['endDate'],
+          'justificationId': input['justificationId'],
+          'note': input['note'],
+          'createdById': user.id,
         });
         await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'leave', entityId: l['id'] as String?, after: l, meta: ctx.meta);
         return {...l, 'startDate': isoDay(l['startDate']), 'endDate': isoDay(l['endDate'])};
@@ -819,7 +1045,9 @@ class TimesheetModule {
       final id = ctx.uuidParam('id');
       final tenantId = ctx.tenant;
       return db.forTenant(tenantId, (tx) async {
-        final l = await tx.one('SELECT l.*, e.company_id AS e_company_id FROM leaves l JOIN employment_relationships e ON e.id = l.employment_id WHERE l.id = @id AND l.deleted_at IS NULL', {'id': id});
+        final l = await tx.one('SELECT l.*, e.company_id AS e_company_id FROM leaves l JOIN employment_relationships e ON e.id = l.employment_id WHERE l.id = @id AND l.deleted_at IS NULL', {
+          'id': id,
+        });
         if (l == null) throw notFound('Afastamento não encontrado');
         await assertOpenPeriod(tx, [l['eCompanyId']! as String], isoDay(l['startDate']), isoDay(l['endDate']));
         await tx.execute('UPDATE leaves SET deleted_at = now() WHERE id = @id', {'id': id});
@@ -839,8 +1067,14 @@ class TimesheetModule {
         final minutes = _span(input['startTime']! as String, input['endTime']! as String);
         for (final id in ids) {
           await tx.insert('on_call_periods', {
-            'tenantId': tenantId, 'employmentId': id, 'date': input['date'], 'startTime': input['startTime'], 'endTime': input['endTime'], 'minutes': minutes,
-            'note': input['note'], 'createdById': user.id,
+            'tenantId': tenantId,
+            'employmentId': id,
+            'date': input['date'],
+            'startTime': input['startTime'],
+            'endTime': input['endTime'],
+            'minutes': minutes,
+            'note': input['note'],
+            'createdById': user.id,
           });
         }
         await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'on_call', after: {'employments': ids.length, ...input, 'minutes': minutes}, meta: ctx.meta);
@@ -867,9 +1101,12 @@ class TimesheetModule {
     r.group('/v1/closings', tag: 'ponto', () {
       r.get('', permission: 'time.calculations:read', (ctx) {
         final q = companyQuery.parse(ctx.query);
-        return db.forTenant(ctx.tenant, (tx) async => [
-              for (final x in await tx.query('SELECT *, status::text AS status FROM time_closings WHERE company_id = @c ORDER BY period_start DESC', {'c': q['companyId']})) closingView(x),
-            ]);
+        return db.forTenant(
+          ctx.tenant,
+          (tx) async => [
+            for (final x in await tx.query('SELECT *, status::text AS status FROM time_closings WHERE company_id = @c ORDER BY period_start DESC', {'c': q['companyId']})) closingView(x),
+          ],
+        );
       });
 
       r.post('', permission: 'time.closings:manage', (ctx) async {
@@ -878,15 +1115,19 @@ class TimesheetModule {
         final ps = input['periodStart']! as String, pe = input['periodEnd']! as String;
         final emps = await db.forTenant(tenantId, (tx) async {
           await requireCompanyExists(tx, input['companyId']);
-          final overlap = await tx.one(
-              "SELECT period_start, period_end FROM time_closings WHERE company_id = @c AND status = 'CLOSED' AND period_start <= @pe AND period_end >= @ps LIMIT 1",
-              {'c': input['companyId'], 'ps': ps, 'pe': pe});
+          final overlap = await tx.one("SELECT period_start, period_end FROM time_closings WHERE company_id = @c AND status = 'CLOSED' AND period_start <= @pe AND period_end >= @ps LIMIT 1", {
+            'c': input['companyId'],
+            'ps': ps,
+            'pe': pe,
+          });
           if (overlap != null) throw conflict('Já existe período fechado de ${isoDay(overlap['periodStart'])} a ${isoDay(overlap['periodEnd'])}');
-          final pending = await tx.scalar<int>(
-            "SELECT count(*)::int FROM time_record_adjustments a LEFT JOIN time_records t ON t.id = a.time_record_id JOIN employment_relationships e ON e.id = a.employment_id "
-            "WHERE a.status = 'PENDING' AND e.company_id = @c AND ((a.recorded_at >= @s AND a.recorded_at < @end) OR (t.recorded_at >= @s AND t.recorded_at < @end))",
-            {'c': input['companyId'], 's': brMidnight(ps), 'end': brMidnight(pe).add(const Duration(days: 1))},
-          ) ?? 0;
+          final pending =
+              await tx.scalar<int>(
+                'SELECT count(*)::int FROM time_record_adjustments a LEFT JOIN time_records t ON t.id = a.time_record_id JOIN employment_relationships e ON e.id = a.employment_id '
+                "WHERE a.status = 'PENDING' AND e.company_id = @c AND ((a.recorded_at >= @s AND a.recorded_at < @end) OR (t.recorded_at >= @s AND t.recorded_at < @end))",
+                {'c': input['companyId'], 's': brMidnight(ps), 'end': brMidnight(pe).add(const Duration(days: 1))},
+              ) ??
+              0;
           if (pending > 0) throw conflict('Há $pending ajuste(s) de marcação pendente(s) no período: aprove ou recuse antes de fechar');
           return companyEmployments(tx, input['companyId']! as String, ps, pe);
         });
@@ -896,14 +1137,26 @@ class TimesheetModule {
           final days = await core0.persist(tx, tenantId, results);
           final existing = await tx.one('SELECT id FROM time_closings WHERE company_id = @c AND period_start = @ps AND period_end = @pe', {'c': input['companyId'], 'ps': ps, 'pe': pe});
           final closing = existing != null
-              ? (await tx.one("UPDATE time_closings SET status = 'CLOSED', closed_by_id = @u, closed_at = now() WHERE id = @id RETURNING *, status::text AS status", {'u': user.id, 'id': existing['id']}))!
+              ? (await tx.one("UPDATE time_closings SET status = 'CLOSED', closed_by_id = @u, closed_at = now() WHERE id = @id RETURNING *, status::text AS status", {
+                  'u': user.id,
+                  'id': existing['id'],
+                }))!
               : (await tx.one(
                   "INSERT INTO time_closings (id, tenant_id, company_id, period_start, period_end, status, closed_by_id, closed_at) VALUES (gen_random_uuid(), @t, @c, @ps, @pe, 'CLOSED', @u, now()) "
                   'RETURNING *, status::text AS status',
-                  {'t': tenantId, 'c': input['companyId'], 'ps': ps, 'pe': pe, 'u': user.id}))!;
+                  {'t': tenantId, 'c': input['companyId'], 'ps': ps, 'pe': pe, 'u': user.id},
+                ))!;
           final bankEntries = await _applyClosing(tx, tenantId, input['companyId']! as String, closing['id']! as String, results, user.id);
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CLOSE_PERIOD', entity: 'time_closing', entityId: closing['id'] as String?,
-              after: {...input, 'employments': emps.length, 'days': days, 'bankEntries': bankEntries}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: 'CLOSE_PERIOD',
+            entity: 'time_closing',
+            entityId: closing['id'] as String?,
+            after: {...input, 'employments': emps.length, 'days': days, 'bankEntries': bankEntries},
+            meta: ctx.meta,
+          );
           return {...closingView(closing), 'employments': emps.length, 'days': days, 'bankEntries': bankEntries};
         });
       });
@@ -916,15 +1169,26 @@ class TimesheetModule {
           final x = await tx.one('SELECT *, status::text AS status FROM time_closings WHERE id = @id', {'id': id});
           if (x == null) throw notFound('Fechamento não encontrado');
           if (x['status'] != 'CLOSED') throw badRequest('Este período não está fechado');
-          final later = await tx.one("SELECT period_start, period_end FROM time_closings WHERE company_id = @c AND status = 'CLOSED' AND period_start > @pe LIMIT 1",
-              {'c': x['companyId'], 'pe': isoDay(x['periodEnd'])});
+          final later = await tx.one("SELECT period_start, period_end FROM time_closings WHERE company_id = @c AND status = 'CLOSED' AND period_start > @pe LIMIT 1", {
+            'c': x['companyId'],
+            'pe': isoDay(x['periodEnd']),
+          });
           if (later != null) {
             throw conflict('Reabra antes o período posterior (${isoDay(later['periodStart'])} a ${isoDay(later['periodEnd'])}): o banco de horas depende da ordem');
           }
           final saved = (await tx.one("UPDATE time_closings SET status = 'REOPENED', reopen_reason = @r WHERE id = @id RETURNING *, status::text AS status", {'r': b['reason'], 'id': id}))!;
           final reverted = await _revertClosing(tx, id);
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'REOPEN_PERIOD', entity: 'time_closing', entityId: id,
-              before: x, after: {...saved, 'reverted': reverted}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: 'REOPEN_PERIOD',
+            entity: 'time_closing',
+            entityId: id,
+            before: x,
+            after: {...saved, 'reverted': reverted},
+            meta: ctx.meta,
+          );
           return {...closingView(saved), 'revertedBankEntries': reverted};
         });
       });
@@ -938,21 +1202,33 @@ class TimesheetModule {
           final mine = await myEmployments(tx, user);
           final today = localBr(DateTime.now()).date;
           final records = await tx.query(
-              'SELECT id, employment_id, recorded_at, source::text AS source, hash FROM time_records WHERE employment_id::text = ANY(@ids) AND recorded_at >= @f ORDER BY recorded_at ASC',
-              {'ids': [for (final m in mine) m['id']! as String], 'f': brMidnight(today)});
+            'SELECT id, employment_id, recorded_at, source::text AS source, hash FROM time_records WHERE employment_id::text = ANY(@ids) AND recorded_at >= @f ORDER BY recorded_at ASC',
+            {
+              'ids': [for (final m in mine) m['id']! as String],
+              'f': brMidnight(today),
+            },
+          );
           return {
             'today': today,
             'employments': [
               for (final m in mine)
                 {
-                  'id': m['id'], 'registration': m['registration'], 'company': m['cTradeName'] ?? m['cLegalName'],
+                  'id': m['id'],
+                  'registration': m['registration'],
+                  'company': m['cTradeName'] ?? m['cLegalName'],
                   'geofence': m['uGeofenceM'] != null ? {'name': m['uName'], 'radiusM': m['uGeofenceM']} : null,
                 },
             ],
             'punches': [
               for (final x in records)
-                {'id': x['id'], 'employmentId': x['employmentId'], 'at': isoMs(x['recordedAt']! as DateTime), 'time': localBr(x['recordedAt']! as DateTime).time,
-                  'source': x['source'], 'hash': (x['hash']! as String).substring(0, 16)},
+                {
+                  'id': x['id'],
+                  'employmentId': x['employmentId'],
+                  'at': isoMs(x['recordedAt']! as DateTime),
+                  'time': localBr(x['recordedAt']! as DateTime).time,
+                  'source': x['source'],
+                  'hash': (x['hash']! as String).substring(0, 16),
+                },
             ],
           };
         });
@@ -979,7 +1255,11 @@ class TimesheetModule {
         final nonce = payload['n']! as String;
         return db.forTenant(tenantId, (tx) async {
           final mine = await myEmployments(tx, user);
-          final e = input['employmentId'] != null ? mine.where((m) => m['id'] == input['employmentId']).firstOrNull : mine.length == 1 ? mine.first : null;
+          final e = input['employmentId'] != null
+              ? mine.where((m) => m['id'] == input['employmentId']).firstOrNull
+              : mine.length == 1
+              ? mine.first
+              : null;
           if (e == null) throw badRequest(mine.length > 1 ? 'Escolha o vínculo da marcação' : 'Vínculo não encontrado');
           final now = DateTime.now().toUtc();
           final today = localBr(now).date;
@@ -987,8 +1267,10 @@ class TimesheetModule {
           await assertOpenPeriod(tx, [companyId], today, today);
           Row? appDevice;
           if (input['appDeviceToken'] != null) {
-            appDevice = await tx.one('SELECT id, name FROM app_devices WHERE token_hash = @h AND user_id = @u AND approved_at IS NOT NULL AND revoked_at IS NULL',
-                {'h': sha256Hex(utf8.encode(input['appDeviceToken']! as String)), 'u': user.id});
+            appDevice = await tx.one('SELECT id, name FROM app_devices WHERE token_hash = @h AND user_id = @u AND approved_at IS NOT NULL AND revoked_at IS NULL', {
+              'h': sha256Hex(utf8.encode(input['appDeviceToken']! as String)),
+              'u': user.id,
+            });
             if (appDevice == null) throw forbidden('Aparelho não liberado ou revogado: libere este aparelho de novo em Meus aparelhos');
             await tx.execute('UPDATE app_devices SET last_used_at = @n WHERE id = @id', {'n': now, 'id': appDevice['id']});
           }
@@ -997,8 +1279,7 @@ class TimesheetModule {
             if (input['latitude'] == null || input['longitude'] == null) {
               throw forbidden('Sua unidade exige localização: permita o acesso à localização para marcar (${e['uName']})');
             }
-            final dist = _distanceM(double.parse(e['uLatitude'].toString()), double.parse(e['uLongitude'].toString()),
-                (input['latitude']! as num).toDouble(), (input['longitude']! as num).toDouble());
+            final dist = _distanceM(double.parse(e['uLatitude'].toString()), double.parse(e['uLongitude'].toString()), (input['latitude']! as num).toDouble(), (input['longitude']! as num).toDouble());
             final acc = math.min((input['accuracy'] as int?) ?? 0, 100);
             if (dist > radius + acc) throw forbidden('Você está a ${core.jsRound(dist)} m de ${e['uName']}; a marcação vale até $radius m');
           }
@@ -1018,18 +1299,44 @@ class TimesheetModule {
           final cpf = await tx.scalar<String>('SELECT p.cpf FROM employment_relationships e JOIN people p ON p.id = e.person_id WHERE e.id = @e', {'e': e['id']}) ?? '';
           final rec7 = core.afdRecord7(nsr: nsr, at: now, cpf: cpf, recordedAt: now, collector: appDevice != null ? '01' : '02', offline: false, previousHash: prev);
           final rec = await tx.insert('time_records', {
-            'tenantId': tenantId, 'employmentId': e['id'], 'recordedAt': now, 'source': 'WEB', 'hash': hash, 'previousHash': lastHash, 'idempotencyKey': key,
-            'repPCompanyId': companyId, 'repPNsr': nsr, 'repPHash': rec7.hash,
+            'tenantId': tenantId,
+            'employmentId': e['id'],
+            'recordedAt': now,
+            'source': 'WEB',
+            'hash': hash,
+            'previousHash': lastHash,
+            'idempotencyKey': key,
+            'repPCompanyId': companyId,
+            'repPNsr': nsr,
+            'repPHash': rec7.hash,
             'latitude': input['latitude'] == null ? null : untyped(input['latitude'].toString()),
-            'longitude': input['longitude'] == null ? null : untyped(input['longitude'].toString()), 'accuracyM': input['accuracy'],
+            'longitude': input['longitude'] == null ? null : untyped(input['longitude'].toString()),
+            'accuracyM': input['accuracy'],
           });
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'time_record', entityId: rec['id'] as String?,
-              after: {'employmentId': e['id'], 'recordedAt': now, 'source': 'WEB', 'ip': ctx.ip, 'appDevice': appDevice?['name']}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: 'CREATE',
+            entity: 'time_record',
+            entityId: rec['id'] as String?,
+            after: {'employmentId': e['id'], 'recordedAt': now, 'source': 'WEB', 'ip': ctx.ip, 'appDevice': appDevice?['name']},
+            meta: ctx.meta,
+          );
           final footer = await tx.scalar<String>("SELECT text FROM custom_texts WHERE key = 'PUNCH_RECEIPT_FOOTER'");
           return {
-            'id': rec['id'], 'recordedAt': isoMs(now), 'date': today, 'time': localBr(now).time, 'hash': hash,
-            'employee': e['socialName'] ?? e['fullName'], 'registration': e['registration'], 'company': e['cTradeName'] ?? e['cLegalName'], 'cnpj': e['cCnpj'],
-            'appDevice': appDevice?['name'], 'footer': footer, 'nsr': nsr,
+            'id': rec['id'],
+            'recordedAt': isoMs(now),
+            'date': today,
+            'time': localBr(now).time,
+            'hash': hash,
+            'employee': e['socialName'] ?? e['fullName'],
+            'registration': e['registration'],
+            'company': e['cTradeName'] ?? e['cLegalName'],
+            'cnpj': e['cCnpj'],
+            'appDevice': appDevice?['name'],
+            'footer': footer,
+            'nsr': nsr,
           };
         });
       });
@@ -1043,8 +1350,15 @@ class TimesheetModule {
           await requireCompanyExists(tx, q['companyId']);
           return await tx.one('SELECT * FROM bank_policies WHERE company_id = @c', {'c': q['companyId']}) ??
               {
-                'companyId': q['companyId'], 'enabled': false, 'expirationDays': 180, 'maxDailyCreditMinutes': null, 'creditMultipliers': <String, Object?>{},
-                'compensationEnabled': false, 'compensationPeriod': 'WEEK', 'compensationLeftover': 'BANK', 'configured': false,
+                'companyId': q['companyId'],
+                'enabled': false,
+                'expirationDays': 180,
+                'maxDailyCreditMinutes': null,
+                'creditMultipliers': <String, Object?>{},
+                'compensationEnabled': false,
+                'compensationPeriod': 'WEEK',
+                'compensationLeftover': 'BANK',
+                'configured': false,
               };
         });
       });
@@ -1056,15 +1370,28 @@ class TimesheetModule {
           await requireCompanyExists(tx, input['companyId']);
           final before = await tx.one('SELECT * FROM bank_policies WHERE company_id = @c', {'c': input['companyId']});
           final data = {
-            'enabled': input['enabled'], 'expirationDays': input['expirationDays'], 'maxDailyCreditMinutes': input['maxDailyCreditMinutes'],
-            'creditMultipliers': jsonb(input['creditMultipliers']), 'compensationEnabled': input['compensationEnabled'],
-            'compensationPeriod': input['compensationPeriod'], 'compensationLeftover': input['compensationLeftover'],
+            'enabled': input['enabled'],
+            'expirationDays': input['expirationDays'],
+            'maxDailyCreditMinutes': input['maxDailyCreditMinutes'],
+            'creditMultipliers': jsonb(input['creditMultipliers']),
+            'compensationEnabled': input['compensationEnabled'],
+            'compensationPeriod': input['compensationPeriod'],
+            'compensationLeftover': input['compensationLeftover'],
           };
           final p = before == null
               ? await tx.insert('bank_policies', {'tenantId': tenantId, 'companyId': input['companyId'], ...data})
               : (await tx.update('bank_policies', before['id']! as String, data))!;
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: before == null ? 'CREATE' : 'UPDATE', entity: 'bank_policy', entityId: p['id'] as String?,
-              before: before, after: p, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: before == null ? 'CREATE' : 'UPDATE',
+            entity: 'bank_policy',
+            entityId: p['id'] as String?,
+            before: before,
+            after: p,
+            meta: ctx.meta,
+          );
           return p;
         });
       });
@@ -1086,10 +1413,16 @@ class TimesheetModule {
         final policy = await db.forTenant(tenantId, (tx) => tx.one('SELECT * FROM bank_policies WHERE company_id = @c', {'c': e.companyId}));
         final period = policy?['compensationPeriod'] as String? ?? 'WEEK', leftover = policy?['compensationLeftover'] as String? ?? 'BANK';
         final days = (await core0.compute(tenantId, [e], q['from']! as String, q['to']! as String))[e.id]!;
-        final results = [for (final d in days) if (d['result'] is Map) resultFromJson({...(d['result']! as Map).cast<String, Object?>(), 'date': d['date']})];
+        final results = [
+          for (final d in days)
+            if (d['result'] is Map) resultFromJson({...(d['result']! as Map).cast<String, Object?>(), 'date': d['date']}),
+        ];
         return {
-          'employment': {'id': e.id, 'registration': e.registration, 'name': e.name}, 'enabled': policy?['compensationEnabled'] == true,
-          'period': period, 'leftover': leftover, 'periods': compensate(results, period, leftover).periods,
+          'employment': {'id': e.id, 'registration': e.registration, 'name': e.name},
+          'enabled': policy?['compensationEnabled'] == true,
+          'period': period,
+          'leftover': leftover,
+          'periods': compensate(results, period, leftover).periods,
         };
       });
 
@@ -1103,8 +1436,14 @@ class TimesheetModule {
           );
           return [
             for (final x in rows)
-              {'employmentId': x['id'], 'registration': x['registration'], 'status': x['status'], 'name': x['socialName'] ?? x['fullName'],
-                'balanceMinutes': x['balanceMinutes'] ?? 0, 'updatedAt': x['updatedAt']},
+              {
+                'employmentId': x['id'],
+                'registration': x['registration'],
+                'status': x['status'],
+                'name': x['socialName'] ?? x['fullName'],
+                'balanceMinutes': x['balanceMinutes'] ?? 0,
+                'updatedAt': x['updatedAt'],
+              },
           ];
         });
       });
@@ -1126,12 +1465,25 @@ class TimesheetModule {
           for (final e in emps) {
             final acc = await _account(tx, tenantId, e['id']! as String);
             await tx.insert('bank_hour_transactions', {
-              'tenantId': tenantId, 'accountId': acc['id'], 'type': input['type'], 'minutes': minutes, 'refDate': input['refDate'], 'description': input['description'], 'createdById': user.id,
+              'tenantId': tenantId,
+              'accountId': acc['id'],
+              'type': input['type'],
+              'minutes': minutes,
+              'refDate': input['refDate'],
+              'description': input['description'],
+              'createdById': user.id,
             });
             await tx.execute('UPDATE bank_hours SET balance_minutes = balance_minutes + @m, updated_at = now() WHERE id = @id', {'m': minutes, 'id': acc['id']});
           }
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'bank_transaction',
-              after: {...input, 'minutes': minutes, 'employments': ids.length}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: 'CREATE',
+            entity: 'bank_transaction',
+            after: {...input, 'minutes': minutes, 'employments': ids.length},
+            meta: ctx.meta,
+          );
           return {'created': emps.length};
         });
       });
@@ -1153,7 +1505,13 @@ class TimesheetModule {
             if (b == 0 || (input['only'] == 'POSITIVE' && b < 0) || (input['only'] == 'NEGATIVE' && b > 0)) continue;
             if (input['type'] == 'PAYOUT' && b < 0) continue; // saldo negativo não se "paga"
             await tx.insert('bank_hour_transactions', {
-              'tenantId': tenantId, 'accountId': a['id'], 'type': input['type'], 'minutes': -b, 'refDate': input['refDate'], 'description': input['description'], 'createdById': user.id,
+              'tenantId': tenantId,
+              'accountId': a['id'],
+              'type': input['type'],
+              'minutes': -b,
+              'refDate': input['refDate'],
+              'description': input['description'],
+              'createdById': user.id,
             });
             await tx.update('bank_hours', a['id']! as String, {'balanceMinutes': 0});
             n++;
@@ -1183,13 +1541,26 @@ class TimesheetModule {
           }
           final existing = await tx.one('SELECT * FROM approval_flows WHERE company_id = @c AND request_type = @rt', {'c': input['companyId'], 'rt': input['requestType']});
           final f = existing != null
-              ? (await tx.one('UPDATE approval_flows SET steps = @s, is_active = @a WHERE id = @id RETURNING *, request_type::text AS request_type',
-                  {'s': jsonb(input['steps']), 'a': input['isActive'], 'id': existing['id']}))!
+              ? (await tx.one('UPDATE approval_flows SET steps = @s, is_active = @a WHERE id = @id RETURNING *, request_type::text AS request_type', {
+                  's': jsonb(input['steps']),
+                  'a': input['isActive'],
+                  'id': existing['id'],
+                }))!
               : (await tx.one(
                   'INSERT INTO approval_flows (id, tenant_id, company_id, request_type, steps, is_active) VALUES (gen_random_uuid(), @t, @c, @rt, @s, @a) RETURNING *, request_type::text AS request_type',
-                  {'t': tenantId, 'c': input['companyId'], 'rt': input['requestType'], 's': jsonb(input['steps']), 'a': input['isActive']}))!;
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: existing != null ? 'UPDATE' : 'CREATE', entity: 'approval_flow', entityId: f['id'] as String?,
-              before: existing, after: f, meta: ctx.meta);
+                  {'t': tenantId, 'c': input['companyId'], 'rt': input['requestType'], 's': jsonb(input['steps']), 'a': input['isActive']},
+                ))!;
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: existing != null ? 'UPDATE' : 'CREATE',
+            entity: 'approval_flow',
+            entityId: f['id'] as String?,
+            before: existing,
+            after: f,
+            meta: ctx.meta,
+          );
           return f;
         });
       });
@@ -1197,10 +1568,15 @@ class TimesheetModule {
 
     r.group('/v1/requests', tag: 'solicitações', () {
       r.get('', permission: 'requests.requests:read', (ctx) {
-        final q = Obj({'status': const Enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']).optional, 'companyId': uuid.optional}).parse(ctx.query);
+        final q = Obj({
+          'status': const Enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']).optional,
+          'companyId': uuid.optional,
+        }).parse(ctx.query);
         return db.forTenant(ctx.tenant, (tx) async {
-          final rows = await tx.query('$_reqSelect WHERE TRUE${q['status'] != null ? ' AND r.status = @s' : ''}${q['companyId'] != null ? ' AND e.company_id = @c' : ''} ORDER BY r.created_at DESC LIMIT 500',
-              {'s': q['status'], 'c': q['companyId']});
+          final rows = await tx.query(
+            '$_reqSelect WHERE TRUE${q['status'] != null ? ' AND r.status = @s' : ''}${q['companyId'] != null ? ' AND e.company_id = @c' : ''} ORDER BY r.created_at DESC LIMIT 500',
+            {'s': q['status'], 'c': q['companyId']},
+          );
           return [for (final x in rows) await _shapeRequest(tx, x)];
         });
       });
@@ -1208,7 +1584,10 @@ class TimesheetModule {
       r.get('/mine', permission: 'requests.requests:create', (ctx) {
         final user = ctx.user;
         return db.forTenant(ctx.tenant, (tx) async {
-          final rows = await tx.query('$_reqSelect WHERE r.created_by_id = @u OR (@p::uuid IS NOT NULL AND e.person_id = @p::uuid) ORDER BY r.created_at DESC LIMIT 200', {'u': user.id, 'p': user.personId});
+          final rows = await tx.query('$_reqSelect WHERE r.created_by_id = @u OR (@p::uuid IS NOT NULL AND e.person_id = @p::uuid) ORDER BY r.created_at DESC LIMIT 200', {
+            'u': user.id,
+            'p': user.personId,
+          });
           return [for (final x in rows) await _shapeRequest(tx, x)];
         });
       });
@@ -1217,7 +1596,10 @@ class TimesheetModule {
         final user = ctx.user;
         return db.forTenant(ctx.tenant, (tx) async {
           final rows = await tx.query("$_reqSelect WHERE r.status = 'PENDING' ORDER BY r.created_at ASC LIMIT 500");
-          return [for (final x in rows) if (await _canDecide(tx, user, x)) await _shapeRequest(tx, x)];
+          return [
+            for (final x in rows)
+              if (await _canDecide(tx, user, x)) await _shapeRequest(tx, x),
+          ];
         });
       });
 
@@ -1254,8 +1636,14 @@ class TimesheetModule {
           }
           final flow = await tx.one('SELECT id FROM approval_flows WHERE company_id = @c AND request_type = @t AND is_active', {'c': e['companyId'], 't': input['type']});
           final created = await tx.insert('time_requests', {
-            'tenantId': tenantId, 'employmentId': e['id'], 'type': input['type'], 'refDate': refDate, 'payload': jsonb(payload), 'justification': input['justification'],
-            'flowId': flow?['id'], 'createdById': user.id,
+            'tenantId': tenantId,
+            'employmentId': e['id'],
+            'type': input['type'],
+            'refDate': refDate,
+            'payload': jsonb(payload),
+            'justification': input['justification'],
+            'flowId': flow?['id'],
+            'createdById': user.id,
           });
           final x = (await tx.one('$_reqSelect WHERE r.id = @id', {'id': created['id']}))!;
           await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'time_request', entityId: created['id'] as String?, after: created, meta: ctx.meta);
@@ -1282,9 +1670,25 @@ class TimesheetModule {
         if (decision == 'APPROVED' && last) await _applyRequest(tenantId, user, x, ctx.meta);
         return db.forTenant(tenantId, (tx) async {
           await tx.insert('request_decisions', {'tenantId': tenantId, 'requestId': id, 'step': step, 'decision': decision, 'comment': b['comment'], 'deciderId': user.id});
-          await tx.update('time_requests', id, decision == 'REJECTED' ? {'status': 'REJECTED'} : last ? {'status': 'APPROVED'} : {'currentStep': step + 1});
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: decision == 'APPROVED' ? 'APPROVE' : 'REJECT', entity: 'time_request', entityId: id,
-              after: {'step': step, 'decision': decision, 'comment': b['comment'], 'final': last || decision == 'REJECTED'}, meta: ctx.meta);
+          await tx.update(
+            'time_requests',
+            id,
+            decision == 'REJECTED'
+                ? {'status': 'REJECTED'}
+                : last
+                ? {'status': 'APPROVED'}
+                : {'currentStep': step + 1},
+          );
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: decision == 'APPROVED' ? 'APPROVE' : 'REJECT',
+            entity: 'time_request',
+            entityId: id,
+            after: {'step': step, 'decision': decision, 'comment': b['comment'], 'final': last || decision == 'REJECTED'},
+            meta: ctx.meta,
+          );
           return _shapeRequest(tx, (await tx.one('$_reqSelect WHERE r.id = @id', {'id': id}))!);
         });
       });
@@ -1321,19 +1725,29 @@ class TimesheetModule {
         {'c': companyId, 'from': from, 'to': to},
       );
       final assignments = await tx.query(
-          'SELECT a.employment_id, s.id, s.code, s.name FROM schedule_assignments a JOIN work_schedules s ON s.id = a.schedule_id '
-          'WHERE a.employment_id::text = ANY(@ids) AND a.valid_from <= @to AND (a.valid_to IS NULL OR a.valid_to >= @from)',
-          {'ids': [for (final e in emps) e['id']! as String], 'from': from, 'to': to});
+        'SELECT a.employment_id, s.id, s.code, s.name FROM schedule_assignments a JOIN work_schedules s ON s.id = a.schedule_id '
+        'WHERE a.employment_id::text = ANY(@ids) AND a.valid_from <= @to AND (a.valid_to IS NULL OR a.valid_to >= @from)',
+        {
+          'ids': [for (final e in emps) e['id']! as String],
+          'from': from,
+          'to': to,
+        },
+      );
       final schedDays = assignments.isEmpty
           ? <Row>[]
-          : await tx.query('SELECT * FROM work_schedule_days WHERE schedule_id::text = ANY(@s)', {'s': {for (final a in assignments) a['id']! as String}.toList()});
+          : await tx.query('SELECT * FROM work_schedule_days WHERE schedule_id::text = ANY(@s)', {
+              's': {for (final a in assignments) a['id']! as String}.toList(),
+            });
       final devices = await tx.query('SELECT id, rep_number, ordinance::text AS ordinance FROM devices WHERE company_id = @c AND deleted_at IS NULL', {'c': companyId});
       final repP = await tx.one('SELECT inpi_number FROM rep_p_registers WHERE company_id = @c', {'c': companyId});
       final bank = await tx.query(
-          "SELECT t.type::text AS type, t.minutes, t.ref_date, a.employment_id FROM bank_hour_transactions t JOIN bank_hours a ON a.id = t.account_id "
-          "JOIN employment_relationships e ON e.id = a.employment_id WHERE e.company_id = @c AND t.ref_date BETWEEN @from AND @to AND t.type IN ('CREDIT', 'DEBIT', 'COMPENSATION')",
-          {'c': companyId, 'from': from, 'to': to});
-      final records = await tx.query('SELECT id, device_id FROM time_records WHERE employment_id::text = ANY(@ids)', {'ids': [for (final e in emps) e['id']! as String]});
+        'SELECT t.type::text AS type, t.minutes, t.ref_date, a.employment_id FROM bank_hour_transactions t JOIN bank_hours a ON a.id = t.account_id '
+        "JOIN employment_relationships e ON e.id = a.employment_id WHERE e.company_id = @c AND t.ref_date BETWEEN @from AND @to AND t.type IN ('CREDIT', 'DEBIT', 'COMPENSATION')",
+        {'c': companyId, 'from': from, 'to': to},
+      );
+      final records = await tx.query('SELECT id, device_id FROM time_records WHERE employment_id::text = ANY(@ids)', {
+        'ids': [for (final e in emps) e['id']! as String],
+      });
       return (company: company, emps: emps, assignments: assignments, schedDays: schedDays, devices: devices, repP: repP, bank: bank, records: records);
     });
     final cnpj = data.company['cnpj'] as String?;
@@ -1385,8 +1799,20 @@ class TimesheetModule {
 
     final now = localBr(DateTime.now());
     final cno = core.onlyDigits(data.company['cno'] as String? ?? '');
-    push(['01', '1', core.onlyDigits(cnpj).padLeft(14, '0').substring(core.onlyDigits(cnpj).padLeft(14, '0').length - 14), '', cno.length == 12 ? cno : '',
-      cut(clean(data.company['legalName']! as String), 150), from, to, '${now.date}T${now.time}:00-0300', '001'].join('|'));
+    push(
+      [
+        '01',
+        '1',
+        core.onlyDigits(cnpj).padLeft(14, '0').substring(core.onlyDigits(cnpj).padLeft(14, '0').length - 14),
+        '',
+        cno.length == 12 ? cno : '',
+        cut(clean(data.company['legalName']! as String), 150),
+        from,
+        to,
+        '${now.date}T${now.time}:00-0300',
+        '001',
+      ].join('|'),
+    );
     for (final x in reps.values.toList()..sort((a, b) => a.id.compareTo(b.id))) {
       push(['02', '${x.id}', '${x.tp}', x.nr].join('|'));
     }
@@ -1415,12 +1841,27 @@ class TimesheetModule {
           final st = p['status']! as String;
           if (st.startsWith('PENDING')) continue;
           final idx = valid.indexOf(p);
-          final tp = st == 'DISREGARDED' ? 'D' : idx % 2 == 0 ? 'E' : 'S';
+          final tp = st == 'DISREGARDED'
+              ? 'D'
+              : idx % 2 == 0
+              ? 'E'
+              : 'S';
           if (tp != 'D' && idx % 2 == 0) seq++;
           final fonte = st == 'INCLUDED' ? 'I' : 'O';
           final rep = repOf(st == 'INCLUDED' ? null : deviceOfRecord[p['id']]);
-          push(['05', '$v', '${p['date']}T${p['time']}:00-0300', '${rep.id}', tp, tp == 'D' ? '' : '$seq', fonte, cod,
-            fonte == 'I' || tp == 'D' ? cut(clean(p['justification'] as String? ?? ''), 150) : ''].join('|'));
+          push(
+            [
+              '05',
+              '$v',
+              '${p['date']}T${p['time']}:00-0300',
+              '${rep.id}',
+              tp,
+              tp == 'D' ? '' : '$seq',
+              fonte,
+              cod,
+              fonte == 'I' || tp == 'D' ? cut(clean(p['justification'] as String? ?? ''), 150) : '',
+            ].join('|'),
+          );
         }
       }
       push(['06', '$v', cut(clean(e['registration']! as String), 30)].join('|'));
@@ -1437,7 +1878,12 @@ class TimesheetModule {
       }
     }
     push(['08', 'SuperPonto', '2.0', '1', '', 'SuperPonto', ''].join('|'));
-    push(['99', ...['01', '02', '03', '04', '05', '06', '07', '08'].map((k) => '${count[k] ?? 0}')].join('|'));
+    push(
+      [
+        '99',
+        ...['01', '02', '03', '04', '05', '06', '07', '08'].map((k) => '${count[k] ?? 0}'),
+      ].join('|'),
+    );
     return {
       'filename': 'AEJ_${core.onlyDigits(cnpj)}_${from}_$to.txt',
       'content': '${lines.join('\r\n')}\r\n',

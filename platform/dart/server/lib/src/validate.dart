@@ -96,9 +96,23 @@ bool _missing(Object? v, List<Object> path, Issues issues) {
 final _emailRe = RegExp(r"^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$");
 
 class Str extends S {
-  const Str({this.min, this.max, this.trim = false, this.lower = false, this.upper = false, this.pattern, this.patternMessage, this.email = false, this.uuid = false, this.length, this.digitsOnly = false, this.message});
+  const Str({
+    this.min,
+    this.max,
+    this.trim = false,
+    this.lower = false,
+    this.upper = false,
+    this.pattern,
+    this.patternMessage,
+    this.email = false,
+    this.uuid = false,
+    this.length,
+    this.digitsOnly = false,
+    this.message,
+  });
   final int? min, max, length;
   final bool trim, lower, upper, email, uuid;
+
   /// remove tudo que não é dígito antes de validar (CEP, telefone...)
   final bool digitsOnly;
   final RegExp? pattern;
@@ -128,18 +142,21 @@ class Str extends S {
 
 const email = Str(email: true);
 const uuid = Str(uuid: true);
+
 /// "YYYY-MM-DD"
 final date = Str(pattern: RegExp(r'^\d{4}-\d{2}-\d{2}$'), patternMessage: 'Data inválida (AAAA-MM-DD)').refine((v) {
   final p = (v as String).split('-').map(int.parse).toList();
   final d = DateTime.utc(p[0], p[1], p[2]);
   return d.year == p[0] && d.month == p[1] && d.day == p[2];
 }, 'Data inválida');
+
 /// "HH:mm"
 final hm = Str(pattern: RegExp(r'^([01]\d|2[0-3]):[0-5]\d$'), patternMessage: 'Horário inválido (HH:mm)');
 
 /// CNPJ numérico ou alfanumérico, com ou sem máscara; sai normalizado.
-final cnpj = const Str(trim: true).map((v) => normalizeCnpj(v as String)).refine((v) => isValidCnpj(v as String),
-    'CNPJ inválido: confira os 12 caracteres (letras ou números) e os 2 dígitos verificadores');
+final cnpj = const Str(trim: true)
+    .map((v) => normalizeCnpj(v as String))
+    .refine((v) => isValidCnpj(v as String), 'CNPJ inválido: confira os 12 caracteres (letras ou números) e os 2 dígitos verificadores');
 final cpf = const Str(trim: true, digitsOnly: true).refine((v) => isValidCpf(v as String), 'CPF inválido');
 final pis = const Str(trim: true, digitsOnly: true).refine((v) => isValidPis(v as String), 'PIS inválido');
 
@@ -246,7 +263,9 @@ class Arr extends S {
     }
     if (min != null && v.length < min!) issues.add(path, message ?? 'Too small: expected array to have >=$min items');
     if (max != null && v.length > max!) issues.add(path, message ?? 'Too big: expected array to have <=$max items');
-    return [for (var i = 0; i < v.length; i++) item.run(v[i], [...path, i], issues)];
+    return [
+      for (var i = 0; i < v.length; i++) item.run(v[i], [...path, i], issues),
+    ];
   }
 }
 
@@ -261,7 +280,9 @@ class Rec extends S {
       issues.add(path, 'Invalid input: expected record, received ${_typeName(v)}');
       return v;
     }
-    return {for (final e in v.entries) e.key.toString(): value.run(e.value, [...path, e.key.toString()], issues)};
+    return {
+      for (final e in v.entries) e.key.toString(): value.run(e.value, [...path, e.key.toString()], issues),
+    };
   }
 }
 
@@ -270,18 +291,23 @@ class Obj extends S {
   const Obj(this.fields, {this.checks = const [], this.supers = const []});
   final Map<String, S> fields;
   final List<(bool Function(Map<String, Object?>), String, List<Object>)> checks;
+
   /// validações com várias mensagens (como o superRefine do Zod)
   final List<void Function(Map<String, Object?> v, void Function(String message, [List<Object> path]) add)> supers;
 
-  Obj superRefine(void Function(Map<String, Object?> v, void Function(String message, [List<Object> path]) add) fn) =>
-      Obj(fields, checks: checks, supers: [...supers, fn]);
+  Obj superRefine(void Function(Map<String, Object?> v, void Function(String message, [List<Object> path]) add) fn) => Obj(fields, checks: checks, supers: [...supers, fn]);
 
   Obj get partial => Obj({for (final e in fields.entries) e.key: _stripDefault(e.value).optional});
   Obj extend(Map<String, S> more) => Obj({...fields, ...more}, checks: checks, supers: supers);
-  Obj omit(List<String> keys) => Obj({for (final e in fields.entries) if (!keys.contains(e.key)) e.key: e.value});
-  Obj pick(List<String> keys) => Obj({for (final e in fields.entries) if (keys.contains(e.key)) e.key: e.value});
-  Obj check(bool Function(Map<String, Object?> v) test, String message, {List<Object> path = const []}) =>
-      Obj(fields, checks: [...checks, (test, message, path)], supers: supers);
+  Obj omit(List<String> keys) => Obj({
+    for (final e in fields.entries)
+      if (!keys.contains(e.key)) e.key: e.value,
+  });
+  Obj pick(List<String> keys) => Obj({
+    for (final e in fields.entries)
+      if (keys.contains(e.key)) e.key: e.value,
+  });
+  Obj check(bool Function(Map<String, Object?> v) test, String message, {List<Object> path = const []}) => Obj(fields, checks: [...checks, (test, message, path)], supers: supers);
 
   static S _stripDefault(S s) => s is _Default ? s.inner : s;
 
@@ -318,15 +344,15 @@ class Obj extends S {
 }
 
 String _typeName(Object? v) => switch (v) {
-      null => 'null',
-      _Absent() => 'undefined',
-      String() => 'string',
-      num() => 'number',
-      bool() => 'boolean',
-      List() => 'array',
-      Map() => 'object',
-      _ => 'unknown',
-    };
+  null => 'null',
+  _Absent() => 'undefined',
+  String() => 'string',
+  num() => 'number',
+  bool() => 'boolean',
+  List() => 'array',
+  Map() => 'object',
+  _ => 'unknown',
+};
 
 /// Paginação padrão (?page&pageSize&search).
 final pageSchema = Obj({

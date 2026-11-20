@@ -34,11 +34,8 @@ final roleSchema = Obj({
   'description': const Str(trim: true, max: 300).optional,
   'permissions': Arr(Str(pattern: RegExp(r'^[a-z]+\.[a-z]+:[a-z]+$')), min: 1, max: 200, message: 'Escolha ao menos uma permissão'),
 });
-final blockSchema = Obj({
-  'reason': const Str(trim: true, min: 3, max: 300, message: 'Informe o motivo'),
-  'startsAt': const DateTimeS(),
-  'endsAt': const DateTimeS().optional,
-}).check((v) => v['endsAt'] == null || (v['endsAt']! as DateTime).isAfter(v['startsAt']! as DateTime), 'O fim do bloqueio deve ser depois do início', path: ['endsAt']);
+final blockSchema = Obj({'reason': const Str(trim: true, min: 3, max: 300, message: 'Informe o motivo'), 'startsAt': const DateTimeS(), 'endsAt': const DateTimeS().optional})
+    .check((v) => v['endsAt'] == null || (v['endsAt']! as DateTime).isAfter(v['startsAt']! as DateTime), 'O fim do bloqueio deve ser depois do início', path: ['endsAt']);
 
 /// Catálogo de permissões agrupado por módulo → recurso → ação.
 List<Map<String, Object?>> permissionCatalog(bool includePlatform) {
@@ -49,12 +46,15 @@ List<Map<String, Object?>> permissionCatalog(bool includePlatform) {
     final mod = resource.split('.').first;
     if (mod == 'platform' && !includePlatform) continue;
     final m = modules.putIfAbsent(mod, () => {'key': mod, 'label': moduleLabels[mod] ?? mod, 'resources': <String, Map<String, Object?>>{}});
-    final res = (m['resources']! as Map<String, Map<String, Object?>>).putIfAbsent(resource, () => {
-          'key': resource, 'label': resourceLabels[resource] ?? resource, 'available': availableResources.contains(resource), 'actions': <Object?>[],
-        });
+    final res = (m['resources']! as Map<String, Map<String, Object?>>).putIfAbsent(
+      resource,
+      () => {'key': resource, 'label': resourceLabels[resource] ?? resource, 'available': availableResources.contains(resource), 'actions': <Object?>[]},
+    );
     (res['actions']! as List<Object?>).add({'permission': e.key, 'action': action, 'label': actionLabels[action] ?? action, 'description': e.value});
   }
-  return [for (final m in modules.values) {...m, 'resources': (m['resources']! as Map<String, Map<String, Object?>>).values.toList()}];
+  return [
+    for (final m in modules.values) {...m, 'resources': (m['resources']! as Map<String, Map<String, Object?>>).values.toList()},
+  ];
 }
 
 String _slug(String v) {
@@ -70,7 +70,8 @@ String _slug(String v) {
   return s.isEmpty ? 'perfil' : s;
 }
 
-const _userCols = 'u.id, u.email, u.display_name, u.is_active, u.is_support, u.last_login_at, u.created_at, u.access_weekdays, '
+const _userCols =
+    'u.id, u.email, u.display_name, u.is_active, u.is_support, u.last_login_at, u.created_at, u.access_weekdays, '
     'u.must_change_password, u.auth_source::text AS auth_source, u.person_id';
 
 class UsersModule {
@@ -84,33 +85,46 @@ class UsersModule {
     if (users.isEmpty) return users;
     final ids = [for (final u in users) u['id']! as String];
     final blocks = await tx.query(
-        'SELECT * FROM (SELECT id, user_id, reason, starts_at, ends_at, row_number() OVER (PARTITION BY user_id ORDER BY starts_at DESC) AS n '
-        'FROM user_access_blocks WHERE revoked_at IS NULL AND user_id::text = ANY(@ids)) b WHERE n <= 20 ORDER BY starts_at DESC',
-        {'ids': ids});
-    final roles = await tx.query(
-        'SELECT ur.user_id, r.id, r.key, r.name FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id::text = ANY(@ids) ORDER BY ur.created_at',
-        {'ids': ids});
+      'SELECT * FROM (SELECT id, user_id, reason, starts_at, ends_at, row_number() OVER (PARTITION BY user_id ORDER BY starts_at DESC) AS n '
+      'FROM user_access_blocks WHERE revoked_at IS NULL AND user_id::text = ANY(@ids)) b WHERE n <= 20 ORDER BY starts_at DESC',
+      {'ids': ids},
+    );
+    final roles = await tx.query('SELECT ur.user_id, r.id, r.key, r.name FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id::text = ANY(@ids) ORDER BY ur.created_at', {'ids': ids});
     return [
       for (final u in users)
         {
-          for (final e in u.entries) if (e.key != 'personFullName') e.key: e.value,
+          for (final e in u.entries)
+            if (e.key != 'personFullName') e.key: e.value,
           'person': u['personFullName'] == null ? null : {'fullName': u['personFullName']},
           'accessBlocks': [
-            for (final b in blocks) if (b['userId'] == u['id']) {'id': b['id'], 'reason': b['reason'], 'startsAt': b['startsAt'], 'endsAt': b['endsAt']},
+            for (final b in blocks)
+              if (b['userId'] == u['id']) {'id': b['id'], 'reason': b['reason'], 'startsAt': b['startsAt'], 'endsAt': b['endsAt']},
           ],
-          'roles': [for (final r in roles) if (r['userId'] == u['id']) {'role': {'id': r['id'], 'key': r['key'], 'name': r['name']}}],
+          'roles': [
+            for (final r in roles)
+              if (r['userId'] == u['id'])
+                {
+                  'role': {'id': r['id'], 'key': r['key'], 'name': r['name']},
+                },
+          ],
         },
     ];
   }
 
   Map<String, Object?> _shape(Row u, AuthUser viewer) {
     final now = DateTime.now();
-    final blocks = [for (final b in u['accessBlocks']! as List) if ((b as Map)['endsAt'] == null || (b['endsAt'] as DateTime).isAfter(now)) b];
+    final blocks = [
+      for (final b in u['accessBlocks']! as List)
+        if ((b as Map)['endsAt'] == null || (b['endsAt'] as DateTime).isAfter(now)) b,
+    ];
     final active = blocks.cast<Map<Object?, Object?>>().where((b) => !(b['startsAt']! as DateTime).isAfter(now)).firstOrNull;
     return {
-      ...u, 'accessBlocks': blocks, 'activeBlock': active,
+      ...u,
+      'accessBlocks': blocks,
+      'activeBlock': active,
       'roles': [for (final r in u['roles']! as List) (r as Map)['role']],
-      'editable': u['isSupport'] != true, 'isSelf': u['id'] == viewer.id,
+      'editable': u['isSupport'] != true,
+      'isSelf': u['id'] == viewer.id,
     };
   }
 
@@ -129,9 +143,10 @@ class UsersModule {
   }
 
   Future<List<String>> _assignableRoles(Tx tx, String tenantId, List<String> roleIds) async {
-    final rows = await tx.query(
-        "SELECT id FROM roles WHERE id::text = ANY(@ids) AND deleted_at IS NULL AND (tenant_id = @t OR (tenant_id IS NULL AND is_system)) AND key <> 'super_admin'",
-        {'ids': roleIds, 't': tenantId});
+    final rows = await tx.query("SELECT id FROM roles WHERE id::text = ANY(@ids) AND deleted_at IS NULL AND (tenant_id = @t OR (tenant_id IS NULL AND is_system)) AND key <> 'super_admin'", {
+      'ids': roleIds,
+      't': tenantId,
+    });
     if (rows.length != roleIds.toSet().length) throw badRequest('Perfil inválido');
     return [for (final r in rows) r['id']! as String];
   }
@@ -159,7 +174,12 @@ class UsersModule {
           final page = q['page']! as int, size = q['pageSize']! as int;
           final rows = await _load(tx, where, p, order: 'ORDER BY u.is_support DESC, u.display_name ASC', limit: 'LIMIT $size OFFSET ${(page - 1) * size}');
           final total = await tx.scalar<int>('SELECT count(*)::int FROM users u WHERE $where', p);
-          return {'data': [for (final u in rows) _shape(u, viewer)], 'page': page, 'pageSize': size, 'total': total};
+          return {
+            'data': [for (final u in rows) _shape(u, viewer)],
+            'page': page,
+            'pageSize': size,
+            'total': total,
+          };
         });
       });
 
@@ -177,13 +197,25 @@ class UsersModule {
           await assertLimit(tx, tenantId, 'limit.users');
           if (ldap) await _requireLdap(tx, tenantId);
           final user = await tx.insert('users', {
-            'tenantId': tenantId, 'email': mail, 'displayName': input['displayName'], 'accessWeekdays': (input['accessWeekdays'] as List?)?.cast<int>() ?? <int>[],
-            'mustChangePassword': ldap ? false : (input['mustChangePassword'] ?? false), 'authSource': ldap ? 'LDAP' : 'LOCAL',
+            'tenantId': tenantId,
+            'email': mail,
+            'displayName': input['displayName'],
+            'accessWeekdays': (input['accessWeekdays'] as List?)?.cast<int>() ?? <int>[],
+            'mustChangePassword': ldap ? false : (input['mustChangePassword'] ?? false),
+            'authSource': ldap ? 'LDAP' : 'LOCAL',
           });
           await _setRoles(tx, user['id']! as String, tenantId, roleIds);
           final saved = (await _load(tx, 'u.id = @id', {'id': user['id']})).first;
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: actor.id, action: 'CREATE', entity: 'user', entityId: user['id'] as String?,
-              after: {'email': mail, 'displayName': input['displayName'], 'roleIds': roleIds}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: actor.id,
+            action: 'CREATE',
+            entity: 'user',
+            entityId: user['id'] as String?,
+            after: {'email': mail, 'displayName': input['displayName'], 'roleIds': roleIds},
+            meta: ctx.meta,
+          );
           return _shape(saved, actor);
         });
         if (!ldap) app.passwordReset.request(mail); // convite: o usuário define a própria senha
@@ -222,7 +254,7 @@ class UsersModule {
             if (input.containsKey('personId')) 'personId': personId,
             if (input['displayName'] != null) 'displayName': input['displayName'],
             if (input['isActive'] != null) 'isActive': input['isActive'],
-            if (days != null) 'accessWeekdays': days,
+            'accessWeekdays': ?days,
           };
           if (toLdap || (before['authSource'] == 'LDAP' && !toLocal)) {
             data['mustChangePassword'] = false;
@@ -238,8 +270,17 @@ class UsersModule {
           await tx.update('users', id, data);
           if (toLocal) invite = before['email'] as String?;
           final after = (await _load(tx, 'u.id = @id', {'id': id})).first;
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: actor.id, action: 'UPDATE', entity: 'user', entityId: id,
-              before: _shape(before, actor), after: _shape(after, actor), meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: actor.id,
+            action: 'UPDATE',
+            entity: 'user',
+            entityId: id,
+            before: _shape(before, actor),
+            after: _shape(after, actor),
+            meta: ctx.meta,
+          );
           return _shape(after, actor);
         });
         // Depois do commit: o convite precisa enxergar a conta já como senha própria.
@@ -268,7 +309,9 @@ class UsersModule {
       });
 
       r.get('/access-blocks', permission: 'admin.users:read', (ctx) {
-        final q = Obj({'includeEnded': const Enum(['true', 'false']).def('false')}).parse(ctx.query);
+        final q = Obj({
+          'includeEnded': const Enum(['true', 'false']).def('false'),
+        }).parse(ctx.query);
         final viewer = ctx.user, tenantId = ctx.tenant;
         final includeEnded = q['includeEnded'] == 'true';
         return db.forTenant(tenantId, (tx) async {
@@ -282,15 +325,16 @@ class UsersModule {
           return [
             for (final b in rows)
               {
-                for (final e in b.entries) if (!e.key.startsWith('u') || !RegExp('^u[A-Z]').hasMatch(e.key)) e.key: e.value,
+                for (final e in b.entries)
+                  if (!e.key.startsWith('u') || !RegExp('^u[A-Z]').hasMatch(e.key)) e.key: e.value,
                 'user': {'id': b['uId'], 'displayName': b['uDisplayName'], 'email': b['uEmail']},
                 'state': b['revokedAt'] != null
                     ? 'REVOKED'
                     : b['endsAt'] != null && !(b['endsAt']! as DateTime).isAfter(now)
-                        ? 'ENDED'
-                        : (b['startsAt']! as DateTime).isAfter(now)
-                            ? 'SCHEDULED'
-                            : 'ACTIVE',
+                    ? 'ENDED'
+                    : (b['startsAt']! as DateTime).isAfter(now)
+                    ? 'SCHEDULED'
+                    : 'ACTIVE',
               },
           ];
         });
@@ -304,8 +348,12 @@ class UsersModule {
           await _editable(tx, tenantId, actor, id);
           if (id == actor.id) throw badRequest('Você não pode bloquear o próprio acesso');
           final b = await tx.insert('user_access_blocks', {
-            'tenantId': tenantId, 'userId': id, 'reason': input['reason'], 'startsAt': input['startsAt'],
-            if (input['endsAt'] != null) 'endsAt': input['endsAt'], 'createdById': actor.id,
+            'tenantId': tenantId,
+            'userId': id,
+            'reason': input['reason'],
+            'startsAt': input['startsAt'],
+            if (input['endsAt'] != null) 'endsAt': input['endsAt'],
+            'createdById': actor.id,
           }, updatedAt: false);
           await app.audit.record(tx, tenantId: tenantId, actorUserId: actor.id, action: 'CREATE', entity: 'user_access_block', entityId: b['id'] as String?, after: b, meta: ctx.meta);
           return b;
@@ -341,8 +389,14 @@ class UsersModule {
           return [
             for (final x in roles)
               {
-                'id': x['id'], 'key': x['key'], 'name': x['name'], 'description': x['description'], 'isSystem': x['isSystem'],
-                'editable': x['tenantId'] == tenantId, 'permissions': x['permissions'], 'users': x['users'],
+                'id': x['id'],
+                'key': x['key'],
+                'name': x['name'],
+                'description': x['description'],
+                'isSystem': x['isSystem'],
+                'editable': x['tenantId'] == tenantId,
+                'permissions': x['permissions'],
+                'users': x['users'],
               },
           ];
         });
@@ -401,8 +455,20 @@ class UsersModule {
             await setPermissions(tx, id, ids);
           }
           await tx.update('roles', id, {if (input['name'] != null) 'name': input['name'], if (input['description'] != null) 'description': input['description']}, updatedAt: false);
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: actor.id, action: 'UPDATE', entity: 'role', entityId: id,
-              before: {'name': before['name'], 'permissions': [for (final p in beforePerms) p['key']]}, after: input, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: actor.id,
+            action: 'UPDATE',
+            entity: 'role',
+            entityId: id,
+            before: {
+              'name': before['name'],
+              'permissions': [for (final p in beforePerms) p['key']],
+            },
+            after: input,
+            meta: ctx.meta,
+          );
           return {'id': id};
         });
       });

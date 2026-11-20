@@ -10,10 +10,8 @@ import '../http.dart';
 
 typedef Fetcher = Future<({int status, Object? body})> Function(String url);
 
-String _titleCase(String v) => v
-    .toLowerCase()
-    .replaceAllMapped(RegExp(r'(^|[\s/-])([a-zà-ú])'), (m) => '${m[1]}${m[2]!.toUpperCase()}')
-    .replaceAllMapped(RegExp(r'\b(De|Da|Do|Das|Dos|E)\b'), (m) => m[0]!.toLowerCase());
+String _titleCase(String v) =>
+    v.toLowerCase().replaceAllMapped(RegExp(r'(^|[\s/-])([a-zà-ú])'), (m) => '${m[1]}${m[2]!.toUpperCase()}').replaceAllMapped(RegExp(r'\b(De|Da|Do|Das|Dos|E)\b'), (m) => m[0]!.toLowerCase());
 
 class LookupService {
   LookupService({Fetcher? fetch}) : _fetch = fetch ?? _httpFetch;
@@ -66,12 +64,19 @@ class LookupService {
         final b = r.body;
         if (r.status == 200 && b is Map && b['city'] != null) {
           return {
-            'cep': cep, 'street': b['street'] ?? '', 'district': b['neighborhood'] ?? '', 'city': b['city'], 'uf': b['state'],
-            'ibge': (b['ibge'] as Map?)?['city'], if (b['timezoneName'] != null) 'timezone': b['timezoneName'],
+            'cep': cep,
+            'street': b['street'] ?? '',
+            'district': b['neighborhood'] ?? '',
+            'city': b['city'],
+            'uf': b['state'],
+            'ibge': (b['ibge'] as Map?)?['city'],
+            if (b['timezoneName'] != null) 'timezone': b['timezoneName'],
           };
         }
         if (r.status == 404) notFoundCount++;
-      } catch (_) {/* tenta o próximo */}
+      } catch (_) {
+        /* tenta o próximo */
+      }
       try {
         final r = await _fetch('https://viacep.com.br/ws/$cep/json/');
         final b = r.body;
@@ -79,7 +84,9 @@ class LookupService {
           return {'cep': cep, 'street': b['logradouro'] ?? '', 'district': b['bairro'] ?? '', 'city': b['localidade'], 'uf': b['uf'], 'ibge': b['ibge']};
         }
         if (r.status == 200 && b is Map && b['erro'] != null && b['erro'] != false) notFoundCount++;
-      } catch (_) {/* sem resposta */}
+      } catch (_) {
+        /* sem resposta */
+      }
       if (notFoundCount > 0) throw notFound('CEP não encontrado');
       throw HttpError(502, 'Serviço de CEP indisponível no momento; preencha o endereço manualmente');
     });
@@ -141,8 +148,12 @@ class LookupService {
       ...info,
       'address': {
         ...address,
-        'street': pick(byCep['street'], address['street']), 'district': pick(byCep['district'], address['district']),
-        'city': byCep['city'], 'uf': byCep['uf'], 'ibge': byCep['ibge'] ?? address['ibge'], 'timezone': byCep['timezone'],
+        'street': pick(byCep['street'], address['street']),
+        'district': pick(byCep['district'], address['district']),
+        'city': byCep['city'],
+        'uf': byCep['uf'],
+        'ibge': byCep['ibge'] ?? address['ibge'],
+        'timezone': byCep['timezone'],
       },
     };
   }

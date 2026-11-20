@@ -15,10 +15,18 @@ import 'schedules.dart' show isoDay;
 import 'timesheet_core.dart';
 
 const payrollItems = <String, ({String label, String unit})>{
-  'normal': (label: 'Horas normais', unit: 'hours'), 'ot50': (label: 'Extra 50%', unit: 'hours'), 'ot60': (label: 'Extra 60%', unit: 'hours'),
-  'ot70': (label: 'Extra 70%', unit: 'hours'), 'ot75': (label: 'Extra 75%', unit: 'hours'), 'ot80': (label: 'Extra 80%', unit: 'hours'),
-  'ot100': (label: 'Extra 100%', unit: 'hours'), 'night': (label: 'Adicional noturno (hora reduzida)', unit: 'hours'), 'absence': (label: 'Faltas (horas)', unit: 'hours'),
-  'late': (label: 'Atrasos e saídas antecipadas', unit: 'hours'), 'allowances': (label: 'Dias abonados', unit: 'days'), 'onCall': (label: 'Sobreaviso (1/3)', unit: 'hours'),
+  'normal': (label: 'Horas normais', unit: 'hours'),
+  'ot50': (label: 'Extra 50%', unit: 'hours'),
+  'ot60': (label: 'Extra 60%', unit: 'hours'),
+  'ot70': (label: 'Extra 70%', unit: 'hours'),
+  'ot75': (label: 'Extra 75%', unit: 'hours'),
+  'ot80': (label: 'Extra 80%', unit: 'hours'),
+  'ot100': (label: 'Extra 100%', unit: 'hours'),
+  'night': (label: 'Adicional noturno (hora reduzida)', unit: 'hours'),
+  'absence': (label: 'Faltas (horas)', unit: 'hours'),
+  'late': (label: 'Atrasos e saídas antecipadas', unit: 'hours'),
+  'allowances': (label: 'Dias abonados', unit: 'days'),
+  'onCall': (label: 'Sobreaviso (1/3)', unit: 'hours'),
 };
 final _eventCode = Str(trim: true, pattern: RegExp(r'^[A-Za-z0-9._-]{1,20}$'), patternMessage: 'Código do evento: até 20 letras, números, ponto, hífen ou sublinhado');
 final _layout = Obj({
@@ -48,7 +56,11 @@ String formatQuantity(int minutes, String fmt, String unit) {
 
 String? _parseDate(String v) {
   final br = RegExp(r'^(\d{2})/(\d{2})/(\d{4})$').firstMatch(v);
-  final d = br != null ? '${br[3]}-${br[2]}-${br[1]}' : RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(v) ? v : null;
+  final d = br != null
+      ? '${br[3]}-${br[2]}-${br[1]}'
+      : RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(v)
+      ? v
+      : null;
   if (d == null) return null;
   final p = d.split('-').map(int.parse).toList();
   final t = DateTime.utc(p[0], p[1], p[2]);
@@ -75,10 +87,19 @@ class PayrollModule {
   void routes() {
     final r = app.router;
     r.group('/v1/payroll-layouts', tag: 'folha', () {
-      r.get('/items', permission: 'reports.payroll:export', (ctx) => [for (final e in payrollItems.entries) {'key': e.key, 'label': e.value.label, 'unit': e.value.unit}]);
+      r.get(
+        '/items',
+        permission: 'reports.payroll:export',
+        (ctx) => [
+          for (final e in payrollItems.entries) {'key': e.key, 'label': e.value.label, 'unit': e.value.unit},
+        ],
+      );
       r.get('', permission: 'reports.payroll:export', (ctx) {
         final q = Obj({'companyId': uuid.optional}).parse(ctx.query);
-        return db.forTenant(ctx.tenant, (tx) => tx.query('SELECT * FROM payroll_layouts WHERE deleted_at IS NULL${q['companyId'] != null ? ' AND company_id = @c' : ''} ORDER BY name ASC', {'c': q['companyId']}));
+        return db.forTenant(
+          ctx.tenant,
+          (tx) => tx.query('SELECT * FROM payroll_layouts WHERE deleted_at IS NULL${q['companyId'] != null ? ' AND company_id = @c' : ''} ORDER BY name ASC', {'c': q['companyId']}),
+        );
       });
       r.post('', permission: 'reports.payroll:export', (ctx) async {
         final input = _layout.parse(ctx.body);
@@ -129,21 +150,36 @@ class PayrollModule {
         final byCpf = layout['employeeKey'] == 'CPF';
         if (byCpf && !can(user, 'people.sensitive:read')) throw forbidden('Layout por CPF exige a permissão de ver dados sensíveis');
         final res = await reports.run(tenantId, user, 'folha-conferencia', {
-          'companyId': layout['companyId'], 'from': q['from'], 'to': q['to'], 'departmentId': q['departmentId'], 'groupingId': q['groupingId'],
-          'employmentIds': q['employmentIds'], 'includeSubdepartments': true, 'status': 'ACTIVE',
+          'companyId': layout['companyId'],
+          'from': q['from'],
+          'to': q['to'],
+          'departmentId': q['departmentId'],
+          'groupingId': q['groupingId'],
+          'employmentIds': q['employmentIds'],
+          'includeSubdepartments': true,
+          'status': 'ACTIVE',
         });
         final rows = (res['rows']! as List).cast<Map<String, Object?>>();
         final events = (layout['events']! as Map).cast<String, Object?>();
         var cpfs = <String, String>{};
         if (byCpf) {
-          final emps = await db.forTenant(tenantId, (tx) => tx.query(
+          final emps = await db.forTenant(
+            tenantId,
+            (tx) => tx.query(
               'SELECT e.registration, p.cpf FROM employment_relationships e JOIN people p ON p.id = e.person_id WHERE e.company_id = @c AND e.deleted_at IS NULL AND e.registration = ANY(@r)',
-              {'c': layout['companyId'], 'r': [for (final x in rows) x['registration'].toString()]}));
+              {
+                'c': layout['companyId'],
+                'r': [for (final x in rows) x['registration'].toString()],
+              },
+            ),
+          );
           cpfs = {for (final e in emps) e['registration']! as String: (e['cpf'] as String?) ?? ''};
         }
         final sep = layout['separator'] == 'TAB' ? '\t' : layout['separator']! as String;
         final from = q['from']! as String, to = q['to']! as String;
-        final lines = <String>[if (layout['includeHeader'] == true) [byCpf ? 'CPF' : 'Matricula', 'Evento', 'Quantidade', 'Inicio', 'Fim'].join(sep)];
+        final lines = <String>[
+          if (layout['includeHeader'] == true) [byCpf ? 'CPF' : 'Matricula', 'Evento', 'Quantidade', 'Inicio', 'Fim'].join(sep),
+        ];
         final missing = <String>[];
         var n = 0;
         for (final row in rows) {
@@ -155,16 +191,39 @@ class PayrollModule {
           for (final e in events.entries) {
             final qty = ((row[e.key] as num?) ?? 0).toInt();
             if (qty == 0) continue;
-            lines.add([key, e.value, formatQuantity(qty, layout['quantityFormat']! as String, payrollItems[e.key]?.unit ?? 'hours'), from.split('-').reversed.join('/'), to.split('-').reversed.join('/')].join(sep));
+            lines.add(
+              [
+                key,
+                e.value,
+                formatQuantity(qty, layout['quantityFormat']! as String, payrollItems[e.key]?.unit ?? 'hours'),
+                from.split('-').reversed.join('/'),
+                to.split('-').reversed.join('/'),
+              ].join(sep),
+            );
             n++;
           }
         }
-        await db.forTenant(tenantId, (tx) => app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'EXPORT', entity: 'payroll_export', entityId: id,
-            after: {'layout': layout['name'], 'from': from, 'to': to, 'employees': rows.length, 'lines': n}, meta: ctx.meta));
+        await db.forTenant(
+          tenantId,
+          (tx) => app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: 'EXPORT',
+            entity: 'payroll_export',
+            entityId: id,
+            after: {'layout': layout['name'], 'from': from, 'to': to, 'employees': rows.length, 'lines': n},
+            meta: ctx.meta,
+          ),
+        );
         final slug = (layout['name']! as String).toLowerCase().replaceAll(RegExp('[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-|-$'), '');
         return {
-          'filename': 'folha_${slug}_${from}_$to.txt', 'mime': 'text/plain;charset=utf-8', 'base64': base64.encode(utf8.encode('${lines.join('\r\n')}\r\n')),
-          'lines': n, 'employees': rows.length, 'missingKey': missing,
+          'filename': 'folha_${slug}_${from}_$to.txt',
+          'mime': 'text/plain;charset=utf-8',
+          'base64': base64.encode(utf8.encode('${lines.join('\r\n')}\r\n')),
+          'lines': n,
+          'employees': rows.length,
+          'missingKey': missing,
           'unmappedItems': [
             for (final c in (res['columns']! as List).cast<Map<String, Object?>>())
               if (payrollItems.containsKey(c['key']) && !events.containsKey(c['key']) && rows.any((x) => ((x[c['key']] as num?) ?? 0) > 0)) c['key'],
@@ -183,8 +242,9 @@ class PayrollModule {
       return db.forTenant(tenantId, (tx) async {
         if (await tx.one('SELECT 1 FROM companies WHERE id = @c AND deleted_at IS NULL', {'c': input['companyId']}) == null) throw notFound('Empresa não encontrada');
         final emps = await tx.query(
-            'SELECT e.id, e.registration, e.hired_at, e.terminated_at, p.cpf, p.full_name FROM employment_relationships e JOIN people p ON p.id = e.person_id WHERE e.company_id = @c AND e.deleted_at IS NULL',
-            {'c': input['companyId']});
+          'SELECT e.id, e.registration, e.hired_at, e.terminated_at, p.cpf, p.full_name FROM employment_relationships e JOIN people p ON p.id = e.person_id WHERE e.company_id = @c AND e.deleted_at IS NULL',
+          {'c': input['companyId']},
+        );
         final byKey = {for (final e in emps) byCpf ? onlyDigits((e['cpf'] as String?) ?? '') : e['registration']! as String: e};
         final closings = await tx.query("SELECT period_start, period_end FROM time_closings WHERE company_id = @c AND status = 'CLOSED'", {'c': input['companyId']});
         final now = DateTime.now();
@@ -243,14 +303,27 @@ class PayrollModule {
         if (valid.isNotEmpty) {
           final minAt = valid.map((v) => v.at).reduce((a, b) => a.isBefore(b) ? a : b);
           final maxAt = valid.map((v) => v.at).reduce((a, b) => a.isAfter(b) ? a : b).add(const Duration(milliseconds: 59999));
-          final existing = await tx.query('SELECT employment_id, recorded_at FROM time_records WHERE employment_id::text = ANY(@ids) AND recorded_at BETWEEN @a AND @b',
-              {'ids': {for (final v in valid) v.employmentId}.toList(), 'a': minAt, 'b': maxAt});
+          final existing = await tx.query('SELECT employment_id, recorded_at FROM time_records WHERE employment_id::text = ANY(@ids) AND recorded_at BETWEEN @a AND @b', {
+            'ids': {for (final v in valid) v.employmentId}.toList(),
+            'a': minAt,
+            'b': maxAt,
+          });
           have = {for (final x in existing) 'import:${x['employmentId']}:${isoMs(x['recordedAt']! as DateTime).substring(0, 16)}'};
         }
-        final fresh = [for (final v in valid) if (!have.contains(v.key)) v];
+        final fresh = [
+          for (final v in valid)
+            if (!have.contains(v.key)) v,
+        ];
         final result = <String, Object?>{
-          'total': valid.length + errors.length, 'valid': valid.length, 'duplicates': valid.length - fresh.length, 'toImport': fresh.length, 'imported': 0,
-          'errors': errors.take(500).toList(), 'preview': [for (final v in fresh.take(50)) {'line': v.line, 'name': v.name, 'date': v.date, 'time': v.time}],
+          'total': valid.length + errors.length,
+          'valid': valid.length,
+          'duplicates': valid.length - fresh.length,
+          'toImport': fresh.length,
+          'imported': 0,
+          'errors': errors.take(500).toList(),
+          'preview': [
+            for (final v in fresh.take(50)) {'line': v.line, 'name': v.name, 'date': v.date, 'time': v.time},
+          ],
         };
         if (input['dryRun'] == true || fresh.isEmpty) return result;
         fresh.sort((a, b) => a.employmentId.compareTo(b.employmentId) != 0 ? a.employmentId.compareTo(b.employmentId) : a.at.compareTo(b.at));
@@ -265,8 +338,21 @@ class PayrollModule {
           last[v.employmentId] = hash;
         }
         final l = localBr(now);
-        await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'time_record_import',
-            after: {'companyId': input['companyId'], 'imported': fresh.length, 'duplicates': result['duplicates'], 'errors': errors.length, 'at': {'date': l.date, 'time': l.time}}, meta: ctx.meta);
+        await app.audit.record(
+          tx,
+          tenantId: tenantId,
+          actorUserId: user.id,
+          action: 'CREATE',
+          entity: 'time_record_import',
+          after: {
+            'companyId': input['companyId'],
+            'imported': fresh.length,
+            'duplicates': result['duplicates'],
+            'errors': errors.length,
+            'at': {'date': l.date, 'time': l.time},
+          },
+          meta: ctx.meta,
+        );
         return {...result, 'imported': fresh.length};
       });
     });

@@ -17,42 +17,50 @@ const tz = 'America/Sao_Paulo';
 DateTime brMidnight(String date) => DateTime.parse('${date}T00:00:00-03:00');
 
 const leaveLabel = {
-  'MEDICAL': 'Atestado médico', 'VACATION': 'Férias', 'MATERNITY': 'Licença-maternidade', 'PATERNITY': 'Licença-paternidade',
-  'WORK_ACCIDENT': 'Acidente de trabalho', 'UNPAID': 'Licença não remunerada', 'SUSPENSION': 'Suspensão', 'OTHER': 'Afastamento',
+  'MEDICAL': 'Atestado médico',
+  'VACATION': 'Férias',
+  'MATERNITY': 'Licença-maternidade',
+  'PATERNITY': 'Licença-paternidade',
+  'WORK_ACCIDENT': 'Acidente de trabalho',
+  'UNPAID': 'Licença não remunerada',
+  'SUSPENSION': 'Suspensão',
+  'OTHER': 'Afastamento',
 };
 
 /// Vínculo usado na apuração.
 class Emp {
   Emp(Row r)
-      : id = r['id']! as String,
-        companyId = r['companyId']! as String,
-        ruleSetId = r['ruleSetId'] as String?,
-        registration = r['registration']! as String,
-        status = r['status']?.toString() ?? 'ACTIVE',
-        hiredAt = isoDay(r['hiredAt']),
-        terminatedAt = r['terminatedAt'] == null ? null : isoDay(r['terminatedAt']),
-        fullName = r['fullName']! as String,
-        socialName = r['socialName'] as String?,
-        row = r;
+    : id = r['id']! as String,
+      companyId = r['companyId']! as String,
+      ruleSetId = r['ruleSetId'] as String?,
+      registration = r['registration']! as String,
+      status = r['status']?.toString() ?? 'ACTIVE',
+      hiredAt = isoDay(r['hiredAt']),
+      terminatedAt = r['terminatedAt'] == null ? null : isoDay(r['terminatedAt']),
+      fullName = r['fullName']! as String,
+      socialName = r['socialName'] as String?,
+      row = r;
   final String id, companyId, registration, status, hiredAt, fullName;
   final String? ruleSetId, terminatedAt, socialName;
   final Row row;
   String get name => socialName ?? fullName;
 }
 
-const empSelect = 'SELECT e.id, e.company_id, e.rule_set_id, e.registration, e.status::text AS status, e.hired_at, e.terminated_at, '
+const empSelect =
+    'SELECT e.id, e.company_id, e.rule_set_id, e.registration, e.status::text AS status, e.hired_at, e.terminated_at, '
     'p.full_name, p.social_name FROM employment_relationships e JOIN people p ON p.id = e.person_id';
 
-Future<List<Emp>> loadEmps(Tx tx, String where, Map<String, Object?> p, {String order = '', String limit = ''}) async =>
-    [for (final r in await tx.query('$empSelect WHERE $where $order $limit', p)) Emp(r)];
+Future<List<Emp>> loadEmps(Tx tx, String where, Map<String, Object?> p, {String order = '', String limit = ''}) async => [
+  for (final r in await tx.query('$empSelect WHERE $where $order $limit', p)) Emp(r),
+];
 
 core.DayResult resultFromJson(Map<String, Object?> m) => core.DayResult(
-      date: m['date']! as String,
-      expectedMinutes: (m['expectedMinutes'] as num?)?.toInt() ?? 0,
-      balanceMinutes: (m['balanceMinutes'] as num?)?.toInt() ?? 0,
-      overtime: [for (final o in (m['overtime'] as List?) ?? const []) core.OvertimePart((o as Map)['percent']! as num, (o['minutes']! as num).toInt())],
-      flags: [for (final f in (m['flags'] as List?) ?? const []) f.toString()],
-    );
+  date: m['date']! as String,
+  expectedMinutes: (m['expectedMinutes'] as num?)?.toInt() ?? 0,
+  balanceMinutes: (m['balanceMinutes'] as num?)?.toInt() ?? 0,
+  overtime: [for (final o in (m['overtime'] as List?) ?? const []) core.OvertimePart((o as Map)['percent']! as num, (o['minutes']! as num).toInt())],
+  flags: [for (final f in (m['flags'] as List?) ?? const []) f.toString()],
+);
 
 class TimesheetCore {
   TimesheetCore(this.schedules);
@@ -73,19 +81,26 @@ class TimesheetCore {
     final plan = await schedules.computeEngine(tx, [for (final e in emps) (id: e.id, companyId: e.companyId)], from, to, hol);
     final p = {'ids': ids, 'from': from, 'to': to, 'wf': winFrom, 'wt': winTo, 'c': companies};
     final records = await tx.query(
-        'SELECT id, employment_id, recorded_at, source::text AS source FROM time_records WHERE employment_id::text = ANY(@ids) AND recorded_at >= @wf AND recorded_at < @wt ORDER BY recorded_at ASC', p);
+      'SELECT id, employment_id, recorded_at, source::text AS source FROM time_records WHERE employment_id::text = ANY(@ids) AND recorded_at >= @wf AND recorded_at < @wt ORDER BY recorded_at ASC',
+      p,
+    );
     final adjustments = await tx.query(
-      "SELECT a.*, a.kind::text AS kind, a.status::text AS status FROM time_record_adjustments a LEFT JOIN time_records r ON r.id = a.time_record_id "
+      'SELECT a.*, a.kind::text AS kind, a.status::text AS status FROM time_record_adjustments a LEFT JOIN time_records r ON r.id = a.time_record_id '
       "WHERE a.employment_id::text = ANY(@ids) AND a.status IN ('APPROVED', 'PENDING') AND ((a.recorded_at >= @wf AND a.recorded_at < @wt) OR (r.recorded_at >= @wf AND r.recorded_at < @wt))",
       p,
     );
     final allowances = await tx.query(
-        'SELECT a.*, j.name AS j_name, j.disregards_debits AS j_disregards_debits FROM allowances a JOIN justifications j ON j.id = a.justification_id '
-        'WHERE a.employment_id::text = ANY(@ids) AND a.date BETWEEN @from AND @to', p);
+      'SELECT a.*, j.name AS j_name, j.disregards_debits AS j_disregards_debits FROM allowances a JOIN justifications j ON j.id = a.justification_id '
+      'WHERE a.employment_id::text = ANY(@ids) AND a.date BETWEEN @from AND @to',
+      p,
+    );
     final leaves = await tx.query('SELECT *, type::text AS type FROM leaves WHERE employment_id::text = ANY(@ids) AND deleted_at IS NULL AND start_date <= @to AND end_date >= @from', p);
     final onCalls = await tx.query('SELECT * FROM on_call_periods WHERE employment_id::text = ANY(@ids) AND date BETWEEN @from AND @to', p);
     final ruleSets = await tx.query('SELECT * FROM attendance_rule_sets WHERE company_id::text = ANY(@c) AND deleted_at IS NULL', p);
-    final closings = await tx.query("SELECT company_id, period_start, period_end FROM time_closings WHERE company_id::text = ANY(@c) AND status = 'CLOSED' AND period_start <= @to AND period_end >= @from", p);
+    final closings = await tx.query(
+      "SELECT company_id, period_start, period_end FROM time_closings WHERE company_id::text = ANY(@c) AND status = 'CLOSED' AND period_start <= @to AND period_end >= @from",
+      p,
+    );
     final authorizations = await tx.query('SELECT employment_id, date, max_minutes FROM overtime_authorizations WHERE employment_id::text = ANY(@ids) AND date BETWEEN @from AND @to', p);
     final persisted = await tx.query('SELECT employment_id, work_date, details FROM time_calculations WHERE employment_id::text = ANY(@ids) AND work_date BETWEEN @from AND @to', p);
     final persistedMap = {for (final x in persisted) '${x['employmentId']}|${isoDay(x['workDate'])}': x['details']};
@@ -95,8 +110,7 @@ class TimesheetCore {
     for (final e in emps) {
       final days = plan[e.id]!;
       ({core.AttendanceRules rules, bool requiresAuthorization}) ruleFor(String? ruleSetId) {
-        final own = ruleSets.where((x) => x['id'] == (e.ruleSetId ?? ruleSetId)).firstOrNull ??
-            ruleSets.where((x) => x['companyId'] == e.companyId && x['isDefault'] == true).firstOrNull;
+        final own = ruleSets.where((x) => x['id'] == (e.ruleSetId ?? ruleSetId)).firstOrNull ?? ruleSets.where((x) => x['companyId'] == e.companyId && x['isDefault'] == true).firstOrNull;
         final r = (own?['rules'] as Map?)?.cast<String, Object?>();
         return (rules: core.AttendanceRules.fromJson(r), requiresAuthorization: r?['overtimeRequiresAuthorization'] == true);
       }
@@ -107,7 +121,11 @@ class TimesheetCore {
       final effective = <core.Punch>[];
       for (final r in records.where((x) => x['employmentId'] == e.id)) {
         final dis = mineAdj.where((a) => a['kind'] == 'DISREGARD' && a['timeRecordId'] == r['id']).firstOrNull;
-        final status = dis?['status'] == 'APPROVED' ? 'DISREGARDED' : dis != null ? 'PENDING_DISREGARD' : 'ORIGINAL';
+        final status = dis?['status'] == 'APPROVED'
+            ? 'DISREGARDED'
+            : dis != null
+            ? 'PENDING_DISREGARD'
+            : 'ORIGINAL';
         final at = r['recordedAt']! as DateTime;
         final l = localBr(at);
         views.add({'id': r['id'], 'adjustmentId': dis?['id'], 'at': isoMs(at), 'time': l.time, 'date': l.date, 'source': r['source'], 'status': status, 'justification': dis?['justification']});
@@ -117,8 +135,14 @@ class TimesheetCore {
         final at = a['recordedAt']! as DateTime;
         final l = localBr(at);
         views.add({
-          'id': a['id'], 'adjustmentId': a['id'], 'at': isoMs(at), 'time': l.time, 'date': l.date, 'source': 'MANUAL_ADJUSTMENT',
-          'status': a['status'] == 'APPROVED' ? 'INCLUDED' : 'PENDING_INCLUDE', 'justification': a['justification'],
+          'id': a['id'],
+          'adjustmentId': a['id'],
+          'at': isoMs(at),
+          'time': l.time,
+          'date': l.date,
+          'source': 'MANUAL_ADJUSTMENT',
+          'status': a['status'] == 'APPROVED' ? 'INCLUDED' : 'PENDING_INCLUDE',
+          'justification': a['justification'],
         });
         if (a['status'] == 'APPROVED') effective.add(core.Punch(at, a['id']! as String));
       }
@@ -142,8 +166,7 @@ class TimesheetCore {
         final punchViews = views.where((v) {
           final st = v['status']! as String;
           return (dayOfView[v['id']] ?? (st.startsWith('PENDING') || st == 'DISREGARDED' ? v['date'] : null)) == date;
-        }).toList()
-          ..sort((a, b) => (a['at']! as String).compareTo(b['at']! as String));
+        }).toList()..sort((a, b) => (a['at']! as String).compareTo(b['at']! as String));
         final lv = leaves.where((x) => x['employmentId'] == e.id && isoDay(x['startDate']).compareTo(date) <= 0 && isoDay(x['endDate']).compareTo(date) >= 0).firstOrNull;
         final al = allowances.where((x) => x['employmentId'] == e.id && isoDay(x['date']) == date).firstOrNull;
         final oc = onCalls.where((x) => x['employmentId'] == e.id && isoDay(x['date']) == date).toList();
@@ -170,13 +193,19 @@ class TimesheetCore {
           result = {...r.toJson(), 'flags': flags, 'unauthorizedOvertimeMinutes': unauthorized};
         }
         list.add({
-          'date': date, 'expected': d.view, 'punches': punchViews, 'result': result,
+          'date': date,
+          'expected': d.view,
+          'punches': punchViews,
+          'result': result,
           'allowance': al == null
               ? null
               : {'id': al['id'], 'justification': al['jName'], 'disregardsDebits': al['jDisregardsDebits'], 'fullDay': al['fullDay'], 'minutes': al['minutes'], 'note': al['note']},
           'leave': lv == null ? null : {'id': lv['id'], 'type': lv['type'], 'label': leaveLabel[lv['type']] ?? lv['type'], 'note': lv['note']},
-          'onCall': [for (final o in oc) {'id': o['id'], 'startTime': o['startTime'], 'endTime': o['endTime'], 'minutes': o['minutes']}],
-          'closed': closed, 'outsideEmployment': outside,
+          'onCall': [
+            for (final o in oc) {'id': o['id'], 'startTime': o['startTime'], 'endTime': o['endTime'], 'minutes': o['minutes']},
+          ],
+          'closed': closed,
+          'outsideEmployment': outside,
         });
       }
       out[e.id] = list;
@@ -186,7 +215,10 @@ class TimesheetCore {
 
   /// Totais do período (espelho), com sobreaviso e extra não autorizada.
   Map<String, Object?> summary(List<Map<String, Object?>> days) {
-    final results = [for (final d in days) if (d['result'] is Map) (d['result']! as Map).cast<String, Object?>()];
+    final results = [
+      for (final d in days)
+        if (d['result'] is Map) (d['result']! as Map).cast<String, Object?>(),
+    ];
     int sum(String k) => results.fold(0, (s, r) => s + ((r[k] as num?)?.toInt() ?? 0));
     final byPercent = <num, int>{};
     for (final r in results) {
@@ -199,10 +231,16 @@ class TimesheetCore {
     return {
       'days': results.length,
       'workdays': results.where((r) => ((r['expectedMinutes'] as num?) ?? 0) > 0).length,
-      'expectedMinutes': sum('expectedMinutes'), 'workedMinutes': sum('workedMinutes'), 'balanceMinutes': sum('balanceMinutes'),
+      'expectedMinutes': sum('expectedMinutes'),
+      'workedMinutes': sum('workedMinutes'),
+      'balanceMinutes': sum('balanceMinutes'),
       'overtimeMinutes': sum('overtimeMinutes'),
-      'overtimeByPercent': [for (final e in (byPercent.entries.toList()..sort((a, b) => a.key.compareTo(b.key)))) {'percent': e.key, 'minutes': e.value}],
-      'nightMinutes': sum('nightMinutes'), 'nightReducedMinutes': sum('nightReducedMinutes'), 'lateMinutes': sum('lateMinutes'),
+      'overtimeByPercent': [
+        for (final e in (byPercent.entries.toList()..sort((a, b) => a.key.compareTo(b.key)))) {'percent': e.key, 'minutes': e.value},
+      ],
+      'nightMinutes': sum('nightMinutes'),
+      'nightReducedMinutes': sum('nightReducedMinutes'),
+      'lateMinutes': sum('lateMinutes'),
       'earlyLeaveMinutes': sum('earlyLeaveMinutes'),
       'absenceDays': results.where((r) => (r['flags'] as List?)?.contains('ABSENCE') ?? false).length,
       'incompleteDays': results.where((r) => (r['flags'] as List?)?.contains('INCOMPLETE') ?? false).length,
@@ -231,9 +269,21 @@ class TimesheetCore {
           'early_leave_minutes = EXCLUDED.early_leave_minutes, absence_minutes = EXCLUDED.absence_minutes, break_minutes = EXCLUDED.break_minutes, '
           'flags = EXCLUDED.flags, details = EXCLUDED.details, engine_version = EXCLUDED.engine_version, calculated_at = now()',
           {
-            't': tenantId, 'e': entry.key, 'd': d['date'], 'exp': r['expectedMinutes'], 'w': r['workedMinutes'], 'b': r['balanceMinutes'],
-            'ot': jsonb(r['overtime']), 'n': r['nightMinutes'], 'l': r['lateMinutes'], 'el': r['earlyLeaveMinutes'], 'ab': r['absenceMinutes'],
-            'br': r['breakMinutes'], 'f': jsonb(r['flags']), 'det': jsonb(toJsonValue(d)), 'v': r['engineVersion'],
+            't': tenantId,
+            'e': entry.key,
+            'd': d['date'],
+            'exp': r['expectedMinutes'],
+            'w': r['workedMinutes'],
+            'b': r['balanceMinutes'],
+            'ot': jsonb(r['overtime']),
+            'n': r['nightMinutes'],
+            'l': r['lateMinutes'],
+            'el': r['earlyLeaveMinutes'],
+            'ab': r['absenceMinutes'],
+            'br': r['breakMinutes'],
+            'f': jsonb(r['flags']),
+            'det': jsonb(toJsonValue(d)),
+            'v': r['engineVersion'],
           },
         );
         n++;

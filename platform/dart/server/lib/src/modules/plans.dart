@@ -29,8 +29,17 @@ final _subscription = Obj({
 Future<Map<String, Object?>> _shapePlan(Tx tx, Row p) async {
   final features = await tx.query('SELECT key, value FROM plan_features WHERE plan_id = @p', {'p': p['id']});
   return {
-    'id': p['id'], 'key': p['key'], 'name': p['name'], 'priceCents': p['priceCents'], 'currency': p['currency'], 'interval': p['interval'], 'isPublic': p['isPublic'],
-    'limits': {for (final f in features) if (limitLabels.containsKey(f['key'])) f['key']! as String: f['value']},
+    'id': p['id'],
+    'key': p['key'],
+    'name': p['name'],
+    'priceCents': p['priceCents'],
+    'currency': p['currency'],
+    'interval': p['interval'],
+    'isPublic': p['isPublic'],
+    'limits': {
+      for (final f in features)
+        if (limitLabels.containsKey(f['key'])) f['key']! as String: f['value'],
+    },
   };
 }
 
@@ -43,18 +52,21 @@ void plansRoutes(App app) {
       if (e.value == null) {
         await tx.execute('DELETE FROM plan_features WHERE plan_id = @p AND key = @k', {'p': planId, 'k': e.key});
       } else {
-        await tx.execute(
-          'INSERT INTO plan_features (id, plan_id, key, value) VALUES (gen_random_uuid(), @p, @k, @v) ON CONFLICT (plan_id, key) DO UPDATE SET value = EXCLUDED.value',
-          {'p': planId, 'k': e.key, 'v': jsonb(e.value)},
-        );
+        await tx.execute('INSERT INTO plan_features (id, plan_id, key, value) VALUES (gen_random_uuid(), @p, @k, @v) ON CONFLICT (plan_id, key) DO UPDATE SET value = EXCLUDED.value', {
+          'p': planId,
+          'k': e.key,
+          'v': jsonb(e.value),
+        });
       }
     }
   }
 
   r.group('/v1/platform', tag: 'plataforma', () {
-    r.get('/plans', permission: 'platform.plans:manage', (ctx) => db.asPlatform((tx) async => [
-          for (final p in await tx.query('SELECT * FROM plans ORDER BY price_cents ASC')) await _shapePlan(tx, p),
-        ]));
+    r.get(
+      '/plans',
+      permission: 'platform.plans:manage',
+      (ctx) => db.asPlatform((tx) async => [for (final p in await tx.query('SELECT * FROM plans ORDER BY price_cents ASC')) await _shapePlan(tx, p)]),
+    );
 
     r.post('/plans', permission: 'platform.plans:manage', (ctx) {
       final b = _plan.parse(ctx.body);
@@ -93,8 +105,15 @@ void plansRoutes(App app) {
         return {
           'subscription': last == null
               ? null
-              : {'id': last['id'], 'status': last['status'], 'planId': last['planId'], 'planName': planName, 'currentPeriodEnd': last['currentPeriodEnd'],
-                  'trialEndsAt': last['trialEndsAt'], 'overrides': last['overrides']},
+              : {
+                  'id': last['id'],
+                  'status': last['status'],
+                  'planId': last['planId'],
+                  'planName': planName,
+                  'currentPeriodEnd': last['currentPeriodEnd'],
+                  'trialEndsAt': last['trialEndsAt'],
+                  'overrides': last['overrides'],
+                },
           'limits': plan?.limits ?? const <String, int>{},
           'usage': await usage(tx, tid),
         };
@@ -109,19 +128,38 @@ void plansRoutes(App app) {
         final tenant = await tx.one('SELECT id, status::text AS status FROM tenants WHERE id = @id AND deleted_at IS NULL', {'id': tid});
         if (tenant == null) throw notFound('Cliente não encontrado');
         if (await tx.one('SELECT 1 FROM plans WHERE id = @p', {'p': b['planId']}) == null) throw notFound('Plano não encontrado');
-        final overrides = {for (final e in (b['overrides']! as Map).entries) if (e.value != null) e.key: e.value};
+        final overrides = {
+          for (final e in (b['overrides']! as Map).entries)
+            if (e.value != null) e.key: e.value,
+        };
         final current = await tx.one("SELECT * FROM subscriptions WHERE tenant_id = @t AND status <> 'CANCELLED' ORDER BY created_at DESC LIMIT 1", {'t': tid});
         final data = {
-          'planId': b['planId'], 'status': b['status'], 'currentPeriodEnd': DateTime.parse('${b['currentPeriodEnd']}T23:59:59-03:00'),
-          'trialEndsAt': b['trialEndsAt'] == null ? null : DateTime.parse('${b['trialEndsAt']}T23:59:59-03:00'), 'overrides': jsonb(overrides),
+          'planId': b['planId'],
+          'status': b['status'],
+          'currentPeriodEnd': DateTime.parse('${b['currentPeriodEnd']}T23:59:59-03:00'),
+          'trialEndsAt': b['trialEndsAt'] == null ? null : DateTime.parse('${b['trialEndsAt']}T23:59:59-03:00'),
+          'overrides': jsonb(overrides),
         };
         final sub = current != null
             ? (await tx.update('subscriptions', current['id']! as String, data))!
             : await tx.insert('subscriptions', {'tenantId': tid, 'currentPeriodStart': DateTime.now(), ...data});
-        final status = b['status'] == 'SUSPENDED' || b['status'] == 'CANCELLED' ? 'SUSPENDED' : b['status'] == 'TRIALING' ? 'TRIAL' : 'ACTIVE';
+        final status = b['status'] == 'SUSPENDED' || b['status'] == 'CANCELLED'
+            ? 'SUSPENDED'
+            : b['status'] == 'TRIALING'
+            ? 'TRIAL'
+            : 'ACTIVE';
         if (tenant['status'] != status) await tx.execute('UPDATE tenants SET status = @s, updated_at = now() WHERE id = @id', {'s': status, 'id': tid});
-        await app.audit.record(tx, tenantId: tid, actorUserId: ctx.user.id, action: 'UPDATE', entity: 'subscription', entityId: sub['id'] as String?,
-            before: current, after: {...b, 'tenantStatus': status}, meta: ctx.meta);
+        await app.audit.record(
+          tx,
+          tenantId: tid,
+          actorUserId: ctx.user.id,
+          action: 'UPDATE',
+          entity: 'subscription',
+          entityId: sub['id'] as String?,
+          before: current,
+          after: {...b, 'tenantStatus': status},
+          meta: ctx.meta,
+        );
         return sub;
       });
     });

@@ -11,10 +11,7 @@ final _token = Obj({
   'code': Str(pattern: RegExp(r'^\d{6}$')).optional,
   'recoveryCode': const Str(trim: true, min: 6, max: 40).optional,
 });
-final _change = Obj({
-  'currentPassword': const Str(min: 1, max: 256),
-  'newPassword': const Str(min: 12, max: 128, message: 'A nova senha precisa de 12 caracteres ou mais'),
-});
+final _change = Obj({'currentPassword': const Str(min: 1, max: 256), 'newPassword': const Str(min: 12, max: 128, message: 'A nova senha precisa de 12 caracteres ou mais')});
 final _refresh = Obj({'refreshToken': const Str(min: 1)});
 final _forgot = Obj({'email': email});
 final _reset = Obj({'token': const Str(min: 1), 'password': const Str(min: 12, max: 128)});
@@ -29,12 +26,16 @@ void authRoutes(App app) {
       final user = await app.credentials.verify(b['email']! as String, b['password']! as String, ctx.meta);
       if (user == null) throw unauthorized('E-mail ou senha incorretos');
       try {
-        return await app.tokens.issue(user.id, claims: {'amr': ['pwd']}, code: b['code'] as String?, recoveryCode: b['recoveryCode'] as String?);
+        return await app.tokens.issue(
+          user.id,
+          claims: {
+            'amr': ['pwd'],
+          },
+          code: b['code'] as String?,
+          recoveryCode: b['recoveryCode'] as String?,
+        );
       } on MfaRequired catch (e) {
-        throw HttpError.body(401, {
-          'message': e.attempted ? 'Código incorreto ou expirado' : 'Informe o código do aplicativo autenticador',
-          'mfaRequired': true,
-        });
+        throw HttpError.body(401, {'message': e.attempted ? 'Código incorreto ou expirado' : 'Informe o código do aplicativo autenticador', 'mfaRequired': true});
       }
     });
 

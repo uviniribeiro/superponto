@@ -19,61 +19,103 @@ String _brFull(DateTime at) {
 }
 
 // ------------------------------------------------------------------ saúde
-final _shift = Obj({
-  'unitId': uuid,
-  'specialtyId': uuid.nullish,
-  'kind': const Enum(['DAY', 'NIGHT', 'H12', 'H24', 'ON_CALL', 'EXTRA', 'COVERAGE']),
-  'startsAt': const DateTimeS(),
-  'endsAt': const DateTimeS(),
-  'requiredProfessionals': const Num(int: true, min: 1, max: 50).def(1),
-  'notes': const Str(trim: true, max: 500).nullish,
-  'repeatDays': const Num(int: true, min: 0, max: 62).def(0),
-}).check((s) {
-  final a = s['startsAt']! as DateTime, b = s['endsAt']! as DateTime;
-  return b.isAfter(a) && b.difference(a).inMilliseconds <= 36 * 3600000;
-}, 'O fim deve ser depois do início (até 36 horas)', path: ['endsAt']);
+final _shift =
+    Obj({
+      'unitId': uuid,
+      'specialtyId': uuid.nullish,
+      'kind': const Enum(['DAY', 'NIGHT', 'H12', 'H24', 'ON_CALL', 'EXTRA', 'COVERAGE']),
+      'startsAt': const DateTimeS(),
+      'endsAt': const DateTimeS(),
+      'requiredProfessionals': const Num(int: true, min: 1, max: 50).def(1),
+      'notes': const Str(trim: true, max: 500).nullish,
+      'repeatDays': const Num(int: true, min: 0, max: 62).def(0),
+    }).check(
+      (s) {
+        final a = s['startsAt']! as DateTime, b = s['endsAt']! as DateTime;
+        return b.isAfter(a) && b.difference(a).inMilliseconds <= 36 * 3600000;
+      },
+      'O fim deve ser depois do início (até 36 horas)',
+      path: ['endsAt'],
+    );
 final _shiftList = Obj({'unitId': uuid.optional, 'from': date, 'to': date});
-final _assignStatus = Obj({'status': const Enum(['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'ABSENT', 'CANCELLED'])});
+final _assignStatus = Obj({
+  'status': const Enum(['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'ABSENT', 'CANCELLED']),
+});
 final _substitution = Obj({'substituteEmploymentId': uuid, 'reason': const Str(trim: true, min: 5, max: 300)});
 
 // ------------------------------------------------------------------ educação
 final _course = Obj({'companyId': uuid, 'name': const Str(trim: true, min: 2, max: 120), 'level': const Str(trim: true, max: 60).nullish});
 final _subject = Obj({
-  'companyId': uuid, 'courseId': uuid.nullish, 'name': const Str(trim: true, min: 2, max: 120), 'code': const Str(trim: true, max: 20).nullish,
+  'companyId': uuid,
+  'courseId': uuid.nullish,
+  'name': const Str(trim: true, min: 2, max: 120),
+  'code': const Str(trim: true, max: 20).nullish,
   'weeklyLessons': const Num(int: true, min: 1, max: 60).nullish,
 });
 final _period = Obj({'companyId': uuid, 'name': const Str(trim: true, min: 2, max: 60), 'startsOn': date, 'endsOn': date})
     .check((p) => (p['endsOn']! as String).compareTo(p['startsOn']! as String) > 0, 'O fim deve ser depois do início', path: ['endsOn']);
 final _class = Obj({
-  'unitId': uuid, 'periodId': uuid, 'courseId': uuid.nullish, 'name': const Str(trim: true, min: 1, max: 60), 'grade': const Str(trim: true, max: 30).nullish,
+  'unitId': uuid,
+  'periodId': uuid,
+  'courseId': uuid.nullish,
+  'name': const Str(trim: true, min: 1, max: 60),
+  'grade': const Str(trim: true, max: 30).nullish,
   'shift': const Enum(['MANHA', 'TARDE', 'NOITE', 'INTEGRAL']).nullish,
 });
-final _teaching = Obj({
-  'employmentId': uuid, 'subjectId': uuid, 'classId': uuid, 'weeklyLessons': const Num(int: true, min: 1, max: 60).nullish, 'validFrom': date, 'validTo': date.nullish,
-});
+final _teaching = Obj({'employmentId': uuid, 'subjectId': uuid, 'classId': uuid, 'weeklyLessons': const Num(int: true, min: 1, max: 60).nullish, 'validFrom': date, 'validTo': date.nullish});
 final _classroom = Obj({'unitId': uuid, 'name': const Str(trim: true, min: 1, max: 60), 'capacity': const Num(int: true, min: 1, max: 1000).nullish});
 final _slot = Obj({'assignmentId': uuid, 'classroomId': uuid.nullish, 'weekday': const Num(int: true, min: 0, max: 6), 'startTime': _hm, 'endTime': _hm})
     .check((s) => _toMin(s['endTime']! as String) > _toMin(s['startTime']! as String), 'O fim deve ser depois do início', path: ['endTime']);
 final _session = Obj({
-  'scheduleId': uuid, 'date': date, 'status': const Enum(['HELD', 'NOT_HELD', 'SUBSTITUTED', 'CANCELLED']), 'substituteEmploymentId': uuid.nullish,
+  'scheduleId': uuid,
+  'date': date,
+  'status': const Enum(['HELD', 'NOT_HELD', 'SUBSTITUTED', 'CANCELLED']),
+  'substituteEmploymentId': uuid.nullish,
   'notes': const Str(trim: true, max: 300).nullish,
 }).check((s) => s['status'] != 'SUBSTITUTED' || s['substituteEmploymentId'] != null, 'Informe o professor substituto', path: ['substituteEmploymentId']);
 
 // ------------------------------------------------------------------ operacional
-const occurrenceTypes = ['ABSENCE', 'LATE', 'EARLY_LEAVE', 'MISSING_RECORD', 'OVERTIME', 'INSUFFICIENT_BREAK', 'UNCOVERED_SHIFT', 'SHIFT_NOT_STARTED', 'SHIFT_NOT_CLOSED',
-  'SCHEDULE_CONFLICT', 'INCOMPLETE_TEAM', 'OPERATIONAL_ISSUE', 'PROFESSIONAL_SWAP', 'SCHEDULE_CHANGE', 'EQUIPMENT_UNAVAILABLE', 'OTHER'];
+const occurrenceTypes = [
+  'ABSENCE',
+  'LATE',
+  'EARLY_LEAVE',
+  'MISSING_RECORD',
+  'OVERTIME',
+  'INSUFFICIENT_BREAK',
+  'UNCOVERED_SHIFT',
+  'SHIFT_NOT_STARTED',
+  'SHIFT_NOT_CLOSED',
+  'SCHEDULE_CONFLICT',
+  'INCOMPLETE_TEAM',
+  'OPERATIONAL_ISSUE',
+  'PROFESSIONAL_SWAP',
+  'SCHEDULE_CHANGE',
+  'EQUIPMENT_UNAVAILABLE',
+  'OTHER',
+];
 final _occurrence = Obj({
-  'unitId': uuid, 'type': const Enum(occurrenceTypes), 'title': const Str(trim: true, min: 3, max: 150), 'description': const Str(trim: true, max: 2000).nullish,
-  'occurredAt': const DateTimeS(), 'employmentId': uuid.nullish, 'responsibleId': uuid.nullish,
+  'unitId': uuid,
+  'type': const Enum(occurrenceTypes),
+  'title': const Str(trim: true, min: 3, max: 150),
+  'description': const Str(trim: true, max: 2000).nullish,
+  'occurredAt': const DateTimeS(),
+  'employmentId': uuid.nullish,
+  'responsibleId': uuid.nullish,
 });
 final _occList = Obj({
-  'status': const Enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'DISMISSED', 'ACTIVE']).def('ACTIVE'), 'unitId': uuid.optional, 'type': const Enum(occurrenceTypes).optional,
+  'status': const Enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'DISMISSED', 'ACTIVE']).def('ACTIVE'),
+  'unitId': uuid.optional,
+  'type': const Enum(occurrenceTypes).optional,
 });
-final _action = Obj({'action': const Enum(['START', 'RESOLVE', 'DISMISS', 'REOPEN', 'COMMENT']), 'notes': const Str(trim: true, max: 1000).optional, 'responsibleId': uuid.nullish})
-    .check((a) => a['action'] != 'COMMENT' || ((a['notes'] as String?)?.length ?? 0) > 0, 'Escreva o comentário', path: ['notes'])
-    .check((a) => !['RESOLVE', 'DISMISS'].contains(a['action']) || ((a['notes'] as String?)?.length ?? 0) >= 3, 'Explique como foi tratada', path: ['notes']);
+final _action =
+    Obj({
+          'action': const Enum(['START', 'RESOLVE', 'DISMISS', 'REOPEN', 'COMMENT']),
+          'notes': const Str(trim: true, max: 1000).optional,
+          'responsibleId': uuid.nullish,
+        })
+        .check((a) => a['action'] != 'COMMENT' || ((a['notes'] as String?)?.length ?? 0) > 0, 'Escreva o comentário', path: ['notes'])
+        .check((a) => !['RESOLVE', 'DISMISS'].contains(a['action']) || ((a['notes'] as String?)?.length ?? 0) >= 3, 'Explique como foi tratada', path: ['notes']);
 const _next = {'START': 'IN_PROGRESS', 'RESOLVE': 'RESOLVED', 'DISMISS': 'DISMISSED', 'REOPEN': 'OPEN', 'COMMENT': null};
-
 
 class SpecializedModule {
   SpecializedModule(this.app, this.timesheet);
@@ -89,7 +131,7 @@ class SpecializedModule {
     final e = await tx.one("SELECT company_id FROM employment_relationships WHERE id = @e AND deleted_at IS NULL AND status <> 'TERMINATED'", {'e': employmentId});
     if (e == null || e['companyId'] != s['uCompanyId']) throw badRequest('Profissional não encontrado nesta empresa');
     final clash = await tx.one(
-      "SELECT ms.starts_at FROM medical_shift_assignments a JOIN medical_shifts ms ON ms.id = a.shift_id WHERE a.employment_id = @e AND a.shift_id <> @s "
+      'SELECT ms.starts_at FROM medical_shift_assignments a JOIN medical_shifts ms ON ms.id = a.shift_id WHERE a.employment_id = @e AND a.shift_id <> @s '
       "AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS') AND ms.deleted_at IS NULL AND ms.starts_at < @end AND ms.ends_at > @start LIMIT 1",
       {'e': employmentId, 's': shiftId, 'start': s['startsAt'], 'end': s['endsAt']},
     );
@@ -97,7 +139,9 @@ class SpecializedModule {
     final existing = await tx.one('SELECT id, status::text AS status FROM medical_shift_assignments WHERE shift_id = @s AND employment_id = @e', {'s': shiftId, 'e': employmentId});
     if (existing != null && !['CANCELLED', 'SUBSTITUTED', 'ABSENT'].contains(existing['status'])) throw conflict('Profissional já escalado neste plantão');
     return existing != null
-        ? (await tx.one("UPDATE medical_shift_assignments SET status = 'SCHEDULED', check_in_at = NULL, check_out_at = NULL WHERE id = @id RETURNING *, status::text AS status", {'id': existing['id']}))!
+        ? (await tx.one("UPDATE medical_shift_assignments SET status = 'SCHEDULED', check_in_at = NULL, check_out_at = NULL WHERE id = @id RETURNING *, status::text AS status", {
+            'id': existing['id'],
+          }))!
         : await tx.insert('medical_shift_assignments', {'tenantId': tenantId, 'shiftId': shiftId, 'employmentId': employmentId});
   }
 
@@ -106,9 +150,14 @@ class SpecializedModule {
   }
 
   Map<String, Object?> _shiftData(Map<String, Object?> input) => {
-        'unitId': input['unitId'], 'specialtyId': input['specialtyId'], 'kind': input['kind'], 'startsAt': input['startsAt'], 'endsAt': input['endsAt'],
-        'requiredProfessionals': input['requiredProfessionals'], 'notes': input['notes'],
-      };
+    'unitId': input['unitId'],
+    'specialtyId': input['specialtyId'],
+    'kind': input['kind'],
+    'startsAt': input['startsAt'],
+    'endsAt': input['endsAt'],
+    'requiredProfessionals': input['requiredProfessionals'],
+    'notes': input['notes'],
+  };
 
   void routes() {
     final r = app.router;
@@ -128,11 +177,14 @@ class SpecializedModule {
           final assigns = shifts.isEmpty
               ? <Row>[]
               : await tx.query(
-                  "SELECT a.id, a.shift_id, a.employment_id, a.status::text AS status, e.registration, p.full_name, p.social_name, "
+                  'SELECT a.id, a.shift_id, a.employment_id, a.status::text AS status, e.registration, p.full_name, p.social_name, '
                   "(SELECT x.id FROM shift_substitutions x WHERE x.assignment_id = a.id AND x.status = 'PENDING' LIMIT 1) AS pending "
-                  "FROM medical_shift_assignments a JOIN employment_relationships e ON e.id = a.employment_id JOIN people p ON p.id = e.person_id "
+                  'FROM medical_shift_assignments a JOIN employment_relationships e ON e.id = a.employment_id JOIN people p ON p.id = e.person_id '
                   "WHERE a.shift_id::text = ANY(@ids) AND a.status <> 'CANCELLED' ORDER BY a.created_at ASC",
-                  {'ids': [for (final s in shifts) s['id']! as String]});
+                  {
+                    'ids': [for (final s in shifts) s['id']! as String],
+                  },
+                );
           return [
             for (final s in shifts)
               () {
@@ -140,11 +192,27 @@ class SpecializedModule {
                 final active = mine.where((a) => a['status'] != 'SUBSTITUTED' && a['status'] != 'ABSENT').length;
                 final req = s['requiredProfessionals']! as int;
                 return {
-                  'id': s['id'], 'unitId': s['unitId'], 'unit': s['unit'], 'specialty': s['specialty'], 'kind': s['kind'], 'startsAt': s['startsAt'], 'endsAt': s['endsAt'],
-                  'notes': s['notes'], 'requiredProfessionals': req, 'covered': active, 'missing': req - active > 0 ? req - active : 0,
+                  'id': s['id'],
+                  'unitId': s['unitId'],
+                  'unit': s['unit'],
+                  'specialty': s['specialty'],
+                  'kind': s['kind'],
+                  'startsAt': s['startsAt'],
+                  'endsAt': s['endsAt'],
+                  'notes': s['notes'],
+                  'requiredProfessionals': req,
+                  'covered': active,
+                  'missing': req - active > 0 ? req - active : 0,
                   'assignments': [
                     for (final a in mine)
-                      {'id': a['id'], 'employmentId': a['employmentId'], 'name': a['socialName'] ?? a['fullName'], 'registration': a['registration'], 'status': a['status'], 'pendingSubstitution': a['pending']},
+                      {
+                        'id': a['id'],
+                        'employmentId': a['employmentId'],
+                        'name': a['socialName'] ?? a['fullName'],
+                        'registration': a['registration'],
+                        'status': a['status'],
+                        'pendingSubstitution': a['pending'],
+                      },
                   ],
                 };
               }(),
@@ -158,7 +226,7 @@ class SpecializedModule {
         if (user.personId == null) return <Object?>[];
         return db.forTenant(ctx.tenant, (tx) async {
           final list = await tx.query(
-            "SELECT a.id, a.status::text AS status, a.check_in_at, a.check_out_at, s.kind::text AS kind, s.starts_at, s.ends_at, u.name AS unit FROM medical_shift_assignments a "
+            'SELECT a.id, a.status::text AS status, a.check_in_at, a.check_out_at, s.kind::text AS kind, s.starts_at, s.ends_at, u.name AS unit FROM medical_shift_assignments a '
             'JOIN medical_shifts s ON s.id = a.shift_id JOIN company_units u ON u.id = s.unit_id JOIN employment_relationships e ON e.id = a.employment_id '
             "WHERE e.person_id = @p AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS') AND s.deleted_at IS NULL AND s.ends_at > now() ORDER BY s.starts_at ASC LIMIT 60",
             {'p': user.personId},
@@ -167,7 +235,14 @@ class SpecializedModule {
           return [
             for (final a in list)
               {
-                'id': a['id'], 'status': a['status'], 'unit': a['unit'], 'kind': a['kind'], 'startsAt': a['startsAt'], 'endsAt': a['endsAt'], 'checkInAt': a['checkInAt'], 'checkOutAt': a['checkOutAt'],
+                'id': a['id'],
+                'status': a['status'],
+                'unit': a['unit'],
+                'kind': a['kind'],
+                'startsAt': a['startsAt'],
+                'endsAt': a['endsAt'],
+                'checkInAt': a['checkInAt'],
+                'checkOutAt': a['checkOutAt'],
                 'canCheckIn': a['status'] != 'IN_PROGRESS' && !now.isBefore((a['startsAt']! as DateTime).subtract(const Duration(hours: 2))) && now.isBefore(a['endsAt']! as DateTime),
                 'canCheckOut': a['status'] == 'IN_PROGRESS',
               },
@@ -182,9 +257,10 @@ class SpecializedModule {
         if (user.personId == null) throw badRequest('Seu usuário não está ligado a um profissional');
         return db.forTenant(tenantId, (tx) async {
           final a = await tx.one(
-              'SELECT a.id, a.status::text AS status, s.starts_at, s.ends_at, s.deleted_at FROM medical_shift_assignments a JOIN medical_shifts s ON s.id = a.shift_id '
-              'JOIN employment_relationships e ON e.id = a.employment_id WHERE a.id = @id AND e.person_id = @p',
-              {'id': id, 'p': user.personId});
+            'SELECT a.id, a.status::text AS status, s.starts_at, s.ends_at, s.deleted_at FROM medical_shift_assignments a JOIN medical_shifts s ON s.id = a.shift_id '
+            'JOIN employment_relationships e ON e.id = a.employment_id WHERE a.id = @id AND e.person_id = @p',
+            {'id': id, 'p': user.personId},
+          );
           if (a == null || a['deletedAt'] != null) throw notFound('Plantão não encontrado');
           final now = DateTime.now();
           if (kind == 'in') {
@@ -196,11 +272,21 @@ class SpecializedModule {
             throw conflict('Registre a entrada antes da saída');
           }
           final u = (await tx.one(
-              kind == 'in'
-                  ? "UPDATE medical_shift_assignments SET status = 'IN_PROGRESS', check_in_at = @n WHERE id = @id RETURNING *, status::text AS status"
-                  : "UPDATE medical_shift_assignments SET status = 'COMPLETED', check_out_at = @n WHERE id = @id RETURNING *, status::text AS status",
-              {'n': now, 'id': id}))!;
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'UPDATE', entity: 'medical_shift_assignment', entityId: id, after: {'selfCheck': kind, 'at': now}, meta: ctx.meta);
+            kind == 'in'
+                ? "UPDATE medical_shift_assignments SET status = 'IN_PROGRESS', check_in_at = @n WHERE id = @id RETURNING *, status::text AS status"
+                : "UPDATE medical_shift_assignments SET status = 'COMPLETED', check_out_at = @n WHERE id = @id RETURNING *, status::text AS status",
+            {'n': now, 'id': id},
+          ))!;
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: 'UPDATE',
+            entity: 'medical_shift_assignment',
+            entityId: id,
+            after: {'selfCheck': kind, 'at': now},
+            meta: ctx.meta,
+          );
           return u;
         });
       }
@@ -220,12 +306,23 @@ class SpecializedModule {
           for (var i = 0; i <= (input['repeatDays']! as int); i++) {
             final add = Duration(days: i);
             final row = await tx.insert('medical_shifts', {
-              'tenantId': tenantId, ..._shiftData(input), 'startsAt': (input['startsAt']! as DateTime).add(add), 'endsAt': (input['endsAt']! as DateTime).add(add),
+              'tenantId': tenantId,
+              ..._shiftData(input),
+              'startsAt': (input['startsAt']! as DateTime).add(add),
+              'endsAt': (input['endsAt']! as DateTime).add(add),
             });
             ids.add(row['id']);
           }
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'CREATE', entity: 'medical_shift', entityId: ids.first as String?,
-              after: {...input, 'created': ids.length}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: 'CREATE',
+            entity: 'medical_shift',
+            entityId: ids.first as String?,
+            after: {...input, 'created': ids.length},
+            meta: ctx.meta,
+          );
           return {'created': ids.length, 'ids': ids};
         });
       });
@@ -263,8 +360,16 @@ class SpecializedModule {
         final tenantId = ctx.tenant;
         return db.forTenant(tenantId, (tx) async {
           final a = await _place(tx, tenantId, id, b['employmentId']! as String);
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'CREATE', entity: 'medical_shift_assignment', entityId: a['id'] as String?,
-              after: {'shiftId': id, 'employmentId': b['employmentId']}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: 'CREATE',
+            entity: 'medical_shift_assignment',
+            entityId: a['id'] as String?,
+            after: {'shiftId': id, 'employmentId': b['employmentId']},
+            meta: ctx.meta,
+          );
           return a;
         });
       });
@@ -278,11 +383,21 @@ class SpecializedModule {
           if (before == null) throw notFound('Escala não encontrada');
           final now = DateTime.now();
           final a = await tx.one(
-              'UPDATE medical_shift_assignments SET status = @s${status == 'IN_PROGRESS' ? ', check_in_at = @n' : ''}${status == 'COMPLETED' ? ', check_out_at = @n' : ''} '
-              'WHERE id = @id RETURNING *, status::text AS status',
-              {'s': status, 'n': now, 'id': id});
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'UPDATE', entity: 'medical_shift_assignment', entityId: id,
-              before: {'status': before['status']}, after: {'status': status}, meta: ctx.meta);
+            'UPDATE medical_shift_assignments SET status = @s${status == 'IN_PROGRESS' ? ', check_in_at = @n' : ''}${status == 'COMPLETED' ? ', check_out_at = @n' : ''} '
+            'WHERE id = @id RETURNING *, status::text AS status',
+            {'s': status, 'n': now, 'id': id},
+          );
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: 'UPDATE',
+            entity: 'medical_shift_assignment',
+            entityId: id,
+            before: {'status': before['status']},
+            after: {'status': status},
+            meta: ctx.meta,
+          );
           return a;
         });
       });
@@ -308,15 +423,17 @@ class SpecializedModule {
         final approve = Obj({'approve': const Bool()}).parse(ctx.body)['approve'] == true;
         final tenantId = ctx.tenant;
         return db.forTenant(tenantId, (tx) async {
-          final s = await tx.one(
-              "SELECT x.*, a.shift_id FROM shift_substitutions x JOIN medical_shift_assignments a ON a.id = x.assignment_id WHERE x.id = @id AND x.status = 'PENDING'", {'id': id});
+          final s = await tx.one("SELECT x.*, a.shift_id FROM shift_substitutions x JOIN medical_shift_assignments a ON a.id = x.assignment_id WHERE x.id = @id AND x.status = 'PENDING'", {'id': id});
           if (s == null) throw notFound('Troca não encontrada ou já decidida');
           if (approve) {
             await _place(tx, tenantId, s['shiftId']! as String, s['substituteEmploymentId']! as String);
             await tx.execute("UPDATE medical_shift_assignments SET status = 'SUBSTITUTED' WHERE id = @a", {'a': s['assignmentId']});
           }
-          final d = await tx.one('UPDATE shift_substitutions SET status = @st, decided_by_id = @u WHERE id = @id RETURNING *, status::text AS status',
-              {'st': approve ? 'APPROVED' : 'REJECTED', 'u': ctx.user.id, 'id': id});
+          final d = await tx.one('UPDATE shift_substitutions SET status = @st, decided_by_id = @u WHERE id = @id RETURNING *, status::text AS status', {
+            'st': approve ? 'APPROVED' : 'REJECTED',
+            'u': ctx.user.id,
+            'id': id,
+          });
           await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: approve ? 'APPROVE' : 'REJECT', entity: 'shift_substitution', entityId: id, meta: ctx.meta);
           return d;
         });
@@ -329,26 +446,33 @@ class SpecializedModule {
     }
 
     Future<List<Map<String, Object?>>> lessonsOfDay(String tenantId, String companyId, String d) => db.forTenant(tenantId, (tx) async {
-          await company(tx, companyId);
-          final rows = await tx.query(
-            'SELECT cs.id, cs.start_time, cs.end_time, cl.name AS class_name, sb.name AS subject, p.full_name, p.social_name, rm.name AS classroom, '
-            'ses.status::text AS ses_status, ses.substitute_employment_id, ses.notes, sp.full_name AS sub_full_name, sp.social_name AS sub_social_name '
-            'FROM class_schedules cs JOIN teaching_assignments ta ON ta.id = cs.assignment_id JOIN subjects sb ON sb.id = ta.subject_id JOIN classes cl ON cl.id = ta.class_id '
-            'JOIN employment_relationships e ON e.id = ta.employment_id JOIN people p ON p.id = e.person_id LEFT JOIN classrooms rm ON rm.id = cs.classroom_id '
-            'LEFT JOIN class_sessions ses ON ses.schedule_id = cs.id AND ses.session_date = @d '
-            'LEFT JOIN employment_relationships se ON se.id = ses.substitute_employment_id LEFT JOIN people sp ON sp.id = se.person_id '
-            'WHERE cs.weekday = @w AND ta.valid_from <= @d AND (ta.valid_to IS NULL OR ta.valid_to >= @d) AND sb.company_id = @c ORDER BY cs.start_time ASC',
-            {'d': d, 'w': core.weekday(d), 'c': companyId},
-          );
-          return [
-            for (final x in rows)
-              {
-                'scheduleId': x['id'], 'startTime': x['startTime'], 'endTime': x['endTime'], 'className': x['className'], 'subject': x['subject'],
-                'teacher': x['socialName'] ?? x['fullName'], 'classroom': x['classroom'], 'status': x['sesStatus'] ?? 'SCHEDULED',
-                'substitute': x['substituteEmploymentId'] == null ? null : (x['subSocialName'] ?? x['subFullName']), 'notes': x['notes'],
-              },
-          ];
-        });
+      await company(tx, companyId);
+      final rows = await tx.query(
+        'SELECT cs.id, cs.start_time, cs.end_time, cl.name AS class_name, sb.name AS subject, p.full_name, p.social_name, rm.name AS classroom, '
+        'ses.status::text AS ses_status, ses.substitute_employment_id, ses.notes, sp.full_name AS sub_full_name, sp.social_name AS sub_social_name '
+        'FROM class_schedules cs JOIN teaching_assignments ta ON ta.id = cs.assignment_id JOIN subjects sb ON sb.id = ta.subject_id JOIN classes cl ON cl.id = ta.class_id '
+        'JOIN employment_relationships e ON e.id = ta.employment_id JOIN people p ON p.id = e.person_id LEFT JOIN classrooms rm ON rm.id = cs.classroom_id '
+        'LEFT JOIN class_sessions ses ON ses.schedule_id = cs.id AND ses.session_date = @d '
+        'LEFT JOIN employment_relationships se ON se.id = ses.substitute_employment_id LEFT JOIN people sp ON sp.id = se.person_id '
+        'WHERE cs.weekday = @w AND ta.valid_from <= @d AND (ta.valid_to IS NULL OR ta.valid_to >= @d) AND sb.company_id = @c ORDER BY cs.start_time ASC',
+        {'d': d, 'w': core.weekday(d), 'c': companyId},
+      );
+      return [
+        for (final x in rows)
+          {
+            'scheduleId': x['id'],
+            'startTime': x['startTime'],
+            'endTime': x['endTime'],
+            'className': x['className'],
+            'subject': x['subject'],
+            'teacher': x['socialName'] ?? x['fullName'],
+            'classroom': x['classroom'],
+            'status': x['sesStatus'] ?? 'SCHEDULED',
+            'substitute': x['substituteEmploymentId'] == null ? null : (x['subSocialName'] ?? x['subFullName']),
+            'notes': x['notes'],
+          },
+      ];
+    });
 
     r.group('/v1/education', tag: 'educação', () {
       r.get('', permission: 'education.academic:read', (ctx) {
@@ -357,39 +481,67 @@ class SpecializedModule {
         return db.forTenant(ctx.tenant, (tx) async {
           await company(tx, companyId);
           final classrooms = await tx.query(
-              'SELECT r.id, r.name, r.capacity, r.unit_id FROM classrooms r JOIN company_units u ON u.id = r.unit_id WHERE u.company_id = @c AND u.deleted_at IS NULL AND r.deleted_at IS NULL ORDER BY r.name ASC',
-              {'c': companyId});
+            'SELECT r.id, r.name, r.capacity, r.unit_id FROM classrooms r JOIN company_units u ON u.id = r.unit_id WHERE u.company_id = @c AND u.deleted_at IS NULL AND r.deleted_at IS NULL ORDER BY r.name ASC',
+            {'c': companyId},
+          );
           final courses = await tx.query('SELECT * FROM courses WHERE company_id = @c AND deleted_at IS NULL ORDER BY name ASC', {'c': companyId});
           final subjects = await tx.query('SELECT * FROM subjects WHERE company_id = @c AND deleted_at IS NULL ORDER BY name ASC', {'c': companyId});
           final periods = await tx.query(
-              'SELECT ap.id, ap.name, ap.starts_on, ap.ends_on FROM academic_periods ap JOIN calendars c ON c.id = ap.calendar_id WHERE c.company_id = @c AND c.is_academic AND c.deleted_at IS NULL ORDER BY ap.starts_on DESC',
-              {'c': companyId});
+            'SELECT ap.id, ap.name, ap.starts_on, ap.ends_on FROM academic_periods ap JOIN calendars c ON c.id = ap.calendar_id WHERE c.company_id = @c AND c.is_academic AND c.deleted_at IS NULL ORDER BY ap.starts_on DESC',
+            {'c': companyId},
+          );
           final classes = periods.isEmpty
               ? <Row>[]
-              : await tx.query('SELECT cl.*, co.name AS course FROM classes cl LEFT JOIN courses co ON co.id = cl.course_id WHERE cl.deleted_at IS NULL AND cl.period_id::text = ANY(@p) ORDER BY cl.name ASC',
-                  {'p': [for (final p in periods) p['id']! as String]});
+              : await tx.query(
+                  'SELECT cl.*, co.name AS course FROM classes cl LEFT JOIN courses co ON co.id = cl.course_id WHERE cl.deleted_at IS NULL AND cl.period_id::text = ANY(@p) ORDER BY cl.name ASC',
+                  {
+                    'p': [for (final p in periods) p['id']! as String],
+                  },
+                );
           final assigns = classes.isEmpty
               ? <Row>[]
               : await tx.query(
                   'SELECT ta.*, sb.name AS subject, p.full_name, p.social_name FROM teaching_assignments ta JOIN subjects sb ON sb.id = ta.subject_id '
                   'JOIN employment_relationships e ON e.id = ta.employment_id JOIN people p ON p.id = e.person_id WHERE ta.class_id::text = ANY(@c) AND (ta.valid_to IS NULL OR ta.valid_to >= @today)',
-                  {'c': [for (final c in classes) c['id']! as String], 'today': DateTime.now()});
+                  {
+                    'c': [for (final c in classes) c['id']! as String],
+                    'today': DateTime.now(),
+                  },
+                );
           final slots = assigns.isEmpty
               ? <Row>[]
-              : await tx.query('SELECT s.*, r.name AS classroom FROM class_schedules s LEFT JOIN classrooms r ON r.id = s.classroom_id WHERE s.assignment_id::text = ANY(@a) ORDER BY s.weekday ASC, s.start_time ASC',
-                  {'a': [for (final a in assigns) a['id']! as String]});
+              : await tx.query(
+                  'SELECT s.*, r.name AS classroom FROM class_schedules s LEFT JOIN classrooms r ON r.id = s.classroom_id WHERE s.assignment_id::text = ANY(@a) ORDER BY s.weekday ASC, s.start_time ASC',
+                  {
+                    'a': [for (final a in assigns) a['id']! as String],
+                  },
+                );
           return {
-            'courses': courses, 'subjects': subjects,
-            'periods': [for (final p in periods) {'id': p['id'], 'name': p['name'], 'startsOn': isoDay(p['startsOn']), 'endsOn': isoDay(p['endsOn'])}],
+            'courses': courses,
+            'subjects': subjects,
+            'periods': [
+              for (final p in periods) {'id': p['id'], 'name': p['name'], 'startsOn': isoDay(p['startsOn']), 'endsOn': isoDay(p['endsOn'])},
+            ],
             'classrooms': classrooms,
             'classes': [
               for (final c in classes)
                 {
-                  'id': c['id'], 'name': c['name'], 'grade': c['grade'], 'shift': c['shift'], 'unitId': c['unitId'], 'periodId': c['periodId'], 'courseId': c['courseId'], 'course': c['course'],
+                  'id': c['id'],
+                  'name': c['name'],
+                  'grade': c['grade'],
+                  'shift': c['shift'],
+                  'unitId': c['unitId'],
+                  'periodId': c['periodId'],
+                  'courseId': c['courseId'],
+                  'course': c['course'],
                   'assignments': [
                     for (final a in assigns.where((a) => a['classId'] == c['id']))
                       {
-                        'id': a['id'], 'employmentId': a['employmentId'], 'teacher': a['socialName'] ?? a['fullName'], 'subjectId': a['subjectId'], 'subject': a['subject'],
+                        'id': a['id'],
+                        'employmentId': a['employmentId'],
+                        'teacher': a['socialName'] ?? a['fullName'],
+                        'subjectId': a['subjectId'],
+                        'subject': a['subject'],
                         'weeklyLessons': a['weeklyLessons'],
                         'slots': [
                           for (final s in slots.where((s) => s['assignmentId'] == a['id']))
@@ -408,7 +560,9 @@ class SpecializedModule {
         final tenantId = ctx.tenant;
         return db.forTenant(tenantId, (tx) async {
           await company(tx, b['companyId']);
-          if (await tx.one('SELECT 1 FROM courses WHERE company_id = @c AND name = @n AND deleted_at IS NULL', {'c': b['companyId'], 'n': b['name']}) != null) throw conflict('Já existe um curso com esse nome');
+          if (await tx.one('SELECT 1 FROM courses WHERE company_id = @c AND name = @n AND deleted_at IS NULL', {'c': b['companyId'], 'n': b['name']}) != null) {
+            throw conflict('Já existe um curso com esse nome');
+          }
           final c = await tx.insert('courses', {'tenantId': tenantId, ...b});
           await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'CREATE', entity: 'course', entityId: c['id'] as String?, after: c, meta: ctx.meta);
           return c;
@@ -435,7 +589,8 @@ class SpecializedModule {
         final tenantId = ctx.tenant;
         return db.forTenant(tenantId, (tx) async {
           await company(tx, b['companyId']);
-          final cal = await tx.one('SELECT id FROM calendars WHERE company_id = @c AND is_academic AND deleted_at IS NULL LIMIT 1', {'c': b['companyId']}) ??
+          final cal =
+              await tx.one('SELECT id FROM calendars WHERE company_id = @c AND is_academic AND deleted_at IS NULL LIMIT 1', {'c': b['companyId']}) ??
               await tx.insert('calendars', {'tenantId': tenantId, 'companyId': b['companyId'], 'name': 'Calendário letivo', 'isAcademic': true});
           final p = await tx.insert('academic_periods', {'tenantId': tenantId, 'calendarId': cal['id'], 'name': b['name'], 'startsOn': b['startsOn'], 'endsOn': b['endsOn']});
           await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'CREATE', entity: 'academic_period', entityId: p['id'] as String?, after: b, meta: ctx.meta);
@@ -494,18 +649,20 @@ class SpecializedModule {
           final a = await tx.one('SELECT employment_id FROM teaching_assignments WHERE id = @id', {'id': b['assignmentId']});
           if (a == null) throw notFound('Alocação não encontrada');
           final mine = await tx.query(
-              'SELECT s.start_time, s.end_time, cl.name AS class_name FROM class_schedules s JOIN teaching_assignments ta ON ta.id = s.assignment_id JOIN classes cl ON cl.id = ta.class_id '
-              'WHERE s.weekday = @w AND ta.employment_id = @e AND (ta.valid_to IS NULL OR ta.valid_to >= @now)',
-              {'w': b['weekday'], 'e': a['employmentId'], 'now': DateTime.now()});
+            'SELECT s.start_time, s.end_time, cl.name AS class_name FROM class_schedules s JOIN teaching_assignments ta ON ta.id = s.assignment_id JOIN classes cl ON cl.id = ta.class_id '
+            'WHERE s.weekday = @w AND ta.employment_id = @e AND (ta.valid_to IS NULL OR ta.valid_to >= @now)',
+            {'w': b['weekday'], 'e': a['employmentId'], 'now': DateTime.now()},
+          );
           final clash = mine.where(overlaps).firstOrNull;
           if (clash != null) throw conflict('O professor já tem aula das ${clash['startTime']} às ${clash['endTime']} na turma ${clash['className']}');
           if (b['classroomId'] != null) {
             final room = await tx.one('SELECT name FROM classrooms WHERE id = @r AND deleted_at IS NULL', {'r': b['classroomId']});
             if (room == null) throw notFound('Sala não encontrada');
             final used = await tx.query(
-                'SELECT s.start_time, s.end_time, cl.name AS class_name FROM class_schedules s JOIN teaching_assignments ta ON ta.id = s.assignment_id JOIN classes cl ON cl.id = ta.class_id '
-                'WHERE s.classroom_id = @r AND s.weekday = @w AND (ta.valid_to IS NULL OR ta.valid_to >= @now)',
-                {'r': b['classroomId'], 'w': b['weekday'], 'now': DateTime.now()});
+              'SELECT s.start_time, s.end_time, cl.name AS class_name FROM class_schedules s JOIN teaching_assignments ta ON ta.id = s.assignment_id JOIN classes cl ON cl.id = ta.class_id '
+              'WHERE s.classroom_id = @r AND s.weekday = @w AND (ta.valid_to IS NULL OR ta.valid_to >= @now)',
+              {'r': b['classroomId'], 'w': b['weekday'], 'now': DateTime.now()},
+            );
             final busy = used.where(overlaps).firstOrNull;
             if (busy != null) throw conflict('A sala ${room['name']} já está ocupada das ${busy['startTime']} às ${busy['endTime']} (turma ${busy['className']})');
           }
@@ -546,17 +703,21 @@ class SpecializedModule {
       r.get('/mine', permission: 'education.academic:read', (ctx) async {
         final user = ctx.user;
         if (user.personId == null) return {'slots': <Object?>[]};
-        return db.forTenant(ctx.tenant, (tx) async => {
-              'slots': [
-                for (final s in await tx.query(
-                    'SELECT s.id, s.weekday, s.start_time, s.end_time, sb.name AS subject, cl.name AS class_name, r.name AS classroom FROM class_schedules s '
-                    'JOIN teaching_assignments ta ON ta.id = s.assignment_id JOIN subjects sb ON sb.id = ta.subject_id JOIN classes cl ON cl.id = ta.class_id '
-                    'JOIN employment_relationships e ON e.id = ta.employment_id LEFT JOIN classrooms r ON r.id = s.classroom_id '
-                    'WHERE e.person_id = @p AND (ta.valid_to IS NULL OR ta.valid_to >= @now) ORDER BY s.weekday ASC, s.start_time ASC',
-                    {'p': user.personId, 'now': DateTime.now()}))
-                  {'id': s['id'], 'weekday': s['weekday'], 'startTime': s['startTime'], 'endTime': s['endTime'], 'subject': s['subject'], 'className': s['className'], 'classroom': s['classroom']},
-              ],
-            });
+        return db.forTenant(
+          ctx.tenant,
+          (tx) async => {
+            'slots': [
+              for (final s in await tx.query(
+                'SELECT s.id, s.weekday, s.start_time, s.end_time, sb.name AS subject, cl.name AS class_name, r.name AS classroom FROM class_schedules s '
+                'JOIN teaching_assignments ta ON ta.id = s.assignment_id JOIN subjects sb ON sb.id = ta.subject_id JOIN classes cl ON cl.id = ta.class_id '
+                'JOIN employment_relationships e ON e.id = ta.employment_id LEFT JOIN classrooms r ON r.id = s.classroom_id '
+                'WHERE e.person_id = @p AND (ta.valid_to IS NULL OR ta.valid_to >= @now) ORDER BY s.weekday ASC, s.start_time ASC',
+                {'p': user.personId, 'now': DateTime.now()},
+              ))
+                {'id': s['id'], 'weekday': s['weekday'], 'startTime': s['startTime'], 'endTime': s['endTime'], 'subject': s['subject'], 'className': s['className'], 'classroom': s['classroom']},
+            ],
+          },
+        );
       });
 
       // Marca como dadas todas as aulas ainda sem registro no dia.
@@ -570,8 +731,15 @@ class SpecializedModule {
           for (final l in lessons) {
             await tx.insert('class_sessions', {'tenantId': tenantId, 'scheduleId': l['scheduleId'], 'sessionDate': d, 'status': 'HELD'});
           }
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'UPDATE', entity: 'class_session_batch',
-              after: {'companyId': b['companyId'], 'date': d, 'held': lessons.length}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: 'UPDATE',
+            entity: 'class_session_batch',
+            after: {'companyId': b['companyId'], 'date': d, 'held': lessons.length},
+            meta: ctx.meta,
+          );
         });
         return {'held': lessons.length};
       });
@@ -611,10 +779,15 @@ class SpecializedModule {
             'JOIN employment_relationships e ON e.id = ta.employment_id JOIN people p ON p.id = e.person_id WHERE x.session_date BETWEEN @f AND @t AND sb.company_id = @c',
             {'f': q['from'], 't': q['to'], 'c': q['companyId']},
           );
-          final subIds = {for (final x in sessions) if (x['substituteEmploymentId'] != null) x['substituteEmploymentId']! as String}.toList();
+          final subIds = {
+            for (final x in sessions)
+              if (x['substituteEmploymentId'] != null) x['substituteEmploymentId']! as String,
+          }.toList();
           final subs = subIds.isEmpty
               ? <Row>[]
-              : await tx.query('SELECT e.id, e.registration, p.full_name, p.social_name FROM employment_relationships e JOIN people p ON p.id = e.person_id WHERE e.id::text = ANY(@ids)', {'ids': subIds});
+              : await tx.query('SELECT e.id, e.registration, p.full_name, p.social_name FROM employment_relationships e JOIN people p ON p.id = e.person_id WHERE e.id::text = ANY(@ids)', {
+                  'ids': subIds,
+                });
           final by = <String, Map<String, Object?>>{};
           Map<String, Object?> row(String id, Object? reg, Object? name) =>
               by.putIfAbsent(id, () => {'teacher': name, 'registration': reg, 'held': 0, 'notHeld': 0, 'substitutedOut': 0, 'substitutedIn': 0, 'minutes': 0});
@@ -656,9 +829,13 @@ class SpecializedModule {
           final ids = [for (final o in list) o['id']! as String];
           final events = ids.isEmpty
               ? <Row>[]
-              : await tx.query('SELECT ev.*, us.display_name FROM operational_events ev LEFT JOIN users us ON us.id = ev.actor_user_id WHERE ev.occurrence_id::text = ANY(@ids) ORDER BY ev.created_at ASC',
-                  {'ids': ids});
-          final empIds = {for (final o in list) ...[o['employmentId'], o['responsibleId']]}.whereType<String>().toList();
+              : await tx.query(
+                  'SELECT ev.*, us.display_name FROM operational_events ev LEFT JOIN users us ON us.id = ev.actor_user_id WHERE ev.occurrence_id::text = ANY(@ids) ORDER BY ev.created_at ASC',
+                  {'ids': ids},
+                );
+          final empIds = {
+            for (final o in list) ...[o['employmentId'], o['responsibleId']],
+          }.whereType<String>().toList();
           final emps = empIds.isEmpty
               ? <Row>[]
               : await tx.query('SELECT e.id, e.registration, p.full_name FROM employment_relationships e JOIN people p ON p.id = e.person_id WHERE e.id::text = ANY(@ids)', {'ids': empIds});
@@ -670,41 +847,64 @@ class SpecializedModule {
           return [
             for (final o in list)
               {
-                'id': o['id'], 'unitId': o['unitId'], 'unit': o['unit'] ?? '', 'type': o['type'], 'title': o['title'], 'description': o['description'], 'occurredAt': o['occurredAt'],
-                'status': o['status'], 'employmentId': o['employmentId'], 'employment': en(o['employmentId']), 'responsibleId': o['responsibleId'], 'responsible': en(o['responsibleId']),
-                'events': [for (final e in events.where((e) => e['occurrenceId'] == o['id'])) {'action': e['action'], 'notes': e['notes'], 'at': e['createdAt'], 'by': e['displayName'] ?? ''}],
+                'id': o['id'],
+                'unitId': o['unitId'],
+                'unit': o['unit'] ?? '',
+                'type': o['type'],
+                'title': o['title'],
+                'description': o['description'],
+                'occurredAt': o['occurredAt'],
+                'status': o['status'],
+                'employmentId': o['employmentId'],
+                'employment': en(o['employmentId']),
+                'responsibleId': o['responsibleId'],
+                'responsible': en(o['responsibleId']),
+                'events': [
+                  for (final e in events.where((e) => e['occurrenceId'] == o['id'])) {'action': e['action'], 'notes': e['notes'], 'at': e['createdAt'], 'by': e['displayName'] ?? ''},
+                ],
               },
           ];
         });
       });
 
       // Painel: abertas por tipo e unidade, paradas há mais de 24 h e tempo médio de solução (30 dias).
-      r.get('/stats', permission: 'operational.board:read', (ctx) => db.forTenant(ctx.tenant, (tx) async {
-            final active = await tx.query(
-                "SELECT o.type::text AS type, o.unit_id, o.status::text AS status, o.occurred_at, u.name AS unit FROM operational_occurrences o LEFT JOIN company_units u ON u.id = o.unit_id "
-                "WHERE o.status IN ('OPEN', 'IN_PROGRESS')");
-            final solved = await tx.query("SELECT occurred_at, updated_at FROM operational_occurrences WHERE status = 'RESOLVED' AND updated_at >= @s",
-                {'s': DateTime.now().subtract(const Duration(days: 30))});
-            List<MapEntry<String, int>> group(String Function(Row) key) {
-              final m = <String, int>{};
-              for (final a in active) {
-                m[key(a)] = (m[key(a)] ?? 0) + 1;
-              }
-              return m.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+      r.get(
+        '/stats',
+        permission: 'operational.board:read',
+        (ctx) => db.forTenant(ctx.tenant, (tx) async {
+          final active = await tx.query(
+            'SELECT o.type::text AS type, o.unit_id, o.status::text AS status, o.occurred_at, u.name AS unit FROM operational_occurrences o LEFT JOIN company_units u ON u.id = o.unit_id '
+            "WHERE o.status IN ('OPEN', 'IN_PROGRESS')",
+          );
+          final solved = await tx.query("SELECT occurred_at, updated_at FROM operational_occurrences WHERE status = 'RESOLVED' AND updated_at >= @s", {
+            's': DateTime.now().subtract(const Duration(days: 30)),
+          });
+          List<MapEntry<String, int>> group(String Function(Row) key) {
+            final m = <String, int>{};
+            for (final a in active) {
+              m[key(a)] = (m[key(a)] ?? 0) + 1;
             }
+            return m.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+          }
 
-            final hours = [for (final x in solved) (x['updatedAt']! as DateTime).difference(x['occurredAt']! as DateTime).inMilliseconds / 3600000].where((h) => h >= 0).toList();
-            final now = DateTime.now();
-            final unitNames = {for (final a in active) a['unitId']: a['unit']};
-            return {
-              'open': active.where((a) => a['status'] == 'OPEN').length, 'inProgress': active.where((a) => a['status'] == 'IN_PROGRESS').length,
-              'stale': active.where((a) => now.difference(a['occurredAt']! as DateTime).inMilliseconds > 24 * 3600000).length,
-              'resolved30d': solved.length,
-              'avgResolutionHours': hours.isEmpty ? null : core.jsRound(hours.reduce((a, b) => a + b) / hours.length * 10) / 10,
-              'byType': [for (final e in group((a) => a['type']! as String)) {'type': e.key, 'n': e.value}],
-              'byUnit': [for (final e in group((a) => a['unitId']! as String)) {'unit': unitNames[e.key] ?? '', 'n': e.value}],
-            };
-          }));
+          final hours = [for (final x in solved) (x['updatedAt']! as DateTime).difference(x['occurredAt']! as DateTime).inMilliseconds / 3600000].where((h) => h >= 0).toList();
+          final now = DateTime.now();
+          final unitNames = {for (final a in active) a['unitId']: a['unit']};
+          return {
+            'open': active.where((a) => a['status'] == 'OPEN').length,
+            'inProgress': active.where((a) => a['status'] == 'IN_PROGRESS').length,
+            'stale': active.where((a) => now.difference(a['occurredAt']! as DateTime).inMilliseconds > 24 * 3600000).length,
+            'resolved30d': solved.length,
+            'avgResolutionHours': hours.isEmpty ? null : core.jsRound(hours.reduce((a, b) => a + b) / hours.length * 10) / 10,
+            'byType': [
+              for (final e in group((a) => a['type']! as String)) {'type': e.key, 'n': e.value},
+            ],
+            'byUnit': [
+              for (final e in group((a) => a['unitId']! as String)) {'unit': unitNames[e.key] ?? '', 'n': e.value},
+            ],
+          };
+        }),
+      );
 
       r.post('', permission: 'operational.occurrences:manage', (ctx) {
         final input = _occurrence.parse(ctx.body);
@@ -732,7 +932,9 @@ class SpecializedModule {
         return db.forTenant(tenantId, (tx) async {
           var created = 0, skipped = 0, noUnit = 0;
           final units = {
-            for (final e in await tx.query('SELECT id, unit_id FROM employment_relationships WHERE id::text = ANY(@ids)', {'ids': [for (final x in rows) x['employmentId']! as String]}))
+            for (final e in await tx.query('SELECT id, unit_id FROM employment_relationships WHERE id::text = ANY(@ids)', {
+              'ids': [for (final x in rows) x['employmentId']! as String],
+            }))
               e['id']: e['unitId'],
           };
           for (final x in rows) {
@@ -749,14 +951,27 @@ class SpecializedModule {
             }
             final late = (((x['day'] as Map?)?['result'] as Map?)?['lateMinutes'] as num?)?.toInt();
             final o = await tx.insert('operational_occurrences', {
-              'tenantId': tenantId, 'unitId': unitId, 'type': m.$1, 'title': '${m.$2}: ${x['name']}', 'description': m.$1 == 'LATE' && (late ?? 0) > 0 ? '$late min de atraso' : null,
-              'occurredAt': at, 'employmentId': x['employmentId'], 'createdById': user.id,
+              'tenantId': tenantId,
+              'unitId': unitId,
+              'type': m.$1,
+              'title': '${m.$2}: ${x['name']}',
+              'description': m.$1 == 'LATE' && (late ?? 0) > 0 ? '$late min de atraso' : null,
+              'occurredAt': at,
+              'employmentId': x['employmentId'],
+              'createdById': user.id,
             });
             await tx.insert('operational_events', {'tenantId': tenantId, 'occurrenceId': o['id'], 'action': 'CREATE', 'notes': 'Gerada do espelho diário', 'actorUserId': user.id});
             created++;
           }
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'operational_occurrence_batch',
-              after: {...q, 'created': created, 'skipped': skipped, 'noUnit': noUnit}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: 'CREATE',
+            entity: 'operational_occurrence_batch',
+            after: {...q, 'created': created, 'skipped': skipped, 'noUnit': noUnit},
+            meta: ctx.meta,
+          );
           return {'created': created, 'skipped': skipped, 'noUnit': noUnit};
         });
       });
@@ -772,8 +987,17 @@ class SpecializedModule {
           final data = <String, Object?>{'status': ?status, if (input.containsKey('responsibleId')) 'responsibleId': input['responsibleId']};
           final u = data.isEmpty ? o : (await tx.update('operational_occurrences', id, data))!;
           await tx.insert('operational_events', {'tenantId': tenantId, 'occurrenceId': id, 'action': input['action'], 'notes': input['notes'], 'actorUserId': user.id});
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'UPDATE', entity: 'operational_occurrence', entityId: id,
-              before: {'status': o['status']}, after: {'status': u['status'], 'action': input['action']}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: 'UPDATE',
+            entity: 'operational_occurrence',
+            entityId: id,
+            before: {'status': o['status']},
+            after: {'status': u['status'], 'action': input['action']},
+            meta: ctx.meta,
+          );
           return u;
         });
       });

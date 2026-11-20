@@ -11,12 +11,14 @@ DynamicLibrary _open() {
   final candidates = Platform.isMacOS
       ? ['libcrypto.3.dylib', '/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib', '/usr/local/opt/openssl@3/lib/libcrypto.3.dylib']
       : Platform.isWindows
-          ? ['libcrypto-3-x64.dll']
-          : ['libcrypto.so.3', 'libcrypto.so'];
+      ? ['libcrypto-3-x64.dll']
+      : ['libcrypto.so.3', 'libcrypto.so'];
   for (final c in candidates) {
     try {
       return DynamicLibrary.open(c);
-    } catch (_) {/* próximo */}
+    } catch (_) {
+      /* próximo */
+    }
   }
   throw StateError('OpenSSL 3 (libcrypto) não encontrado no sistema');
 }

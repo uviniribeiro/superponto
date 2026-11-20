@@ -75,6 +75,17 @@ jobs:
           TEST_ADMIN_DATABASE_URL: postgresql://postgres:dev@127.0.0.1:55432/postgres
           TEST_LDAP_URL: ldap://127.0.0.1:1389
         run: npm test -w @superponto/api
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.14.0
+      - name: API em Dart (os mesmos testes de contrato, contra o servidor Dart)
+        env:
+          TEST_ADMIN_DATABASE_URL: postgresql://postgres:dev@127.0.0.1:55432/postgres
+          TEST_LDAP_URL: ldap://127.0.0.1:1389
+          API_TARGET: dart
+        run: |
+          (cd dart && dart pub get)
+          npm test -w @superponto/api
       - name: Build da API
         run: npm run build -w @superponto/api
       - name: Build do site (Next.js)
@@ -96,3 +107,9 @@ jobs:
       - name: Testes (inclui paridade com o motor TypeScript)
         working-directory: platform/dart/packages/sp_core
         run: dart test
+      - name: Servidor Dart (criptografia compatível, LDAP, validação, XLSX)
+        working-directory: platform/dart/server
+        run: dart test
+      - name: Binário nativo do servidor
+        working-directory: platform/dart/server
+        run: dart compile exe bin/server.dart -o build/sp_server

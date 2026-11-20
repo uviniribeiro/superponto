@@ -11,12 +11,7 @@ class XlsxCell {
   final int? size;
 }
 
-String _esc(String s) => s
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F]'), '');
+String _esc(String s) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F]'), '');
 
 String _col(int i) {
   var n = i + 1, s = '';
@@ -49,7 +44,13 @@ Uint8List buildXlsx({required String sheetName, required List<List<XlsxCell>> ro
     for (var c = 0; c < rows[r].length; c++) {
       final cell = rows[r][c];
       final ref = '${_col(c)}${r + 1}';
-      final style = cell.size != null ? 3 : cell.fill ? 2 : cell.bold ? 1 : 0;
+      final style = cell.size != null
+          ? 3
+          : cell.fill
+          ? 2
+          : cell.bold
+          ? 1
+          : 0;
       final v = cell.value;
       if (v == null || (v is String && v.isEmpty)) {
         if (style != 0) sb.write('<c r="$ref" s="$style"/>');
@@ -63,7 +64,8 @@ Uint8List buildXlsx({required String sheetName, required List<List<XlsxCell>> ro
   }
   sb.write('</sheetData></worksheet>');
 
-  const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+  const styles =
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
       '<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><name val="Calibri"/></font></fonts>'
       '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'
@@ -75,22 +77,26 @@ Uint8List buildXlsx({required String sheetName, required List<List<XlsxCell>> ro
       '</styleSheet>';
   final name = _esc(sheetName.length > 31 ? sheetName.substring(0, 31) : sheetName).replaceAll(RegExp(r'[\\/?*\[\]:]'), ' ');
   final files = {
-    '[Content_Types].xml': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    '[Content_Types].xml':
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
         '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'
         '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
         '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
         '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
         '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>',
-    '_rels/.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    '_rels/.rels':
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
         '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
         '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>',
     'docProps/app.xml': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>SuperPonto</Application></Properties>',
-    'xl/workbook.xml': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    'xl/workbook.xml':
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
         '<sheets><sheet name="$name" sheetId="1" r:id="rId1"/></sheets></workbook>',
-    'xl/_rels/workbook.xml.rels': '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    'xl/_rels/workbook.xml.rels':
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
         '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
         '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',

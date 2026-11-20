@@ -67,15 +67,18 @@ void _testHooks(App app, SupportProvisioning support, HolidaysService holidays, 
     return {'ok': true};
   });
   app.router.post('/__test/holidays-generate', access: Access.public, status: 200, (ctx) async => {'created': await holidays.generateYear(ctx.json['year']! as int)});
-  app.router.post('/__test/holidays-ensure', access: Access.public, status: 200,
-      (ctx) => holidays.ensureUpcoming(DateTime.parse(ctx.json['now']! as String)));
+  app.router.post('/__test/holidays-ensure', access: Access.public, status: 200, (ctx) => holidays.ensureUpcoming(DateTime.parse(ctx.json['now']! as String)));
   app.router.post('/__test/lookup-stub', access: Access.public, status: 200, (ctx) {
     lookup.useStub(ctx.json['url']! as String);
     return {'ok': true};
   });
   app.router.post('/__test/device-check-offline', access: Access.public, status: 200, (ctx) async => {'offline': await devices.checkOffline()});
-  app.router.post('/__test/live', access: Access.public, status: 200,
-      (ctx) => tools.live(ctx.json['tenantId']! as String, (ctx.json['query']! as Map).cast<String, Object?>(), DateTime.parse(ctx.json['now']! as String)));
+  app.router.post(
+    '/__test/live',
+    access: Access.public,
+    status: 200,
+    (ctx) => tools.live(ctx.json['tenantId']! as String, (ctx.json['query']! as Map).cast<String, Object?>(), DateTime.parse(ctx.json['now']! as String)),
+  );
   app.router.post('/__test/notifications-tick', access: Access.public, status: 200, (ctx) async => {'sent': await tools.tick(DateTime.parse(ctx.json['now']! as String))});
   app.router.post('/__test/support-backfill', access: Access.public, status: 200, (ctx) async => {'created': await support.backfill()});
 }

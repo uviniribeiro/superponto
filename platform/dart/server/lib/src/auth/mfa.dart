@@ -60,8 +60,7 @@ Future<String> hashRecoveryCode(String userId, String normalized) async {
 }
 
 class MfaService {
-  MfaService(this.db, String encryptionKey, {this.issuer = 'SuperPonto', this.maxAttempts = 5, this.window = 1})
-      : _cipher = SecretCipher([encryptionKey]);
+  MfaService(this.db, String encryptionKey, {this.issuer = 'SuperPonto', this.maxAttempts = 5, this.window = 1}) : _cipher = SecretCipher([encryptionKey]);
   final Db db;
   final SecretCipher _cipher;
   final String issuer;
@@ -72,51 +71,56 @@ class MfaService {
   Future<Row?> _get(Tx tx, String userId) => tx.one('SELECT * FROM auth_mfa_authenticators WHERE user_id = @u', {'u': userId});
 
   Future<void> _save(Tx tx, String userId, {required String secret, required bool confirmed, String? pending, int? lastUsedStep}) => tx.execute(
-        'INSERT INTO auth_mfa_authenticators (user_id, secret, confirmed, pending_secret, last_used_step) VALUES (@u, @s, @c, @p, @l) '
-        'ON CONFLICT (user_id) DO UPDATE SET secret = EXCLUDED.secret, confirmed = EXCLUDED.confirmed, pending_secret = EXCLUDED.pending_secret, '
-        'last_used_step = GREATEST(auth_mfa_authenticators.last_used_step, EXCLUDED.last_used_step)',
-        {'u': userId, 's': secret, 'c': confirmed, 'p': pending, 'l': lastUsedStep},
-      );
+    'INSERT INTO auth_mfa_authenticators (user_id, secret, confirmed, pending_secret, last_used_step) VALUES (@u, @s, @c, @p, @l) '
+    'ON CONFLICT (user_id) DO UPDATE SET secret = EXCLUDED.secret, confirmed = EXCLUDED.confirmed, pending_secret = EXCLUDED.pending_secret, '
+    'last_used_step = GREATEST(auth_mfa_authenticators.last_used_step, EXCLUDED.last_used_step)',
+    {'u': userId, 's': secret, 'c': confirmed, 'p': pending, 'l': lastUsedStep},
+  );
 
   Future<bool> isEnrolled(String userId) => db.plain((tx) async => (await _get(tx, userId))?['confirmed'] == true);
 
   /// Começa a ativação: chave nova (pendente até confirmar). Já ativado: 409 fica a cargo da rota.
   Future<Map<String, String>?> enroll(String userId, String accountName) => db.plain((tx) async {
-        final current = await _get(tx, userId);
-        final secret = base32Encode(randomBytes(20));
-        final sealed = _cipher.encrypt(secret, userId);
-        if (current?['confirmed'] == true) return null;
-        await _save(tx, userId, secret: sealed, confirmed: false);
-        return {'secret': secret, 'uri': keyUri(secret, accountName)};
-      });
+    final current = await _get(tx, userId);
+    final secret = base32Encode(randomBytes(20));
+    final sealed = _cipher.encrypt(secret, userId);
+    if (current?['confirmed'] == true) return null;
+    await _save(tx, userId, secret: sealed, confirmed: false);
+    return {'secret': secret, 'uri': keyUri(secret, accountName)};
+  });
 
   String keyUri(String secret, String account) {
     final label = '${Uri.encodeComponent(issuer)}:${Uri.encodeComponent(account)}';
-    final q = {'secret': secret, 'issuer': issuer, 'algorithm': 'SHA1', 'digits': '6', 'period': '30'}
-        .entries.map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}').join('&').replaceAll('+', '%20');
+    final q = {
+      'secret': secret,
+      'issuer': issuer,
+      'algorithm': 'SHA1',
+      'digits': '6',
+      'period': '30',
+    }.entries.map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}').join('&').replaceAll('+', '%20');
     return 'otpauth://totp/$label?$q';
   }
 
   Future<bool> confirm(String userId, String code) => db.plain((tx) async {
-        final rec = await _get(tx, userId);
-        if (rec == null) return false;
-        final confirmed = rec['confirmed'] == true;
-        final candidate = (confirmed ? rec['pendingSecret'] : rec['secret']) as String?;
-        if (candidate == null) return false;
-        final plain = _cipher.decrypt(candidate, userId);
-        if (plain == null || !await _check(tx, userId, plain, code)) return false;
-        final latest = await _get(tx, userId);
-        if (latest == null || (confirmed ? latest['pendingSecret'] : latest['secret']) != candidate) return false;
-        await _save(tx, userId, secret: candidate, confirmed: true, lastUsedStep: latest['lastUsedStep'] as int?);
-        return true;
-      });
+    final rec = await _get(tx, userId);
+    if (rec == null) return false;
+    final confirmed = rec['confirmed'] == true;
+    final candidate = (confirmed ? rec['pendingSecret'] : rec['secret']) as String?;
+    if (candidate == null) return false;
+    final plain = _cipher.decrypt(candidate, userId);
+    if (plain == null || !await _check(tx, userId, plain, code)) return false;
+    final latest = await _get(tx, userId);
+    if (latest == null || (confirmed ? latest['pendingSecret'] : latest['secret']) != candidate) return false;
+    await _save(tx, userId, secret: candidate, confirmed: true, lastUsedStep: latest['lastUsedStep'] as int?);
+    return true;
+  });
 
   Future<bool> verifyTotp(String userId, String? code) => db.plain((tx) async {
-        final rec = await _get(tx, userId);
-        if (rec?['confirmed'] != true) return false;
-        final plain = _cipher.decrypt(rec!['secret']! as String, userId);
-        return plain != null && await _check(tx, userId, plain, code);
-      });
+    final rec = await _get(tx, userId);
+    if (rec?['confirmed'] != true) return false;
+    final plain = _cipher.decrypt(rec!['secret']! as String, userId);
+    return plain != null && await _check(tx, userId, plain, code);
+  });
 
   Future<List<String>> generateRecoveryCodes(String userId, [int count = 10]) async {
     final codes = [
@@ -137,26 +141,25 @@ class MfaService {
   }
 
   Future<bool> verifyRecoveryCode(String userId, String? code) => db.plain((tx) async {
-        if (!await _begin(tx, userId)) return false;
-        final normalized = code == null ? '' : normalizeRecoveryCode(code);
-        if (normalized.length == 10) {
-          final hash = await hashRecoveryCode(userId, normalized);
-          final n = await tx.execute('DELETE FROM auth_mfa_recovery_codes WHERE user_id = @u AND code_hash = @h', {'u': userId, 'h': hash});
-          if (n == 1) {
-            await tx.execute('DELETE FROM auth_mfa_failures WHERE user_id = @u', {'u': userId});
-            return true;
-          }
-        }
-        return false;
-      });
+    if (!await _begin(tx, userId)) return false;
+    final normalized = code == null ? '' : normalizeRecoveryCode(code);
+    if (normalized.length == 10) {
+      final hash = await hashRecoveryCode(userId, normalized);
+      final n = await tx.execute('DELETE FROM auth_mfa_recovery_codes WHERE user_id = @u AND code_hash = @h', {'u': userId, 'h': hash});
+      if (n == 1) {
+        await tx.execute('DELETE FROM auth_mfa_failures WHERE user_id = @u', {'u': userId});
+        return true;
+      }
+    }
+    return false;
+  });
 
-  Future<int> remainingRecoveryCodes(String userId) =>
-      db.plain((tx) async => (await tx.scalar<int>('SELECT count(*)::int FROM auth_mfa_recovery_codes WHERE user_id = @u', {'u': userId})) ?? 0);
+  Future<int> remainingRecoveryCodes(String userId) => db.plain((tx) async => (await tx.scalar<int>('SELECT count(*)::int FROM auth_mfa_recovery_codes WHERE user_id = @u', {'u': userId})) ?? 0);
 
   Future<void> disable(String userId) => db.plain((tx) async {
-        await tx.execute('DELETE FROM auth_mfa_authenticators WHERE user_id = @u', {'u': userId});
-        await tx.execute('DELETE FROM auth_mfa_recovery_codes WHERE user_id = @u', {'u': userId});
-      });
+    await tx.execute('DELETE FROM auth_mfa_authenticators WHERE user_id = @u', {'u': userId});
+    await tx.execute('DELETE FROM auth_mfa_recovery_codes WHERE user_id = @u', {'u': userId});
+  });
 
   /// Conta a tentativa antes de conferir (limite de 5 por 15 minutos).
   Future<bool> _begin(Tx tx, String userId) async {
@@ -174,9 +177,7 @@ class MfaService {
     if (!await _begin(tx, userId)) return false;
     final step = _matchingStep(secret, code);
     if (step != null) {
-      final n = await tx.execute(
-          'UPDATE auth_mfa_authenticators SET last_used_step = @s WHERE user_id = @u AND (last_used_step IS NULL OR last_used_step < @s)',
-          {'u': userId, 's': step});
+      final n = await tx.execute('UPDATE auth_mfa_authenticators SET last_used_step = @s WHERE user_id = @u AND (last_used_step IS NULL OR last_used_step < @s)', {'u': userId, 's': step});
       if (n == 1) {
         await tx.execute('DELETE FROM auth_mfa_failures WHERE user_id = @u', {'u': userId});
         return true;

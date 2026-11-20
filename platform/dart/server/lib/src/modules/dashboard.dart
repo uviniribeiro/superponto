@@ -18,10 +18,13 @@ void dashboardRoutes(App app, HolidaysService holidays) {
     final companyId = q['companyId'] as String?;
     final today = todayBr();
     final y = int.parse(today.substring(0, 4)), m = int.parse(today.substring(5, 7));
-    final months = [for (var i = 0; i < 6; i++) () {
-      final d = DateTime.utc(y, m - (5 - i), 1);
-      return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}';
-    }()];
+    final months = [
+      for (var i = 0; i < 6; i++)
+        () {
+          final d = DateTime.utc(y, m - (5 - i), 1);
+          return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}';
+        }(),
+    ];
     final from = DateTime.parse('${months.first}-01T00:00:00Z');
     final co = companyId == null ? '' : ' AND company_id = @co';
     final p = {'co': companyId, 'from': from};
@@ -37,11 +40,10 @@ void dashboardRoutes(App app, HolidaysService holidays) {
         ))!;
         final hired = await tx.query('SELECT hired_at FROM employment_relationships WHERE deleted_at IS NULL$co AND hired_at >= @from', p);
         final ended = await tx.query('SELECT terminated_at FROM employment_relationships WHERE deleted_at IS NULL$co AND terminated_at >= @from', p);
-        List<int> bucket(List<Object?> dates) => [
-              for (final mo in months) dates.where((d) => d is DateTime && d.toUtc().toIso8601String().substring(0, 7) == mo).length,
-            ];
+        List<int> bucket(List<Object?> dates) => [for (final mo in months) dates.where((d) => d is DateTime && d.toUtc().toIso8601String().substring(0, 7) == mo).length];
         out['employees'] = {
-          ...counts, 'months': months,
+          ...counts,
+          'months': months,
           'hires': bucket([for (final h in hired) h['hiredAt']]),
           'terminations': bucket([for (final t in ended) t['terminatedAt']]),
         };
@@ -72,8 +74,7 @@ void dashboardRoutes(App app, HolidaysService holidays) {
         if (m >= 11) ...((await holidays.listForCompany(tenantId, data.holidayCompany!, y + 1))['holidays']! as List).cast<Map<String, Object?>>(),
       ];
       upcoming = [
-        for (final h in list.where((h) => (h['date']! as String).compareTo(today) >= 0 && h['workday'] != true).take(3))
-          {'date': h['date'], 'name': h['name'], 'scope': h['scope']},
+        for (final h in list.where((h) => (h['date']! as String).compareTo(today) >= 0 && h['workday'] != true).take(3)) {'date': h['date'], 'name': h['name'], 'scope': h['scope']},
       ];
     }
     return {'today': today, ...data.out, 'holidays': ?upcoming};

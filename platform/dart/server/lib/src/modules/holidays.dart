@@ -10,21 +10,26 @@ import '../validate.dart';
 
 String _upper(String name) => name.replaceAllMapped(RegExp('[A-Z]'), (m) => '_${m[0]}').toUpperCase();
 const _movables = {
-  'CARNIVAL_MONDAY': core.Movable.carnivalMonday, 'CARNIVAL_TUESDAY': core.Movable.carnivalTuesday, 'ASH_WEDNESDAY': core.Movable.ashWednesday,
-  'GOOD_FRIDAY': core.Movable.goodFriday, 'CORPUS_CHRISTI': core.Movable.corpusChristi, 'EASTER': core.Movable.easter,
+  'CARNIVAL_MONDAY': core.Movable.carnivalMonday,
+  'CARNIVAL_TUESDAY': core.Movable.carnivalTuesday,
+  'ASH_WEDNESDAY': core.Movable.ashWednesday,
+  'GOOD_FRIDAY': core.Movable.goodFriday,
+  'CORPUS_CHRISTI': core.Movable.corpusChristi,
+  'EASTER': core.Movable.easter,
 };
 
 String _day(Object? d) => d is DateTime ? isoMs(d).substring(0, 10) : d.toString().substring(0, 10);
 
-final _rule = Obj({
-  'name': const Str(trim: true, min: 2, max: 120),
-  'kind': const Enum(['HOLIDAY', 'OPTIONAL']).def('HOLIDAY'),
-  'month': const Num(int: true, min: 1, max: 12).optional,
-  'day': const Num(int: true, min: 1, max: 31).optional,
-  'movable': const Enum(['CARNIVAL_MONDAY', 'CARNIVAL_TUESDAY', 'ASH_WEDNESDAY', 'GOOD_FRIDAY', 'CORPUS_CHRISTI']).optional,
-})
-    .check((v) => v['movable'] != null ? v['month'] == null && v['day'] == null : v['month'] != null && v['day'] != null, 'Informe dia e mês, ou um feriado móvel')
-    .check((v) => v['movable'] != null || DateTime.utc(2024, v['month']! as int, v['day']! as int).month == v['month'], 'Data inexistente');
+final _rule =
+    Obj({
+          'name': const Str(trim: true, min: 2, max: 120),
+          'kind': const Enum(['HOLIDAY', 'OPTIONAL']).def('HOLIDAY'),
+          'month': const Num(int: true, min: 1, max: 12).optional,
+          'day': const Num(int: true, min: 1, max: 31).optional,
+          'movable': const Enum(['CARNIVAL_MONDAY', 'CARNIVAL_TUESDAY', 'ASH_WEDNESDAY', 'GOOD_FRIDAY', 'CORPUS_CHRISTI']).optional,
+        })
+        .check((v) => v['movable'] != null ? v['month'] == null && v['day'] == null : v['month'] != null && v['day'] != null, 'Informe dia e mês, ou um feriado móvel')
+        .check((v) => v['movable'] != null || DateTime.utc(2024, v['month']! as int, v['day']! as int).month == v['month'], 'Data inexistente');
 final _override = Obj({'date': date, 'workday': const Bool(), 'note': const Str(trim: true, max: 200).optional});
 
 class HolidaysService {
@@ -35,11 +40,7 @@ class HolidaysService {
   /// Gera (de forma idempotente) o catálogo do ano.
   Future<int> generateYear(int year) async {
     if (year < 2000 || year > 2100) throw badRequest('Ano inválido');
-    final items = [
-      ...core.nationalHolidays(year),
-      for (final uf in core.ufs) ...core.stateHolidays(year, uf),
-      for (final ibge in core.municipalRules.keys) ...core.municipalHolidays(year, ibge),
-    ];
+    final items = [...core.nationalHolidays(year), for (final uf in core.ufs) ...core.stateHolidays(year, uf), for (final ibge in core.municipalRules.keys) ...core.municipalHolidays(year, ibge)];
     return db.asPlatform((tx) async {
       var created = 0;
       for (final h in items) {
@@ -79,18 +80,33 @@ class HolidaysService {
         {'y': year, 'uf': c['state'], 'ibge': c['ibgeCode']},
       );
       final rules = await tx.query('SELECT * FROM company_holiday_rules WHERE company_id = @c AND deleted_at IS NULL', {'c': companyId});
-      final overrides = await tx.query('SELECT * FROM company_holiday_overrides WHERE company_id = @c AND date BETWEEN @a AND @b',
-          {'c': companyId, 'a': untyped('$year-01-01'), 'b': untyped('$year-12-31')});
+      final overrides = await tx.query('SELECT * FROM company_holiday_overrides WHERE company_id = @c AND date BETWEEN @a AND @b', {
+        'c': companyId,
+        'a': untyped('$year-01-01'),
+        'b': untyped('$year-12-31'),
+      });
       final items = <Map<String, Object?>>[
         for (final h in catalog)
           {'date': _day(h['date']), 'name': h['name'], 'scope': h['scope'], 'kind': h['kind'], 'basis': h['basis'], 'review': h['review'], 'workday': false, 'overridden': false},
         for (final r in rules)
           {
             'date': core.ruleDate(
-                core.HolidayRule(name: r['name']! as String, kind: r['kind'] == 'OPTIONAL' ? core.HolidayKind.optional : core.HolidayKind.holiday,
-                    month: r['month'] as int?, day: r['day'] as int?, movable: _movables[r['movable']]),
-                year),
-            'name': r['name'], 'scope': 'COMPANY', 'kind': r['kind'], 'basis': 'Cadastrado pela empresa', 'review': false, 'workday': false, 'overridden': false,
+              core.HolidayRule(
+                name: r['name']! as String,
+                kind: r['kind'] == 'OPTIONAL' ? core.HolidayKind.optional : core.HolidayKind.holiday,
+                month: r['month'] as int?,
+                day: r['day'] as int?,
+                movable: _movables[r['movable']],
+              ),
+              year,
+            ),
+            'name': r['name'],
+            'scope': 'COMPANY',
+            'kind': r['kind'],
+            'basis': 'Cadastrado pela empresa',
+            'review': false,
+            'workday': false,
+            'overridden': false,
             'ruleId': r['id'],
           },
       ];
@@ -115,8 +131,15 @@ class HolidaysService {
         } else if (o['workday'] != true) {
           final note = o['note'] as String?;
           byDate[d] = {
-            'date': d, 'name': note == null || note.isEmpty ? 'Folga concedida pela empresa' : note, 'scope': 'COMPANY', 'kind': 'HOLIDAY',
-            'basis': 'Decisão da empresa', 'review': false, 'workday': false, 'overridden': true, 'note': note,
+            'date': d,
+            'name': note == null || note.isEmpty ? 'Folga concedida pela empresa' : note,
+            'scope': 'COMPANY',
+            'kind': 'HOLIDAY',
+            'basis': 'Decisão da empresa',
+            'review': false,
+            'workday': false,
+            'overridden': true,
+            'note': note,
           };
         }
       }
@@ -145,8 +168,13 @@ class HolidaysService {
         return db.forTenant(tenantId, (tx) async {
           await _company(tx, id);
           final rule = await tx.insert('company_holiday_rules', {
-            'tenantId': tenantId, 'companyId': id, 'name': input['name'], 'kind': input['kind'],
-            'month': input['month'], 'day': input['day'], 'movable': input['movable'],
+            'tenantId': tenantId,
+            'companyId': id,
+            'name': input['name'],
+            'kind': input['kind'],
+            'month': input['month'],
+            'day': input['day'],
+            'movable': input['movable'],
           });
           await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'CREATE', entity: 'company_holiday_rule', entityId: rule['id'] as String?, after: rule, meta: ctx.meta);
           return rule;
@@ -174,13 +202,21 @@ class HolidaysService {
           final before = await tx.one('SELECT * FROM company_holiday_overrides WHERE company_id = @c AND date = @d', {'c': id, 'd': input['date']});
           final Row saved;
           if (before == null) {
-            saved = await tx.insert('company_holiday_overrides',
-                {'tenantId': tenantId, 'companyId': id, 'date': input['date'], 'workday': input['workday'], 'note': input['note']});
+            saved = await tx.insert('company_holiday_overrides', {'tenantId': tenantId, 'companyId': id, 'date': input['date'], 'workday': input['workday'], 'note': input['note']});
           } else {
             saved = (await tx.update('company_holiday_overrides', before['id']! as String, {'workday': input['workday'], 'note': input['note']}))!;
           }
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: before == null ? 'CREATE' : 'UPDATE',
-              entity: 'company_holiday_override', entityId: saved['id'] as String?, before: before, after: saved, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: before == null ? 'CREATE' : 'UPDATE',
+            entity: 'company_holiday_override',
+            entityId: saved['id'] as String?,
+            before: before,
+            after: saved,
+            meta: ctx.meta,
+          );
           return saved;
         });
       });

@@ -123,11 +123,23 @@ class PeopleModule {
     final sensitive = can(viewer, 'people.sensitive:read');
     final wh = r['weeklyHours'];
     return {
-      'id': r['id'], 'personId': r['pId'], 'fullName': r['pFullName'], 'socialName': r['pSocialName'],
-      'cpf': sensitive ? r['pCpf'] : maskCpf(r['pCpf'] as String?), 'pis': sensitive ? r['pPis'] : maskPis(r['pPis'] as String?), 'sensitiveVisible': sensitive,
-      'birthDate': _iso(r['pBirthDate']), 'email': r['pEmail'], 'phone': r['pPhone'], 'address': r['pAddress'],
-      'registration': r['registration'], 'status': r['status'], 'contractType': r['contractType'],
-      'weeklyHours': wh == null ? null : num.parse(wh.toString()), 'hiredAt': _iso(r['hiredAt']), 'terminatedAt': _iso(r['terminatedAt']),
+      'id': r['id'],
+      'personId': r['pId'],
+      'fullName': r['pFullName'],
+      'socialName': r['pSocialName'],
+      'cpf': sensitive ? r['pCpf'] : maskCpf(r['pCpf'] as String?),
+      'pis': sensitive ? r['pPis'] : maskPis(r['pPis'] as String?),
+      'sensitiveVisible': sensitive,
+      'birthDate': _iso(r['pBirthDate']),
+      'email': r['pEmail'],
+      'phone': r['pPhone'],
+      'address': r['pAddress'],
+      'registration': r['registration'],
+      'status': r['status'],
+      'contractType': r['contractType'],
+      'weeklyHours': wh == null ? null : num.parse(wh.toString()),
+      'hiredAt': _iso(r['hiredAt']),
+      'terminatedAt': _iso(r['terminatedAt']),
       'company': {'id': r['companyId'], 'legalName': r['cLegalName'], 'tradeName': r['cTradeName']},
       'department': _ref(r, 'departmentId', () => {'name': r['dName']}),
       'sector': _ref(r, 'sectorId', () => {'name': r['sName']}),
@@ -137,7 +149,8 @@ class PeopleModule {
       'employeeType': _ref(r, 'employeeTypeId', () => {'name': r['etName']}),
       'union': _ref(r, 'unionId', () => {'acronym': r['luAcronym']}),
       'supervisor': _ref(r, 'supervisorId', () => {'fullName': r['supFullName']}),
-      'unitId': r['unitId'], 'unit': _ref(r, 'unitId', () => {'name': r['unName']}),
+      'unitId': r['unitId'],
+      'unit': _ref(r, 'unitId', () => {'name': r['unName']}),
     };
   }
 
@@ -152,8 +165,9 @@ class PeopleModule {
 
   Future<List<String>> _departmentTree(Tx tx, String root) async {
     final rows = await tx.query(
-        'WITH RECURSIVE t AS (SELECT id FROM departments WHERE id = @r UNION SELECT d.id FROM departments d JOIN t ON d.parent_id = t.id WHERE d.deleted_at IS NULL) SELECT id FROM t',
-        {'r': root});
+      'WITH RECURSIVE t AS (SELECT id FROM departments WHERE id = @r UNION SELECT d.id FROM departments d JOIN t ON d.parent_id = t.id WHERE d.deleted_at IS NULL) SELECT id FROM t',
+      {'r': root},
+    );
     return [for (final x in rows) x['id']! as String];
   }
 
@@ -178,8 +192,10 @@ class PeopleModule {
       if (u == null || u['companyId'] != companyId) throw badRequest('Unidade não pertence a esta empresa');
     }
     for (final (key, table, label) in const [
-      ('functionId', 'job_functions', 'Função'), ('costCenterId', 'cost_centers', 'Centro de custo'),
-      ('employeeTypeId', 'employee_types', 'Tipo de funcionário'), ('unionId', 'labor_unions', 'Sindicato'),
+      ('functionId', 'job_functions', 'Função'),
+      ('costCenterId', 'cost_centers', 'Centro de custo'),
+      ('employeeTypeId', 'employee_types', 'Tipo de funcionário'),
+      ('unionId', 'labor_unions', 'Sindicato'),
     ]) {
       if (v[key] != null && await find(table, v[key]) == null) throw badRequest('$label não encontrado(a)');
     }
@@ -207,17 +223,32 @@ class PeopleModule {
         }
         person ??= await tx.insert('people', {
           'tenantId': tenantId,
-          for (final k in ['fullName', 'socialName', 'cpf', 'pis', 'birthDate', 'email', 'phone']) if (input[k] != null) k: input[k],
+          for (final k in ['fullName', 'socialName', 'cpf', 'pis', 'birthDate', 'email', 'phone'])
+            if (input[k] != null) k: input[k],
           if (input['address'] != null) 'address': jsonb(input['address']),
         });
         final e = await tx.insert('employment_relationships', {
-          'tenantId': tenantId, 'personId': person['id'], 'companyId': input['companyId'], 'registration': input['registration'], 'hiredAt': input['hiredAt'],
-          'contractType': input['contractType'], if (input['weeklyHours'] != null) 'weeklyHours': untyped(input['weeklyHours'].toString()),
-          for (final k in _refs) if (input[k] != null) k: input[k],
+          'tenantId': tenantId,
+          'personId': person['id'],
+          'companyId': input['companyId'],
+          'registration': input['registration'],
+          'hiredAt': input['hiredAt'],
+          'contractType': input['contractType'],
+          if (input['weeklyHours'] != null) 'weeklyHours': untyped(input['weeklyHours'].toString()),
+          for (final k in _refs)
+            if (input[k] != null) k: input[k],
         });
         final row = await load(tx, e['id']! as String);
-        await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'employment', entityId: e['id'] as String?,
-            after: {...shape(row, _auditView(user)), 'reusedPerson': (person['createdAt']! as DateTime).isBefore(e['createdAt']! as DateTime)}, meta: meta);
+        await app.audit.record(
+          tx,
+          tenantId: tenantId,
+          actorUserId: user.id,
+          action: 'CREATE',
+          entity: 'employment',
+          entityId: e['id'] as String?,
+          after: {...shape(row, _auditView(user)), 'reusedPerson': (person['createdAt']! as DateTime).isBefore(e['createdAt']! as DateTime)},
+          meta: meta,
+        );
         return shape(row, user);
       });
     } on DbError catch (e) {
@@ -234,17 +265,19 @@ class PeopleModule {
         final merged = {'departmentId': input.containsKey('departmentId') ? input['departmentId'] : before['departmentId'], ...input};
         await _checkRefs(tx, before['companyId']! as String, merged, id);
         final personData = <String, Object?>{
-          for (final k in ['fullName', 'socialName', 'cpf', 'pis', 'email', 'phone', 'birthDate']) if (input.containsKey(k)) k: input[k],
+          for (final k in ['fullName', 'socialName', 'cpf', 'pis', 'email', 'phone', 'birthDate'])
+            if (input.containsKey(k)) k: input[k],
           if (input.containsKey('address') && input['address'] != null) 'address': jsonb(input['address']),
         };
         if (personData.isNotEmpty) await tx.update('people', before['personId']! as String, personData);
-        final empData = <String, Object?>{for (final k in _tracked) if (input.containsKey(k)) k: input[k]};
+        final empData = <String, Object?>{
+          for (final k in _tracked)
+            if (input.containsKey(k)) k: input[k],
+        };
         // seção solta quando muda de departamento sem informar seção
         if (input.containsKey('departmentId') && input['departmentId'] != before['departmentId'] && !input.containsKey('sectorId')) empData['sectorId'] = null;
         if (empData.isNotEmpty) {
-          await tx.update('employment_relationships', id, {
-            for (final e in empData.entries) e.key: e.key == 'weeklyHours' && e.value != null ? untyped(e.value.toString()) : e.value,
-          });
+          await tx.update('employment_relationships', id, {for (final e in empData.entries) e.key: e.key == 'weeklyHours' && e.value != null ? untyped(e.value.toString()) : e.value});
         }
         String text(Object? v) => v == null ? '' : (v is String && RegExp(r'^-?\d+(\.\d+)?$').hasMatch(v) ? num.parse(v).toString() : v.toString());
         final effectiveAt = input['effectiveAt'] as String? ?? isoMs(DateTime.now()).substring(0, 10);
@@ -252,15 +285,28 @@ class PeopleModule {
           final old = before[field];
           if (text(old) == text(empData[field])) continue;
           await tx.insert('employment_history', {
-            'tenantId': tenantId, 'employmentId': id, 'field': field,
+            'tenantId': tenantId,
+            'employmentId': id,
+            'field': field,
             'oldValue': old == null ? null : jsonb(field == 'weeklyHours' ? text(old) : old.toString()),
             'newValue': empData[field] == null ? null : jsonb(empData[field].toString()),
-            'effectiveAt': effectiveAt, if (input['reason'] != null) 'reason': input['reason'], 'actorUserId': user.id,
+            'effectiveAt': effectiveAt,
+            if (input['reason'] != null) 'reason': input['reason'],
+            'actorUserId': user.id,
           });
         }
         final after = await load(tx, id);
-        await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'UPDATE', entity: 'employment', entityId: id,
-            before: shape(before, _auditView(user)), after: shape(after, _auditView(user)), meta: meta);
+        await app.audit.record(
+          tx,
+          tenantId: tenantId,
+          actorUserId: user.id,
+          action: 'UPDATE',
+          entity: 'employment',
+          entityId: id,
+          before: shape(before, _auditView(user)),
+          after: shape(after, _auditView(user)),
+          meta: meta,
+        );
         return shape(after, user);
       });
     } on DbError catch (e) {
@@ -315,7 +361,12 @@ class PeopleModule {
           final page = q['page']! as int, size = q['pageSize']! as int;
           final rows = await tx.query('$_employmentSelect WHERE $w ORDER BY p.full_name ASC, e.registration ASC LIMIT $size OFFSET ${(page - 1) * size}', p);
           final total = await tx.scalar<int>('SELECT count(*)::int FROM employment_relationships e JOIN people p ON p.id = e.person_id WHERE $w', p);
-          return {'data': [for (final x in rows) shape(x, viewer)], 'page': page, 'pageSize': size, 'total': total};
+          return {
+            'data': [for (final x in rows) shape(x, viewer)],
+            'page': page,
+            'pageSize': size,
+            'total': total,
+          };
         });
       });
 
@@ -331,9 +382,16 @@ class PeopleModule {
             {'p': row['personId'], 'id': id},
           );
           return {
-            ...shape(row, viewer), 'history': history,
+            ...shape(row, viewer),
+            'history': history,
             'otherEmployments': [
-              for (final o in others) {'id': o['id'], 'registration': o['registration'], 'status': o['status'], 'company': {'legalName': o['legalName'], 'tradeName': o['tradeName']}},
+              for (final o in others)
+                {
+                  'id': o['id'],
+                  'registration': o['registration'],
+                  'status': o['status'],
+                  'company': {'legalName': o['legalName'], 'tradeName': o['tradeName']},
+                },
             ],
           };
         });
@@ -359,11 +417,26 @@ class PeopleModule {
           if (at.compareTo(_iso(before['hiredAt'])!) < 0) throw badRequest('A data de desligamento é anterior à admissão');
           await tx.update('employment_relationships', id, {'status': 'TERMINATED', 'terminatedAt': at});
           await tx.insert('employment_history', {
-            'tenantId': tenantId, 'employmentId': id, 'field': 'status', 'oldValue': jsonb(before['status']), 'newValue': jsonb('TERMINATED'),
-            'effectiveAt': at, 'reason': input['reason'], 'actorUserId': user.id,
+            'tenantId': tenantId,
+            'employmentId': id,
+            'field': 'status',
+            'oldValue': jsonb(before['status']),
+            'newValue': jsonb('TERMINATED'),
+            'effectiveAt': at,
+            'reason': input['reason'],
+            'actorUserId': user.id,
           });
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'UPDATE', entity: 'employment', entityId: id,
-              before: {'status': before['status']}, after: {'status': 'TERMINATED', 'terminatedAt': at, 'reason': input['reason']}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: 'UPDATE',
+            entity: 'employment',
+            entityId: id,
+            before: {'status': before['status']},
+            after: {'status': 'TERMINATED', 'terminatedAt': at, 'reason': input['reason']},
+            meta: ctx.meta,
+          );
           return shape(await load(tx, id), user);
         });
       }, status: 201);
@@ -376,11 +449,26 @@ class PeopleModule {
           if (before['status'] != 'TERMINATED') throw badRequest('Funcionário não está desligado');
           await tx.update('employment_relationships', id, {'status': 'ACTIVE', 'terminatedAt': null});
           await tx.insert('employment_history', {
-            'tenantId': tenantId, 'employmentId': id, 'field': 'status', 'oldValue': jsonb('TERMINATED'), 'newValue': jsonb('ACTIVE'),
-            'effectiveAt': isoMs(DateTime.now()).substring(0, 10), 'reason': 'Reativação', 'actorUserId': user.id,
+            'tenantId': tenantId,
+            'employmentId': id,
+            'field': 'status',
+            'oldValue': jsonb('TERMINATED'),
+            'newValue': jsonb('ACTIVE'),
+            'effectiveAt': isoMs(DateTime.now()).substring(0, 10),
+            'reason': 'Reativação',
+            'actorUserId': user.id,
           });
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'UPDATE', entity: 'employment', entityId: id,
-              before: {'status': 'TERMINATED'}, after: {'status': 'ACTIVE'}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: 'UPDATE',
+            entity: 'employment',
+            entityId: id,
+            before: {'status': 'TERMINATED'},
+            after: {'status': 'ACTIVE'},
+            meta: ctx.meta,
+          );
           return shape(await load(tx, id), user);
         });
       });
@@ -392,21 +480,18 @@ class PeopleModule {
     }
 
     Future<Map<String, Object?>> members(String tenantId, String id) => db.forTenant(tenantId, (tx) async {
-          await grouping(tx, id);
-          final emps = await tx.query(
-              'SELECT e.id, e.registration, e.status::text AS status, p.full_name FROM grouping_employments g JOIN employment_relationships e ON e.id = g.employment_id '
-              'JOIN people p ON p.id = e.person_id WHERE g.grouping_id = @id',
-              {'id': id});
-          final positions = await tx.query('SELECT jp.id, jp.name FROM grouping_positions g JOIN job_positions jp ON jp.id = g.position_id WHERE g.grouping_id = @id', {'id': id});
-          final units = await tx.query('SELECT u.id, u.name FROM grouping_units g JOIN company_units u ON u.id = g.unit_id WHERE g.grouping_id = @id', {'id': id});
-          return {'employments': emps, 'positions': positions, 'units': units};
-        });
-
-    final membersSchema = Obj({
-      'employmentIds': const Arr(uuid, max: 10000).optional,
-      'positionIds': const Arr(uuid, max: 2000).optional,
-      'unitIds': const Arr(uuid, max: 2000).optional,
+      await grouping(tx, id);
+      final emps = await tx.query(
+        'SELECT e.id, e.registration, e.status::text AS status, p.full_name FROM grouping_employments g JOIN employment_relationships e ON e.id = g.employment_id '
+        'JOIN people p ON p.id = e.person_id WHERE g.grouping_id = @id',
+        {'id': id},
+      );
+      final positions = await tx.query('SELECT jp.id, jp.name FROM grouping_positions g JOIN job_positions jp ON jp.id = g.position_id WHERE g.grouping_id = @id', {'id': id});
+      final units = await tx.query('SELECT u.id, u.name FROM grouping_units g JOIN company_units u ON u.id = g.unit_id WHERE g.grouping_id = @id', {'id': id});
+      return {'employments': emps, 'positions': positions, 'units': units};
     });
+
+    final membersSchema = Obj({'employmentIds': const Arr(uuid, max: 10000).optional, 'positionIds': const Arr(uuid, max: 2000).optional, 'unitIds': const Arr(uuid, max: 2000).optional});
 
     r.group('/v1/groupings', tag: 'estrutura', () {
       r.get('/:id/members', permission: 'org.groupings:read', (ctx) => members(ctx.tenant, ctx.uuidParam('id')));
@@ -431,9 +516,16 @@ class PeopleModule {
               await tx.execute('INSERT INTO $link (grouping_id, $col, tenant_id) SELECT @g, x::uuid, @t FROM unnest(@ids::text[]) AS x', {'g': id, 't': tenantId, 'ids': ids});
             }
           }
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'UPDATE', entity: 'grouping', entityId: id, after: {
-            'employments': (input['employmentIds'] as List?)?.length, 'positions': (input['positionIds'] as List?)?.length, 'units': (input['unitIds'] as List?)?.length,
-          }, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: 'UPDATE',
+            entity: 'grouping',
+            entityId: id,
+            after: {'employments': (input['employmentIds'] as List?)?.length, 'positions': (input['positionIds'] as List?)?.length, 'units': (input['unitIds'] as List?)?.length},
+            meta: ctx.meta,
+          );
         });
         return members(tenantId, id);
       }, status: 200);
@@ -442,8 +534,16 @@ class PeopleModule {
 
   // ------------------------------------------------------------------ importação por planilha
   static const _contracts = {
-    'clt': 'CLT', 'celetista': 'CLT', 'estatutario': 'STATUTORY', 'temporario': 'TEMPORARY', 'estagiario': 'INTERN', 'estagio': 'INTERN', 'aprendiz': 'APPRENTICE',
-    'terceirizado': 'CONTRACTOR', 'autonomo': 'SERVICE_PROVIDER', 'voluntario': 'VOLUNTEER',
+    'clt': 'CLT',
+    'celetista': 'CLT',
+    'estatutario': 'STATUTORY',
+    'temporario': 'TEMPORARY',
+    'estagiario': 'INTERN',
+    'estagio': 'INTERN',
+    'aprendiz': 'APPRENTICE',
+    'terceirizado': 'CONTRACTOR',
+    'autonomo': 'SERVICE_PROVIDER',
+    'voluntario': 'VOLUNTEER',
   };
 
   Future<Map<String, Object?>> _runImport(String tenantId, AuthUser user, Map<String, Object?> input, Map<String, Object?> meta) async {
@@ -455,10 +555,10 @@ class PeopleModule {
     final cat = await db.forTenant(tenantId, (tx) async {
       if (await tx.one('SELECT 1 FROM companies WHERE id = @id AND deleted_at IS NULL', {'id': companyId}) == null) throw badRequest('Empresa não encontrada');
       Map<String, String> index(List<Row> list, List<String> fields) => {
-            for (final x in list)
-              for (final f in fields)
-                if (x[f] != null && x[f].toString().isNotEmpty) importKey(x[f].toString()): x['id']! as String,
-          };
+        for (final x in list)
+          for (final f in fields)
+            if (x[f] != null && x[f].toString().isNotEmpty) importKey(x[f].toString()): x['id']! as String,
+      };
       final p = {'c': companyId};
       return (
         departments: index(await tx.query('SELECT id, name, code FROM departments WHERE company_id = @c AND deleted_at IS NULL', p), ['name', 'code']),
@@ -468,7 +568,10 @@ class PeopleModule {
         types: index(await tx.query('SELECT id, name, code FROM employee_types WHERE deleted_at IS NULL'), ['name', 'code']),
         unions: index(await tx.query('SELECT id, name, acronym FROM labor_unions WHERE deleted_at IS NULL'), ['acronym', 'name']),
         sectors: await tx.query('SELECT s.id, s.name, s.department_id FROM sectors s JOIN departments d ON d.id = s.department_id WHERE s.deleted_at IS NULL AND d.company_id = @c', p),
-        existing: {for (final e in await tx.query('SELECT id, registration FROM employment_relationships WHERE company_id = @c AND deleted_at IS NULL', p)) importKey(e['registration']! as String): e['id']! as String},
+        existing: {
+          for (final e in await tx.query('SELECT id, registration FROM employment_relationships WHERE company_id = @c AND deleted_at IS NULL', p))
+            importKey(e['registration']! as String): e['id']! as String,
+        },
       );
     });
 
@@ -554,29 +657,45 @@ class PeopleModule {
       }
       try {
         final data = employeeCreate.parse({
-          'companyId': companyId, 'fullName': name, 'socialName': ?t('nome_social'), if (cpf.isNotEmpty) 'cpf': cpf, if (pis.isNotEmpty) 'pis': pis,
-          'birthDate': ?birth, 'email': ?t('email'),
+          'companyId': companyId,
+          'fullName': name,
+          'socialName': ?t('nome_social'),
+          if (cpf.isNotEmpty) 'cpf': cpf,
+          if (pis.isNotEmpty) 'pis': pis,
+          'birthDate': ?birth,
+          'email': ?t('email'),
           if (r['telefone'] != null && onlyDigits(r['telefone']!).isNotEmpty) 'phone': onlyDigits(r['telefone']!),
           if (r['cep'] != null && r['cep']!.isNotEmpty) 'address': {'zipCode': onlyDigits(r['cep']!), 'number': ?t('numero'), 'complement': ?t('complemento')},
-          'registration': reg, 'hiredAt': hired, 'contractType': contract, 'weeklyHours': ?hours,
+          'registration': reg,
+          'hiredAt': hired,
+          'contractType': contract,
+          'weeklyHours': ?hours,
         });
         prepared.add((result: result, data: data, existingId: existingId, refs: refs));
       } on HttpError catch (e) {
         result['status'] = 'error';
-        result['messages'] = [for (final m in (e.body['message'] as List? ?? [e.body['message']])) m.toString()];
+        result['messages'] = [
+          for (final m in (e.body['message'] as List? ?? [e.body['message']])) m.toString(),
+        ];
         prepared.add((result: result, data: null, existingId: null, refs: refs));
       }
     }
 
     Map<String, Object?> summary() => {
-          'total': prepared.length,
-          'valid': prepared.where((p) => p.result['status'] != 'error').length,
-          'errors': prepared.where((p) => p.result['status'] == 'error').length,
-          'created': prepared.where((p) => p.result['status'] == 'created').length,
-          'updated': prepared.where((p) => p.result['status'] == 'updated').length,
-          'toCreate': {for (final e in missing.entries) e.key: e.value.toList()},
-        };
-    if (input['dryRun'] == true) return {'dryRun': true, ...summary(), 'results': [for (final p in prepared) p.result]};
+      'total': prepared.length,
+      'valid': prepared.where((p) => p.result['status'] != 'error').length,
+      'errors': prepared.where((p) => p.result['status'] == 'error').length,
+      'created': prepared.where((p) => p.result['status'] == 'created').length,
+      'updated': prepared.where((p) => p.result['status'] == 'updated').length,
+      'toCreate': {for (final e in missing.entries) e.key: e.value.toList()},
+    };
+    if (input['dryRun'] == true) {
+      return {
+        'dryRun': true,
+        ...summary(),
+        'results': [for (final p in prepared) p.result],
+      };
+    }
 
     // O plano precisa comportar todos os novos funcionários antes de gravar qualquer coisa.
     final novos = prepared.where((p) => p.data != null && p.existingId == null).length;
@@ -585,8 +704,11 @@ class PeopleModule {
     final created = <String, Map<String, String>>{};
     await db.forTenant(tenantId, (tx) async {
       for (final (bucket, table, scoped) in const [
-        ('departments', 'departments', true), ('positions', 'job_positions', true), ('functions', 'job_functions', false),
-        ('costCenters', 'cost_centers', false), ('types', 'employee_types', false),
+        ('departments', 'departments', true),
+        ('positions', 'job_positions', true),
+        ('functions', 'job_functions', false),
+        ('costCenters', 'cost_centers', false),
+        ('types', 'employee_types', false),
       ]) {
         created[bucket] = {};
         for (final n in missing[bucket]!) {
@@ -601,7 +723,9 @@ class PeopleModule {
       final refs = {for (final e in p.refs.entries) e.key: e.value.startsWith('new:') ? created[bucketOf[e.key]]![e.value.substring(4)] : e.value};
       try {
         if (p.existingId != null) {
-          final rest = {...p.data!}..remove('companyId')..remove('hiredAt');
+          final rest = {...p.data!}
+            ..remove('companyId')
+            ..remove('hiredAt');
           await update(tenantId, user, p.existingId!, {...rest, ...refs, 'reason': 'Importação de planilha'}, meta);
           p.result['status'] = 'updated';
         } else {
@@ -616,7 +740,11 @@ class PeopleModule {
         p.result['messages'] = [e.toString()];
       }
     }
-    return {'dryRun': false, ...summary(), 'results': [for (final p in prepared) p.result]};
+    return {
+      'dryRun': false,
+      ...summary(),
+      'results': [for (final p in prepared) p.result],
+    };
   }
 }
 

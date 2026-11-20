@@ -26,13 +26,7 @@ class MailService {
       stdout.writeln('E-mail (memória) para ${mail.to}: ${mail.subject}');
       return;
     }
-    final server = SmtpServer(
-      config.smtpHost ?? 'localhost',
-      port: config.smtpPort,
-      ssl: config.smtpPort == 465,
-      username: config.smtpUser,
-      password: config.smtpPass,
-    );
+    final server = SmtpServer(config.smtpHost ?? 'localhost', port: config.smtpPort, ssl: config.smtpPort == 465, username: config.smtpUser, password: config.smtpPass);
     final from = RegExp(r'^(.*)<([^>]+)>$').firstMatch(config.mailFrom.trim());
     final message = m.Message()
       ..from = from == null ? m.Address(config.mailFrom.trim()) : m.Address(from[2]!.trim(), from[1]!.trim())

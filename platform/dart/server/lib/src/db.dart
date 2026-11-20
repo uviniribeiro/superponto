@@ -91,9 +91,8 @@ class Tx {
   /// INSERT a partir de um mapa camelCase; devolve a linha criada. `id` e `updated_at` são preenchidos.
   /// Colunas `updated_at` existentes, por tabela (lidas uma vez do catálogo do banco).
   static final _updatedAt = <String, bool>{};
-  Future<bool> _hasUpdatedAt(String table) async => _updatedAt[table] ??= (await scalar<int>(
-          "SELECT count(*)::int FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = @t AND column_name = 'updated_at'",
-          {'t': table})) == 1;
+  Future<bool> _hasUpdatedAt(String table) async => _updatedAt[table] ??=
+      (await scalar<int>("SELECT count(*)::int FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = @t AND column_name = 'updated_at'", {'t': table})) == 1;
 
   Future<Row> insert(String table, Map<String, Object?> data, {bool id = true, bool? updatedAt}) async {
     updatedAt ??= await _hasUpdatedAt(table);
@@ -131,9 +130,9 @@ class Tx {
 
   /// Só os parâmetros usados no SQL (o driver recusa sobras; assim filtros opcionais reaproveitam o mesmo mapa).
   static Map<String, Object?> _params(String sql, Map<String, Object?> p) => {
-        for (final e in p.entries)
-          if (RegExp('@${RegExp.escape(e.key)}(?![A-Za-z0-9_])').hasMatch(sql)) e.key: _param(e.value),
-      };
+    for (final e in p.entries)
+      if (RegExp('@${RegExp.escape(e.key)}(?![A-Za-z0-9_])').hasMatch(sql)) e.key: _param(e.value),
+  };
 
   static Object? _param(Object? v) {
     if (v is TypedValue) return v;
@@ -188,14 +187,14 @@ class Db {
   }
 
   Future<T> forTenant<T>(String tenantId, Future<T> Function(Tx tx) fn) => _pool.runTx((s) async {
-        await s.execute(Sql.named("SELECT set_config('app.tenant_id', @t, true)"), parameters: {'t': tenantId});
-        return fn(Tx(s));
-      });
+    await s.execute(Sql.named("SELECT set_config('app.tenant_id', @t, true)"), parameters: {'t': tenantId});
+    return fn(Tx(s));
+  });
 
   Future<T> asPlatform<T>(Future<T> Function(Tx tx) fn) => _pool.runTx((s) async {
-        await s.execute("SELECT set_config('app.bypass_rls', 'on', true)");
-        return fn(Tx(s));
-      });
+    await s.execute("SELECT set_config('app.bypass_rls', 'on', true)");
+    return fn(Tx(s));
+  });
 
   /// Consulta sem contexto (ex.: health check). Com RLS, só vê o que é público.
   Future<T> plain<T>(Future<T> Function(Tx tx) fn) => _pool.run((s) => fn(Tx(s)));

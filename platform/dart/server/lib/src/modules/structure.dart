@@ -10,16 +10,29 @@ import 'users.dart' show likePattern;
 
 class Catalog {
   const Catalog({
-    required this.path, required this.table, required this.entity, required this.label, required this.gender, required this.read,
-    required this.manage, required this.create, required this.update, required this.searchFields, required this.orderBy,
-    this.companyScoped = false, this.usageColumn, this.usageSql,
+    required this.path,
+    required this.table,
+    required this.entity,
+    required this.label,
+    required this.gender,
+    required this.read,
+    required this.manage,
+    required this.create,
+    required this.update,
+    required this.searchFields,
+    required this.orderBy,
+    this.companyScoped = false,
+    this.usageColumn,
+    this.usageSql,
   });
   final String path, table, entity, label, gender, read, manage, orderBy;
   final Obj create, update;
   final List<String> searchFields;
   final bool companyScoped;
+
   /// coluna do vínculo que usa o registro (bloqueia a exclusão)
   final String? usageColumn;
+
   /// contagem própria de uso (parâmetro @id)
   final String? usageSql;
 }
@@ -47,8 +60,21 @@ final _position = Obj({
   'companyId': uuid,
   'name': _name,
   'cbo': Str(trim: true, pattern: RegExp(r'^\d{4}-?\d{2}$'), patternMessage: 'CBO no formato 0000-00').map((v) => (v as String).replaceFirst('-', '')).optional,
-  'category': const Enum(['GENERAL', 'TEACHER', 'PHYSICIAN', 'NURSE', 'NURSING_TECHNICIAN', 'NURSING_ASSISTANT', 'PHYSIOTHERAPIST', 'PSYCHOLOGIST', 'PHARMACIST',
-    'DENTIST', 'NUTRITIONIST', 'SOCIAL_WORKER', 'OTHER_HEALTH']).optional,
+  'category': const Enum([
+    'GENERAL',
+    'TEACHER',
+    'PHYSICIAN',
+    'NURSE',
+    'NURSING_TECHNICIAN',
+    'NURSING_ASSISTANT',
+    'PHYSIOTHERAPIST',
+    'PSYCHOLOGIST',
+    'PHARMACIST',
+    'DENTIST',
+    'NUTRITIONIST',
+    'SOCIAL_WORKER',
+    'OTHER_HEALTH',
+  ]).optional,
 });
 
 class _Coord extends S {
@@ -61,7 +87,11 @@ class _Coord extends S {
       issues.add(path, 'Invalid input');
       return v;
     }
-    final n = v is num ? v : v is String ? num.tryParse(v.trim().replaceFirst(',', '.')) : null;
+    final n = v is num
+        ? v
+        : v is String
+        ? num.tryParse(v.trim().replaceFirst(',', '.'))
+        : null;
     if (n == null || !n.isFinite || n < min || n > max) {
       issues.add(path, '$label inválida');
       return v;
@@ -82,42 +112,123 @@ final _unit = Obj({
 });
 
 final catalogs = <Catalog>[
-  Catalog(path: 'job-functions', table: 'job_functions', entity: 'job_function', label: 'Função', gender: 'a', read: 'org.functions:read',
-      manage: 'org.functions:manage', create: _simple, update: _simple.partial, searchFields: ['name', 'code'], orderBy: 'name ASC', usageColumn: 'function_id'),
-  Catalog(path: 'cost-centers', table: 'cost_centers', entity: 'cost_center', label: 'Centro de custo', gender: 'o', read: 'org.costcenters:read',
-      manage: 'org.costcenters:manage', create: _simple, update: _simple.partial, searchFields: ['name', 'code'], orderBy: 'name ASC', usageColumn: 'cost_center_id'),
-  Catalog(path: 'employee-types', table: 'employee_types', entity: 'employee_type', label: 'Tipo de funcionário', gender: 'o', read: 'org.employeetypes:read',
-      manage: 'org.employeetypes:manage', create: _simple, update: _simple.partial, searchFields: ['name', 'code'], orderBy: 'name ASC', usageColumn: 'employee_type_id'),
-  Catalog(path: 'labor-unions', table: 'labor_unions', entity: 'labor_union', label: 'Sindicato', gender: 'o', read: 'org.unions:read', manage: 'org.unions:manage',
-      create: _union, update: _union.partial, searchFields: ['name', 'acronym', 'code'], orderBy: 'name ASC', usageColumn: 'union_id'),
-  Catalog(path: 'competences', table: 'competences', entity: 'competence', label: 'Competência', gender: 'a', read: 'org.competences:read',
-      manage: 'org.competences:manage',
-      create: _competence.check((v) => (v['endsOn']! as String).compareTo(v['startsOn']! as String) >= 0, _endsAfter, path: ['endsOn']),
-      update: _competence.partial.check((v) => v['startsOn'] == null || v['endsOn'] == null || (v['endsOn']! as String).compareTo(v['startsOn']! as String) >= 0, _endsAfter, path: ['endsOn']),
-      searchFields: ['name'], orderBy: 'starts_on DESC'),
-  Catalog(path: 'job-positions', table: 'job_positions', entity: 'job_position', label: 'Cargo', gender: 'o', read: 'org.positions:read',
-      manage: 'org.positions:manage', companyScoped: true, create: _position, update: _position.omit(['companyId']).partial, searchFields: ['name', 'cbo'],
-      orderBy: 'name ASC', usageColumn: 'position_id'),
-  Catalog(path: 'units', table: 'company_units', entity: 'company_unit', label: 'Unidade', gender: 'a', read: 'org.units:read', manage: 'org.units:manage',
-      companyScoped: true,
-      create: _unit.check((v) => v.containsKey('latitude') == v.containsKey('longitude'), 'Informe latitude e longitude juntas', path: ['longitude']),
-      update: _unit.omit(['companyId']).partial, searchFields: ['name', 'code'], orderBy: 'name ASC', usageColumn: 'unit_id'),
-  Catalog(path: 'groupings', table: 'groupings', entity: 'grouping', label: 'Agrupamento', gender: 'o', read: 'org.groupings:read', manage: 'org.groupings:manage',
-      create: _simple, update: _simple.partial, searchFields: ['name', 'code'], orderBy: 'name ASC',
-      usageSql: 'SELECT count(*)::int FROM grouping_employments WHERE grouping_id = @id'),
+  Catalog(
+    path: 'job-functions',
+    table: 'job_functions',
+    entity: 'job_function',
+    label: 'Função',
+    gender: 'a',
+    read: 'org.functions:read',
+    manage: 'org.functions:manage',
+    create: _simple,
+    update: _simple.partial,
+    searchFields: ['name', 'code'],
+    orderBy: 'name ASC',
+    usageColumn: 'function_id',
+  ),
+  Catalog(
+    path: 'cost-centers',
+    table: 'cost_centers',
+    entity: 'cost_center',
+    label: 'Centro de custo',
+    gender: 'o',
+    read: 'org.costcenters:read',
+    manage: 'org.costcenters:manage',
+    create: _simple,
+    update: _simple.partial,
+    searchFields: ['name', 'code'],
+    orderBy: 'name ASC',
+    usageColumn: 'cost_center_id',
+  ),
+  Catalog(
+    path: 'employee-types',
+    table: 'employee_types',
+    entity: 'employee_type',
+    label: 'Tipo de funcionário',
+    gender: 'o',
+    read: 'org.employeetypes:read',
+    manage: 'org.employeetypes:manage',
+    create: _simple,
+    update: _simple.partial,
+    searchFields: ['name', 'code'],
+    orderBy: 'name ASC',
+    usageColumn: 'employee_type_id',
+  ),
+  Catalog(
+    path: 'labor-unions',
+    table: 'labor_unions',
+    entity: 'labor_union',
+    label: 'Sindicato',
+    gender: 'o',
+    read: 'org.unions:read',
+    manage: 'org.unions:manage',
+    create: _union,
+    update: _union.partial,
+    searchFields: ['name', 'acronym', 'code'],
+    orderBy: 'name ASC',
+    usageColumn: 'union_id',
+  ),
+  Catalog(
+    path: 'competences',
+    table: 'competences',
+    entity: 'competence',
+    label: 'Competência',
+    gender: 'a',
+    read: 'org.competences:read',
+    manage: 'org.competences:manage',
+    create: _competence.check((v) => (v['endsOn']! as String).compareTo(v['startsOn']! as String) >= 0, _endsAfter, path: ['endsOn']),
+    update: _competence.partial.check((v) => v['startsOn'] == null || v['endsOn'] == null || (v['endsOn']! as String).compareTo(v['startsOn']! as String) >= 0, _endsAfter, path: ['endsOn']),
+    searchFields: ['name'],
+    orderBy: 'starts_on DESC',
+  ),
+  Catalog(
+    path: 'job-positions',
+    table: 'job_positions',
+    entity: 'job_position',
+    label: 'Cargo',
+    gender: 'o',
+    read: 'org.positions:read',
+    manage: 'org.positions:manage',
+    companyScoped: true,
+    create: _position,
+    update: _position.omit(['companyId']).partial,
+    searchFields: ['name', 'cbo'],
+    orderBy: 'name ASC',
+    usageColumn: 'position_id',
+  ),
+  Catalog(
+    path: 'units',
+    table: 'company_units',
+    entity: 'company_unit',
+    label: 'Unidade',
+    gender: 'a',
+    read: 'org.units:read',
+    manage: 'org.units:manage',
+    companyScoped: true,
+    create: _unit.check((v) => v.containsKey('latitude') == v.containsKey('longitude'), 'Informe latitude e longitude juntas', path: ['longitude']),
+    update: _unit.omit(['companyId']).partial,
+    searchFields: ['name', 'code'],
+    orderBy: 'name ASC',
+    usageColumn: 'unit_id',
+  ),
+  Catalog(
+    path: 'groupings',
+    table: 'groupings',
+    entity: 'grouping',
+    label: 'Agrupamento',
+    gender: 'o',
+    read: 'org.groupings:read',
+    manage: 'org.groupings:manage',
+    create: _simple,
+    update: _simple.partial,
+    searchFields: ['name', 'code'],
+    orderBy: 'name ASC',
+    usageSql: 'SELECT count(*)::int FROM grouping_employments WHERE grouping_id = @id',
+  ),
 ];
 
-final _department = Obj({
-  'companyId': uuid,
-  'name': _name,
-  'code': _code.optional,
-  'parentId': uuid.optional,
-});
-final _departmentUpdate = Obj({
-  'name': const Str(trim: true, min: 3, max: 120).optional,
-  'code': _code.optional,
-  'parentId': uuid.nullish,
-});
+final _department = Obj({'companyId': uuid, 'name': _name, 'code': _code.optional, 'parentId': uuid.optional});
+final _departmentUpdate = Obj({'name': const Str(trim: true, min: 3, max: 120).optional, 'code': _code.optional, 'parentId': uuid.nullish});
 final _sector = Obj({'name': const Str(trim: true, min: 3, max: 120)});
 
 Future<void> requireCompany(Tx tx, String? id) async {
@@ -128,8 +239,8 @@ Future<void> requireCompany(Tx tx, String? id) async {
 
 /// Converte datas "AAAA-MM-DD" e números de coordenadas para gravar.
 Map<String, Object?> _dbValues(Map<String, Object?> input) => {
-      for (final e in input.entries) e.key: e.value is num && (e.key == 'latitude' || e.key == 'longitude') ? untyped(e.value.toString()) : e.value,
-    };
+  for (final e in input.entries) e.key: e.value is num && (e.key == 'latitude' || e.key == 'longitude') ? untyped(e.value.toString()) : e.value,
+};
 
 void structureRoutes(App app) {
   final r = app.router;
@@ -161,17 +272,29 @@ void structureRoutes(App app) {
           {'co': q['companyId']},
         );
         final sectors = await tx.query(
-            'SELECT s.id, s.name, s.department_id FROM sectors s JOIN departments d ON d.id = s.department_id WHERE d.company_id = @co AND s.deleted_at IS NULL ORDER BY s.name ASC',
-            {'co': q['companyId']});
-        List<Map<String, Object?>> sectorsOf(Object? id) => [for (final s in sectors) if (s['departmentId'] == id) {'id': s['id'], 'name': s['name']}];
+          'SELECT s.id, s.name, s.department_id FROM sectors s JOIN departments d ON d.id = s.department_id WHERE d.company_id = @co AND s.deleted_at IS NULL ORDER BY s.name ASC',
+          {'co': q['companyId']},
+        );
+        List<Map<String, Object?>> sectorsOf(Object? id) => [
+          for (final s in sectors)
+            if (s['departmentId'] == id) {'id': s['id'], 'name': s['name']},
+        ];
         final ids = {for (final x in rows) x['id']};
         final out = <Map<String, Object?>>[];
         void walk(String? parentId, int depth, List<String> trail) {
           for (final x in rows.where((x) => x['parentId'] == parentId)) {
             final path = [...trail, x['name']! as String];
             out.add({
-              'id': x['id'], 'name': x['name'], 'code': x['code'], 'parentId': x['parentId'], 'unitId': x['unitId'], 'depth': depth, 'path': path.join(' › '),
-              'sectors': sectorsOf(x['id']), 'employees': x['employees'], 'children': rows.where((y) => y['parentId'] == x['id']).length,
+              'id': x['id'],
+              'name': x['name'],
+              'code': x['code'],
+              'parentId': x['parentId'],
+              'unitId': x['unitId'],
+              'depth': depth,
+              'path': path.join(' › '),
+              'sectors': sectorsOf(x['id']),
+              'employees': x['employees'],
+              'children': rows.where((y) => y['parentId'] == x['id']).length,
             });
             walk(x['id']! as String, depth + 1, path);
           }
@@ -182,8 +305,16 @@ void structureRoutes(App app) {
         for (final x in rows) {
           if (x['parentId'] != null && !ids.contains(x['parentId']) && !out.any((o) => o['id'] == x['id'])) {
             out.add({
-              'id': x['id'], 'name': x['name'], 'code': x['code'], 'parentId': null, 'unitId': x['unitId'], 'depth': 0, 'path': x['name'],
-              'sectors': sectorsOf(x['id']), 'employees': x['employees'], 'children': 0,
+              'id': x['id'],
+              'name': x['name'],
+              'code': x['code'],
+              'parentId': null,
+              'unitId': x['unitId'],
+              'depth': 0,
+              'path': x['name'],
+              'sectors': sectorsOf(x['id']),
+              'employees': x['employees'],
+              'children': 0,
             });
           }
         }
@@ -325,8 +456,14 @@ void catalogRoutes(App app, Catalog c) {
         final data = await tx.query('SELECT * FROM ${c.table} WHERE $w ORDER BY ${c.orderBy} LIMIT $size OFFSET ${(page - 1) * size}', p);
         final total = await tx.scalar<int>('SELECT count(*)::int FROM ${c.table} WHERE $w', p);
         return {
-          'data': c.usageColumn == null && c.usageSql == null ? data : [for (final row in data) {...row, 'inUse': await usage(tx, row['id']! as String)}],
-          'page': page, 'pageSize': size, 'total': total,
+          'data': c.usageColumn == null && c.usageSql == null
+              ? data
+              : [
+                  for (final row in data) {...row, 'inUse': await usage(tx, row['id']! as String)},
+                ],
+          'page': page,
+          'pageSize': size,
+          'total': total,
         };
       });
     });
@@ -382,5 +519,4 @@ void catalogRoutes(App app, Catalog c) {
       });
     });
   });
-
 }

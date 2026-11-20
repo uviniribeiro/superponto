@@ -67,18 +67,17 @@ class App {
   Future<Response> _pipeline(Request request) async {
     final origin = request.headers['origin'];
     final cors = origin != null && config.corsOrigins.contains(origin)
-        ? {
-            'access-control-allow-origin': origin,
-            'access-control-allow-credentials': 'true',
-            'vary': 'Origin',
-          }
+        ? {'access-control-allow-origin': origin, 'access-control-allow-credentials': 'true', 'vary': 'Origin'}
         : const <String, String>{};
     if (request.method == 'OPTIONS') {
-      return Response(204, headers: {
-        ...cors,
-        if (cors.isNotEmpty) 'access-control-allow-methods': 'GET,HEAD,PUT,PATCH,POST,DELETE',
-        if (cors.isNotEmpty) 'access-control-allow-headers': request.headers['access-control-request-headers'] ?? 'content-type,authorization',
-      });
+      return Response(
+        204,
+        headers: {
+          ...cors,
+          if (cors.isNotEmpty) 'access-control-allow-methods': 'GET,HEAD,PUT,PATCH,POST,DELETE',
+          if (cors.isNotEmpty) 'access-control-allow-headers': request.headers['access-control-request-headers'] ?? 'content-type,authorization',
+        },
+      );
     }
     try {
       final res = await _route(request.change(context: {'sp.ip': clientIp(request)}));
@@ -139,15 +138,13 @@ class App {
   Future<void> _authenticate(Ctx ctx) async {
     final h = ctx.header('authorization');
     if (h == null || !h.toLowerCase().startsWith('bearer ')) {
-      throw HttpError.body(401, {'statusCode': 401, 'message': 'Unauthorized', 'errorCode': 'missing_credentials'})
-        ..headers = {'www-authenticate': 'Bearer realm="superponto"'};
+      throw HttpError.body(401, {'statusCode': 401, 'message': 'Unauthorized', 'errorCode': 'missing_credentials'})..headers = {'www-authenticate': 'Bearer realm="superponto"'};
     }
     final claims = signer.verify(h.substring(7).trim());
     final sub = claims?['sub'];
     final user = sub is String && isUuid(sub) ? await users.findById(sub) : null;
     if (user == null) {
-      throw HttpError.body(401, {'statusCode': 401, 'message': 'Unauthorized'})
-        ..headers = {'www-authenticate': 'Bearer realm="superponto", error="invalid_token"'};
+      throw HttpError.body(401, {'statusCode': 401, 'message': 'Unauthorized'})..headers = {'www-authenticate': 'Bearer realm="superponto", error="invalid_token"'};
     }
     ctx.user = user;
     ctx.claims = claims;

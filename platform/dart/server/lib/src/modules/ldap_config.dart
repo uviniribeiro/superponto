@@ -44,7 +44,12 @@ bool isPrivateAddress(InternetAddress a) {
     return mapped != null && isPrivateAddress(InternetAddress(mapped[1]!));
   }
   final p = a.address.split('.').map(int.parse).toList();
-  return p[0] == 10 || p[0] == 127 || p[0] == 0 || (p[0] == 169 && p[1] == 254) || (p[0] == 172 && p[1] >= 16 && p[1] <= 31) || (p[0] == 192 && p[1] == 168) ||
+  return p[0] == 10 ||
+      p[0] == 127 ||
+      p[0] == 0 ||
+      (p[0] == 169 && p[1] == 254) ||
+      (p[0] == 172 && p[1] >= 16 && p[1] <= 31) ||
+      (p[0] == 192 && p[1] == 168) ||
       (p[0] == 100 && p[1] >= 64 && p[1] <= 127);
 }
 
@@ -81,7 +86,11 @@ class LdapService implements LdapAuthenticator {
 
   Future<LdapClient> _client(Row s) async {
     final url = Uri.parse(s['url']! as String);
-    final c = await LdapClient.connect(url, timeout: Duration(milliseconds: s['timeoutMs'] as int? ?? 5000), allowInsecureTls: s['allowInsecureTls'] == true);
+    final c = await LdapClient.connect(
+      url,
+      timeout: Duration(milliseconds: s['timeoutMs'] as int? ?? 5000),
+      allowInsecureTls: s['allowInsecureTls'] == true,
+    );
     if (s['startTls'] == true) await c.startTls(host: url.host, allowInsecureTls: s['allowInsecureTls'] == true);
     return c;
   }
@@ -181,14 +190,28 @@ void ldapConfigRoutes(App app, LdapService ldap) {
         final finalEnc = enc ?? (hasPass && pass == null ? null : before?['bindPasswordEnc'] as String?);
         if (bindDn != null && finalEnc == null) throw badRequest('Informe a senha da conta de serviço');
         final data = {
-          'enabled': input['enabled'], 'url': input['url'], 'startTls': input['startTls'], 'allowInsecureTls': input['allowInsecureTls'], 'bindDn': bindDn,
-          'bindPasswordEnc': bindDn != null ? finalEnc : null, 'baseDn': input['baseDn'], 'userFilter': input['userFilter'], 'timeoutMs': input['timeoutMs'],
+          'enabled': input['enabled'],
+          'url': input['url'],
+          'startTls': input['startTls'],
+          'allowInsecureTls': input['allowInsecureTls'],
+          'bindDn': bindDn,
+          'bindPasswordEnc': bindDn != null ? finalEnc : null,
+          'baseDn': input['baseDn'],
+          'userFilter': input['userFilter'],
+          'timeoutMs': input['timeoutMs'],
         };
-        final saved = before == null
-            ? await tx.insert('tenant_ldap_configs', {'tenantId': tenantId, ...data})
-            : (await tx.update('tenant_ldap_configs', before['id']! as String, data))!;
-        await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: before == null ? 'CREATE' : 'UPDATE', entity: 'ldap_config', entityId: saved['id'] as String?,
-            before: before == null ? null : _view(before), after: _view(saved), meta: ctx.meta);
+        final saved = before == null ? await tx.insert('tenant_ldap_configs', {'tenantId': tenantId, ...data}) : (await tx.update('tenant_ldap_configs', before['id']! as String, data))!;
+        await app.audit.record(
+          tx,
+          tenantId: tenantId,
+          actorUserId: ctx.user.id,
+          action: before == null ? 'CREATE' : 'UPDATE',
+          entity: 'ldap_config',
+          entityId: saved['id'] as String?,
+          before: before == null ? null : _view(before),
+          after: _view(saved),
+          meta: ctx.meta,
+        );
         return _view(saved);
       });
     });

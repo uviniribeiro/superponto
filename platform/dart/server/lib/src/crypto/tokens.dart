@@ -102,8 +102,7 @@ class PasswordHasher {
   bool needsRehash(String encoded) {
     final m = _phc.firstMatch(encoded);
     if (m == null) return true;
-    return int.parse(m[1]!) != logN || int.parse(m[2]!) != r || int.parse(m[3]!) != p ||
-        b64Decode(m[5]!).length != keyLength || b64Decode(m[4]!).length < saltLength;
+    return int.parse(m[1]!) != logN || int.parse(m[2]!) != r || int.parse(m[3]!) != p || b64Decode(m[5]!).length != keyLength || b64Decode(m[4]!).length < saltLength;
   }
 }
 

@@ -3,6 +3,7 @@
 class Grant {
   const Grant({required this.permission, required this.scope, this.companyId, this.unitId, this.departmentId});
   final String permission;
+
   /// PLATFORM, TENANT, COMPANY, UNIT, DEPARTMENT ou SELF
   final String scope;
   final String? companyId, unitId, departmentId;
@@ -10,8 +11,15 @@ class Grant {
 
 class AuthUser {
   const AuthUser({
-    required this.id, required this.email, required this.displayName, this.tenantId, this.personId,
-    this.isPlatformAdmin = false, this.isSupport = false, this.mustChangePassword = false, this.grants = const [],
+    required this.id,
+    required this.email,
+    required this.displayName,
+    this.tenantId,
+    this.personId,
+    this.isPlatformAdmin = false,
+    this.isSupport = false,
+    this.mustChangePassword = false,
+    this.grants = const [],
   });
   final String id, email, displayName;
   final String? tenantId, personId;
@@ -19,10 +27,16 @@ class AuthUser {
   final List<Grant> grants;
 
   Map<String, Object?> toPublic() => {
-        'id': id, 'email': email, 'displayName': displayName, 'tenantId': tenantId, 'personId': personId,
-        'isPlatformAdmin': isPlatformAdmin, 'isSupport': isSupport, 'mustChangePassword': mustChangePassword,
-        'permissions': ({for (final g in grants) g.permission}.toList()..sort()),
-      };
+    'id': id,
+    'email': email,
+    'displayName': displayName,
+    'tenantId': tenantId,
+    'personId': personId,
+    'isPlatformAdmin': isPlatformAdmin,
+    'isSupport': isSupport,
+    'mustChangePassword': mustChangePassword,
+    'permissions': ({for (final g in grants) g.permission}.toList()..sort()),
+  };
 }
 
 /// Recursos que limitam o escopo de uma atribuição.

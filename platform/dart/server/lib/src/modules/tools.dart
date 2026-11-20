@@ -32,8 +32,15 @@ String _brFull(DateTime at) {
 }
 
 const liveLabel = {
-  'WORKING': 'Trabalhando', 'ON_BREAK': 'Em intervalo', 'LEFT': 'Saiu', 'NOT_YET': 'Ainda não começou', 'LATE_NOW': 'Atrasado (sem marcação)',
-  'ABSENT': 'Não veio', 'OFF': 'Folga', 'LEAVE': 'Afastado/abonado', 'NO_SCHEDULE': 'Marcou sem jornada',
+  'WORKING': 'Trabalhando',
+  'ON_BREAK': 'Em intervalo',
+  'LEFT': 'Saiu',
+  'NOT_YET': 'Ainda não começou',
+  'LATE_NOW': 'Atrasado (sem marcação)',
+  'ABSENT': 'Não veio',
+  'OFF': 'Folga',
+  'LEAVE': 'Afastado/abonado',
+  'NO_SCHEDULE': 'Marcou sem jornada',
 };
 
 /// Situação de cada funcionário AGORA, a partir da apuração do dia e do horário de Brasília.
@@ -82,7 +89,9 @@ const customTexts = {
   'MIRROR_ACK_TERM': 'Termo exibido na ciência do espelho',
 };
 final _ack = Obj({
-  'from': date, 'to': date, 'employmentId': uuid.optional,
+  'from': date,
+  'to': date,
+  'employmentId': uuid.optional,
   'decision': const Enum(['AGREE', 'DISAGREE']).def('AGREE'),
   'comment': const Str(trim: true, max: 1000).optional,
 }).check((a) => a['decision'] == 'AGREE' || ((a['comment'] as String?)?.length ?? 0) >= 5, 'Explique a ressalva (mínimo 5 caracteres)', path: ['comment']);
@@ -106,17 +115,31 @@ class ToolsModule {
         () {
           final day = (r['day']! as Map).cast<String, Object?>();
           final state = liveState(day, nowMin, tolerance);
-          final punches = [for (final p in (day['punches']! as List).cast<Map<String, Object?>>()) if (p['status'] == 'ORIGINAL' || p['status'] == 'INCLUDED') p];
+          final punches = [
+            for (final p in (day['punches']! as List).cast<Map<String, Object?>>())
+              if (p['status'] == 'ORIGINAL' || p['status'] == 'INCLUDED') p,
+          ];
           final exp = (day['expected'] as Map?) ?? const {};
           return <String, Object?>{
-            'employmentId': r['employmentId'], 'registration': r['registration'], 'name': r['name'], 'state': state, 'label': liveLabel[state],
-            'lastPunch': punches.isEmpty ? null : punches.last['time'], 'punches': [for (final p in punches) p['time']],
-            'expectedStart': exp['start'], 'expectedEnd': exp['end'],
+            'employmentId': r['employmentId'],
+            'registration': r['registration'],
+            'name': r['name'],
+            'state': state,
+            'label': liveLabel[state],
+            'lastPunch': punches.isEmpty ? null : punches.last['time'],
+            'punches': [for (final p in punches) p['time']],
+            'expectedStart': exp['start'],
+            'expectedEnd': exp['end'],
             'lateMinutes': state == 'LATE_NOW' && exp['start'] != null ? nowMin - _toMin(exp['start'])! : 0,
           };
         }(),
     ];
-    return {'date': l.date, 'time': l.time, 'rows': rows, 'totals': {for (final k in liveLabel.keys) k: rows.where((x) => x['state'] == k).length}};
+    return {
+      'date': l.date,
+      'time': l.time,
+      'rows': rows,
+      'totals': {for (final k in liveLabel.keys) k: rows.where((x) => x['state'] == k).length},
+    };
   }
 
   // ------------------------------------------------------------------ e-mails agendados
@@ -130,14 +153,19 @@ class ToolsModule {
       final y = core.addDays(today, -1);
       final d = await timesheet.daily(tenantId, {'companyId': companyId, 'date': y});
       sections.add({
-        'kind': 'ABSENCES', 'title': 'Faltas de ontem (${_brDate(y)})',
-        'lines': [for (final r in (d['rows']! as List).cast<Map<String, Object?>>()) if (r['situation'] == 'ABSENT') '${r['registration']} — ${r['name']}'],
+        'kind': 'ABSENCES',
+        'title': 'Faltas de ontem (${_brDate(y)})',
+        'lines': [
+          for (final r in (d['rows']! as List).cast<Map<String, Object?>>())
+            if (r['situation'] == 'ABSENT') '${r['registration']} — ${r['name']}',
+        ],
       });
     }
     if (kinds.contains('LATE')) {
       final l = await live(tenantId, {'companyId': companyId, 'toleranceMinutes': 10}, at);
       sections.add({
-        'kind': 'LATE', 'title': 'Atrasados agora (${l['time']}), sem marcação de entrada',
+        'kind': 'LATE',
+        'title': 'Atrasados agora (${l['time']}), sem marcação de entrada',
         'lines': [
           for (final r in (l['rows']! as List).cast<Map<String, Object?>>())
             if (r['state'] == 'LATE_NOW') '${r['registration']} — ${r['name']} (previsto ${r['expectedStart']}, ${r['lateMinutes']} min)',
@@ -147,46 +175,63 @@ class ToolsModule {
     await db.forTenant(tenantId, (tx) async {
       if (kinds.contains('PENDING_ADJUSTMENTS')) {
         final rows = await tx.query(
-            "SELECT e.registration, p.full_name, count(*)::int AS n FROM time_record_adjustments a JOIN employment_relationships e ON e.id = a.employment_id JOIN people p ON p.id = e.person_id "
-            "WHERE a.status = 'PENDING' AND e.company_id = @c AND e.deleted_at IS NULL GROUP BY e.registration, p.full_name",
-            {'c': companyId});
+          'SELECT e.registration, p.full_name, count(*)::int AS n FROM time_record_adjustments a JOIN employment_relationships e ON e.id = a.employment_id JOIN people p ON p.id = e.person_id '
+          "WHERE a.status = 'PENDING' AND e.company_id = @c AND e.deleted_at IS NULL GROUP BY e.registration, p.full_name",
+          {'c': companyId},
+        );
         final total = rows.fold<int>(0, (s, x) => s + (x['n']! as int));
-        sections.add({'kind': 'PENDING_ADJUSTMENTS', 'title': 'Ajustes de marcação aguardando aprovação ($total)', 'lines': [for (final x in rows) '${x['registration']} — ${x['fullName']}: ${x['n']}']});
+        sections.add({
+          'kind': 'PENDING_ADJUSTMENTS',
+          'title': 'Ajustes de marcação aguardando aprovação ($total)',
+          'lines': [for (final x in rows) '${x['registration']} — ${x['fullName']}: ${x['n']}'],
+        });
       }
       if (kinds.contains('PENDING_REQUESTS')) {
         final r = await tx.query(
-            "SELECT r.type::text AS type, r.created_at, e.registration, p.full_name FROM time_requests r JOIN employment_relationships e ON e.id = r.employment_id JOIN people p ON p.id = e.person_id "
-            "WHERE r.status = 'PENDING' AND e.company_id = @c ORDER BY r.created_at ASC LIMIT 200",
-            {'c': companyId});
+          'SELECT r.type::text AS type, r.created_at, e.registration, p.full_name FROM time_requests r JOIN employment_relationships e ON e.id = r.employment_id JOIN people p ON p.id = e.person_id '
+          "WHERE r.status = 'PENDING' AND e.company_id = @c ORDER BY r.created_at ASC LIMIT 200",
+          {'c': companyId},
+        );
         sections.add({
-          'kind': 'PENDING_REQUESTS', 'title': 'Solicitações pendentes (${r.length})',
+          'kind': 'PENDING_REQUESTS',
+          'title': 'Solicitações pendentes (${r.length})',
           'lines': [for (final x in r) '${x['registration']} — ${x['fullName']}: ${x['type']} desde ${_brDate(localBr(x['createdAt']! as DateTime).date)}'],
         });
       }
       if (kinds.contains('UNCOVERED_SHIFTS')) {
         final shifts = await tx.query(
-          "SELECT s.starts_at, s.required_professionals, u.name AS unit, (SELECT count(*)::int FROM medical_shift_assignments a WHERE a.shift_id = s.id "
+          'SELECT s.starts_at, s.required_professionals, u.name AS unit, (SELECT count(*)::int FROM medical_shift_assignments a WHERE a.shift_id = s.id '
           "AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED')) AS covered FROM medical_shifts s JOIN company_units u ON u.id = s.unit_id "
           'WHERE s.deleted_at IS NULL AND u.company_id = @c AND s.starts_at >= @f AND s.starts_at < @t ORDER BY s.starts_at ASC',
           {'c': companyId, 'f': at, 't': at.add(const Duration(days: 7))},
         );
-        final gaps = [for (final x in shifts) if ((x['covered']! as int) < (x['requiredProfessionals']! as int)) x];
+        final gaps = [
+          for (final x in shifts)
+            if ((x['covered']! as int) < (x['requiredProfessionals']! as int)) x,
+        ];
         sections.add({
-          'kind': 'UNCOVERED_SHIFTS', 'title': 'Plantões sem cobertura nos próximos 7 dias (${gaps.length})',
+          'kind': 'UNCOVERED_SHIFTS',
+          'title': 'Plantões sem cobertura nos próximos 7 dias (${gaps.length})',
           'lines': [for (final x in gaps) '${x['unit']}: ${_brShort(x['startsAt']! as DateTime)} — faltam ${(x['requiredProfessionals']! as int) - (x['covered']! as int)}'],
         });
       }
       if (kinds.contains('OPEN_OCCURRENCES')) {
         final occ = await tx.query(
-            "SELECT o.title, o.occurred_at FROM operational_occurrences o JOIN company_units u ON u.id = o.unit_id WHERE o.status IN ('OPEN', 'IN_PROGRESS') AND o.occurred_at < @t "
-            'AND u.company_id = @c ORDER BY o.occurred_at ASC LIMIT 100',
-            {'c': companyId, 't': at.subtract(const Duration(hours: 24))});
-        sections.add({'kind': 'OPEN_OCCURRENCES', 'title': 'Ocorrências abertas há mais de 24 horas (${occ.length})', 'lines': [for (final o in occ) '${o['title']} — desde ${_brShort(o['occurredAt']! as DateTime)}']});
+          "SELECT o.title, o.occurred_at FROM operational_occurrences o JOIN company_units u ON u.id = o.unit_id WHERE o.status IN ('OPEN', 'IN_PROGRESS') AND o.occurred_at < @t "
+          'AND u.company_id = @c ORDER BY o.occurred_at ASC LIMIT 100',
+          {'c': companyId, 't': at.subtract(const Duration(hours: 24))},
+        );
+        sections.add({
+          'kind': 'OPEN_OCCURRENCES',
+          'title': 'Ocorrências abertas há mais de 24 horas (${occ.length})',
+          'lines': [for (final o in occ) '${o['title']} — desde ${_brShort(o['occurredAt']! as DateTime)}'],
+        });
       }
       if (kinds.contains('DEVICES_OFFLINE')) {
         final d = await tx.query("SELECT name, last_seen_at FROM devices WHERE company_id = @c AND deleted_at IS NULL AND status = 'OFFLINE'", {'c': companyId});
         sections.add({
-          'kind': 'DEVICES_OFFLINE', 'title': 'Equipamentos sem comunicação (${d.length})',
+          'kind': 'DEVICES_OFFLINE',
+          'title': 'Equipamentos sem comunicação (${d.length})',
           'lines': [for (final x in d) '${x['name']}${x['lastSeenAt'] != null ? ' — último contato ${_brFull(x['lastSeenAt']! as DateTime)}' : ''}'],
         });
       }
@@ -198,13 +243,19 @@ class ToolsModule {
     final sections = (d['sections']! as List).cast<Map<String, Object?>>();
     final dt = _brDate(d['date']! as String);
     final text = [
-      '$name — ${d['company']} — $dt', '',
-      for (final s in sections) ...[s['title'], ...((s['lines']! as List).isEmpty ? ['  Nada a informar.'] : [for (final l in s['lines']! as List) '  • $l']), ''],
+      '$name — ${d['company']} — $dt',
+      '',
+      for (final s in sections) ...[
+        s['title'],
+        ...((s['lines']! as List).isEmpty ? ['  Nada a informar.'] : [for (final l in s['lines']! as List) '  • $l']),
+        '',
+      ],
     ].join('\n');
-    final html = '<h2>${escapeHtml(name)}</h2><p>${escapeHtml(d['company']!.toString())} — ${escapeHtml(dt)}</p>${sections.map((s) {
-      final lines = (s['lines']! as List).cast<String>();
-      return '<h3>${escapeHtml(s['title']!.toString())}</h3>${lines.isEmpty ? '<p>Nada a informar.</p>' : '<ul>${lines.map((l) => '<li>${escapeHtml(l)}</li>').join()}</ul>'}';
-    }).join()}';
+    final html =
+        '<h2>${escapeHtml(name)}</h2><p>${escapeHtml(d['company']!.toString())} — ${escapeHtml(dt)}</p>${sections.map((s) {
+          final lines = (s['lines']! as List).cast<String>();
+          return '<h3>${escapeHtml(s['title']!.toString())}</h3>${lines.isEmpty ? '<p>Nada a informar.</p>' : '<ul>${lines.map((l) => '<li>${escapeHtml(l)}</li>').join()}</ul>'}';
+        }).join()}';
     return OutgoingMail(to: to, subject: 'SuperPonto: $name — ${d['company']}', text: text, html: html);
   }
 
@@ -256,27 +307,28 @@ class ToolsModule {
 
   // ------------------------------------------------------------------ avisos
   Future<List<Map<String, Object?>>> activeAnnouncements(String tenantId, AuthUser user, [DateTime? now]) => db.forTenant(tenantId, (tx) async {
-        final at = now ?? DateTime.now();
-        final emps = user.personId == null
-            ? <Row>[]
-            : await tx.query(
-                'SELECT e.company_id, (SELECT coalesce(array_agg(g.grouping_id::text), ARRAY[]::text[]) FROM grouping_employments g WHERE g.employment_id = e.id) AS groupings '
-                'FROM employment_relationships e WHERE e.person_id = @p AND e.deleted_at IS NULL',
-                {'p': user.personId});
-        final companies = [for (final e in emps) e['companyId']! as String];
-        final groupings = [for (final e in emps) ...(e['groupings']! as List).cast<String>()];
-        final list = await tx.query(
-          'SELECT a.*, a.level::text AS level, (SELECT r.read_at FROM announcement_reads r WHERE r.announcement_id = a.id AND r.user_id = @u) AS read_at FROM announcements a '
-          'WHERE a.deleted_at IS NULL AND a.starts_at <= @n AND (a.ends_at IS NULL OR a.ends_at > @n) '
-          'AND (a.company_id IS NULL OR a.company_id::text = ANY(@c)) AND (a.grouping_id IS NULL OR a.grouping_id::text = ANY(@g)) '
-          'ORDER BY a.level DESC, a.starts_at DESC LIMIT 20',
-          {'u': user.id, 'n': at, 'c': companies, 'g': groupings},
-        );
-        return [
-          for (final a in list)
-            {'id': a['id'], 'title': a['title'], 'body': a['body'], 'level': a['level'], 'startsAt': a['startsAt'], 'endsAt': a['endsAt'], 'requireAck': a['requireAck'], 'readAt': a['readAt']},
-        ];
-      });
+    final at = now ?? DateTime.now();
+    final emps = user.personId == null
+        ? <Row>[]
+        : await tx.query(
+            'SELECT e.company_id, (SELECT coalesce(array_agg(g.grouping_id::text), ARRAY[]::text[]) FROM grouping_employments g WHERE g.employment_id = e.id) AS groupings '
+            'FROM employment_relationships e WHERE e.person_id = @p AND e.deleted_at IS NULL',
+            {'p': user.personId},
+          );
+    final companies = [for (final e in emps) e['companyId']! as String];
+    final groupings = [for (final e in emps) ...(e['groupings']! as List).cast<String>()];
+    final list = await tx.query(
+      'SELECT a.*, a.level::text AS level, (SELECT r.read_at FROM announcement_reads r WHERE r.announcement_id = a.id AND r.user_id = @u) AS read_at FROM announcements a '
+      'WHERE a.deleted_at IS NULL AND a.starts_at <= @n AND (a.ends_at IS NULL OR a.ends_at > @n) '
+      'AND (a.company_id IS NULL OR a.company_id::text = ANY(@c)) AND (a.grouping_id IS NULL OR a.grouping_id::text = ANY(@g)) '
+      'ORDER BY a.level DESC, a.starts_at DESC LIMIT 20',
+      {'u': user.id, 'n': at, 'c': companies, 'g': groupings},
+    );
+    return [
+      for (final a in list)
+        {'id': a['id'], 'title': a['title'], 'body': a['body'], 'level': a['level'], 'startsAt': a['startsAt'], 'endsAt': a['endsAt'], 'requireAck': a['requireAck'], 'readAt': a['readAt']},
+    ];
+  });
 
   // ------------------------------------------------------------------ ciência do espelho
   Future<Map<String, Object?>> _myMirror(String tenantId, AuthUser user, String from, String to, String? employmentId) async {
@@ -286,8 +338,8 @@ class ToolsModule {
     return timesheet.mirror(tenantId, e['id']! as String, from, to);
   }
 
-  ({String hash, Map<String, Object?> summary}) _hash(Map<String, Object?> m) => mirrorHashOf(
-      (m['employment']! as Map)['id']! as String, m['from']! as String, m['to']! as String, (m['days']! as List).cast<Map<String, Object?>>());
+  ({String hash, Map<String, Object?> summary}) _hash(Map<String, Object?> m) =>
+      mirrorHashOf((m['employment']! as Map)['id']! as String, m['from']! as String, m['to']! as String, (m['days']! as List).cast<Map<String, Object?>>());
 
   void routes() {
     final r = app.router;
@@ -299,8 +351,10 @@ class ToolsModule {
     r.group('/v1/notification-schedules', tag: 'ferramentas', () {
       r.get('', permission: 'tools.notifications:manage', (ctx) {
         final q = Obj({'companyId': uuid.optional}).parse(ctx.query);
-        return db.forTenant(ctx.tenant, (tx) => tx.query(
-            'SELECT * FROM notification_schedules${q['companyId'] != null ? ' WHERE company_id = @c' : ''} ORDER BY time ASC, name ASC', {'c': q['companyId']}));
+        return db.forTenant(
+          ctx.tenant,
+          (tx) => tx.query('SELECT * FROM notification_schedules${q['companyId'] != null ? ' WHERE company_id = @c' : ''} ORDER BY time ASC, name ASC', {'c': q['companyId']}),
+        );
       });
       r.post('', permission: 'tools.notifications:manage', (ctx) {
         final input = _notification.parse(ctx.body);
@@ -308,7 +362,10 @@ class ToolsModule {
         return db.forTenant(tenantId, (tx) async {
           if (await tx.one('SELECT 1 FROM companies WHERE id = @c AND deleted_at IS NULL', {'c': input['companyId']}) == null) throw notFound('Empresa não encontrada');
           final n = await tx.insert('notification_schedules', {
-            'tenantId': tenantId, ...input, 'kinds': (input['kinds']! as List).cast<String>(), 'weekdays': (input['weekdays']! as List).cast<int>(),
+            'tenantId': tenantId,
+            ...input,
+            'kinds': (input['kinds']! as List).cast<String>(),
+            'weekdays': (input['weekdays']! as List).cast<int>(),
             'recipients': (input['recipients']! as List).cast<String>(),
           });
           await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'CREATE', entity: 'notification_schedule', entityId: n['id'] as String?, after: n, meta: ctx.meta);
@@ -356,26 +413,47 @@ class ToolsModule {
         final id = ctx.uuidParam('id');
         final tenantId = ctx.tenant, user = ctx.user;
         if (!(await activeAnnouncements(tenantId, user)).any((a) => a['id'] == id)) throw notFound('Aviso não encontrado');
-        return db.forTenant(tenantId, (tx) async => await tx.one(
-              'INSERT INTO announcement_reads (id, tenant_id, announcement_id, user_id) VALUES (gen_random_uuid(), @t, @a, @u) '
-              'ON CONFLICT (announcement_id, user_id) DO UPDATE SET user_id = EXCLUDED.user_id RETURNING *',
-              {'t': tenantId, 'a': id, 'u': user.id},
-            ));
+        return db.forTenant(
+          tenantId,
+          (tx) async => await tx.one(
+            'INSERT INTO announcement_reads (id, tenant_id, announcement_id, user_id) VALUES (gen_random_uuid(), @t, @a, @u) '
+            'ON CONFLICT (announcement_id, user_id) DO UPDATE SET user_id = EXCLUDED.user_id RETURNING *',
+            {'t': tenantId, 'a': id, 'u': user.id},
+          ),
+        );
       });
-      r.get('', permission: 'tools.announcements:manage', (ctx) => db.forTenant(ctx.tenant, (tx) => tx.query(
-          'SELECT a.*, a.level::text AS level, (SELECT count(*)::int FROM announcement_reads r WHERE r.announcement_id = a.id) AS reads FROM announcements a '
-          'WHERE a.deleted_at IS NULL ORDER BY a.starts_at DESC LIMIT 200')));
+      r.get(
+        '',
+        permission: 'tools.announcements:manage',
+        (ctx) => db.forTenant(
+          ctx.tenant,
+          (tx) => tx.query(
+            'SELECT a.*, a.level::text AS level, (SELECT count(*)::int FROM announcement_reads r WHERE r.announcement_id = a.id) AS reads FROM announcements a '
+            'WHERE a.deleted_at IS NULL ORDER BY a.starts_at DESC LIMIT 200',
+          ),
+        ),
+      );
       r.get('/:id/reads', permission: 'tools.announcements:manage', (ctx) {
         final id = ctx.uuidParam('id');
-        return db.forTenant(ctx.tenant, (tx) async => [
-              for (final x in await tx.query(
-                  'SELECT r.read_at, u.id, u.display_name, u.email FROM announcement_reads r LEFT JOIN users u ON u.id = r.user_id WHERE r.announcement_id = @a ORDER BY r.read_at ASC', {'a': id}))
-                {'readAt': x['readAt'], 'user': x['id'] == null ? null : {'id': x['id'], 'displayName': x['displayName'], 'email': x['email']}},
-            ]);
+        return db.forTenant(
+          ctx.tenant,
+          (tx) async => [
+            for (final x in await tx.query(
+              'SELECT r.read_at, u.id, u.display_name, u.email FROM announcement_reads r LEFT JOIN users u ON u.id = r.user_id WHERE r.announcement_id = @a ORDER BY r.read_at ASC',
+              {'a': id},
+            ))
+              {
+                'readAt': x['readAt'],
+                'user': x['id'] == null ? null : {'id': x['id'], 'displayName': x['displayName'], 'email': x['email']},
+              },
+          ],
+        );
       });
       Future<void> check(Tx tx, Map<String, Object?> input) async {
         if (input['companyId'] != null && await tx.one('SELECT 1 FROM companies WHERE id = @c AND deleted_at IS NULL', {'c': input['companyId']}) == null) throw notFound('Empresa não encontrada');
-        if (input['groupingId'] != null && await tx.one('SELECT 1 FROM groupings WHERE id = @g AND deleted_at IS NULL', {'g': input['groupingId']}) == null) throw notFound('Agrupamento não encontrado');
+        if (input['groupingId'] != null && await tx.one('SELECT 1 FROM groupings WHERE id = @g AND deleted_at IS NULL', {'g': input['groupingId']}) == null) {
+          throw notFound('Agrupamento não encontrado');
+        }
       }
 
       Map<String, Object?> data(Map<String, Object?> input) => {...input, 'companyId': input['companyId'], 'groupingId': input['groupingId'], 'endsAt': input['endsAt']};
@@ -416,7 +494,11 @@ class ToolsModule {
     });
 
     r.group('/v1/app-devices', tag: 'ferramentas', () {
-      r.get('/mine', permission: 'time.records:create', (ctx) => db.forTenant(ctx.tenant, (tx) => tx.query('SELECT $_deviceCols FROM app_devices WHERE user_id = @u ORDER BY created_at DESC', {'u': ctx.user.id})));
+      r.get(
+        '/mine',
+        permission: 'time.records:create',
+        (ctx) => db.forTenant(ctx.tenant, (tx) => tx.query('SELECT $_deviceCols FROM app_devices WHERE user_id = @u ORDER BY created_at DESC', {'u': ctx.user.id})),
+      );
 
       // Pede a liberação: manda um código de 6 dígitos para o e-mail do usuário (vale 10 minutos).
       r.post('/request', permission: 'time.records:create', throttle: 5, (ctx) async {
@@ -429,17 +511,24 @@ class ToolsModule {
           if (pending >= 3) throw conflict('Há pedidos demais aguardando código: confirme ou aguarde 10 minutos');
           final mail = await tx.scalar<String>('SELECT email FROM users WHERE id = @u', {'u': user.id});
           final created = await tx.insert('app_devices', {
-            'tenantId': tenantId, 'userId': user.id, 'name': name, 'codeHash': sha256Hex(utf8.encode('${user.id}:$code')),
+            'tenantId': tenantId,
+            'userId': user.id,
+            'name': name,
+            'codeHash': sha256Hex(utf8.encode('${user.id}:$code')),
             'codeExpires': DateTime.now().add(const Duration(minutes: 10)),
           });
           await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'CREATE', entity: 'app_device', entityId: created['id'] as String?, after: {'name': name}, meta: ctx.meta);
           return (device: (await tx.one('SELECT $_deviceCols FROM app_devices WHERE id = @id', {'id': created['id']}))!, email: mail!);
         });
-        await app.mail.send(OutgoingMail(
-          to: res.email, subject: 'SuperPonto: código para liberar o aparelho',
-          text: 'Código para liberar "$name": $code\nVale por 10 minutos. Se não foi você, ignore este e-mail e avise o RH.',
-          html: '<p>Código para liberar <b>${escapeHtml(name)}</b>:</p><p style="font-size:24px;letter-spacing:4px"><b>$code</b></p><p>Vale por 10 minutos. Se não foi você, ignore este e-mail e avise o RH.</p>',
-        ));
+        await app.mail.send(
+          OutgoingMail(
+            to: res.email,
+            subject: 'SuperPonto: código para liberar o aparelho',
+            text: 'Código para liberar "$name": $code\nVale por 10 minutos. Se não foi você, ignore este e-mail e avise o RH.',
+            html:
+                '<p>Código para liberar <b>${escapeHtml(name)}</b>:</p><p style="font-size:24px;letter-spacing:4px"><b>$code</b></p><p>Vale por 10 minutos. Se não foi você, ignore este e-mail e avise o RH.</p>',
+          ),
+        );
         return res.device;
       });
 
@@ -463,7 +552,10 @@ class ToolsModule {
           final token = 'spa_${b64url(randomBytes(32))}';
           await tx.execute('UPDATE app_devices SET token_hash = @h, approved_at = now(), code_hash = NULL, code_expires = NULL WHERE id = @id', {'h': sha256Hex(utf8.encode(token)), 'id': id});
           await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'APPROVE', entity: 'app_device', entityId: id, after: {'name': d['name']}, meta: ctx.meta);
-          return {...(await tx.one('SELECT $_deviceCols FROM app_devices WHERE id = @id', {'id': id}))!, 'token': token};
+          return {
+            ...(await tx.one('SELECT $_deviceCols FROM app_devices WHERE id = @id', {'id': id}))!,
+            'token': token,
+          };
         });
       });
 
@@ -475,29 +567,52 @@ class ToolsModule {
           if (d == null) throw notFound('Aparelho não encontrado');
           if (d['revokedAt'] != null) return {'ok': true};
           await tx.execute('UPDATE app_devices SET revoked_at = now(), token_hash = NULL, code_hash = NULL WHERE id = @id', {'id': id});
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: 'DELETE', entity: 'app_device', entityId: id, before: {'name': d['name'], 'userId': d['userId']}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: user.id,
+            action: 'DELETE',
+            entity: 'app_device',
+            entityId: id,
+            before: {'name': d['name'], 'userId': d['userId']},
+            meta: ctx.meta,
+          );
           return {'ok': true};
         });
       }
 
       r.post('/mine/:id/revoke', permission: 'time.records:create', status: 200, (ctx) => revoke(ctx, false));
-      r.get('', permission: 'admin.users:manage', (ctx) => db.forTenant(ctx.tenant, (tx) async => [
+      r.get(
+        '',
+        permission: 'admin.users:manage',
+        (ctx) => db.forTenant(
+          ctx.tenant,
+          (tx) async => [
             for (final d in await tx.query(
-                'SELECT d.id, d.user_id, d.name, d.approved_at, d.last_used_at, d.revoked_at, d.created_at, d.code_expires, u.display_name, u.email FROM app_devices d '
-                'LEFT JOIN users u ON u.id = d.user_id WHERE d.approved_at IS NOT NULL ORDER BY d.approved_at DESC LIMIT 500'))
+              'SELECT d.id, d.user_id, d.name, d.approved_at, d.last_used_at, d.revoked_at, d.created_at, d.code_expires, u.display_name, u.email FROM app_devices d '
+              'LEFT JOIN users u ON u.id = d.user_id WHERE d.approved_at IS NOT NULL ORDER BY d.approved_at DESC LIMIT 500',
+            ))
               {
-                for (final e in d.entries) if (e.key != 'displayName' && e.key != 'email') e.key: e.value,
+                for (final e in d.entries)
+                  if (e.key != 'displayName' && e.key != 'email') e.key: e.value,
                 'user': d['displayName'] == null ? null : {'id': d['userId'], 'displayName': d['displayName'], 'email': d['email']},
               },
-          ]));
+          ],
+        ),
+      );
       r.post('/:id/revoke', permission: 'admin.users:manage', status: 200, (ctx) => revoke(ctx, true));
     });
 
     r.group('/v1/custom-texts', tag: 'ferramentas', () {
-      r.get('', (ctx) => db.forTenant(ctx.tenant, (tx) async {
-            final rows = await tx.query('SELECT key, text FROM custom_texts');
-            return [for (final e in customTexts.entries) {'key': e.key, 'label': e.value, 'text': rows.where((x) => x['key'] == e.key).firstOrNull?['text'] ?? ''}];
-          }));
+      r.get(
+        '',
+        (ctx) => db.forTenant(ctx.tenant, (tx) async {
+          final rows = await tx.query('SELECT key, text FROM custom_texts');
+          return [
+            for (final e in customTexts.entries) {'key': e.key, 'label': e.value, 'text': rows.where((x) => x['key'] == e.key).firstOrNull?['text'] ?? ''},
+          ];
+        }),
+      );
       r.put('/:key', permission: 'admin.settings:manage', (ctx) {
         final key = ctx.param('key');
         final b = Obj({'text': const Str(max: 2000)}).parse(ctx.body);
@@ -514,8 +629,17 @@ class ToolsModule {
               {'t': tenantId, 'k': key, 'x': t},
             );
           }
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'UPDATE', entity: 'custom_text', entityId: before?['id'] as String?,
-              before: before == null ? null : {'key': key, 'text': before['text']}, after: {'key': key, 'text': t}, meta: ctx.meta);
+          await app.audit.record(
+            tx,
+            tenantId: tenantId,
+            actorUserId: ctx.user.id,
+            action: 'UPDATE',
+            entity: 'custom_text',
+            entityId: before?['id'] as String?,
+            before: before == null ? null : {'key': key, 'text': before['text']},
+            after: {'key': key, 'text': t},
+            meta: ctx.meta,
+          );
           return {'key': key, 'label': customTexts[key], 'text': t};
         });
       });
@@ -529,15 +653,26 @@ class ToolsModule {
       final m = await _myMirror(tenantId, ctx.user, from, to, q['employmentId'] as String?);
       final hash = _hash(m).hash;
       final eid = (m['employment']! as Map)['id'];
-      final res = await db.forTenant(tenantId, (tx) async => (
-            ack: await tx.one('SELECT *, decision::text AS decision FROM mirror_acknowledgments WHERE employment_id = @e AND period_start = @f AND period_end = @t', {'e': eid, 'f': from, 't': to}),
-            term: await tx.scalar<String>("SELECT text FROM custom_texts WHERE key = 'MIRROR_ACK_TERM'"),
-          ));
+      final res = await db.forTenant(
+        tenantId,
+        (tx) async => (
+          ack: await tx.one('SELECT *, decision::text AS decision FROM mirror_acknowledgments WHERE employment_id = @e AND period_start = @f AND period_end = @t', {'e': eid, 'f': from, 't': to}),
+          term: await tx.scalar<String>("SELECT text FROM custom_texts WHERE key = 'MIRROR_ACK_TERM'"),
+        ),
+      );
       final today = localBr(DateTime.now()).date;
       final ack = res.ack;
       return {
-        'employmentId': eid, 'from': from, 'to': to, 'currentHash': hash, 'canSign': ack == null && to.compareTo(today) < 0,
-        'reason': ack != null ? null : to.compareTo(today) >= 0 ? 'O período ainda não terminou' : null,
+        'employmentId': eid,
+        'from': from,
+        'to': to,
+        'currentHash': hash,
+        'canSign': ack == null && to.compareTo(today) < 0,
+        'reason': ack != null
+            ? null
+            : to.compareTo(today) >= 0
+            ? 'O período ainda não terminou'
+            : null,
         'term': res.term ?? 'Declaro que conferi as marcações e os totais deste espelho de ponto.',
         'acknowledgment': ack == null
             ? null
@@ -560,11 +695,28 @@ class ToolsModule {
         }
         final ua = ctx.userAgent;
         final a = await tx.insert('mirror_acknowledgments', {
-          'tenantId': tenantId, 'employmentId': eid, 'userId': user.id, 'periodStart': from, 'periodEnd': to, 'contentHash': h.hash, 'summary': jsonb(h.summary),
-          'decision': input['decision'], 'comment': input['comment'], 'ip': ctx.ip, 'userAgent': ua == null ? null : (ua.length > 300 ? ua.substring(0, 300) : ua),
+          'tenantId': tenantId,
+          'employmentId': eid,
+          'userId': user.id,
+          'periodStart': from,
+          'periodEnd': to,
+          'contentHash': h.hash,
+          'summary': jsonb(h.summary),
+          'decision': input['decision'],
+          'comment': input['comment'],
+          'ip': ctx.ip,
+          'userAgent': ua == null ? null : (ua.length > 300 ? ua.substring(0, 300) : ua),
         });
-        await app.audit.record(tx, tenantId: tenantId, actorUserId: user.id, action: input['decision'] == 'AGREE' ? 'APPROVE' : 'REJECT', entity: 'mirror_acknowledgment',
-            entityId: a['id'] as String?, after: {'employmentId': eid, 'from': from, 'to': to, 'hash': h.hash}, meta: ctx.meta);
+        await app.audit.record(
+          tx,
+          tenantId: tenantId,
+          actorUserId: user.id,
+          action: input['decision'] == 'AGREE' ? 'APPROVE' : 'REJECT',
+          entity: 'mirror_acknowledgment',
+          entityId: a['id'] as String?,
+          after: {'employmentId': eid, 'from': from, 'to': to, 'hash': h.hash},
+          meta: ctx.meta,
+        );
         return a;
       });
     });
@@ -574,21 +726,37 @@ class ToolsModule {
       final tenantId = ctx.tenant;
       final from = q['from']! as String, to = q['to']! as String;
       final emps = await db.forTenant(tenantId, (tx) => timesheet.companyEmployments(tx, q['companyId']! as String, from, to));
-      final acks = await db.forTenant(tenantId, (tx) => tx.query(
-          'SELECT *, decision::text AS decision FROM mirror_acknowledgments WHERE employment_id::text = ANY(@ids) AND period_start = @f AND period_end = @t',
-          {'ids': [for (final e in emps) e.id], 'f': from, 't': to}));
+      final acks = await db.forTenant(
+        tenantId,
+        (tx) => tx.query('SELECT *, decision::text AS decision FROM mirror_acknowledgments WHERE employment_id::text = ANY(@ids) AND period_start = @f AND period_end = @t', {
+          'ids': [for (final e in emps) e.id],
+          'f': from,
+          't': to,
+        }),
+      );
       final rows = <Map<String, Object?>>[];
       for (final e in emps..sort((a, b) => a.fullName.compareTo(b.fullName))) {
         final a = acks.where((x) => x['employmentId'] == e.id).firstOrNull;
         var changed = false;
         if (a != null) changed = _hash(await timesheet.mirror(tenantId, e.id, from, to)).hash != a['contentHash'];
         rows.add({
-          'employmentId': e.id, 'registration': e.registration, 'name': e.name, 'status': a?['decision'] ?? 'PENDING', 'signedAt': a?['createdAt'],
-          'comment': a?['comment'], 'ip': a?['ip'], 'changedSince': changed,
+          'employmentId': e.id,
+          'registration': e.registration,
+          'name': e.name,
+          'status': a?['decision'] ?? 'PENDING',
+          'signedAt': a?['createdAt'],
+          'comment': a?['comment'],
+          'ip': a?['ip'],
+          'changedSince': changed,
         });
       }
       int count(String s) => rows.where((x) => x['status'] == s).length;
-      return {'from': from, 'to': to, 'rows': rows, 'totals': {'agree': count('AGREE'), 'disagree': count('DISAGREE'), 'pending': count('PENDING')}};
+      return {
+        'from': from,
+        'to': to,
+        'rows': rows,
+        'totals': {'agree': count('AGREE'), 'disagree': count('DISAGREE'), 'pending': count('PENDING')},
+      };
     });
 
     if (!app.config.testHooks) app.every(const Duration(minutes: 1), () => tick());

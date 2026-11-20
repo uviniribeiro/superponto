@@ -43,8 +43,21 @@ class AppConfig {
   static AppConfig load(Map<String, String> env) {
     final c = AppConfig._(env);
     // Lê tudo já na partida: configuração errada derruba o servidor antes de aceitar conexões.
-    final _ = [c.nodeEnv, c.port, c.databaseUrl, c.appUrl, c.apiUrl, c.jwtSecret, c.mfaEncryptionKey, c.biometricEncryptionKey,
-      c.secretsEncryptionKey, c.ldapAllowPrivateHosts, c.mailTransport, c.smtpPort, c.corsOrigins];
+    final _ = [
+      c.nodeEnv,
+      c.port,
+      c.databaseUrl,
+      c.appUrl,
+      c.apiUrl,
+      c.jwtSecret,
+      c.mfaEncryptionKey,
+      c.biometricEncryptionKey,
+      c.secretsEncryptionKey,
+      c.ldapAllowPrivateHosts,
+      c.mailTransport,
+      c.smtpPort,
+      c.corsOrigins,
+    ];
     for (final key in [c.biometricEncryptionKey, c.secretsEncryptionKey]) {
       if (key != null && _b64Length(key) != 32) throw ConfigError('chaves de cifra precisam ter 32 bytes em base64');
     }
