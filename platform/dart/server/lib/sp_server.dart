@@ -17,6 +17,7 @@ import 'src/modules/reports.dart';
 import 'src/modules/schedules.dart';
 import 'src/modules/structure.dart';
 import 'src/modules/timesheet.dart';
+import 'src/modules/tools.dart';
 import 'src/modules/users.dart';
 
 export 'src/app.dart' show App;
@@ -39,8 +40,9 @@ App buildApp(AppConfig config) {
   final schedules = SchedulesModule(app, holidays)..routes();
   final timesheet = TimesheetModule(app, schedules)..routes();
   ReportsModule(app, timesheet.core0, holidays).routes();
+  final tools = ToolsModule(app, timesheet)..routes();
   final devices = DevicesModule(app)..routes();
-  if (config.testHooks) _testHooks(app, support, holidays, lookup, devices);
+  if (config.testHooks) _testHooks(app, support, holidays, lookup, devices, tools);
   app.router.sort();
   if (!config.testHooks) {
     support.backfill().catchError((Object e) => 0);
@@ -49,7 +51,7 @@ App buildApp(AppConfig config) {
 }
 
 /// Somente NODE_ENV=test: deixa os testes de contrato esperarem tarefas de fundo.
-void _testHooks(App app, SupportProvisioning support, HolidaysService holidays, LookupService lookup, DevicesModule devices) {
+void _testHooks(App app, SupportProvisioning support, HolidaysService holidays, LookupService lookup, DevicesModule devices, ToolsModule tools) {
   app.router.post('/__test/drain', access: Access.public, status: 200, (ctx) async {
     await app.passwordReset.drain();
     return {'ok': true};
@@ -62,5 +64,8 @@ void _testHooks(App app, SupportProvisioning support, HolidaysService holidays, 
     return {'ok': true};
   });
   app.router.post('/__test/device-check-offline', access: Access.public, status: 200, (ctx) async => {'offline': await devices.checkOffline()});
+  app.router.post('/__test/live', access: Access.public, status: 200,
+      (ctx) => tools.live(ctx.json['tenantId']! as String, (ctx.json['query']! as Map).cast<String, Object?>(), DateTime.parse(ctx.json['now']! as String)));
+  app.router.post('/__test/notifications-tick', access: Access.public, status: 200, (ctx) async => {'sent': await tools.tick(DateTime.parse(ctx.json['now']! as String))});
   app.router.post('/__test/support-backfill', access: Access.public, status: 200, (ctx) async => {'created': await support.backfill()});
 }

@@ -473,6 +473,50 @@ class TimesheetModule {
     }
   }
 
+  /// Espelho diário: todos os funcionários da empresa num dia, com a situação de cada um.
+  Future<Map<String, Object?>> daily(String tenantId, Map<String, Object?> q) async {
+      final d = q['date']! as String;
+      final emps = await db.forTenant(tenantId, (tx) => loadEmps(tx,
+          'e.company_id = @c AND e.deleted_at IS NULL AND e.hired_at <= @d AND (e.terminated_at IS NULL OR e.terminated_at >= @d)'
+          '${q['departmentId'] != null ? ' AND e.department_id = @dep' : ''}'
+          '${q['groupingId'] != null ? ' AND EXISTS (SELECT 1 FROM grouping_employments g WHERE g.employment_id = e.id AND g.grouping_id = @g)' : ''}',
+          {'c': q['companyId'], 'd': d, 'dep': q['departmentId'], 'g': q['groupingId']}, order: 'ORDER BY p.full_name ASC', limit: 'LIMIT 500'));
+      final map = await core0.compute(tenantId, emps, d, d);
+      final rows = [
+        for (final e in emps)
+          () {
+            final day = map[e.id]!.first;
+            final f = ((day['result'] as Map?)?['flags'] as List?) ?? const [];
+            final punches = (day['punches'] as List?) ?? const [];
+            final al = day['allowance'] as Map?;
+            final situation = day['leave'] != null
+                ? 'LEAVE'
+                : al?['fullDay'] == true && al?['disregardsDebits'] == true
+                    ? 'ALLOWANCE'
+                    : f.contains('ABSENCE')
+                        ? 'ABSENT'
+                        : f.contains('INCOMPLETE')
+                            ? 'INCOMPLETE'
+                            : (day['expected'] as Map?)?['isWorkday'] != true && punches.isEmpty
+                                ? 'OFF'
+                                : f.contains('LATE')
+                                    ? 'LATE'
+                                    : punches.isNotEmpty
+                                        ? 'PRESENT'
+                                        : 'EXPECTED';
+            return {'employmentId': e.id, 'registration': e.registration, 'name': e.name, 'situation': situation, 'day': day};
+          }(),
+      ];
+      int count(String s) => rows.where((x) => x['situation'] == s).length;
+      return {
+        'date': d, 'rows': rows,
+        'totals': {
+          'present': count('PRESENT') + count('LATE'), 'late': count('LATE'), 'absent': count('ABSENT'), 'incomplete': count('INCOMPLETE'), 'off': count('OFF'),
+          'leave': count('LEAVE') + count('ALLOWANCE'), 'expected': count('EXPECTED'),
+        },
+      };
+  }
+
   // ------------------------------------------------------------------ REP-P
   static final _developerId = Platform.environment['REP_P_DEVELOPER_CNPJ'] ?? '';
   String _sign(String payload) => b64url(c.Hmac(c.sha256, utf8.encode('${app.config.jwtSecret}:punch')).convert(utf8.encode(payload)).bytes);
@@ -581,50 +625,7 @@ class TimesheetModule {
       });
 
       // Espelho diário: todos os funcionários da empresa num dia, com a situação de cada um.
-      r.get('/daily', permission: 'time.calculations:read', (ctx) async {
-        final q = _daily.parse(ctx.query);
-        final tenantId = ctx.tenant;
-        final d = q['date']! as String;
-        final emps = await db.forTenant(tenantId, (tx) => loadEmps(tx,
-            'e.company_id = @c AND e.deleted_at IS NULL AND e.hired_at <= @d AND (e.terminated_at IS NULL OR e.terminated_at >= @d)'
-            '${q['departmentId'] != null ? ' AND e.department_id = @dep' : ''}'
-            '${q['groupingId'] != null ? ' AND EXISTS (SELECT 1 FROM grouping_employments g WHERE g.employment_id = e.id AND g.grouping_id = @g)' : ''}',
-            {'c': q['companyId'], 'd': d, 'dep': q['departmentId'], 'g': q['groupingId']}, order: 'ORDER BY p.full_name ASC', limit: 'LIMIT 500'));
-        final map = await core0.compute(tenantId, emps, d, d);
-        final rows = [
-          for (final e in emps)
-            () {
-              final day = map[e.id]!.first;
-              final f = ((day['result'] as Map?)?['flags'] as List?) ?? const [];
-              final punches = (day['punches'] as List?) ?? const [];
-              final al = day['allowance'] as Map?;
-              final situation = day['leave'] != null
-                  ? 'LEAVE'
-                  : al?['fullDay'] == true && al?['disregardsDebits'] == true
-                      ? 'ALLOWANCE'
-                      : f.contains('ABSENCE')
-                          ? 'ABSENT'
-                          : f.contains('INCOMPLETE')
-                              ? 'INCOMPLETE'
-                              : (day['expected'] as Map?)?['isWorkday'] != true && punches.isEmpty
-                                  ? 'OFF'
-                                  : f.contains('LATE')
-                                      ? 'LATE'
-                                      : punches.isNotEmpty
-                                          ? 'PRESENT'
-                                          : 'EXPECTED';
-              return {'employmentId': e.id, 'registration': e.registration, 'name': e.name, 'situation': situation, 'day': day};
-            }(),
-        ];
-        int count(String s) => rows.where((x) => x['situation'] == s).length;
-        return {
-          'date': d, 'rows': rows,
-          'totals': {
-            'present': count('PRESENT') + count('LATE'), 'late': count('LATE'), 'absent': count('ABSENT'), 'incomplete': count('INCOMPLETE'), 'off': count('OFF'),
-            'leave': count('LEAVE') + count('ALLOWANCE'), 'expected': count('EXPECTED'),
-          },
-        };
-      });
+      r.get('/daily', permission: 'time.calculations:read', (ctx) => daily(ctx.tenant, _daily.parse(ctx.query)));
 
       r.get('/aej', permission: 'reports.reports:export', (ctx) => _aej(ctx.tenant, _calculate.parse(ctx.query)));
 

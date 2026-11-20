@@ -5,7 +5,7 @@ import { createPrismaClient } from '@superponto/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { MailService } from '../src/mail/mail.service.js';
 import { LiveService, liveState, NotificationsService } from '../src/tools/tools.service.js';
-import { api, createApp, ownerUrl } from './helpers.js';
+import { api, createApp, hook, ownerUrl } from './helpers.js';
 
 const PASSWORD = 'Senha-Muito-Forte-2026';
 const owner = createPrismaClient(ownerUrl);
@@ -82,7 +82,7 @@ describe('Ferramentas', () => {
   });
 
   it('painel ao vivo: trabalhando, intervalo e atrasado agora', async () => {
-    const live = await app.get(LiveService).live(ids['tools-a']!, { companyId: ids.co!, toleranceMinutes: 10 }, at(DAY, '12:30'));
+    const live = await hook('live', () => app.get(LiveService).live(ids['tools-a']!, { companyId: ids.co!, toleranceMinutes: 10 }, at(DAY, '12:30')), (b) => b, { tenantId: ids['tools-a'], query: { companyId: ids.co, toleranceMinutes: 10 }, now: at(DAY, '12:30').toISOString() });
     const by = Object.fromEntries(live.rows.map((r) => [r.registration, r]));
     expect(by['1']).toMatchObject({ state: 'ON_BREAK', lastPunch: '12:00' });
     expect(by['2']).toMatchObject({ state: 'WORKING' });
@@ -103,7 +103,7 @@ describe('Ferramentas', () => {
     expect(pv.body.sections.map((s: { kind: string }) => s.kind)).toEqual(['ABSENCES', 'LATE', 'PENDING_REQUESTS', 'DEVICES_OFFLINE']);
     expect(pv.body.sections.find((s: { kind: string }) => s.kind === 'DEVICES_OFFLINE').lines[0]).toContain('Relógio Portaria');
 
-    const svc = app.get(NotificationsService);
+    const svc = { tick: (d: Date) => hook('notifications-tick', () => app.get(NotificationsService).tick(d), (b) => b.sent as number, { now: d.toISOString() }) };
     const before = mail.outbox.length;
     // Terça 03/03 às 09:05: manda o resumo com as faltas de segunda (Caio faltou).
     expect(await svc.tick(at('2026-03-03', '09:05'))).toBe(1);
