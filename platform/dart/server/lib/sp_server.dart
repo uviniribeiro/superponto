@@ -14,6 +14,7 @@ import 'src/modules/people.dart';
 import 'src/modules/platform_tenants.dart';
 import 'src/modules/schedules.dart';
 import 'src/modules/structure.dart';
+import 'src/modules/timesheet.dart';
 import 'src/modules/users.dart';
 
 export 'src/app.dart' show App;
@@ -33,7 +34,8 @@ App buildApp(AppConfig config) {
   final holidays = HolidaysService(app)..routes();
   final lookup = LookupService()..routes(app);
   dashboardRoutes(app, holidays);
-  SchedulesModule(app, holidays).routes();
+  final schedules = SchedulesModule(app, holidays)..routes();
+  TimesheetModule(app, schedules).routes();
   if (config.testHooks) _testHooks(app, support, holidays, lookup);
   app.router.sort();
   if (!config.testHooks) {

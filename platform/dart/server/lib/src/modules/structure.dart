@@ -134,100 +134,9 @@ Map<String, Object?> _dbValues(Map<String, Object?> input) => {
 void structureRoutes(App app) {
   final r = app.router;
   final db = app.db;
-  final listQuery = pageSchema.extend({'companyId': uuid.optional});
 
   for (final c in catalogs) {
-    HttpError conflictErr() => conflict('Já existe ${c.gender == 'a' ? 'uma' : 'um'} ${c.label.toLowerCase()} com este nome ou código');
-    Future<int> usage(Tx tx, String id) async => c.usageSql != null
-        ? await tx.scalar<int>(c.usageSql!, {'id': id}) ?? 0
-        : c.usageColumn == null
-        ? 0
-        : await tx.scalar<int>("SELECT count(*)::int FROM employment_relationships WHERE ${c.usageColumn} = @id AND deleted_at IS NULL AND status = 'ACTIVE'", {'id': id}) ?? 0;
-    Future<Row> one(Tx tx, String id) async {
-      final row = await tx.one('SELECT * FROM ${c.table} WHERE id = @id AND deleted_at IS NULL', {'id': id});
-      if (row == null) throw notFound('${c.label} não encontrad${c.gender}');
-      return row;
-    }
-
-    r.group('/v1/${c.path}', tag: 'estrutura', () {
-      r.get('', permission: c.read, (ctx) {
-        final q = listQuery.parse(ctx.query);
-        if (c.companyScoped && q['companyId'] == null) throw badRequest('Informe a empresa (companyId)');
-        return db.forTenant(ctx.tenant, (tx) async {
-          if (c.companyScoped) await requireCompany(tx, q['companyId'] as String?);
-          final where = ['deleted_at IS NULL'];
-          final p = <String, Object?>{};
-          if (c.companyScoped) {
-            where.add('company_id = @co');
-            p['co'] = q['companyId'];
-          }
-          final s = q['search'] as String?;
-          if (s != null && s.isNotEmpty) {
-            where.add('(${c.searchFields.map((f) => '${snake(f)} ILIKE @s').join(' OR ')})');
-            p['s'] = likePattern(s);
-          }
-          final w = where.join(' AND ');
-          final page = q['page']! as int, size = q['pageSize']! as int;
-          final data = await tx.query('SELECT * FROM ${c.table} WHERE $w ORDER BY ${c.orderBy} LIMIT $size OFFSET ${(page - 1) * size}', p);
-          final total = await tx.scalar<int>('SELECT count(*)::int FROM ${c.table} WHERE $w', p);
-          return {
-            'data': c.usageColumn == null && c.usageSql == null ? data : [for (final row in data) {...row, 'inUse': await usage(tx, row['id']! as String)}],
-            'page': page, 'pageSize': size, 'total': total,
-          };
-        });
-      });
-
-      r.get('/:id', permission: c.read, (ctx) {
-        final id = ctx.uuidParam('id');
-        return db.forTenant(ctx.tenant, (tx) => one(tx, id));
-      });
-
-      r.post('', permission: c.manage, (ctx) async {
-        final input = c.create.parse(ctx.body);
-        final tenantId = ctx.tenant;
-        try {
-          return await db.forTenant(tenantId, (tx) async {
-            if (c.companyScoped) await requireCompany(tx, input['companyId'] as String?);
-            final row = await tx.insert(c.table, {..._dbValues(input), 'tenantId': tenantId});
-            await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'CREATE', entity: c.entity, entityId: row['id'] as String?, after: row, meta: ctx.meta);
-            return row;
-          });
-        } on DbError catch (e) {
-          if (e.uniqueViolation) throw conflictErr();
-          rethrow;
-        }
-      });
-
-      r.patch('/:id', permission: c.manage, (ctx) async {
-        final id = ctx.uuidParam('id');
-        final input = c.update.parse(ctx.body)..remove('companyId'); // a empresa de um registro não muda
-        final tenantId = ctx.tenant;
-        try {
-          return await db.forTenant(tenantId, (tx) async {
-            final before = await one(tx, id);
-            final row = await tx.update(c.table, id, _dbValues(input));
-            await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'UPDATE', entity: c.entity, entityId: id, before: before, after: row, meta: ctx.meta);
-            return row;
-          });
-        } on DbError catch (e) {
-          if (e.uniqueViolation) throw conflictErr();
-          rethrow;
-        }
-      });
-
-      r.delete('/:id', permission: c.manage, status: 204, (ctx) {
-        final id = ctx.uuidParam('id');
-        final tenantId = ctx.tenant;
-        return db.forTenant(tenantId, (tx) async {
-          final before = await one(tx, id);
-          final used = await usage(tx, id);
-          if (used > 0) throw conflict('${c.label} em uso por $used vínculo(s): troque antes de excluir ou desative');
-          await tx.update(c.table, id, {'deletedAt': DateTime.now()});
-          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'DELETE', entity: c.entity, entityId: id, before: before, meta: ctx.meta);
-          return null;
-        });
-      });
-    });
+    catalogRoutes(app, c);
   }
 
   // ------------------------------------------------------------------ departamentos
@@ -375,4 +284,103 @@ void structureRoutes(App app) {
       });
     });
   });
+}
+
+/// Rotas de um cadastro simples (listar, detalhar, criar, editar, excluir logicamente), sempre com auditoria.
+void catalogRoutes(App app, Catalog c) {
+  final r = app.router;
+  final db = app.db;
+  final listQuery = pageSchema.extend({'companyId': uuid.optional});
+  HttpError conflictErr() => conflict('Já existe ${c.gender == 'a' ? 'uma' : 'um'} ${c.label.toLowerCase()} com este nome ou código');
+  Future<int> usage(Tx tx, String id) async => c.usageSql != null
+      ? await tx.scalar<int>(c.usageSql!, {'id': id}) ?? 0
+      : c.usageColumn == null
+      ? 0
+      : await tx.scalar<int>("SELECT count(*)::int FROM employment_relationships WHERE ${c.usageColumn} = @id AND deleted_at IS NULL AND status = 'ACTIVE'", {'id': id}) ?? 0;
+  Future<Row> one(Tx tx, String id) async {
+    final row = await tx.one('SELECT * FROM ${c.table} WHERE id = @id AND deleted_at IS NULL', {'id': id});
+    if (row == null) throw notFound('${c.label} não encontrad${c.gender}');
+    return row;
+  }
+
+  r.group('/v1/${c.path}', tag: 'estrutura', () {
+    r.get('', permission: c.read, (ctx) {
+      final q = listQuery.parse(ctx.query);
+      if (c.companyScoped && q['companyId'] == null) throw badRequest('Informe a empresa (companyId)');
+      return db.forTenant(ctx.tenant, (tx) async {
+        if (c.companyScoped) await requireCompany(tx, q['companyId'] as String?);
+        final where = ['deleted_at IS NULL'];
+        final p = <String, Object?>{};
+        if (c.companyScoped) {
+          where.add('company_id = @co');
+          p['co'] = q['companyId'];
+        }
+        final s = q['search'] as String?;
+        if (s != null && s.isNotEmpty) {
+          where.add('(${c.searchFields.map((f) => '${snake(f)} ILIKE @s').join(' OR ')})');
+          p['s'] = likePattern(s);
+        }
+        final w = where.join(' AND ');
+        final page = q['page']! as int, size = q['pageSize']! as int;
+        final data = await tx.query('SELECT * FROM ${c.table} WHERE $w ORDER BY ${c.orderBy} LIMIT $size OFFSET ${(page - 1) * size}', p);
+        final total = await tx.scalar<int>('SELECT count(*)::int FROM ${c.table} WHERE $w', p);
+        return {
+          'data': c.usageColumn == null && c.usageSql == null ? data : [for (final row in data) {...row, 'inUse': await usage(tx, row['id']! as String)}],
+          'page': page, 'pageSize': size, 'total': total,
+        };
+      });
+    });
+
+    r.get('/:id', permission: c.read, (ctx) {
+      final id = ctx.uuidParam('id');
+      return db.forTenant(ctx.tenant, (tx) => one(tx, id));
+    });
+
+    r.post('', permission: c.manage, (ctx) async {
+      final input = c.create.parse(ctx.body);
+      final tenantId = ctx.tenant;
+      try {
+        return await db.forTenant(tenantId, (tx) async {
+          if (c.companyScoped) await requireCompany(tx, input['companyId'] as String?);
+          final row = await tx.insert(c.table, {..._dbValues(input), 'tenantId': tenantId});
+          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'CREATE', entity: c.entity, entityId: row['id'] as String?, after: row, meta: ctx.meta);
+          return row;
+        });
+      } on DbError catch (e) {
+        if (e.uniqueViolation) throw conflictErr();
+        rethrow;
+      }
+    });
+
+    r.patch('/:id', permission: c.manage, (ctx) async {
+      final id = ctx.uuidParam('id');
+      final input = c.update.parse(ctx.body)..remove('companyId'); // a empresa de um registro não muda
+      final tenantId = ctx.tenant;
+      try {
+        return await db.forTenant(tenantId, (tx) async {
+          final before = await one(tx, id);
+          final row = await tx.update(c.table, id, _dbValues(input));
+          await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'UPDATE', entity: c.entity, entityId: id, before: before, after: row, meta: ctx.meta);
+          return row;
+        });
+      } on DbError catch (e) {
+        if (e.uniqueViolation) throw conflictErr();
+        rethrow;
+      }
+    });
+
+    r.delete('/:id', permission: c.manage, status: 204, (ctx) {
+      final id = ctx.uuidParam('id');
+      final tenantId = ctx.tenant;
+      return db.forTenant(tenantId, (tx) async {
+        final before = await one(tx, id);
+        final used = await usage(tx, id);
+        if (used > 0) throw conflict('${c.label} em uso por $used vínculo(s): troque antes de excluir ou desative');
+        await tx.update(c.table, id, {'deletedAt': DateTime.now()});
+        await app.audit.record(tx, tenantId: tenantId, actorUserId: ctx.user.id, action: 'DELETE', entity: c.entity, entityId: id, before: before, meta: ctx.meta);
+        return null;
+      });
+    });
+  });
+
 }
