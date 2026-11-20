@@ -112,7 +112,7 @@ jobs:
         run: dart test
       - name: Binário nativo do servidor
         working-directory: platform/dart/server
-        run: dart compile exe bin/server.dart -o build/sp_server
+        run: mkdir -p build && dart compile exe bin/server.dart -o build/sp_server
 
   flutter-app:
     name: App Flutter (web, Android, iOS e desktop)

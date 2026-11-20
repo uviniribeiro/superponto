@@ -83,7 +83,7 @@ describe('Ferramentas', () => {
 
   it('painel ao vivo: trabalhando, intervalo e atrasado agora', async () => {
     const live = await hook('live', () => app.get(LiveService).live(ids['tools-a']!, { companyId: ids.co!, toleranceMinutes: 10 }, at(DAY, '12:30')), (b) => b, { tenantId: ids['tools-a'], query: { companyId: ids.co, toleranceMinutes: 10 }, now: at(DAY, '12:30').toISOString() });
-    const by = Object.fromEntries(live.rows.map((r) => [r.registration, r]));
+    const by = Object.fromEntries(live.rows.map((r: { registration: string }) => [r.registration, r]));
     expect(by['1']).toMatchObject({ state: 'ON_BREAK', lastPunch: '12:00' });
     expect(by['2']).toMatchObject({ state: 'WORKING' });
     expect(by['3']).toMatchObject({ state: 'LATE_NOW', expectedStart: '08:00', lateMinutes: 270 });
