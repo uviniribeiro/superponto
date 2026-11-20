@@ -299,7 +299,10 @@ class Obj extends S {
     }
     if (issues.list.length == before) {
       for (final c in checks) {
-        if (!c.$1(out)) issues.add([...path, ...c.$3], c.$2);
+        if (!c.$1(out)) {
+          issues.add([...path, ...c.$3], c.$2);
+          break;
+        }
       }
     }
     return out;

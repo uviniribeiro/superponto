@@ -4,7 +4,7 @@ import { PasswordHasher } from '@nestjs/authentication';
 import { createPrismaClient } from '@superponto/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { HolidaysService } from '../src/holidays/holidays.service.js';
-import { api, createApp, ownerUrl } from './helpers.js';
+import { api, createApp, hook, ownerUrl } from './helpers.js';
 
 const PASSWORD = 'Senha-Muito-Forte-2026';
 const owner = createPrismaClient(ownerUrl);
@@ -98,12 +98,13 @@ describe('Feriados automáticos e preenchimento por CEP/CNPJ', () => {
     let semCidade = '';
 
     it('geração do ano é idempotente (rodar de novo não duplica)', async () => {
-      const svc = app.get(HolidaysService);
+      const generate = (year: number) => hook('holidays-generate', () => app.get(HolidaysService).generateYear(year), (b) => b.created as number, { year });
       // Anos que nenhum outro teste usa (os arquivos de teste rodam em paralelo no mesmo banco).
-      const first = await svc.generateYear(2041);
+      const first = await generate(2041);
       expect(first).toBeGreaterThan(40);
-      expect(await svc.generateYear(2041)).toBe(0);
-      const r = await svc.ensureUpcoming(new Date('2041-01-01T03:00:00Z'));
+      expect(await generate(2041)).toBe(0);
+      const now = '2041-01-01T03:00:00Z';
+      const r = await hook('holidays-ensure', () => app.get(HolidaysService).ensureUpcoming(new Date(now)), (b) => b as Record<number, number>, { now });
       expect(r[2041]).toBe(0);
       expect(r[2042]).toBeGreaterThan(40); // o ano seguinte já fica pronto antes da virada
     });

@@ -5,7 +5,7 @@ import { createPrismaClient } from '@superponto/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { MailService } from '../src/mail/mail.service.js';
 import { SupportProvisioningService } from '../src/users/support.service.js';
-import { api, createApp, ownerUrl, resetTokenFor, waitFor } from './helpers.js';
+import { api, createApp, hook, ownerUrl, resetTokenFor, waitFor } from './helpers.js';
 
 const PASSWORD = 'Senha-Muito-Forte-2026';
 const owner = createPrismaClient(ownerUrl);
@@ -55,10 +55,10 @@ describe('Usuários, suporte e perfis', () => {
 
   it('clientes antigos sem suporte recebem um (idempotente)', async () => {
     const t = await owner.tenant.create({ data: { name: 'Antigo', slug: 'cliente-antigo' } });
-    const svc = app.get(SupportProvisioningService);
-    expect(await svc.backfill()).toBeGreaterThanOrEqual(1);
+    const backfill = () => hook('support-backfill', () => app.get(SupportProvisioningService).backfill(), (b) => b.created as number);
+    expect(await backfill()).toBeGreaterThanOrEqual(1);
     expect(await owner.user.count({ where: { tenantId: t.id, isSupport: true } })).toBe(1);
-    await svc.backfill();
+    await backfill();
     expect(await owner.user.count({ where: { tenantId: t.id, isSupport: true } })).toBe(1);
   });
 

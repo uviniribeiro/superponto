@@ -27,6 +27,14 @@ String _camel(String snake) {
   return parts.first + parts.skip(1).map((p) => p.isEmpty ? '' : p[0].toUpperCase() + p.substring(1)).join();
 }
 
+/// Decimal como o Prisma serializa: sem zeros à direita ("-23.5505200" → "-23.55052").
+String decimalText(String v) {
+  if (!v.contains('.') || v.contains('e') || v.contains('E')) return v;
+  var s = v.replaceFirst(RegExp(r'0+$'), '');
+  if (s.endsWith('.')) s = s.substring(0, s.length - 1);
+  return s == '-0' ? '0' : s;
+}
+
 /// camelCase → snake_case (nome da coluna).
 String snake(String camel) => camel.replaceAllMapped(RegExp('[A-Z]'), (m) => '_${m[0]!.toLowerCase()}');
 
@@ -42,7 +50,8 @@ Row rowOf(ResultRow r) {
   final out = <String, Object?>{};
   final cols = r.schema.columns;
   for (var i = 0; i < cols.length; i++) {
-    out[_camel(cols[i].columnName ?? 'c$i')] = _value(r[i]);
+    final v = _value(r[i]);
+    out[_camel(cols[i].columnName ?? 'c$i')] = v is String && cols[i].type == Type.numeric ? decimalText(v) : v;
   }
   return out;
 }
@@ -53,7 +62,7 @@ class Tx {
 
   Future<List<Row>> query(String sql, [Map<String, Object?> params = const {}]) async {
     try {
-      final res = await _s.execute(Sql.named(sql), parameters: _params(params));
+      final res = await _s.execute(Sql.named(sql), parameters: _params(sql, params));
       return [for (final r in res) rowOf(r)];
     } on ServerException catch (e) {
       throw DbError(e.code ?? '', e.message, constraint: e.constraintName);
@@ -72,7 +81,7 @@ class Tx {
 
   Future<int> execute(String sql, [Map<String, Object?> params = const {}]) async {
     try {
-      final res = await _s.execute(Sql.named(sql), parameters: _params(params));
+      final res = await _s.execute(Sql.named(sql), parameters: _params(sql, params));
       return res.affectedRows;
     } on ServerException catch (e) {
       throw DbError(e.code ?? '', e.message, constraint: e.constraintName);
@@ -80,7 +89,14 @@ class Tx {
   }
 
   /// INSERT a partir de um mapa camelCase; devolve a linha criada. `id` e `updated_at` são preenchidos.
-  Future<Row> insert(String table, Map<String, Object?> data, {bool id = true, bool updatedAt = true}) async {
+  /// Colunas `updated_at` existentes, por tabela (lidas uma vez do catálogo do banco).
+  static final _updatedAt = <String, bool>{};
+  Future<bool> _hasUpdatedAt(String table) async => _updatedAt[table] ??= (await scalar<int>(
+          "SELECT count(*)::int FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = @t AND column_name = 'updated_at'",
+          {'t': table})) == 1;
+
+  Future<Row> insert(String table, Map<String, Object?> data, {bool id = true, bool? updatedAt}) async {
+    updatedAt ??= await _hasUpdatedAt(table);
     final cols = <String>[], vals = <String>[], params = <String, Object?>{};
     if (id && !data.containsKey('id')) {
       cols.add('id');
@@ -100,7 +116,8 @@ class Tx {
   }
 
   /// UPDATE por id a partir de um mapa camelCase; devolve a linha (ou null se não existe).
-  Future<Row?> update(String table, String id, Map<String, Object?> data, {bool updatedAt = true}) async {
+  Future<Row?> update(String table, String id, Map<String, Object?> data, {bool? updatedAt}) async {
+    updatedAt ??= await _hasUpdatedAt(table);
     final sets = <String>[], params = <String, Object?>{'__id': id};
     var i = 0;
     for (final e in data.entries) {
@@ -112,8 +129,10 @@ class Tx {
     return one('UPDATE $table SET ${sets.join(', ')} WHERE id = @__id RETURNING *', params);
   }
 
-  static Map<String, Object?> _params(Map<String, Object?> p) => {
-        for (final e in p.entries) e.key: _param(e.value),
+  /// Só os parâmetros usados no SQL (o driver recusa sobras; assim filtros opcionais reaproveitam o mesmo mapa).
+  static Map<String, Object?> _params(String sql, Map<String, Object?> p) => {
+        for (final e in p.entries)
+          if (RegExp('@${RegExp.escape(e.key)}(?![A-Za-z0-9_])').hasMatch(sql)) e.key: _param(e.value),
       };
 
   static Object? _param(Object? v) {

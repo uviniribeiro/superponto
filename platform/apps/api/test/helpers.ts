@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { existsSync, readFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { createAppModule } from '../src/app.module.js';
 import { configureApp } from '../src/bootstrap.js';
 import { loadConfig, type AppConfig } from '../src/config.js';
@@ -52,7 +53,22 @@ function dartApp(): INestApplication {
 }
 
 export async function createApp(opts: { fetch?: typeof fetch } = {}): Promise<{ app: INestApplication; mail: MailService }> {
-  if (dartTarget) return { app: dartApp(), mail: dartMail() };
+  if (dartTarget) {
+    // Consultas externas (CEP/CNPJ): o servidor Dart passa a perguntar a este servidor local, que responde com o fetch falso.
+    const fake = opts.fetch ?? (async () => new Response('{}', { status: 503 }));
+    const stub = createServer(async (req, res) => {
+      const url = new URL(req.url ?? '/', 'http://x').searchParams.get('url') ?? '';
+      const r = await fake(url);
+      res.writeHead(r.status, { 'content-type': 'application/json' });
+      res.end(await r.text());
+    });
+    await new Promise<void>((ok) => stub.listen(0, '127.0.0.1', ok));
+    const port = (stub.address() as { port: number }).port;
+    await hook('lookup-stub', async () => undefined, () => undefined, { url: `http://127.0.0.1:${port}/` });
+    const app = dartApp();
+    (app as unknown as { close: () => Promise<void> }).close = async () => { stub.close(); };
+    return { app, mail: dartMail() };
+  }
   const config = testConfig();
   const builder = Test.createTestingModule({ imports: [createAppModule(config)] });
   // Testes nunca acessam serviços externos: a consulta de CEP/CNPJ usa um fetch falso.
@@ -87,3 +103,11 @@ export async function waitFor<T>(fn: () => T | undefined, timeoutMs = 5000): Pro
 }
 
 export const api = (app: INestApplication) => request(app.getHttpServer() as Parameters<typeof request>[0]);
+
+/** Ponte de teste: no alvo Dart chama POST /__test/<nome>; no Node, executa `node()`. */
+export async function hook<T>(name: string, node: () => Promise<T>, pick: (body: any) => T = (b) => b, body: unknown = {}): Promise<T> {
+  if (!dartTarget) return node();
+  const res = await fetch(`${dartUrl}/__test/${name}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`Ponte de teste ${name}: ${res.status} ${await res.text()}`);
+  return pick(await res.json());
+}
