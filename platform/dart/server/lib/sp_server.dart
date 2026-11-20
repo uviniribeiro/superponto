@@ -17,6 +17,7 @@ import 'src/modules/plans.dart';
 import 'src/modules/platform_tenants.dart';
 import 'src/modules/reports.dart';
 import 'src/modules/schedules.dart';
+import 'src/modules/specialized.dart';
 import 'src/modules/structure.dart';
 import 'src/modules/timesheet.dart';
 import 'src/modules/tools.dart';
@@ -45,6 +46,7 @@ App buildApp(AppConfig config) {
   final reports = ReportsModule(app, timesheet.core0, holidays)..routes();
   PayrollModule(app, reports).routes();
   final tools = ToolsModule(app, timesheet)..routes();
+  SpecializedModule(app, timesheet).routes();
   final devices = DevicesModule(app)..routes();
   if (config.testHooks) _testHooks(app, support, holidays, lookup, devices, tools);
   app.router.sort();
