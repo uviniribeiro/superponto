@@ -267,16 +267,21 @@ class Rec extends S {
 
 /// Objeto: campos desconhecidos são descartados (como o Zod). Campos ausentes opcionais não aparecem no resultado.
 class Obj extends S {
-  const Obj(this.fields, {this.checks = const []});
+  const Obj(this.fields, {this.checks = const [], this.supers = const []});
   final Map<String, S> fields;
   final List<(bool Function(Map<String, Object?>), String, List<Object>)> checks;
+  /// validações com várias mensagens (como o superRefine do Zod)
+  final List<void Function(Map<String, Object?> v, void Function(String message, [List<Object> path]) add)> supers;
+
+  Obj superRefine(void Function(Map<String, Object?> v, void Function(String message, [List<Object> path]) add) fn) =>
+      Obj(fields, checks: checks, supers: [...supers, fn]);
 
   Obj get partial => Obj({for (final e in fields.entries) e.key: _stripDefault(e.value).optional});
-  Obj extend(Map<String, S> more) => Obj({...fields, ...more}, checks: checks);
+  Obj extend(Map<String, S> more) => Obj({...fields, ...more}, checks: checks, supers: supers);
   Obj omit(List<String> keys) => Obj({for (final e in fields.entries) if (!keys.contains(e.key)) e.key: e.value});
   Obj pick(List<String> keys) => Obj({for (final e in fields.entries) if (keys.contains(e.key)) e.key: e.value});
   Obj check(bool Function(Map<String, Object?> v) test, String message, {List<Object> path = const []}) =>
-      Obj(fields, checks: [...checks, (test, message, path)]);
+      Obj(fields, checks: [...checks, (test, message, path)], supers: supers);
 
   static S _stripDefault(S s) => s is _Default ? s.inner : s;
 
@@ -303,6 +308,9 @@ class Obj extends S {
           issues.add([...path, ...c.$3], c.$2);
           break;
         }
+      }
+      for (final f in supers) {
+        f(out, (m, [p = const []]) => issues.add([...path, ...p], m));
       }
     }
     return out;

@@ -12,6 +12,7 @@ import 'src/modules/holidays.dart';
 import 'src/modules/lookup.dart';
 import 'src/modules/people.dart';
 import 'src/modules/platform_tenants.dart';
+import 'src/modules/schedules.dart';
 import 'src/modules/structure.dart';
 import 'src/modules/users.dart';
 
@@ -32,6 +33,7 @@ App buildApp(AppConfig config) {
   final holidays = HolidaysService(app)..routes();
   final lookup = LookupService()..routes(app);
   dashboardRoutes(app, holidays);
+  SchedulesModule(app, holidays).routes();
   if (config.testHooks) _testHooks(app, support, holidays, lookup);
   app.router.sort();
   if (!config.testHooks) {
