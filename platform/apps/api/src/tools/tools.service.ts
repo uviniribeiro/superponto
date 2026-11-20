@@ -77,11 +77,11 @@ export class LiveService {
 // E-mails agendados (resumo)
 // ---------------------------------------------------------------------------------------------
 
-export const NOTIFICATION_KINDS = ['ABSENCES', 'LATE', 'PENDING_ADJUSTMENTS', 'PENDING_REQUESTS', 'DEVICES_OFFLINE'] as const;
+export const NOTIFICATION_KINDS = ['ABSENCES', 'LATE', 'PENDING_ADJUSTMENTS', 'PENDING_REQUESTS', 'DEVICES_OFFLINE', 'UNCOVERED_SHIFTS', 'OPEN_OCCURRENCES'] as const;
 export const notificationSchema = z.object({
   companyId: z.uuid(),
   name: z.string().trim().min(2).max(80),
-  kinds: z.array(z.enum(NOTIFICATION_KINDS)).min(1).max(5).transform((k) => [...new Set(k)]),
+  kinds: z.array(z.enum(NOTIFICATION_KINDS)).min(1).max(7).transform((k) => [...new Set(k)]),
   time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Horário no formato HH:mm'),
   weekdays: z.array(z.number().int().min(0).max(6)).max(7).default([]).transform((w) => [...new Set(w)].sort()),
   recipients: z.array(z.email()).min(1).max(20),
@@ -168,6 +168,15 @@ export class NotificationsService implements OnApplicationBootstrap, OnApplicati
       if (kinds.includes('PENDING_REQUESTS')) {
         const r = await tx.timeRequest.findMany({ where: { status: 'PENDING', employment: { companyId } }, select: { type: true, createdAt: true, employment: { select: { registration: true, person: { select: { fullName: true } } } } }, orderBy: { createdAt: 'asc' }, take: 200 });
         sections.push({ kind: 'PENDING_REQUESTS', title: `Solicitações pendentes (${r.length})`, lines: r.map((x) => `${x.employment.registration} — ${x.employment.person.fullName}: ${x.type} desde ${local(x.createdAt).date.split('-').reverse().join('/')}`) });
+      }
+      if (kinds.includes('UNCOVERED_SHIFTS')) {
+        const shifts = await tx.medicalShift.findMany({ where: { deletedAt: null, unit: { companyId }, startsAt: { gte: now, lt: new Date(now.getTime() + 7 * 86_400_000) } }, include: { unit: { select: { name: true } }, assignments: { where: { status: { in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'] } }, select: { id: true } } }, orderBy: { startsAt: 'asc' } });
+        const gaps = shifts.filter((x) => x.assignments.length < x.requiredProfessionals);
+        sections.push({ kind: 'UNCOVERED_SHIFTS', title: `Plantões sem cobertura nos próximos 7 dias (${gaps.length})`, lines: gaps.map((x) => `${x.unit.name}: ${x.startsAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })} — faltam ${x.requiredProfessionals - x.assignments.length}`) });
+      }
+      if (kinds.includes('OPEN_OCCURRENCES')) {
+        const occ = await tx.operationalOccurrence.findMany({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] }, occurredAt: { lt: new Date(now.getTime() - 24 * 3_600_000) }, unitId: { in: (await tx.companyUnit.findMany({ where: { companyId }, select: { id: true } })).map((u) => u.id) } }, orderBy: { occurredAt: 'asc' }, take: 100 });
+        sections.push({ kind: 'OPEN_OCCURRENCES', title: `Ocorrências abertas há mais de 24 horas (${occ.length})`, lines: occ.map((o) => `${o.title} — desde ${o.occurredAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'short' })}`) });
       }
       if (kinds.includes('DEVICES_OFFLINE')) {
         const d = await tx.device.findMany({ where: { companyId, deletedAt: null, status: 'OFFLINE' }, select: { name: true, lastSeenAt: true } });

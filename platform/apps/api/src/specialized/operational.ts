@@ -51,6 +51,24 @@ export class OccurrencesService {
     });
   }
 
+  /** Painel: abertas por tipo e unidade, paradas há mais de 24 h e tempo médio de solução (30 dias). */
+  async stats(tenantId: string) {
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      const active = await tx.operationalOccurrence.findMany({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } }, select: { type: true, unitId: true, status: true, occurredAt: true } });
+      const since = new Date(Date.now() - 30 * 86_400_000);
+      const solved = await tx.operationalOccurrence.findMany({ where: { status: 'RESOLVED', updatedAt: { gte: since } }, select: { occurredAt: true, updatedAt: true } });
+      const units = await tx.companyUnit.findMany({ where: { id: { in: [...new Set(active.map((a) => a.unitId))] } }, select: { id: true, name: true } });
+      const group = <K extends string>(key: (a: (typeof active)[number]) => K) => Object.entries(active.reduce<Record<string, number>>((m, a) => { const k = key(a); m[k] = (m[k] ?? 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]);
+      const hours = solved.map((x) => (x.updatedAt.getTime() - x.occurredAt.getTime()) / 3_600_000).filter((h) => h >= 0);
+      return {
+        open: active.filter((a) => a.status === 'OPEN').length, inProgress: active.filter((a) => a.status === 'IN_PROGRESS').length,
+        stale: active.filter((a) => Date.now() - a.occurredAt.getTime() > 24 * 3_600_000).length,
+        resolved30d: solved.length, avgResolutionHours: hours.length ? Math.round((hours.reduce((t, h) => t + h, 0) / hours.length) * 10) / 10 : null,
+        byType: group((a) => a.type).map(([type, n]) => ({ type, n })), byUnit: group((a) => a.unitId).map(([unitId, n]) => ({ unit: units.find((u) => u.id === unitId)?.name ?? '', n })),
+      };
+    });
+  }
+
   async create(tenantId: string, user: AuthUser, input: z.infer<typeof occurrenceSchema>, meta: RequestMeta) {
     return this.prisma.forTenant(tenantId, async (tx) => {
       if (!(await tx.companyUnit.findFirst({ where: { id: input.unitId, deletedAt: null } }))) throw new NotFoundException('Unidade não encontrada');
@@ -115,6 +133,10 @@ export class OccurrencesController {
   @Get()
   @RequirePermission('operational.board:read')
   list(@ActiveTenant() t: string, @Query({ schema: listSchema }) q: z.infer<typeof listSchema>) { return this.svc.list(t, q); }
+
+  @Get('stats')
+  @RequirePermission('operational.board:read')
+  stats(@ActiveTenant() t: string) { return this.svc.stats(t); }
 
   @Post()
   @RequirePermission('operational.occurrences:manage')

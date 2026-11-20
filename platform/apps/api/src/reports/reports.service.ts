@@ -326,6 +326,67 @@ const REPORTS: ReportDef[] = [
       });
     },
   },
+  // ------------------------------------------------------------- Módulos especializados
+  {
+    key: 'plantoes-cobertura', title: 'Cobertura de plantões', category: 'Saúde', period: 'required', permission: 'health.shifts:read', description: 'Cada plantão do período por unidade: profissionais necessários, escalados e vagas descobertas.',
+    columns: [{ key: 'unit', label: 'Unidade' }, { key: 'start', label: 'Início', type: 'datetime' }, { key: 'end', label: 'Fim', type: 'datetime' }, { key: 'kind', label: 'Tipo' }, { key: 'required', label: 'Necessários', type: 'number' }, { key: 'covered', label: 'Escalados', type: 'number' }, { key: 'missing', label: 'Descobertos', type: 'number' }, { key: 'names', label: 'Plantonistas' }],
+    run: async (ctx) => {
+      const K: Record<string, string> = { DAY: 'Diurno', NIGHT: 'Noturno', H12: '12 horas', H24: '24 horas', ON_CALL: 'Sobreaviso', EXTRA: 'Extra', COVERAGE: 'Cobertura' };
+      const list = await ctx.tx((tx) => tx.medicalShift.findMany({ where: { deletedAt: null, unit: { companyId: ctx.f.companyId }, startsAt: { gte: new Date(`${ctx.f.from}T00:00:00-03:00`), lt: new Date(new Date(`${ctx.f.to}T00:00:00-03:00`).getTime() + 86_400_000) } }, orderBy: { startsAt: 'asc' }, include: { unit: { select: { name: true } }, assignments: { where: { status: { in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED'] } }, include: { employment: { select: { person: { select: { fullName: true } } } } } } } }));
+      return list.map((x) => ({ unit: x.unit.name, start: x.startsAt.toISOString(), end: x.endsAt.toISOString(), kind: K[x.kind] ?? x.kind, required: x.requiredProfessionals, covered: x.assignments.length, missing: Math.max(0, x.requiredProfessionals - x.assignments.length), names: x.assignments.map((a) => a.employment.person.fullName).join(', ') }));
+    },
+  },
+  {
+    key: 'plantoes-horas', title: 'Horas de plantão por profissional', category: 'Saúde', period: 'required', permission: 'health.shifts:read', description: 'Plantões escalados, cumpridos, faltas e substituições de cada profissional, com as horas previstas e as registradas (entrada e saída).',
+    columns: [...EMP_COLS.slice(0, 2), { key: 'shifts', label: 'Plantões', type: 'number' }, { key: 'completed', label: 'Cumpridos', type: 'number' }, { key: 'absent', label: 'Faltas', type: 'number' }, { key: 'substituted', label: 'Substituídos', type: 'number' }, { key: 'planned', label: 'Horas previstas', type: 'minutes' }, { key: 'recorded', label: 'Horas registradas', type: 'minutes' }],
+    run: async (ctx) => {
+      const rows = await ctx.tx((tx) => tx.medicalShiftAssignment.findMany({ where: { status: { not: 'CANCELLED' }, shift: { deletedAt: null, unit: { companyId: ctx.f.companyId }, startsAt: { gte: new Date(`${ctx.f.from}T00:00:00-03:00`), lt: new Date(new Date(`${ctx.f.to}T00:00:00-03:00`).getTime() + 86_400_000) } } }, include: { shift: true, employment: { select: { id: true, registration: true, person: { select: { fullName: true, socialName: true } } } } } }));
+      const by = new Map<string, Row>();
+      for (const a of rows) {
+        const r = by.get(a.employmentId) ?? by.set(a.employmentId, { registration: a.employment.registration, name: name(a.employment), shifts: 0, completed: 0, absent: 0, substituted: 0, planned: 0, recorded: 0 }).get(a.employmentId)!;
+        r.shifts = Number(r.shifts) + 1;
+        if (a.status === 'COMPLETED') r.completed = Number(r.completed) + 1;
+        if (a.status === 'ABSENT') r.absent = Number(r.absent) + 1;
+        if (a.status === 'SUBSTITUTED') r.substituted = Number(r.substituted) + 1;
+        if (!['ABSENT', 'SUBSTITUTED'].includes(a.status)) r.planned = Number(r.planned) + Math.round((a.shift.endsAt.getTime() - a.shift.startsAt.getTime()) / 60000);
+        if (a.checkInAt && a.checkOutAt) r.recorded = Number(r.recorded) + Math.round((a.checkOutAt.getTime() - a.checkInAt.getTime()) / 60000);
+      }
+      return [...by.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    },
+  },
+  {
+    key: 'aulas-professor', title: 'Aulas por professor', category: 'Educação', period: 'required', permission: 'education.academic:read', description: 'Aulas dadas, não dadas, substituições e horas-aula de cada professor no período.',
+    columns: [{ key: 'registration', label: 'Matrícula' }, { key: 'name', label: 'Professor' }, { key: 'held', label: 'Dadas', type: 'number' }, { key: 'notHeld', label: 'Não dadas', type: 'number' }, { key: 'substitutedOut', label: 'Substituído', type: 'number' }, { key: 'substitutedIn', label: 'Substituiu', type: 'number' }, { key: 'minutes', label: 'Horas-aula', type: 'minutes' }],
+    run: async (ctx) => {
+      const sessions = await ctx.tx((tx) => tx.classSession.findMany({ where: { sessionDate: { gte: toDate(ctx.f.from!), lte: toDate(ctx.f.to!) }, schedule: { assignment: { subject: { companyId: ctx.f.companyId } } } }, include: { schedule: { include: { assignment: { include: { employment: { select: { id: true, registration: true, person: { select: { fullName: true, socialName: true } } } } } } } } } }));
+      const subs = await ctx.tx((tx) => tx.employment.findMany({ where: { id: { in: sessions.map((x) => x.substituteEmploymentId).filter(Boolean) as string[] } }, select: { id: true, registration: true, person: { select: { fullName: true, socialName: true } } } }));
+      const by = new Map<string, Row>();
+      const row = (e: { id: string; registration: string; person: { fullName: string; socialName: string | null } }) => by.get(e.id) ?? by.set(e.id, { registration: e.registration, name: name(e), held: 0, notHeld: 0, substitutedOut: 0, substitutedIn: 0, minutes: 0 }).get(e.id)!;
+      const len = (a: string, b: string) => (Number(b.slice(0, 2)) * 60 + Number(b.slice(3))) - (Number(a.slice(0, 2)) * 60 + Number(a.slice(3)));
+      for (const x of sessions) {
+        const r = row(x.schedule.assignment.employment);
+        const m = len(x.schedule.startTime, x.schedule.endTime);
+        if (x.status === 'HELD') { r.held = Number(r.held) + 1; r.minutes = Number(r.minutes) + m; }
+        if (x.status === 'NOT_HELD') r.notHeld = Number(r.notHeld) + 1;
+        if (x.status === 'SUBSTITUTED' && x.substituteEmploymentId) { r.substitutedOut = Number(r.substitutedOut) + 1; const sub = subs.find((e) => e.id === x.substituteEmploymentId); if (sub) { const q = row(sub); q.substitutedIn = Number(q.substitutedIn) + 1; q.minutes = Number(q.minutes) + m; } }
+      }
+      return [...by.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    },
+  },
+  {
+    key: 'ocorrencias', title: 'Ocorrências operacionais', category: 'Operacional', period: 'required', permission: 'operational.board:read', description: 'Ocorrências do período com tipo, unidade, situação, responsável e tempo até a solução.',
+    columns: [{ key: 'at', label: 'Quando', type: 'datetime' }, { key: 'unit', label: 'Unidade' }, { key: 'type', label: 'Tipo' }, { key: 'title', label: 'Ocorrência' }, { key: 'status', label: 'Situação' }, { key: 'hours', label: 'Horas até resolver', type: 'number' }],
+    run: async (ctx) => {
+      const T: Record<string, string> = { ABSENCE: 'Falta', LATE: 'Atraso', MISSING_RECORD: 'Marcação incompleta', INCOMPLETE_TEAM: 'Equipe incompleta', OPERATIONAL_ISSUE: 'Problema operacional', EQUIPMENT_UNAVAILABLE: 'Equipamento indisponível', UNCOVERED_SHIFT: 'Plantão descoberto', OTHER: 'Outro' };
+      const S: Record<string, string> = { OPEN: 'Aberta', IN_PROGRESS: 'Em tratamento', RESOLVED: 'Resolvida', DISMISSED: 'Descartada' };
+      const list = await ctx.tx(async (tx) => {
+        const units = await tx.companyUnit.findMany({ where: { companyId: ctx.f.companyId }, select: { id: true, name: true } });
+        const occ = await tx.operationalOccurrence.findMany({ where: { unitId: { in: units.map((u) => u.id) }, occurredAt: { gte: new Date(`${ctx.f.from}T00:00:00-03:00`), lt: new Date(new Date(`${ctx.f.to}T00:00:00-03:00`).getTime() + 86_400_000) } }, orderBy: { occurredAt: 'asc' } });
+        return occ.map((o) => ({ at: o.occurredAt.toISOString(), unit: units.find((u) => u.id === o.unitId)?.name ?? '', type: T[o.type] ?? o.type, title: o.title, status: S[o.status] ?? o.status, hours: o.status === 'RESOLVED' ? Math.round(((o.updatedAt.getTime() - o.occurredAt.getTime()) / 3_600_000) * 10) / 10 : '' }));
+      });
+      return list;
+    },
+  },
   // ------------------------------------------------------------- Segurança
   {
     key: 'auditoria', title: 'Auditoria', category: 'Segurança', period: 'required', permission: 'admin.audit:read', description: 'Quem alterou o quê e quando (sem dados sensíveis).',

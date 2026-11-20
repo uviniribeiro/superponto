@@ -112,4 +112,53 @@ describe('Módulos especializados', () => {
     expect((await api(app).get('/v1/operational/occurrences?type=ABSENCE').set(as('admin-a')).expect(200)).body).toHaveLength(3);
     expect((await api(app).get('/v1/operational/occurrences').set(as('admin-b')).expect(200)).body).toHaveLength(0);
   });
+
+  it('melhorias: entrada/saída do plantonista, sala sem conflito, marcar todas as aulas e painel de ocorrências', async () => {
+    // Liga o funcionário 1 a um usuário médico.
+    await owner.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT set_config('app.bypass_rls', 'on', true)`;
+      const e = await tx.employment.findUniqueOrThrow({ where: { id: ids.e1 } });
+      const role = await tx.role.findFirstOrThrow({ where: { tenantId: null, key: 'physician' } });
+      const u = await tx.user.create({ data: { tenantId: ids['esp-a']!, email: 'medico@esp-a.test', displayName: 'Médico', passwordHash: await new PasswordHasher().hash(PASSWORD), personId: e.personId } });
+      await tx.userRole.create({ data: { userId: u.id, roleId: role.id, tenantId: ids['esp-a']!, scope: 'TENANT' } });
+    });
+    tk.med = (await api(app).post('/v1/auth/token').send({ email: 'medico@esp-a.test', password: PASSWORD }).expect(200)).body.accessToken;
+    const now = Date.now();
+    const shift = (await api(app).post('/v1/health/shifts').set(as('admin-a')).send({ unitId: ids.unit, kind: 'DAY', startsAt: new Date(now - 3600_000).toISOString(), endsAt: new Date(now + 5 * 3600_000).toISOString() }).expect(201)).body.ids[0];
+    const later = (await api(app).post('/v1/health/shifts').set(as('admin-a')).send({ unitId: ids.unit, kind: 'DAY', startsAt: new Date(now + 30 * 3600_000).toISOString(), endsAt: new Date(now + 36 * 3600_000).toISOString() }).expect(201)).body.ids[0];
+    const a = (await api(app).post(`/v1/health/shifts/${shift}/assign`).set(as('admin-a')).send({ employmentId: ids.e1 }).expect(201)).body;
+    const b = (await api(app).post(`/v1/health/shifts/${later}/assign`).set(as('admin-a')).send({ employmentId: ids.e1 }).expect(201)).body;
+    const mine = (await api(app).get('/v1/health/shifts/mine').set(as('med')).expect(200)).body;
+    expect(mine.find((x: { id: string }) => x.id === a.id)).toMatchObject({ canCheckIn: true });
+    expect(mine.find((x: { id: string }) => x.id === b.id)).toMatchObject({ canCheckIn: false });
+    await api(app).post(`/v1/health/assignments/${b.id}/check-in`).set(as('med')).expect(400);
+    await api(app).post(`/v1/health/assignments/${a.id}/check-out`).set(as('med')).expect(409);
+    await api(app).post(`/v1/health/assignments/${a.id}/check-in`).set(as('med')).expect(200);
+    await api(app).post(`/v1/health/assignments/${a.id}/check-out`).set(as('med')).expect(200);
+    await api(app).post(`/v1/health/assignments/${a.id}/check-in`).set(as('admin-a')).expect(400); // admin não é o plantonista
+    const rep = (await api(app).post('/v1/reports/plantoes-horas/run').set(as('admin-a')).send({ companyId: ids.co, from: new Date(now - 86_400_000).toISOString().slice(0, 10), to: new Date(now + 3 * 86_400_000).toISOString().slice(0, 10) }).expect(200)).body;
+    expect(rep.rows.find((r: { registration: string }) => r.registration === '1')).toMatchObject({ completed: 1 });
+
+    // Sala: conflito de ocupação no mesmo horário.
+    const room = (await api(app).post('/v1/education/classrooms').set(as('admin-a')).send({ unitId: ids.unit, name: 'Sala 101', capacity: 40 }).expect(201)).body;
+    await api(app).post('/v1/education/classrooms').set(as('admin-a')).send({ unitId: ids.unit, name: 'Sala 101' }).expect(409);
+    const ov = (await api(app).get(`/v1/education?companyId=${ids.co}`).set(as('admin-a')).expect(200)).body;
+    expect(ov.classrooms.map((c: { name: string }) => c.name)).toContain('Sala 101');
+    const asg = ov.classes.flatMap((c: { assignments: Array<{ id: string; teacher: string }> }) => c.assignments);
+    const t1 = asg.find((x: { teacher: string }) => x.teacher === 'Profissional 1');
+    await api(app).post('/v1/education/slots').set(as('admin-a')).send({ assignmentId: t1.id, classroomId: room.id, weekday: 4, startTime: '10:00', endTime: '10:50' }).expect(201);
+    const other = (await api(app).post('/v1/education/assignments').set(as('admin-a')).send({ employmentId: ids.e2, subjectId: ov.subjects.find((x: { name: string }) => x.name === 'Biologia').id, classId: ov.classes.find((c: { name: string }) => c.name === '1º A').id, validFrom: '2026-02-01' }).expect(201)).body;
+    expect((await api(app).post('/v1/education/slots').set(as('admin-a')).send({ assignmentId: other.id, classroomId: room.id, weekday: 4, startTime: '10:30', endTime: '11:20' }).expect(409)).body.message).toMatch(/Sala 101/);
+    // Marcar todas as aulas de uma quinta passada como dadas.
+    const held = (await api(app).post('/v1/education/sessions/hold-all').set(as('admin-a')).send({ companyId: ids.co, date: '2026-03-05' }).expect(200)).body;
+    expect(held.held).toBeGreaterThanOrEqual(1);
+    expect((await api(app).post('/v1/education/sessions/hold-all').set(as('admin-a')).send({ companyId: ids.co, date: '2026-03-05' }).expect(200)).body.held).toBe(0);
+    await api(app).post('/v1/education/sessions/hold-all').set(as('admin-a')).send({ companyId: ids.co, date: '2099-01-01' }).expect(400);
+
+    // Painel de ocorrências.
+    const st = (await api(app).get('/v1/operational/occurrences/stats').set(as('admin-a')).expect(200)).body;
+    expect(st).toMatchObject({ resolved30d: 1 });
+    expect(st.open + st.inProgress).toBeGreaterThanOrEqual(3);
+    expect(st.byType.find((x: { type: string }) => x.type === 'ABSENCE').n).toBe(3);
+  });
 });

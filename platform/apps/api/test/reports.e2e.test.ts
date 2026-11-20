@@ -67,7 +67,7 @@ describe('Relatórios', () => {
   it('catálogo: relatórios por categoria, conforme a permissão, e campos do montador', async () => {
     const c = await api(app).get('/v1/reports').set(as('admin')).expect(200);
     expect(c.body.reports.length).toBeGreaterThanOrEqual(28);
-    expect(new Set(c.body.reports.map((r: { category: string }) => r.category))).toEqual(new Set(['Ponto', 'Movimentações', 'Bancos', 'Cadastros', 'Equipamentos e marcações', 'Segurança']));
+    expect(new Set(c.body.reports.map((r: { category: string }) => r.category))).toEqual(new Set(['Ponto', 'Movimentações', 'Bancos', 'Cadastros', 'Equipamentos e marcações', 'Saúde', 'Educação', 'Operacional', 'Segurança']));
     expect(c.body.builderFields.map((f: { key: string }) => f.key)).toContain('worked');
     await api(app).get('/v1/reports').set(as('func')).expect(403);
   });

@@ -174,7 +174,27 @@ export class ShiftsService {
         where: { employment: { personId: user.personId! }, status: { in: ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS'] }, shift: { deletedAt: null, endsAt: { gt: new Date() } } },
         include: { shift: { include: { unit: { select: { name: true } } } } }, orderBy: { shift: { startsAt: 'asc' } }, take: 60,
       });
-      return list.map((a) => ({ id: a.id, status: a.status, unit: a.shift.unit.name, kind: a.shift.kind, startsAt: a.shift.startsAt, endsAt: a.shift.endsAt }));
+      return list.map((a) => ({ id: a.id, status: a.status, unit: a.shift.unit.name, kind: a.shift.kind, startsAt: a.shift.startsAt, endsAt: a.shift.endsAt, checkInAt: a.checkInAt, checkOutAt: a.checkOutAt, canCheckIn: a.status !== 'IN_PROGRESS' && Date.now() >= a.shift.startsAt.getTime() - 2 * 3600_000 && Date.now() < a.shift.endsAt.getTime(), canCheckOut: a.status === 'IN_PROGRESS' }));
+    });
+  }
+
+  /**
+   * Entrada e saída do próprio plantonista (registro administrativo do plantão; a jornada oficial
+   * continua sendo a marcação de ponto). Entrada a partir de 2 horas antes do início.
+   */
+  async selfCheck(tenantId: string, user: AuthUser, assignmentId: string, kind: 'in' | 'out', meta: RequestMeta) {
+    if (!user.personId) throw new BadRequestException('Seu usuário não está ligado a um profissional');
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      const a = await tx.medicalShiftAssignment.findFirst({ where: { id: assignmentId, employment: { personId: user.personId! } }, include: { shift: true } });
+      if (!a || a.shift.deletedAt) throw new NotFoundException('Plantão não encontrado');
+      const now = new Date();
+      if (kind === 'in') {
+        if (!['SCHEDULED', 'CONFIRMED'].includes(a.status)) throw new ConflictException('Este plantão não está aguardando entrada');
+        if (now.getTime() < a.shift.startsAt.getTime() - 2 * 3600_000 || now >= a.shift.endsAt) throw new BadRequestException('A entrada vale de 2 horas antes do início até o fim do plantão');
+      } else if (a.status !== 'IN_PROGRESS') throw new ConflictException('Registre a entrada antes da saída');
+      const u = await tx.medicalShiftAssignment.update({ where: { id: a.id }, data: kind === 'in' ? { status: 'IN_PROGRESS', checkInAt: now } : { status: 'COMPLETED', checkOutAt: now } });
+      await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'UPDATE', entity: 'medical_shift_assignment', entityId: a.id, after: { selfCheck: kind, at: now }, ...meta });
+      return u;
     });
   }
 }
@@ -192,6 +212,16 @@ export class ShiftsController {
   @Get('shifts/mine')
   @RequirePermission('health.shifts:read')
   mine(@ActiveTenant() t: string, @CurrentUser() u: AuthUser) { return this.svc.mine(t, u); }
+
+  @Post('assignments/:id/check-in')
+  @HttpCode(200)
+  @RequirePermission('health.shifts:read')
+  checkIn(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Param('id', id) aid: string, @RequestInfo() m: RequestMeta) { return this.svc.selfCheck(t, u, aid, 'in', m); }
+
+  @Post('assignments/:id/check-out')
+  @HttpCode(200)
+  @RequirePermission('health.shifts:read')
+  checkOut(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Param('id', id) aid: string, @RequestInfo() m: RequestMeta) { return this.svc.selfCheck(t, u, aid, 'out', m); }
 
   @Post('shifts')
   @RequirePermission('health.shifts:manage')

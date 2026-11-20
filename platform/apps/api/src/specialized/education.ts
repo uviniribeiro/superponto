@@ -20,7 +20,8 @@ export const subjectSchema = z.object({ companyId: z.uuid(), courseId: z.uuid().
 export const periodSchema = z.object({ companyId: z.uuid(), name: z.string().trim().min(2).max(60), startsOn: day, endsOn: day }).refine((p) => p.endsOn > p.startsOn, { message: 'O fim deve ser depois do início', path: ['endsOn'] });
 export const classSchema = z.object({ unitId: z.uuid(), periodId: z.uuid(), courseId: z.uuid().nullable().optional(), name: z.string().trim().min(1).max(60), grade: z.string().trim().max(30).nullable().optional(), shift: z.enum(['MANHA', 'TARDE', 'NOITE', 'INTEGRAL']).nullable().optional() });
 export const assignmentSchema = z.object({ employmentId: z.uuid(), subjectId: z.uuid(), classId: z.uuid(), weeklyLessons: z.number().int().min(1).max(60).nullable().optional(), validFrom: day, validTo: day.nullable().optional() });
-export const slotSchema = z.object({ assignmentId: z.uuid(), weekday: z.number().int().min(0).max(6), startTime: hm, endTime: hm }).refine((s) => toMin(s.endTime) > toMin(s.startTime), { message: 'O fim deve ser depois do início', path: ['endTime'] });
+export const classroomSchema = z.object({ unitId: z.uuid(), name: z.string().trim().min(1).max(60), capacity: z.number().int().min(1).max(1000).nullable().optional() });
+export const slotSchema = z.object({ assignmentId: z.uuid(), classroomId: z.uuid().nullable().optional(), weekday: z.number().int().min(0).max(6), startTime: hm, endTime: hm }).refine((s) => toMin(s.endTime) > toMin(s.startTime), { message: 'O fim deve ser depois do início', path: ['endTime'] });
 export const sessionSchema = z.object({ scheduleId: z.uuid(), date: day, status: z.enum(['HELD', 'NOT_HELD', 'SUBSTITUTED', 'CANCELLED']), substituteEmploymentId: z.uuid().nullable().optional(), notes: z.string().trim().max(300).nullable().optional() })
   .refine((s) => s.status !== 'SUBSTITUTED' || !!s.substituteEmploymentId, { message: 'Informe o professor substituto', path: ['substituteEmploymentId'] });
 
@@ -42,6 +43,8 @@ export class EducationService {
   async overview(tenantId: string, companyId: string) {
     return this.prisma.forTenant(tenantId, async (tx) => {
       await this.company(tx, companyId);
+      const units = (await tx.companyUnit.findMany({ where: { companyId, deletedAt: null }, select: { id: true } })).map((u) => u.id);
+      const classrooms = await tx.classroom.findMany({ where: { unitId: { in: units }, deletedAt: null }, orderBy: { name: 'asc' }, select: { id: true, name: true, capacity: true, unitId: true } });
       const [courses, subjects, calendars] = await Promise.all([
         tx.course.findMany({ where: { companyId, deletedAt: null }, orderBy: { name: 'asc' } }),
         tx.subject.findMany({ where: { companyId, deletedAt: null }, orderBy: { name: 'asc' } }),
@@ -53,7 +56,7 @@ export class EducationService {
         include: { course: { select: { name: true } }, assignments: { include: { employment: PERSON, subject: { select: { name: true } }, slots: { include: { classroom: { select: { name: true } } }, orderBy: [{ weekday: 'asc' }, { startTime: 'asc' }] } } } },
       });
       return {
-        courses, subjects, periods,
+        courses, subjects, periods, classrooms,
         classes: classes.map((c) => ({
           id: c.id, name: c.name, grade: c.grade, shift: c.shift, unitId: c.unitId, periodId: c.periodId, courseId: c.courseId, course: c.course?.name ?? null,
           assignments: c.assignments.filter((a) => !a.validTo || a.validTo >= new Date()).map((a) => ({ id: a.id, employmentId: a.employmentId, teacher: nameOf(a.employment), subjectId: a.subjectId, subject: a.subject.name, weeklyLessons: a.weeklyLessons, slots: a.slots.map((s) => ({ id: s.id, weekday: s.weekday, startTime: s.startTime, endTime: s.endTime, classroom: s.classroom?.name ?? null })) })),
@@ -138,7 +141,14 @@ export class EducationService {
       const mine = await tx.classSchedule.findMany({ where: { weekday: b.weekday, assignment: { employmentId: a.employmentId, OR: [{ validTo: null }, { validTo: { gte: new Date() } }] } }, include: { assignment: { include: { schoolClass: { select: { name: true } } } } } });
       const clash = mine.find((s) => toMin(s.startTime) < toMin(b.endTime) && toMin(b.startTime) < toMin(s.endTime));
       if (clash) throw new ConflictException(`O professor já tem aula das ${clash.startTime} às ${clash.endTime} na turma ${clash.assignment.schoolClass.name}`);
-      const s = await tx.classSchedule.create({ data: { tenantId, ...b } });
+      if (b.classroomId) {
+        const room = await tx.classroom.findFirst({ where: { id: b.classroomId, deletedAt: null } });
+        if (!room) throw new NotFoundException('Sala não encontrada');
+        const used = await tx.classSchedule.findMany({ where: { classroomId: b.classroomId, weekday: b.weekday, assignment: { OR: [{ validTo: null }, { validTo: { gte: new Date() } }] } }, include: { assignment: { include: { schoolClass: { select: { name: true } } } } } });
+        const busy = used.find((x) => toMin(x.startTime) < toMin(b.endTime) && toMin(b.startTime) < toMin(x.endTime));
+        if (busy) throw new ConflictException(`A sala ${room.name} já está ocupada das ${busy.startTime} às ${busy.endTime} (turma ${busy.assignment.schoolClass.name})`);
+      }
+      const s = await tx.classSchedule.create({ data: { tenantId, ...b, classroomId: b.classroomId ?? null } });
       await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'CREATE', entity: 'class_schedule', entityId: s.id, after: b, ...meta });
       return s;
     });
@@ -152,6 +162,40 @@ export class EducationService {
       await tx.classSchedule.delete({ where: { id: slotId } });
       await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'DELETE', entity: 'class_schedule', entityId: slotId, before: s, ...meta });
     });
+  }
+
+  async createClassroom(tenantId: string, user: AuthUser, b: z.infer<typeof classroomSchema>, meta: RequestMeta) {
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      if (!(await tx.companyUnit.findFirst({ where: { id: b.unitId, deletedAt: null } }))) throw new NotFoundException('Unidade não encontrada');
+      if (await tx.classroom.findFirst({ where: { unitId: b.unitId, name: b.name, deletedAt: null } })) throw new ConflictException('Já existe uma sala com esse nome nesta unidade');
+      const c = await tx.classroom.create({ data: { tenantId, ...b, capacity: b.capacity ?? null } });
+      await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'CREATE', entity: 'classroom', entityId: c.id, after: b, ...meta });
+      return c;
+    });
+  }
+
+  /** Grade semanal do professor logado (pelas alocações vigentes). */
+  async mine(tenantId: string, user: AuthUser) {
+    if (!user.personId) return { slots: [] };
+    return this.prisma.forTenant(tenantId, async (tx) => {
+      const slots = await tx.classSchedule.findMany({
+        where: { assignment: { employment: { personId: user.personId! }, OR: [{ validTo: null }, { validTo: { gte: new Date() } }] } },
+        include: { assignment: { include: { subject: { select: { name: true } }, schoolClass: { select: { name: true } } } }, classroom: { select: { name: true } } },
+        orderBy: [{ weekday: 'asc' }, { startTime: 'asc' }],
+      });
+      return { slots: slots.map((s) => ({ id: s.id, weekday: s.weekday, startTime: s.startTime, endTime: s.endTime, subject: s.assignment.subject.name, className: s.assignment.schoolClass.name, classroom: s.classroom?.name ?? null })) };
+    });
+  }
+
+  /** Marca como dadas todas as aulas ainda sem registro no dia. */
+  async holdAll(tenantId: string, user: AuthUser, companyId: string, date: string, meta: RequestMeta) {
+    const lessons = (await this.day(tenantId, companyId, date)).filter((l) => l.status === 'SCHEDULED');
+    if (D(date) > new Date()) throw new BadRequestException('Não dá para registrar aulas de um dia que ainda não chegou');
+    await this.prisma.forTenant(tenantId, async (tx) => {
+      for (const l of lessons) await tx.classSession.create({ data: { tenantId, scheduleId: l.scheduleId, sessionDate: D(date), status: 'HELD' } });
+      await this.audit.record(tx, { tenantId, actorUserId: user.id, action: 'UPDATE', entity: 'class_session_batch', after: { companyId, date, held: lessons.length }, ...meta });
+    });
+    return { held: lessons.length };
   }
 
   /** Aulas previstas no dia (pela grade e vigência da alocação) com o registro já feito. */
@@ -247,6 +291,19 @@ export class EducationController {
   @HttpCode(204)
   @RequirePermission('education.academic:manage')
   removeSlot(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Param('id', id) sid: string, @RequestInfo() m: RequestMeta) { return this.svc.removeSlot(t, u, sid, m); }
+
+  @Post('classrooms')
+  @RequirePermission('education.academic:manage')
+  classroom(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Body({ schema: classroomSchema }) b: z.infer<typeof classroomSchema>, @RequestInfo() m: RequestMeta) { return this.svc.createClassroom(t, u, b, m); }
+
+  @Get('mine')
+  @RequirePermission('education.academic:read')
+  mine(@ActiveTenant() t: string, @CurrentUser() u: AuthUser) { return this.svc.mine(t, u); }
+
+  @Post('sessions/hold-all')
+  @HttpCode(200)
+  @RequirePermission('education.sessions:manage')
+  holdAll(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Body({ schema: z.object({ companyId: z.uuid(), date: day }) }) b: { companyId: string; date: string }, @RequestInfo() m: RequestMeta) { return this.svc.holdAll(t, u, b.companyId, b.date, m); }
 
   @Get('day')
   @RequirePermission('education.academic:read')
