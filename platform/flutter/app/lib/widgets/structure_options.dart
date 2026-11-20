@@ -20,7 +20,7 @@ class StructureOptions {
   static Future<StructureOptions> load(String? companyId) async {
     Future<List<Map<String, dynamic>>> safe(String path, [Map<String, Object?>? q]) async {
       try {
-        return (await api.getList(path, {'pageSize': 500, ...?q})).where((r) => r['active'] != false).toList();
+        return (await api.getList(path, {'pageSize': 200, ...?q})).where((r) => r['active'] != false).toList();
       } catch (_) {
         return const [];
       }

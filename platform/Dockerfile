@@ -2,7 +2,7 @@
 #   docker build --target api   -t superponto/api .
 #   docker build --target web   -t superponto/web .
 #   docker build --target setup -t superponto/setup .   (migrações + seed; usado na versão local)
-#   docker build --target api-dart -t superponto/api-dart .   (mesma API, em Dart: binário nativo)
+#   docker build --target api-dart -t superponto/api-dart .   (API em Dart + app Flutter web na mesma origem)
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
@@ -67,13 +67,26 @@ COPY dart/packages packages
 COPY dart/server server
 RUN mkdir -p /out && dart pub get --offline && dart compile exe server/bin/server.dart -o /out/sp_server
 
+# App Flutter (web), servido pelo próprio servidor Dart (WEB_DIR).
+FROM debian:bookworm-slim AS flutter-web
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git unzip xz-utils && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 --branch 3.50.1 https://github.com/flutter/flutter.git /opt/flutter
+ENV PATH=/opt/flutter/bin:$PATH
+RUN flutter config --no-analytics && flutter precache --web
+WORKDIR /app
+COPY flutter/app/pubspec.yaml flutter/app/pubspec.lock ./
+RUN flutter pub get
+COPY flutter/app ./
+RUN flutter build web --release --no-web-resources-cdn
+
 FROM debian:bookworm-slim AS api-dart
 # libssl3 traz a libcrypto usada no scrypt e no AES-GCM (mesmo formato de senhas e segredos da API em Node).
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 tzdata wget && rm -rf /var/lib/apt/lists/* \
  && useradd --system --uid 10001 superponto
 COPY --from=dart-build /out/sp_server /usr/local/bin/sp_server
+COPY --from=flutter-web /app/build/web /srv/web
 USER superponto
-ENV PORT=3000
+ENV PORT=3000 WEB_DIR=/srv/web
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 CMD wget -qO- http://127.0.0.1:3000/health || exit 1
 CMD ["sp_server"]

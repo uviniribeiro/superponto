@@ -142,7 +142,7 @@ class _MembersEditorState extends State<_MembersEditor> {
               SectionTitle('Cargos (${_pos.length})'),
               Async<List<Map<String, dynamic>>>(
                 reloadToken: companyId,
-                load: () => api.getList('/job-positions', {'companyId': companyId, 'pageSize': 500}),
+                load: () => api.getList('/job-positions', {'companyId': companyId, 'pageSize': 200}),
                 builder: (_, list, _) => _chips(_pos, list, 'Esta empresa não tem cargos cadastrados.'),
               ),
               const SizedBox(height: 14),

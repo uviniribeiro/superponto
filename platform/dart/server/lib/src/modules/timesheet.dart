@@ -1527,7 +1527,7 @@ class TimesheetModule {
     r.group('/v1/approval-flows', tag: 'solicitações', () {
       r.get('', permission: 'requests.requests:read', (ctx) {
         final q = companyQuery.parse(ctx.query);
-        return db.forTenant(ctx.tenant, (tx) => tx.query('SELECT *, request_type::text AS request_type FROM approval_flows WHERE company_id = @c ORDER BY request_type ASC', {'c': q['companyId']}));
+        return db.forTenant(ctx.tenant, (tx) => tx.query('SELECT *, request_type::text AS request_type FROM approval_flows WHERE company_id = @c ORDER BY approval_flows.request_type ASC', {'c': q['companyId']}));
       });
       r.put('', permission: 'requests.flows:manage', (ctx) {
         final input = _flow.parse(ctx.body);

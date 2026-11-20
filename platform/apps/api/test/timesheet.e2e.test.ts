@@ -215,6 +215,8 @@ describe('Ponto, bancos e solicitações', () => {
 
   it('solicitação em dois níveis (superior imediato e RH) aplica a inclusão ao aprovar', async () => {
     await api(app).put('/v1/approval-flows').set(as('admin')).send({ companyId: ids.co1, requestType: 'RECORD_CORRECTION', steps: [{ label: 'Superior imediato', approver: 'SUPERVISOR' }, { label: 'RH', approver: 'PERMISSION' }] }).expect(200);
+    const flows = (await api(app).get(`/v1/approval-flows?companyId=${ids.co1}`).set(as('admin')).expect(200)).body;
+    expect(flows).toEqual([expect.objectContaining({ requestType: 'RECORD_CORRECTION', isActive: true, steps: [expect.objectContaining({ approver: 'SUPERVISOR' }), expect.objectContaining({ approver: 'PERMISSION' })] })]);
     const r = await api(app).post('/v1/requests').set(as('ana')).send({ type: 'RECORD_CORRECTION', refDate: '2026-04-01', payload: { time: '08:00' }, justification: 'Esqueci de marcar a entrada' }).expect(201);
     expect(r.body).toMatchObject({ status: 'PENDING', currentStep: 0, employee: { registration: '100' } });
     await api(app).post(`/v1/requests/${r.body.id}/decide`).set(as('ana')).send({ decision: 'APPROVED' }).expect(403); // o próprio

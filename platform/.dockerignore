@@ -8,3 +8,5 @@ packages/database/src/generated
 **/.next
 **/tsconfig.tsbuildinfo
 local/.env
+**/.dart_tool
+flutter/app/build

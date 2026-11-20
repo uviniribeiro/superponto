@@ -450,7 +450,10 @@ class GlassTable<T> extends StatelessWidget {
                               child: Text(c.label, style: TextStyle(color: t.subtle, fontSize: 12.5)),
                             ),
                             Expanded(
-                              child: DefaultTextStyle.merge(style: const TextStyle(fontSize: 13.5), child: c.cell(r)),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: DefaultTextStyle.merge(style: const TextStyle(fontSize: 13.5), child: c.cell(r)),
+                              ),
                             ),
                           ],
                         ),
@@ -596,9 +599,14 @@ class StatTile extends StatelessWidget {
                   duration: const Duration(milliseconds: 500),
                   curve: Curves.easeOutBack,
                   builder: (_, v, child) => Opacity(opacity: v.clamp(0, 1), child: child),
-                  child: Text(
-                    value,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: t.fg, letterSpacing: -0.5, fontFeatures: const [ui.FontFeature.tabularFigures()]),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: t.fg, letterSpacing: -0.5, fontFeatures: const [ui.FontFeature.tabularFigures()]),
+                    ),
                   ),
                 ),
                 if (hint != null)

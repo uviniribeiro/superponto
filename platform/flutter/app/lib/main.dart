@@ -24,6 +24,11 @@ Future<void> saveThemeMode(ThemeMode m) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Erros de tela também no modo release (aparecem no console do navegador e no log do aparelho).
+  FlutterError.onError = (d) {
+    FlutterError.presentError(d);
+    debugPrint('Erro de tela: ${d.exceptionAsString()}\n${d.stack?.toString().split('\n').take(6).join('\n') ?? ''}');
+  };
   if (kIsWeb) usePathUrlStrategy();
   try {
     final saved = (await SharedPreferences.getInstance()).getString('sp.theme');

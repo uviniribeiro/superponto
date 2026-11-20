@@ -1,17 +1,31 @@
-# superponto_app
+# SuperPonto — app Flutter
 
-SuperPonto — app web, Android, iOS e desktop
+Um código para **web, Android, iOS, Windows, macOS e Linux**, com o visual liquid glass e os mesmos
+tokens de cor e logo da identidade (tema escuro e claro).
 
-## Getting Started
+## Rodar
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run -d chrome --dart-define=API_URL=http://localhost:3000
+```
 
-A few resources to get you started if this is your first Flutter project:
+- **Web**: por padrão usa a mesma origem que serviu o app. Em produção o servidor Dart serve o build
+  (`flutter build web --release --no-web-resources-cdn`) apontando `WEB_DIR` para `build/web`.
+- **Apps nativos**: o endereço da API vem do build (`--dart-define=API_URL=https://...`); na tela de login
+  dá para trocar o servidor.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Estrutura
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- `lib/core`: cliente da API (Bearer + refresh rotativo, organização ativa), tokens do tema, vidro, logo,
+  formatação brasileira, CSV.
+- `lib/shell`: casco (barra lateral/gaveta) e menu por permissões.
+- `lib/pages`: as 52 telas (mesmos caminhos da versão web).
+- `assets/content`: manual e conformidade (gerados a partir de `apps/web/src/content`).
+
+## Verificar
+
+```bash
+flutter analyze --fatal-infos
+flutter test
+```

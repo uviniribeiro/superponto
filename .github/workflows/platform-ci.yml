@@ -113,3 +113,29 @@ jobs:
       - name: Binário nativo do servidor
         working-directory: platform/dart/server
         run: dart compile exe bin/server.dart -o build/sp_server
+
+  flutter-app:
+    name: App Flutter (web, Android, iOS e desktop)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/flutter/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.50.1
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Análise (sem avisos)
+        run: flutter analyze --fatal-infos
+      - name: Testes
+        run: flutter test
+      - name: Build web
+        run: flutter build web --release --no-web-resources-cdn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: superponto-web
+          path: platform/flutter/app/build/web
+          retention-days: 7

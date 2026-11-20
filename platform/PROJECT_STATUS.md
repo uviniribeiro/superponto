@@ -1,6 +1,6 @@
 # SuperPonto v2 — Situação do projeto
 
-Atualizado em 15/11/2026 (fases 7, 8 e 9 da análise Átomo concluídas; sem integração com Átomo/Velti por decisão do cliente). A v1 (raiz do repositório) segue em produção; a v2 é construída em
+Atualizado em 20/11/2026 (servidor reescrito em Dart e telas reescritas em Flutter, com visual liquid glass; sem integração com Átomo/Velti por decisão do cliente). A v1 (raiz do repositório) segue em produção; a v2 é construída em
 `platform/` e substitui a v1 na fase 10.
 
 ## Fases
@@ -17,6 +17,19 @@ Atualizado em 15/11/2026 (fases 7, 8 e 9 da análise Átomo concluídas; sem int
 | 8. SaaS e SuperAdmin | Planos, assinaturas, limites | **Concluída** — planos com limites, assinatura por cliente, suspensão; cobrança automática depende do meio de pagamento |
 | 9. Testes e homologação | Ampliação contínua | 212+ testes de API, motor, protocolos e agente na CI |
 | 10. Produção | Docker, servidores, migração da v1, virada | **Pronta para executar** — migração v1→v2 testada (`node dist/migrate-v1.js`), roteiro em `VIRADA.md` |
+
+## Dart e Flutter (20/11/2026)
+
+- **Servidor em Dart** (`dart/server`): mesma API da versão Node, validada pelos mesmos 215 testes de contrato
+  (rodam contra os dois servidores na CI). Binário nativo; serve também o app web na mesma origem (`WEB_DIR`).
+- **App Flutter** (`flutter/app`): substitui as telas Next.js nas 52 páginas, com login, recuperação de senha,
+  MFA e o mesmo menu por permissões. Um código só para web, Android, iOS, Windows, macOS e Linux; visual
+  liquid glass (vidro fosco com desfoque, borda luminosa e fundo animado) com os mesmos tokens de cor e o
+  mesmo logo da identidade. Verificado no navegador: todas as telas abrem sem erro de tela ou de API, como
+  administrador e como funcionário, no computador e no celular.
+- **Publicação**: tag `platform-vX.Y.Z` → imagem `ghcr.io/<dono>/superponto-v2` (API + app web) e os apps
+  Android (APK), Windows, macOS, Linux e iOS (sem assinatura) anexados à release
+  (`.github/workflows/platform-release.yml`). A App Store/Play Store exigem as contas e certificados da empresa.
 
 ## O que já funciona (verificado por testes)
 

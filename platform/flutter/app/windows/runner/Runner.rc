@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "br.com.superponto" "\0"
-            VALUE "FileDescription", "superponto_app" "\0"
+            VALUE "FileDescription", "SuperPonto" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "superponto_app" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 br.com.superponto. All rights reserved." "\0"
             VALUE "OriginalFilename", "superponto_app.exe" "\0"
-            VALUE "ProductName", "superponto_app" "\0"
+            VALUE "ProductName", "SuperPonto" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

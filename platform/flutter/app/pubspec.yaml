@@ -58,6 +58,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -121,3 +122,23 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  image_path: assets/icon/icon_full.png
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FCC419"
+  adaptive_icon_foreground: assets/icon/icon_full.png
+  web:
+    generate: true
+    image_path: assets/icon/icon.png
+    background_color: "#07080A"
+    theme_color: "#FCC419"
+  windows:
+    generate: true
+    image_path: assets/icon/icon.png
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: assets/icon/icon.png

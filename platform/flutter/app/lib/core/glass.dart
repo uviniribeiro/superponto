@@ -158,8 +158,9 @@ class _RimPainter extends CustomPainter {
     // brilho especular no topo
     canvas.save();
     canvas.clipRRect(rr);
+    final shine = Rect.fromLTWH(0, 0, size.width, math.min(70, size.height * 0.5));
     canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, math.min(60, size.height * 0.5)),
+      shine,
       Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
@@ -168,7 +169,7 @@ class _RimPainter extends CustomPainter {
             Colors.white.withValues(alpha: t.dark ? 0.05 : 0.25),
             Colors.white.withValues(alpha: 0),
           ],
-        ).createShader(rect),
+        ).createShader(shine),
     );
     canvas.restore();
   }

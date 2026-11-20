@@ -1,11 +1,11 @@
 {
-    "name": "superponto_app",
-    "short_name": "superponto_app",
+    "name": "SuperPonto",
+    "short_name": "SuperPonto",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "SuperPonto — app web, Android, iOS e desktop",
+    "background_color": "#07080A",
+    "theme_color": "#FCC419",
+    "description": "Gestão de ponto, jornadas e escalas.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
