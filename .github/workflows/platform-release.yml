@@ -1,13 +1,18 @@
 name: SuperPonto v2 — publicação
 
-# Publica a v2 com uma tag platform-vX.Y.Z (as tags v* continuam sendo da v1).
+# Publica a v2 com uma tag platform-vX.Y.Z (as tags v* continuam sendo da v1), ou manualmente em
+# Actions → "SuperPonto v2 — publicação" → Run workflow informando a versão (a release cria a tag).
 on:
   push:
     tags: ['platform-v*']
   workflow_dispatch:
     inputs:
+      version:
+        description: 'Versão a publicar (ex. 2.0.0); cria a release e a tag platform-v<versão>'
+        required: true
+        default: '2.0.0'
       api_url:
-        description: Endereço público da API para os apps nativos (ex.: https://ponto.suaempresa.com.br)
+        description: 'Endereço público da API para os apps nativos (ex. https://ponto.suaempresa.com.br)'
         required: false
         default: ''
 
@@ -19,6 +24,8 @@ env:
   FLUTTER_VERSION: 3.50.1
   # Os apps nativos recebem o endereço do servidor no build (o usuário ainda pode trocar na tela de login).
   API_URL: ${{ inputs.api_url || vars.SUPERPONTO_API_URL || '' }}
+  # Nome da versão: a tag (push) ou platform-v<versão informada> (manual).
+  RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || format('platform-v{0}', inputs.version) }}
 
 jobs:
   image:
@@ -35,8 +42,8 @@ jobs:
       - id: meta
         run: |
           owner=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
-          ver=${GITHUB_REF_NAME#platform-v}
-          [ "$GITHUB_REF_TYPE" = tag ] || ver=dev-${GITHUB_SHA::7}
+          ver=${RELEASE_TAG#platform-v}
+          [ "$ver" != "" ] || ver=dev-${GITHUB_SHA::7}
           echo "image=ghcr.io/${owner}/superponto-v2" >> "$GITHUB_OUTPUT"
           echo "version=${ver}" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v6
@@ -139,7 +146,7 @@ jobs:
 
   release:
     name: Release no GitHub
-    if: github.ref_type == 'tag'
+    if: github.ref_type == 'tag' || inputs.version != ''
     needs: [image, android, linux, windows, apple]
     runs-on: ubuntu-latest
     steps:
@@ -149,12 +156,14 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          name: SuperPonto ${{ github.ref_name }}
+          name: SuperPonto ${{ env.RELEASE_TAG }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
           prerelease: false
           files: dist/*
           body: |
             SuperPonto v2 — servidor em Dart e app Flutter (web, Android, iOS, Windows, macOS e Linux).
 
-            Imagem do servidor (API + app web na mesma origem): `ghcr.io/${{ github.repository_owner }}/superponto-v2:${{ github.ref_name }}` (sem o prefixo "platform-v" na tag da imagem).
+            Imagem do servidor (API + app web na mesma origem): `ghcr.io/${{ github.repository_owner }}/superponto-v2:${{ env.RELEASE_TAG }}` (sem o prefixo "platform-v" na tag da imagem).
 
             O app de iOS vai sem assinatura: a publicação na App Store exige o certificado da conta Apple da empresa.
