@@ -15,7 +15,7 @@ import { appendFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 
 const MGMT = 'https://api.supabase.com/v1';
-const env = (name, fallback = '') => (process.env[name] ?? fallback).trim();
+const env = (name, fallback = '') => (process.env[name]?.trim() || fallback);
 const ref = env('SUPABASE_PROJECT_REF');
 const token = env('SUPABASE_ACCESS_TOKEN');
 // SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY permitem usar o comando admin com outra instância (ex.: VPS).
