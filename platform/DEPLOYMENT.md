@@ -87,3 +87,17 @@ Edge Functions no Supabase e o site na Vercel (`superponto.vercel.app`). Nada di
    `V2_SSH_KEY` (e `COMM_SSH_*`), variáveis `V2_DEPLOY_ENABLED=true` (e `COMM_DEPLOY_ENABLED=true`).
 4. A partir daí, cada publicação da v2 ("SuperPonto v2 — publicação") atualiza os servidores pelo
    workflow "SuperPonto v2 — servidores". A migração dos dados segue o roteiro do VIRADA.md.
+
+## v2 na Vercel (publicação automática, sem GitHub Actions)
+
+O projeto `superponto-v2` da Vercel está ligado ao repositório (diretório raiz `platform`). A cada push
+na `main` que altere `platform/`, a própria Vercel roda `scripts/vercel-v2-ci.mjs`:
+pacotes e API → migrações e seed da v2 → Flutter web → `.vercel/output` (app + API na mesma origem).
+
+- Banco: mesmo projeto Supabase da v1, esquema `superponto`. As migrações usam o papel
+  `superponto_migrator` (dono só do esquema da v2); a API usa `superponto_api` (sujeito às regras).
+- Variáveis do projeto na Vercel: `DATABASE_URL`, `MIGRATION_DATABASE_URL`, `JWT_SECRET`,
+  `MFA_ENCRYPTION_KEY`, `BIOMETRIC_ENCRYPTION_KEY`, `SECRETS_ENCRYPTION_KEY`, `APP_URL`, `API_URL`.
+- E-mail da v2: defina `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e `MAIL_FROM` nas variáveis
+  do projeto `superponto-v2` (Vercel → Settings → Environment Variables).
+- A v1 (`superponto`) também é publicada pela própria Vercel a cada push.
