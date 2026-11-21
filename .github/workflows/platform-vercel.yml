@@ -1,0 +1,148 @@
+name: SuperPonto v2 — Vercel
+
+# Publica a v2 na Vercel a cada alteração da v2 na main, num projeto separado ("superponto-v2"):
+# o site da v1 (superponto.vercel.app, workflow "Publicar sistema") continua igual.
+#  1. banco: migrações da v2 no mesmo projeto Supabase, esquema "superponto" (fechado à API pública)
+#  2. app Flutter web + API (Node, a mesma dos testes de contrato) como função, na mesma origem
+on:
+  push:
+    branches: [main]
+    paths: ['platform/**', '.github/workflows/platform-vercel.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-v2-vercel
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF || secrets.EXT_SUPABASE_PROJECT_REF }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN || secrets.EXT_SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD || secrets.EXT_SUPABASE_DB_PASSWORD }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  V2_PROJECT: ${{ vars.V2_VERCEL_PROJECT || 'superponto-v2' }}
+  V2_SITE_URL: ${{ vars.V2_SITE_URL || 'https://superponto-v2.vercel.app' }}
+  SUPER_ADMIN_EMAIL: ${{ vars.SUPER_ADMIN_EMAIL || 'viniciusacacio1@gmail.com' }}
+  FLUTTER_VERSION: 3.50.1
+
+jobs:
+  deploy:
+    name: Publicar v2 na Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir configuração
+        id: check
+        working-directory: .
+        run: |
+          missing=""
+          for v in SUPABASE_PROJECT_REF SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD VERCEL_TOKEN; do [ -n "${!v}" ] || missing="$missing $v"; done
+          if [ -n "$missing" ]; then echo "::warning::v2 na Vercel aguardando os secrets:$missing"; echo "ready=false" >> "$GITHUB_OUTPUT"; else echo "ready=true" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
+
+      - name: Dependências e build da API
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build -w @superponto/br-docs
+          npm run build -w @superponto/time-engine
+          npm run build -w @superponto/rep-protocols
+          npm run build -w @superponto/database
+          npm run build -w @superponto/api
+
+      - name: Conexão com o banco e chaves
+        if: steps.check.outputs.ready == 'true'
+        run: node scripts/supabase-v2-env.mjs
+
+      - name: Banco da v2 (migrações, papel da API, Super Admin)
+        if: steps.check.outputs.ready == 'true'
+        env:
+          SEED_ADMIN_EMAIL: ${{ env.SUPER_ADMIN_EMAIL }}
+        run: node scripts/local-setup.mjs
+
+      - uses: subosito/flutter-action@v2
+        if: steps.check.outputs.ready == 'true'
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: App Flutter (web)
+        if: steps.check.outputs.ready == 'true'
+        working-directory: platform/flutter/app
+        run: |
+          flutter pub get
+          flutter build web --release
+
+      - name: Saída para a Vercel
+        if: steps.check.outputs.ready == 'true'
+        run: node scripts/vercel-v2-build.mjs
+
+      - name: Publicar na Vercel
+        id: vercel
+        if: steps.check.outputs.ready == 'true'
+        env:
+          VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT || secrets.SMTP_PORT || '587' }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_SENDER_EMAIL: ${{ vars.SMTP_SENDER_EMAIL || secrets.SMTP_SENDER_EMAIL }}
+          SMTP_SENDER_NAME: ${{ vars.SMTP_SENDER_NAME || secrets.SMTP_SENDER_NAME || 'SuperPonto' }}
+          COMM_SERVER_TOKEN: ${{ secrets.COMM_SERVER_TOKEN }}
+        run: |
+          user_code=$(curl -s -o /dev/null -w '%{http_code}' https://api.vercel.com/v2/user -H "Authorization: Bearer $VERCEL_TOKEN")
+          teams=$(curl -s https://api.vercel.com/v2/teams -H "Authorization: Bearer $VERCEL_TOKEN" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{console.log((JSON.parse(d).teams||[]).map(t=>t.slug).join(' '))}catch{console.log('')}})")
+          scope="${VERCEL_SCOPE:-}"
+          if [ -z "$scope" ] && [ "$user_code" != "200" ]; then scope="${teams%% *}"; fi
+          V="npx -y vercel@65 --token $VERCEL_TOKEN ${scope:+--scope $scope}"
+          $V project add "$V2_PROJECT" >/dev/null 2>&1 || true
+          $V link --yes --project "$V2_PROJECT" >/dev/null
+          mail=()
+          if [ -n "$SMTP_HOST" ] && [ -n "$SMTP_SENDER_EMAIL" ]; then
+            mail=(-e MAIL_TRANSPORT=smtp -e "SMTP_HOST=$SMTP_HOST" -e "SMTP_PORT=$SMTP_PORT" -e "SMTP_USER=$SMTP_USER" -e "SMTP_PASS=$SMTP_PASS" -e "MAIL_FROM=$SMTP_SENDER_NAME <$SMTP_SENDER_EMAIL>" -e "SUPPORT_EMAIL=$SMTP_SENDER_EMAIL")
+          else
+            echo "::warning::v2 sem SMTP (defina SMTP_HOST e SMTP_SENDER_EMAIL): os e-mails da v2 não saem."
+            mail=(-e MAIL_TRANSPORT=smtp -e SMTP_HOST=127.0.0.1)
+          fi
+          comm=()
+          [ -n "$COMM_SERVER_TOKEN" ] && comm=(-e "COMM_SERVER_TOKEN=$COMM_SERVER_TOKEN")
+          url=$($V deploy --prebuilt --prod --yes \
+            -e NODE_ENV=production -e "DATABASE_URL=$DATABASE_URL" -e "APP_URL=$V2_SITE_URL" -e "API_URL=$V2_SITE_URL" \
+            -e "JWT_SECRET=$JWT_SECRET" -e "MFA_ENCRYPTION_KEY=$MFA_ENCRYPTION_KEY" \
+            -e "BIOMETRIC_ENCRYPTION_KEY=$BIOMETRIC_ENCRYPTION_KEY" -e "SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY" \
+            "${mail[@]}" "${comm[@]}")
+          echo "Implantação: $url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Conferir no ar
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          for i in $(seq 1 12); do
+            body=$(curl -s "$V2_SITE_URL/health" || true)
+            echo "$body" | grep -q '"database":"ok"' && { echo "v2 no ar: $V2_SITE_URL ($body)"; exit 0; }
+            sleep 5
+          done
+          echo "::error::A v2 não respondeu em $V2_SITE_URL/health (última resposta: ${body:-vazia})"; exit 1
+
+      - name: Resumo
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          {
+            echo "### SuperPonto v2 publicado na Vercel"
+            echo "- Endereço: $V2_SITE_URL"
+            echo "- Implantação: ${{ steps.vercel.outputs.url }}"
+            echo "- Super Admin: $SUPER_ADMIN_EMAIL (primeiro acesso por \"Esqueci minha senha\")"
+          } >> "$GITHUB_STEP_SUMMARY"

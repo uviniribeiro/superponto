@@ -22,6 +22,8 @@ permissions:
 
 env:
   FLUTTER_VERSION: 3.50.1
+  # Não guardar o registro do build do Docker como artefato (ele quebrava o download na release).
+  DOCKER_BUILD_RECORD_UPLOAD: false
   # Os apps nativos recebem o endereço do servidor no build (o usuário ainda pode trocar na tela de login).
   API_URL: ${{ inputs.api_url || vars.SUPERPONTO_API_URL || '' }}
   # Nome da versão: a tag (push) ou platform-v<versão informada> (manual).
@@ -164,6 +166,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          # Só os apps (o build do Docker deixa um artefato próprio, *.dockerbuild, que não vai na release).
+          pattern: '{android,linux,windows,apple}'
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
