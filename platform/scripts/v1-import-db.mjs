@@ -17,27 +17,19 @@ if (!url || !['dry', 'apply'].includes(mode ?? '')) {
 }
 const { importV1 } = await import(path.join(root, 'apps/api/dist/migration/v1-import.js'));
 
-const TABLES = [
-  ['public', 'companies'], ['public', 'company_settings'], ['public', 'departments'], ['public', 'employee_types'],
-  ['public', 'georeferenced_locations'], ['public', 'job_functions'], ['public', 'justifications'], ['public', 'positions'],
-  ['public', 'profiles'], ['public', 'time_clock_equipment'], ['public', 'time_records'], ['public', 'user_roles'],
-];
+// A v1 tem RLS por empresa: a leitura é feita pela função v1_export.dump() (SECURITY DEFINER, só leitura,
+// executável apenas pelo papel superponto_migrator), criada só durante a migração e removida depois.
+const AUTH_TABLES = new Set(['users']);
 const plain = (() => { const u = new URL(url); u.searchParams.delete('schema'); return u.toString(); })();
 const client = new pg.Client({ connectionString: plain });
 await client.connect();
-const tables = [];
+let dump;
 try {
-  for (const [schema, name] of TABLES) {
-    const r = await client.query(`SELECT coalesce(json_agg(t), '[]'::json) AS rows FROM ${schema}.${name} t`);
-    tables.push({ schema, name, rows: r.rows[0].rows });
-  }
-  const users = await client.query(
-    `SELECT coalesce(json_agg(t), '[]'::json) AS rows FROM (SELECT id, email, encrypted_password, last_sign_in_at, banned_until, created_at FROM auth.users) t`,
-  );
-  tables.push({ schema: 'auth', name: 'users', rows: users.rows[0].rows });
+  dump = (await client.query('SELECT v1_export.dump() AS d')).rows[0].d;
 } finally {
   await client.end();
 }
+const tables = Object.entries(dump).map(([name, rows]) => ({ schema: AUTH_TABLES.has(name) ? 'auth' : 'public', name, rows }));
 console.log(`v1 lida: ${tables.map((t) => `${t.schema}.${t.name}=${t.rows.length}`).join(', ')}`);
 
 const db = createPrismaClient(url);
