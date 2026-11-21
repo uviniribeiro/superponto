@@ -11,6 +11,11 @@ on:
         description: 'Versão a publicar (ex. 2.0.0); cria a release e a tag platform-v<versão>'
         required: true
         default: '2.0.0'
+      apple:
+        description: 'Gerar também macOS e iOS (o runner de Mac gasta 10x mais minutos do GitHub Actions)'
+        type: boolean
+        required: false
+        default: false
       api_url:
         description: 'Endereço público da API para os apps nativos (ex. https://ponto.suaempresa.com.br)'
         required: false
@@ -135,6 +140,8 @@ jobs:
 
   apple:
     name: macOS e iOS (sem assinatura)
+    # Na tag sempre; na execução manual só quando marcado (economiza minutos do GitHub Actions).
+    if: github.ref_type == 'tag' || inputs.apple
     runs-on: macos-latest
     defaults:
       run:
@@ -159,7 +166,7 @@ jobs:
 
   release:
     name: Release no GitHub
-    if: github.ref_type == 'tag' || inputs.version != ''
+    if: ${{ !failure() && !cancelled() && (github.ref_type == 'tag' || inputs.version != '') }}
     needs: [image, android, linux, windows, apple]
     runs-on: ubuntu-latest
     steps:
