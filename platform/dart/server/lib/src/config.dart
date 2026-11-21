@@ -31,6 +31,23 @@ class AppConfig {
   late final String mailFrom = _env['MAIL_FROM'] ?? 'SuperPonto <nao-responda@superponto.local>';
   late final List<String> corsOrigins = [appUrl, ...(_env['CORS_ORIGINS'] ?? '').split(',').map((o) => o.trim()).where((o) => o.isNotEmpty)];
 
+  /// Segredo compartilhado com o servidor de comunicação de equipamentos (repositório separado).
+  /// Definido: /v1/agent/* só aceita o cabeçalho X-Comm-Token igual a ele. Vazio: modo direto.
+  late final String? commServerToken = _optMin('COMM_SERVER_TOKEN', 32);
+
+  /// Compara em tempo constante; sem token configurado, aceita (modo direto).
+  bool commTokenOk(String? token) {
+    final expected = commServerToken;
+    if (expected == null) return true;
+    final a = utf8.encode(token ?? ''), b = utf8.encode(expected);
+    if (a.length != b.length) return false;
+    var diff = 0;
+    for (var i = 0; i < a.length; i++) {
+      diff |= a[i] ^ b[i];
+    }
+    return diff == 0;
+  }
+
   /// Somente testes: grava cada e-mail (memória) neste arquivo JSONL, para os testes de contrato lerem.
   late final String? mailOutboxFile = _env['MAIL_OUTBOX_FILE'];
 
@@ -57,6 +74,7 @@ class AppConfig {
       c.mailTransport,
       c.smtpPort,
       c.corsOrigins,
+      c.commServerToken,
     ];
     for (final key in [c.biometricEncryptionKey, c.secretsEncryptionKey]) {
       if (key != null && _b64Length(key) != 32) throw ConfigError('chaves de cifra precisam ter 32 bytes em base64');

@@ -10,7 +10,6 @@ COPY packages/br-docs/package.json packages/br-docs/
 COPY packages/database/package.json packages/database/
 COPY packages/rep-protocols/package.json packages/rep-protocols/
 COPY packages/time-engine/package.json packages/time-engine/
-COPY apps/agent/package.json apps/agent/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 RUN npm ci --no-audit --no-fund

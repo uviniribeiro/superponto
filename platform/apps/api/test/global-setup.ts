@@ -68,6 +68,7 @@ async function startDart(databaseUrl: string): Promise<() => Promise<void>> {
       SECRETS_ENCRYPTION_KEY: Buffer.alloc(32, 5).toString('base64'),
       LDAP_ALLOW_PRIVATE_HOSTS: process.env.TEST_LDAP_ALLOW_PRIVATE ?? 'true',
       MAIL_TRANSPORT: 'memory', MAIL_OUTBOX_FILE: outbox, RATE_LIMIT: 'off',
+      COMM_SERVER_TOKEN: 'teste-token-do-servidor-de-comunicacao-0123456789',
     },
   });
   process.env.DART_API_URL = `http://127.0.0.1:${port}`;

@@ -30,8 +30,8 @@ bruto). A conversão para marcação ou evento de acesso acontece na API, por re
 
 | Fabricante | Protocolo conhecido (v1) | Adaptador v2 | Situação |
 |---|---|---|---|
-| Control iD (iDClass, iDFlex, REP iDX) | REST JSON (`/login.fcgi`, `/load_objects.fcgi`) | `apps/agent` driver `controlid` | pronto no agente; homologação em REP real pendente |
-| Henry (Primme Acesso, Argos, Prisma 8.x) | Protocolo de gerenciamento 8x: TCP porta 3000, quadro 0x02 + tamanho (word LE) + `II+CMD+VV+dados` + XOR + 0x03 | `apps/agent` driver `henry` + `packages/rep-protocols/src/henry.ts` | pronto no agente; homologação em equipamento real pendente |
+| Control iD (iDClass, iDFlex, REP iDX) | REST JSON (`/login.fcgi`, `/load_objects.fcgi`) | agente (`superponto-communication-server/agent`) driver `controlid` | pronto no agente; homologação em REP real pendente |
+| Henry (Primme Acesso, Argos, Prisma 8.x) | Protocolo de gerenciamento 8x: TCP porta 3000, quadro 0x02 + tamanho (word LE) + `II+CMD+VV+dados` + XOR + 0x03 | agente driver `henry` + `packages/rep-protocols/src/henry.ts` | pronto no agente; homologação em equipamento real pendente |
 | Henry REP certificado (Hexa/Prisma REP) | a confirmar se usa o mesmo protocolo 8x | — | depende de documentação/equipamento |
 | ZKTeco / Rep iX | TCP/UDP 4370 | `zkteco` | a portar |
 | Topdata (Inner Rep) | TCP binário STX/ETX, porta 3570 | `topdata-tcp` | a portar |
@@ -82,14 +82,31 @@ só tem 14 dígitos). O adaptador Control iD (`controlIdRequests`) traduz cada c
 - Envio de foto para reconhecimento facial exige finalidade registrada, consentimento/base legal
   e política de retenção configurada por empresa.
 
-## Agente local (`apps/agent`)
+## Servidor de comunicação e agente local (repositório separado)
 
-Programa Node.js instalado na rede do cliente (serviço do Windows ou systemd). Faz só conexões de
-saída: para o relógio e para a API (`/v1/agent/*`, chave `spd_` no cabeçalho `X-Device-Key`). Ciclo:
-batimento (recebe leiaute, endereço e intervalo de coleta) → fila de comandos → resultado → coleta
-agendada do AFD a partir do último NSR guardado em arquivo. Drivers: `controlid` (API local `*.fcgi`,
-sessão com novo login quando expira, certificado autoassinado aceito só para o relógio) e
-`henry` (protocolo 8x por TCP, um comando por conexão, resposta casada pelo índice, eventos online REON ignorados, coleta `RR T]lote]início` convertida em linhas tipo 3 do AFD com NSR = id do evento) e `simulator`. Testado com um relógio Control iD falso (HTTP), um equipamento Henry falso (TCP) e uma API falsa; ver `apps/agent/README.md`.
+Toda a comunicação com equipamentos fica no repositório **`superponto-communication-server`**
+(Dart), que roda em um servidor diferente do sistema:
+
+- **Agente local** (`agent/`): executável nativo (Windows, Linux, macOS) instalado na rede do cliente.
+  Faz só conexões de saída: para o relógio e para o servidor de comunicação (`/v1/agent/*`, chave
+  `spd_` no cabeçalho `X-Device-Key`). Ciclo: batimento (recebe leiaute, endereço e intervalo de
+  coleta) → fila de comandos → resultado → coleta agendada do AFD a partir do último NSR guardado em
+  arquivo. Drivers: `controlid` (API local `*.fcgi`, novo login quando a sessão expira, certificado
+  autoassinado aceito só para o relógio), `henry` (protocolo 8x por TCP, um comando por conexão,
+  resposta casada pelo índice, eventos online REON ignorados, coleta `RR T]lote]início` convertida em
+  linhas tipo 3 do AFD com NSR = id do evento) e `simulator`.
+- **Servidor de comunicação** (`server/`): recebe todos os agentes e repassa ao sistema com o
+  cabeçalho `X-Comm-Token`. Com o sistema fora do ar, responde ao batimento com a última
+  configuração, devolve fila de comandos vazia e guarda resultados/AFD numa fila em disco, entregue
+  na ordem quando o sistema volta (o que o sistema recusar vai para a quarentena).
+- **No sistema**: com `COMM_SERVER_TOKEN` definido, `/v1/agent/*` só aceita chamadas com
+  `X-Comm-Token` igual (comparação em tempo constante); sem ele, 401 "Use o servidor de comunicação".
+  O limite de requisições dessas rotas passa a ser por equipamento (todas chegam do mesmo IP). Sem a
+  variável, o sistema aceita o agente direto (instalação local e testes).
+
+Testes: relógio Control iD falso (HTTP), equipamento Henry falso (TCP), sistema falso e um teste ponta
+a ponta com o servidor Dart real (agente → servidor de comunicação → sistema, incluindo queda e volta
+do sistema com entrega da fila).
 
 **Fonte do protocolo Henry:** planilha do fabricante "Protocolo Primme Acesso 8.0.0.50 e Argos" publicada no repositório público github.com/juliolvfilho/henry-php (biblioteca PHP para catracas Henry, sem licença declarada). Usamos apenas a especificação (formato do quadro, comandos, códigos de erro); nenhum código desse repositório foi copiado.
 

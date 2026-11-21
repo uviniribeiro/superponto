@@ -402,6 +402,7 @@ class DevicesModule {
 
   // ------------------------------------------------------------------ agente local
   Future<Row> _agentAuth(Ctx ctx) async {
+    if (!app.config.commTokenOk(ctx.header('x-comm-token'))) throw unauthorized('Use o servidor de comunicação para falar com o sistema');
     final key = ctx.header('x-device-key');
     if (key == null || !key.startsWith('spd_') || key.length > 100) throw unauthorized('Chave do equipamento ausente ou inválida');
     final d = await db.asPlatform((tx) => tx.one('SELECT id, tenant_id, status::text AS status FROM devices WHERE agent_key_hash = @h AND deleted_at IS NULL', {'h': sha256Hex(utf8.encode(key))}));

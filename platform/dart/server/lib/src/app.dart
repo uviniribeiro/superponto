@@ -109,7 +109,11 @@ class App {
     if (route == null) {
       throw HttpError(404, 'Cannot ${request.method} $path');
     }
-    final ip = request.context['sp.ip'] as String? ?? '';
+    var ip = request.context['sp.ip'] as String? ?? '';
+    // Tudo que vem do servidor de comunicação chega do mesmo IP: o limite passa a ser por equipamento.
+    if (config.commServerToken != null && path.startsWith('/v1/agent/') && config.commTokenOk(request.headers['x-comm-token'])) {
+      ip = 'equip:${request.headers['x-device-key'] ?? ''}';
+    }
     if (config.rateLimit) {
       if (!limiter.allow('g:$ip', 300) || (route.throttle != null && !limiter.allow('${route.method}${route.path}:$ip', route.throttle!))) {
         throw HttpError.body(429, {'statusCode': 429, 'message': 'ThrottlerException: Too Many Requests'});

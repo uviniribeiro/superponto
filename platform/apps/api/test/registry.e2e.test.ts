@@ -6,7 +6,7 @@ import { createPrismaClient } from '@superponto/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DeviceMonitor } from '../src/devices/registry.js';
 import type { MailService } from '../src/mail/mail.service.js';
-import { api, createApp, hook, ownerUrl } from './helpers.js';
+import { api, COMM_TOKEN, createApp, hook, ownerUrl } from './helpers.js';
 
 const PASSWORD = 'Senha-Muito-Forte-2026';
 const owner = createPrismaClient(ownerUrl);
@@ -16,7 +16,7 @@ const tk: Record<string, string> = {};
 const ids: Record<string, string> = {};
 let key = '';
 const as = (who: string) => ({ Authorization: `Bearer ${tk[who]}` });
-const agent = () => ({ 'X-Device-Key': key });
+const agent = () => ({ 'X-Device-Key': key, 'X-Comm-Token': COMM_TOKEN });
 const L = (v: string | number, n: number) => String(v).padStart(n, '0').slice(-n);
 const R = (v: string, n: number) => v.padEnd(n, ' ').slice(0, n);
 const MARIA = { cpf: '52998224725', pis: '12056462127' };
@@ -73,9 +73,13 @@ describe('Equipamentos: cadastro, agente local, alertas, AFD e AEJ', () => {
 
   it('agente: sem chave é recusado; com a chave, o contato deixa o equipamento online', async () => {
     await api(app).post('/v1/agent/heartbeat').send({}).expect(401);
-    await api(app).post('/v1/agent/heartbeat').set({ 'X-Device-Key': 'spd_invalida' }).send({}).expect(401);
+    await api(app).post('/v1/agent/heartbeat').set({ 'X-Device-Key': 'spd_invalida', 'X-Comm-Token': COMM_TOKEN }).send({}).expect(401);
     key = (await api(app).post(`/v1/devices/${ids.dev}/agent-key`).set(as('admin')).expect(200)).body.key;
     expect(key).toMatch(/^spd_/);
+    // Só o servidor de comunicação fala com o sistema: sem o segredo dele, mesmo a chave certa é recusada.
+    const direct = await api(app).post('/v1/agent/heartbeat').set({ 'X-Device-Key': key }).send({}).expect(401);
+    expect(direct.body.message).toMatch(/servidor de comunicação/);
+    await api(app).get('/v1/agent/jobs').set({ 'X-Device-Key': key, 'X-Comm-Token': 'x'.repeat(50) }).expect(401);
     const hb = await api(app).post('/v1/agent/heartbeat').set(agent()).send({ firmware: '1.2.3' }).expect(200);
     expect(hb.body.ok).toBe(true);
     expect(hb.body.device).toMatchObject({ layout: expect.stringMatching(/^(1510|671)$/), collectIntervalMinutes: expect.any(Number) });

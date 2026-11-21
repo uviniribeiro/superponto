@@ -7,7 +7,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { normalizeCnpj } from '@superponto/br-docs';
 import { repName, validateEmployer, workerIdFor } from '@superponto/rep-protocols';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import type { AuthUser } from '../auth/auth-user.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -320,7 +320,15 @@ export class DeviceMonitor implements OnApplicationBootstrap, OnApplicationShutd
 @Injectable()
 export class AgentService {
   private readonly log = new Logger('Agente');
-  constructor(private readonly prisma: PrismaService, private readonly devices: DevicesService, private readonly biometrics: BiometricsService, private readonly audit: AuditService, private readonly monitor: DeviceMonitor) {}
+  constructor(private readonly prisma: PrismaService, private readonly devices: DevicesService, private readonly biometrics: BiometricsService, private readonly audit: AuditService, private readonly monitor: DeviceMonitor, @Inject(APP_CONFIG) private readonly config: AppConfig) {}
+
+  /** Com COMM_SERVER_TOKEN definido, só o servidor de comunicação fala com estas rotas. */
+  requireCommServer(token: string | undefined) {
+    const expected = this.config.COMM_SERVER_TOKEN;
+    if (!expected) return;
+    const a = Buffer.from(token ?? ''), b = Buffer.from(expected);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) throw new UnauthorizedException('Use o servidor de comunicação para falar com o sistema');
+  }
 
   async auth(key: string | undefined) {
     if (!key || !key.startsWith('spd_') || key.length > 100) throw new UnauthorizedException('Chave do equipamento ausente ou inválida');
@@ -518,19 +526,19 @@ export class AgentController {
   @Post('heartbeat')
   @HttpCode(200)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  heartbeat(@Headers('x-device-key') key: string | undefined, @Body({ schema: heartbeatSchema }) b: z.infer<typeof heartbeatSchema>) { return this.svc.heartbeat(key, b); }
+  heartbeat(@Headers('x-comm-token') comm: string | undefined, @Headers('x-device-key') key: string | undefined, @Body({ schema: heartbeatSchema }) b: z.infer<typeof heartbeatSchema>) { this.svc.requireCommServer(comm); return this.svc.heartbeat(key, b); }
 
   @Get('jobs')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  jobs(@Headers('x-device-key') key: string | undefined) { return this.svc.pull(key); }
+  jobs(@Headers('x-comm-token') comm: string | undefined, @Headers('x-device-key') key: string | undefined) { this.svc.requireCommServer(comm); return this.svc.pull(key); }
 
   @Post('jobs/:id/result')
   @HttpCode(200)
   @Throttle({ default: { limit: 600, ttl: 60_000 } })
-  result(@Headers('x-device-key') key: string | undefined, @Param('id', { schema: idSchema }) id: string, @Body({ schema: resultSchema }) b: ResultInput) { return this.svc.result(key, id, b); }
+  result(@Headers('x-comm-token') comm: string | undefined, @Headers('x-device-key') key: string | undefined, @Param('id', { schema: idSchema }) id: string, @Body({ schema: resultSchema }) b: ResultInput) { this.svc.requireCommServer(comm); return this.svc.result(key, id, b); }
 
   @Post('afd')
   @HttpCode(200)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  afd(@Headers('x-device-key') key: string | undefined, @Body({ schema: z.object({ content: z.string().min(10).max(20_000_000) }) }) b: { content: string }) { return this.svc.pushAfd(key, b.content); }
+  afd(@Headers('x-comm-token') comm: string | undefined, @Headers('x-device-key') key: string | undefined, @Body({ schema: z.object({ content: z.string().min(10).max(20_000_000) }) }) b: { content: string }) { this.svc.requireCommServer(comm); return this.svc.pushAfd(key, b.content); }
 }

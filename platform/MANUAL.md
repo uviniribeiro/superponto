@@ -391,13 +391,13 @@ Arquivos: importar o AFD tirado pelo pendrive (reimportar não duplica) e baixar
 
 **Para:** TI
 
-O agente local é o programa instalado num computador da rede do cliente, perto dos relógios. Ele conversa com o relógio e com o SuperPonto pela internet (HTTPS), sem abrir portas na rede do cliente.
+O agente local é o programa instalado num computador da rede do cliente, perto dos relógios. Ele conversa com o relógio e, pela internet (HTTPS), com o servidor de comunicação de equipamentos, que é um servidor separado do sistema: só ele repassa ao SuperPonto (com um segredo compartilhado) e guarda os registros numa fila em disco se o sistema estiver fora do ar. Nenhuma porta é aberta na rede do cliente.
 
 Na aba "Agente local" do equipamento, gere a chave e informe-a no agente. A chave aparece uma única vez (o SuperPonto guarda só uma impressão dela); gerar outra desliga a anterior. Equipamento desativado ou excluído perde o acesso.
 
 O agente avisa que está vivo, busca a fila de comandos (já com os dados prontos para o relógio: empregador, PIS ou CPF conforme a portaria, nome e digitais), devolve o resultado de cada comando e envia os registros coletados (AFD) no intervalo de coleta.
 
-O programa do agente (pasta apps/agent) roda em Windows (como serviço) ou Linux (systemd), com um arquivo de configuração que traz o endereço da API, a chave de cada relógio e o usuário e a senha do relógio (que nunca saem da rede do cliente). Ele lembra o último NSR enviado para não reenviar marcações e, em falha de rede, tenta de novo esperando 15 s, 30 s, 1 min… até 5 min.
+O agente e o servidor de comunicação ficam no repositório superponto-communication-server. O agente é um executável para Windows (como serviço), Linux (systemd) e macOS, com um arquivo de configuração que traz o endereço do servidor de comunicação, a chave de cada relógio e o usuário e a senha do relógio (que nunca saem da rede do cliente). Ele lembra o último NSR enviado para não reenviar marcações e, em falha de rede, tenta de novo esperando 15 s, 30 s, 1 min… até 5 min.
 
 Fabricantes: Control iD (REP iDClass e linha iDAccess/iDFlex/iDFace) pela API local do equipamento, Henry pelo protocolo de gerenciamento 8x (Primme Acesso, Argos e linha Prisma 8.x, porta 3000) e um relógio simulado para testar a instalação. No Control iD, hora e coleta de AFD seguem a documentação do fabricante; empregador, lista e cadastro de usuários e digitais no REP iDClass estão com homologação pendente em equipamento real. O driver Henry foi feito pela especificação do fabricante e também aguarda homologação; equipamento de acesso Henry não é REP certificado (para ponto, exige acordo coletivo). Topdata, Biomtech, Dahua e RW ainda não têm driver.
 

@@ -32,6 +32,12 @@ const schema = z.object({
   SMTP_PASS: z.string().optional(),
   MAIL_FROM: z.string().default('SuperPonto <nao-responda@superponto.local>'),
   CORS_ORIGINS: z.string().default(''),
+  /**
+   * Segredo compartilhado com o servidor de comunicação de equipamentos (repositório separado).
+   * Definido: as rotas /v1/agent/* só aceitam chamadas com o cabeçalho X-Comm-Token igual a ele.
+   * Vazio: modo direto (agente fala com o sistema), útil em instalação local.
+   */
+  COMM_SERVER_TOKEN: z.string().min(32, 'COMM_SERVER_TOKEN precisa de ao menos 32 caracteres').optional(),
 });
 
 export type AppConfig = z.infer<typeof schema>;

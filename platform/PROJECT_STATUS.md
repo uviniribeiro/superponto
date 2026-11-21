@@ -13,7 +13,7 @@ Atualizado em 20/11/2026 (servidor reescrito em Dart e telas reescritas em Flutt
 | 4. Módulos especializados | Educação, saúde, operacional | **Concluída (versão básica)** — plantões com cobertura e trocas; turmas, grade e aulas; ocorrências com histórico |
 | 5. Controle de ponto | Marcações, apuração, banco de horas, solicitações, relatórios | **Concluída** — 38 relatórios, ciência do espelho, AEJ e AFD do REP-P com NSR |
 | 6. Equipamentos | Cadastro, adaptadores, sincronização, homologação | **Concluída no software** — agente local com drivers Control iD e Henry; homologação em equipamento real pendente |
-| 7. Communication Server | Serviço de comunicação com os relógios | **Substituído pelo agente local** (`apps/agent`), que roda na rede do cliente só com conexões de saída |
+| 7. Communication Server | Serviço de comunicação com os relógios | **Separado** no repositório `superponto-communication-server` (Dart): servidor de comunicação com fila em disco + agente local na rede do cliente. O sistema só aceita agentes vindos dele (`COMM_SERVER_TOKEN`) |
 | 8. SaaS e SuperAdmin | Planos, assinaturas, limites | **Concluída** — planos com limites, assinatura por cliente, suspensão; cobrança automática depende do meio de pagamento |
 | 9. Testes e homologação | Ampliação contínua | 212+ testes de API, motor, protocolos e agente na CI |
 | 10. Produção | Docker, servidores, migração da v1, virada | **Pronta para executar** — migração v1→v2 testada (`node dist/migrate-v1.js`), roteiro em `VIRADA.md` |

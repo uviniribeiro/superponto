@@ -42,7 +42,7 @@ DATABASE_URL='...' node dist/migrate-v1.js /caminho/lovable-backup.json --apply
 - **Jornadas**: recriar os horários em Jornada › Horários e atribuir aos funcionários (a v1 tinha 2).
 - **Feriados**: a v2 gera os nacionais, estaduais e municipais sozinha; cadastre só os da empresa.
 - **Planos**: definir o plano de cada cliente em Plataforma › Clientes › Plano (as licenças da v1 não migram).
-- **Equipamentos**: gerar a chave do agente em cada relógio e instalar o agente local (`apps/agent`).
+- **Equipamentos**: subir o servidor de comunicação (repositório `superponto-communication-server`) com o mesmo `COMM_SERVER_TOKEN` do sistema, gerar a chave do agente em cada relógio e instalar o agente local apontando para o servidor de comunicação.
 - **REP-P**: informar o número do programa no INPI em Ponto › Fechamento.
 - **Fotos e logos**: reenviar o logo da empresa em Empresas (as fotos de marcação da v1 ficam no backup).
 

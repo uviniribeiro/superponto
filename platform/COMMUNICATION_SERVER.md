@@ -1,83 +1,51 @@
-# SuperPonto Communication Server
+# Servidor de comunicação de equipamentos
 
-Produto técnico independente, instalado em servidor próprio (IPv4 público ou domínio próprio),
-responsável por toda a comunicação com relógios de ponto, leitores e controladores de acesso.
-Status: **projeto (fase 7)**. Substituirá o robô atual em Python (`public/downloads/pontomax-agent.py`).
-
-## Responsabilidades
-
-- Receber conexões dos equipamentos (modo push) e conectar-se a eles (modo pull).
-- Interpretar protocolos por **adaptador** (um por fabricante/modelo/firmware).
-- Receber marcações e eventos de acesso; enviar funcionários, identificadores, data/hora e configurações.
-- Guardar eventos em **fila local persistente** enquanto o servidor principal estiver indisponível.
-- Encaminhar tudo à API principal com idempotência e confirmação.
-- **Não** hospeda nem acessa o PostgreSQL principal.
-
-## Arquitetura interna
+A comunicação com relógios de ponto e catracas é um **produto separado**, no repositório
+[`superponto-communication-server`](https://github.com/uviniribeiro/superponto-communication-server),
+e roda em um **servidor diferente** do sistema SuperPonto.
 
 ```
- equipamentos ──► listeners (TCP/UDP/HTTP por adaptador) ──► normalizador ──► fila local (SQLite WAL)
-                                                                                    │
- API principal ◄── uplink (HTTPS, lotes, retentativa com backoff) ◄─────────────────┘
-       │
-       └─► downlink: comandos (sincronizar funcionários, acertar hora, coletar) ──► executor ──► adaptador
+ rede do cliente                 servidor de comunicação                 sistema SuperPonto
+ relógios ── agente local ──HTTPS──► sp-comm (fila em disco) ──HTTPS + X-Comm-Token──► API + banco
 ```
 
-- **Node.js 22 + TypeScript**; serviços NestJS standalone (sem HTTP público além dos listeners).
-- **Fila local**: SQLite em modo WAL (sobrevive a reinício e queda de energia; sem dependência
-  externa obrigatória). Redis/BullMQ opcional para alto volume.
-- **Adaptadores** implementam a interface `DeviceAdapter` (ver DEVICE_INTEGRATIONS.md).
-- **Docker** (imagem única), com volume persistente para fila e logs.
+| Peça | Onde | O que faz |
+|---|---|---|
+| Agente local | rede do cliente | fala com os relógios (Control iD, Henry 8x, simulador); só conexões de saída |
+| Servidor de comunicação | VPS própria | recebe os agentes, repassa ao sistema, guarda em fila quando o sistema cai |
+| Sistema (este repositório) | VPS principal | cadastro, comandos, importação de AFD, telas; não fala com relógios |
 
-## Segurança
+O servidor de comunicação **não acessa o banco de dados**: conversa com o sistema só pelas rotas
+`/v1/agent/*` da API.
 
-1. Cadastro no SuperPonto principal (menu **Servidores de Comunicação**) gera `keyId` + segredo
-   (exibido uma vez; o banco guarda só o hash).
-2. O servidor assina cada requisição (HMAC-SHA256 de método, caminho, data e corpo) e troca a
-   assinatura por um **token de curta duração** (15 min) com escopo nas empresas/unidades autorizadas.
-3. TLS obrigatório; certificado de cliente (mTLS) opcional por servidor.
-4. A API valida que cada evento pertence a um equipamento associado àquele servidor.
-5. Credenciais dos equipamentos chegam cifradas e nunca aparecem no frontend.
+## Ligando os dois servidores
 
-## Contrato com a API (resumo)
+1. Gere um segredo: `openssl rand -base64 48`.
+2. No sistema: defina `COMM_SERVER_TOKEN=<segredo>` (API Dart ou Node). A partir daí `/v1/agent/*`
+   recusa (401) qualquer chamada sem o cabeçalho `X-Comm-Token` igual.
+3. No servidor de comunicação: `SYSTEM_URL=https://<sistema>` e o mesmo `COMM_SERVER_TOKEN`.
+4. Nos agentes: `commUrl` (ou `SUPERPONTO_COMM_URL`) com o endereço do servidor de comunicação.
 
-| Endpoint | Uso |
-|---|---|
-| `POST /v1/comm/auth/token` | troca assinatura HMAC por token curto |
-| `POST /v1/comm/heartbeat` | versão, uptime, equipamentos conectados, tamanho da fila |
-| `POST /v1/comm/events` | lote `{ batchId, items[] }` de eventos; resposta por item: `accepted`, `duplicate` ou `rejected` (com motivo) |
-| `GET /v1/comm/commands` | comandos pendentes para os equipamentos deste servidor |
-| `POST /v1/comm/commands/:id/result` | resultado da execução |
-| `GET /v1/comm/devices` | equipamentos associados e configuração |
+Sem `COMM_SERVER_TOKEN` no sistema, o agente pode falar direto com a API (instalação local e testes).
 
-Idempotência: `UNIQUE(server_id, batch_id)` no lote e `(device_id, kind, nsr, occurred_at)` no evento.
-Um lote reenviado após timeout devolve o mesmo resultado, sem duplicar marcações.
+## Contrato (rotas que o servidor de comunicação repassa)
 
-## Funcionamento offline
+| Rota | Autenticação | Uso |
+|---|---|---|
+| `POST /v1/agent/heartbeat` | `X-Device-Key` + `X-Comm-Token` | batimento; devolve leiaute, fuso, endereço e intervalo de coleta |
+| `GET /v1/agent/jobs` | idem | até 50 comandos da fila, já com os dados prontos para o relógio |
+| `POST /v1/agent/jobs/:id/result` | idem | resultado do comando (com dados lidos do relógio, quando houver) |
+| `POST /v1/agent/afd` | idem | AFD coletado; NSR repetido é ignorado (idempotente) |
 
-1. Evento recebido → gravado na fila local antes de responder ao equipamento.
-2. Sem conexão com a API → acumula; métricas expõem o tamanho da fila.
-3. Conexão restabelecida → envio em lotes por ordem de chegada; só remove da fila o item confirmado
-   (`accepted` ou `duplicate`). `rejected` vai para quarentena visível no painel, nunca é descartado
-   silenciosamente.
+Comando que ficou "em execução" por mais de 15 minutos volta para a fila; um resultado atrasado
+entregue depois recebe 409 e é descartado pelo servidor de comunicação.
 
-## Equipamentos sem acesso direto à internet
+## Funcionamento com o sistema fora do ar
 
-O mesmo binário roda em **modo gateway** dentro da rede do cliente, conectando-se para fora (túnel
-de saída) ao Communication Server, ou diretamente à API, com sua própria credencial. Alternativas:
-VPN site-a-site ou redirecionamento de porta restrito ao IP do servidor.
+- Batimento: responde com a última configuração conhecida (`degraded: true`).
+- Fila de comandos: vazia.
+- Resultados e AFD: gravados em disco (um arquivo por item, escrita atômica) e entregues na ordem de
+  chegada quando o sistema volta. Só equipamentos já aceitos pelo sistema usam a fila; há limite de
+  tamanho; itens recusados vão para a quarentena com o motivo.
 
-## Painel no SuperPonto principal
-
-Cadastro (nome, identificador, IP, domínio, porta, protocolo, empresas e unidades autorizadas),
-credenciais, equipamentos associados, status, última comunicação, eventos recebidos/pendentes,
-falhas, histórico e versão instalada.
-
-## Instalação (planejada)
-
-```bash
-docker run -d --name superponto-comm --restart unless-stopped \
-  -v /srv/superponto-comm:/data -p 3000:3000 -p 3570:3570 -p 4370:4370/udp \
-  -e SUPERPONTO_API_URL=https://api.seu-dominio -e SUPERPONTO_KEY_ID=... -e SUPERPONTO_SECRET=... \
-  ghcr.io/superponto/communication-server:VERSAO
-```
+Instalação, variáveis e publicação: ver o README do repositório de comunicação.

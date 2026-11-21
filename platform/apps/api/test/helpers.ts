@@ -12,6 +12,9 @@ import { HTTP_FETCH } from '../src/lookup/lookup.service.js';
 export const appUrl = (process.env.TEST_APP_DATABASE_URL ?? 'postgresql://superponto_api_test:api@127.0.0.1:55432/superponto_test');
 export const ownerUrl = (process.env.TEST_OWNER_DATABASE_URL ?? 'postgresql://postgres:dev@127.0.0.1:55432/superponto_test');
 
+/** Segredo do servidor de comunicação nos testes (as rotas do agente exigem X-Comm-Token). */
+export const COMM_TOKEN = 'teste-token-do-servidor-de-comunicacao-0123456789';
+
 export function testConfig(): AppConfig {
   return loadConfig({
     NODE_ENV: 'test',
@@ -24,6 +27,7 @@ export function testConfig(): AppConfig {
     SECRETS_ENCRYPTION_KEY: Buffer.alloc(32, 5).toString('base64'),
     LDAP_ALLOW_PRIVATE_HOSTS: process.env.TEST_LDAP_ALLOW_PRIVATE ?? 'true',
     MAIL_TRANSPORT: 'memory',
+    COMM_SERVER_TOKEN: COMM_TOKEN,
   } as NodeJS.ProcessEnv);
 }
 

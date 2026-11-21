@@ -59,3 +59,15 @@ Testado de ponta a ponta: contagens conferidas, API subindo no banco novo e logi
 - CI (`.github/workflows/platform-ci.yml`): build, typecheck e testes com PostgreSQL real a cada push.
 - Deploy contínuo da v2 entra junto com o app web (fase 2): build da imagem, `db-setup.sh` em staging,
   promoção para produção com backup antes da migração.
+
+## Servidor de comunicação de equipamentos (servidor separado)
+
+Os relógios não falam com o sistema: o agente local de cada cliente fala com o **servidor de
+comunicação** (repositório `superponto-communication-server`), que repassa ao sistema. Para ligar:
+
+1. Gere um segredo: `openssl rand -base64 48`.
+2. Neste servidor, defina `COMM_SERVER_TOKEN=<segredo>` no contêiner da API. Com ele definido, as rotas
+   `/v1/agent/*` só aceitam chamadas vindas do servidor de comunicação.
+3. No servidor de comunicação, use `SYSTEM_URL=https://<este sistema>` e o mesmo `COMM_SERVER_TOKEN`.
+
+Detalhes em [COMMUNICATION_SERVER.md](COMMUNICATION_SERVER.md).
