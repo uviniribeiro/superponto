@@ -35,6 +35,7 @@ const app = path.join(root, 'flutter/app');
 const env = { ...process.env, FLUTTER_SUPPRESS_ANALYTICS: 'true', PUB_CACHE: path.join(process.env.HOME || '/tmp', '.pub-cache') };
 sh(`${flutter} config --no-analytics --enable-web`, { env });
 sh(`${flutter} pub get`, { cwd: app, env });
-sh(`${flutter} build web --release`, { cwd: app, env });
+// Motor gráfico (CanvasKit) publicado junto com o app: não depende do CDN do Google (redes de empresa costumam bloquear).
+sh(`${flutter} build web --release --no-web-resources-cdn`, { cwd: app, env });
 
 sh('node scripts/vercel-v2-build.mjs');
