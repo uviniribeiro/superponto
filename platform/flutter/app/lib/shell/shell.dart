@@ -7,7 +7,6 @@ import '../core/glass.dart';
 import '../core/logo.dart';
 import '../core/tokens.dart';
 import '../main.dart' show saveThemeMode, themeMode;
-import '../widgets/ui.dart';
 import 'nav.dart';
 
 class AppShell extends StatefulWidget {
@@ -27,8 +26,7 @@ class _AppShellState extends State<AppShell> {
     final me = api.me!;
     final sections = buildNav(me);
     final wide = MediaQuery.sizeOf(context).width >= 1024;
-    final needsTenant = me.isPlatformAdmin && api.activeTenant == null && !_platformOnly(widget.location);
-    final content = needsTenant ? const _ChooseTenant() : KeyedSubtree(key: ValueKey('${api.activeTenant}'), child: widget.child);
+    final content = KeyedSubtree(key: ValueKey('${api.activeTenant}'), child: widget.child);
     final page = AnimatedSwitcher(
       duration: const Duration(milliseconds: 260),
       switchInCurve: Curves.easeOutCubic,
@@ -75,22 +73,6 @@ class _AppShellState extends State<AppShell> {
       ),
     );
   }
-
-  bool _platformOnly(String loc) =>
-      loc.startsWith('/plataforma') || loc.startsWith('/minha-conta') || loc.startsWith('/manual') || loc.startsWith('/conformidade') || loc.startsWith('/ferramentas/ajuda');
-}
-
-class _ChooseTenant extends StatelessWidget {
-  const _ChooseTenant();
-  @override
-  Widget build(BuildContext context) => const Center(
-    child: Padding(
-      padding: EdgeInsets.all(24),
-      child: Glass(
-        child: EmptyState(icon: Icons.apartment_rounded, title: 'Escolha a organização', body: 'Como equipe da plataforma, escolha no topo qual cliente você está administrando.'),
-      ),
-    ),
-  );
 }
 
 class _TopBar extends StatelessWidget {
@@ -111,7 +93,7 @@ class _TopBar extends StatelessWidget {
             const LogoMark(size: 30),
           ],
           const Spacer(),
-          if (me.isPlatformAdmin) const Flexible(child: TenantPicker()),
+          if (me.isPlatformAdmin) Pill('Super Admin', color: t.brand),
           const SizedBox(width: 8),
           ValueListenableBuilder(
             valueListenable: themeMode,
@@ -175,62 +157,6 @@ class _TopBar extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Organização ativa (equipe da plataforma).
-class TenantPicker extends StatefulWidget {
-  const TenantPicker({super.key});
-  @override
-  State<TenantPicker> createState() => _TenantPickerState();
-}
-
-class _TenantPickerState extends State<TenantPicker> {
-  late final Future<List<Map<String, dynamic>>> _f = api.getList('/platform/tenants', {'pageSize': 100});
-  @override
-  Widget build(BuildContext context) => FutureBuilder(
-    future: _f,
-    builder: (context, s) {
-      final list = s.data ?? const [];
-      final t = context.sp;
-      final current = api.activeTenant;
-      if (s.hasData && current != null && !list.any((e) => e['id'] == current)) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => api.selectTenant(null));
-      }
-      return ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 280),
-        child: Glass(
-          radius: 999,
-          padding: const EdgeInsets.only(left: 14, right: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.apartment_rounded, size: 18, color: t.brand),
-              const SizedBox(width: 8),
-              Flexible(
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    value: list.any((e) => e['id'] == current) ? current : null,
-                    hint: const Text('Escolha a organização…', overflow: TextOverflow.ellipsis),
-                    dropdownColor: t.surfaceStrong,
-                    borderRadius: BorderRadius.circular(16),
-                    items: [
-                      for (final e in list)
-                        DropdownMenuItem(
-                          value: e['id'] as String,
-                          child: Text('${e['name']}', overflow: TextOverflow.ellipsis),
-                        ),
-                    ],
-                    onChanged: (v) => api.selectTenant(v),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
 }
 
 class _Sidebar extends StatelessWidget {

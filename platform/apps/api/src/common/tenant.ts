@@ -1,19 +1,16 @@
-import { BadRequestException, ForbiddenException, createParamDecorator, type ExecutionContext } from '@nestjs/common';
+import { ForbiddenException, createParamDecorator, type ExecutionContext } from '@nestjs/common';
 import { z } from 'zod';
 import type { AuthUser } from '../auth/auth-user.js';
 
-const uuid = z.uuid();
+export const PLATFORM_NO_TENANT_DATA = 'O Super Admin usa só o painel da plataforma e não acessa dados de clientes. Para atender um cliente, entre com o usuário de suporte dele.';
 
 /**
- * Tenant ativo da requisição: o do usuário; SuperAdmin escolhe com o cabeçalho X-Tenant-Id.
- * Usuário comum nunca troca de tenant (o cabeçalho é ignorado para ele).
+ * Tenant ativo da requisição: sempre o do próprio usuário — cada cliente só enxerga os próprios dados.
+ * O cabeçalho X-Tenant-Id é ignorado, e o Super Admin (que não pertence a cliente nenhum) não acessa
+ * dados de clientes: ele usa só as rotas /v1/platform.
  */
-export function resolveTenant(user: AuthUser, header: string | undefined): string {
-  if (user.isPlatformAdmin) {
-    if (!header) throw new BadRequestException('Informe o cabeçalho X-Tenant-Id');
-    if (!uuid.safeParse(header).success) throw new BadRequestException('X-Tenant-Id inválido');
-    return header;
-  }
+export function resolveTenant(user: AuthUser, _header: string | undefined): string {
+  if (user.isPlatformAdmin) throw new ForbiddenException(PLATFORM_NO_TENANT_DATA);
   if (!user.tenantId) throw new ForbiddenException('Usuário sem organização vinculada');
   return user.tenantId;
 }

@@ -78,6 +78,7 @@ final Map<String, PageBuilder> pageRoutes = {
   '/plano': (_, _) => const PlanUsagePage(),
   '/usuarios/aparelhos': (_, _) => const AppDevicesAdminPage(),
   '/usuarios/ldap': (_, _) => const LdapPage(),
+  '/plataforma': (_, _) => const PlatformHomePage(),
   '/plataforma/clientes': (_, _) => const TenantsPage(),
   '/plataforma/planos': (_, _) => const PlansPage(),
   '/minha-conta': (_, _) => const AccountPage(),

@@ -40,6 +40,10 @@ Future<void> main() async {
 
 const _public = ['/login', '/forgot-password', '/reset-password'];
 
+/// Telas que o Super Admin usa: as da plataforma, a própria conta e a ajuda.
+bool platformAllowed(String loc) =>
+    loc.startsWith('/plataforma') || loc.startsWith('/minha-conta') || loc.startsWith('/manual') || loc.startsWith('/conformidade');
+
 final router = GoRouter(
   refreshListenable: api,
   initialLocation: '/',
@@ -56,8 +60,8 @@ final router = GoRouter(
     if (!api.signedIn && !isPublic) return '/login${loc == '/' ? '' : '?next=${Uri.encodeComponent(state.uri.toString())}'}';
     if (api.signedIn && loc == '/login') return '/';
     if (api.signedIn && api.me!.mustChangePassword && loc != '/minha-conta') return '/minha-conta';
-    // Super Admin sem cliente escolhido: o início dele é o painel da plataforma.
-    if (api.signedIn && loc == '/' && api.me!.isPlatformAdmin && api.activeTenant == null) return '/plataforma/clientes';
+    // Super Admin: só o painel da plataforma (não abre telas nem dados de clientes).
+    if (api.signedIn && api.me!.isPlatformAdmin && !platformAllowed(loc)) return '/plataforma';
     return null;
   },
   routes: [

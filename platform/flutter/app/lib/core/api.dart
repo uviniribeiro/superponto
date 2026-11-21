@@ -45,7 +45,7 @@ class Api extends ChangeNotifier {
   static final Api instance = Api._();
 
   String baseUrl = defaultApiUrl();
-  String? _access, _refresh, _tenant;
+  String? _access, _refresh;
   Me? me;
   bool ready = false;
 
@@ -59,7 +59,8 @@ class Api extends ChangeNotifier {
 
   /// Há login salvo, mas o servidor não respondeu ao abrir (sem rede).
   bool get waitingNetwork => offline && me == null && _refresh != null;
-  String? get activeTenant => me?.isPlatformAdmin == true ? _tenant : me?.tenantId;
+  /// Cliente ativo: sempre o do próprio usuário (o Super Admin não entra em cliente nenhum).
+  String? get activeTenant => me?.tenantId;
   bool can(String p) => me?.can(p) ?? false;
 
   Future<void> init() async {
@@ -68,7 +69,7 @@ class Api extends ChangeNotifier {
       const fromBuild = String.fromEnvironment('API_URL');
       if (!kIsWeb && fromBuild.isEmpty) baseUrl = _prefs!.getString('sp.server') ?? baseUrl;
       _refresh = _prefs!.getString('sp.refresh');
-      _tenant = _prefs!.getString('sp.tenant');
+      await _prefs!.remove('sp.tenant'); // escolha de cliente pelo Super Admin não existe mais
     } catch (_) {}
     await reconnect();
   }
@@ -92,16 +93,6 @@ class Api extends ChangeNotifier {
   Future<void> setServer(String url) async {
     baseUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
     await _prefs?.setString('sp.server', baseUrl);
-    notifyListeners();
-  }
-
-  Future<void> selectTenant(String? id) async {
-    _tenant = id;
-    if (id == null) {
-      await _prefs?.remove('sp.tenant');
-    } else {
-      await _prefs?.setString('sp.tenant', id);
-    }
     notifyListeners();
   }
 
@@ -135,7 +126,6 @@ class Api extends ChangeNotifier {
 
   Future<void> loadMe() async {
     me = Me((await get('/auth/me')) as Map<String, dynamic>);
-    if (!me!.isPlatformAdmin) _tenant = null;
     notifyListeners();
   }
 
@@ -210,7 +200,6 @@ class Api extends ChangeNotifier {
   Map<String, String> _headers({bool json = true}) => {
     if (json) 'content-type': 'application/json',
     if (_access != null) 'authorization': 'Bearer $_access',
-    if (activeTenant != null && me?.isPlatformAdmin == true) 'x-tenant-id': activeTenant!,
   };
 
   Future<http.Response> _raw(String method, Uri u, {Object? body, bool auth = true}) async {

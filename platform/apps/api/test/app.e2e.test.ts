@@ -132,9 +132,10 @@ describe('SuperPonto API — autenticação, multi-tenant, permissões e auditor
     expect(res.body.total).toBe(0);
   });
 
-  it('SuperAdmin acessa um cliente escolhendo-o pelo cabeçalho', async () => {
-    const res = await api(app).get('/v1/companies').set(as(PLATFORM)).set('X-Tenant-Id', tenants['cliente-a']!).expect(200);
-    expect(res.body.data.map((c: { id: string }) => c.id)).toEqual([companyA]);
+  it('Super Admin não acessa dados de clientes (usa só o painel da plataforma)', async () => {
+    const res = await api(app).get('/v1/companies').set(as(PLATFORM)).set('X-Tenant-Id', tenants['cliente-a']!).expect(403);
+    expect(res.body.message).toMatch(/painel da plataforma/);
+    await api(app).get('/v1/employees').set(as(PLATFORM)).expect(403);
   });
 
   it('funcionário não cadastra empresa (403) — permissão validada na API', async () => {

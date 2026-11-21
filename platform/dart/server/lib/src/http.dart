@@ -75,14 +75,12 @@ class Ctx {
   String? get userAgent => header('user-agent');
   Map<String, Object?> get meta => {'ip': ip, 'userAgent': userAgent};
 
-  /// Cliente ativo: o do usuário; SuperAdmin escolhe com o cabeçalho X-Tenant-Id.
+  /// Cliente ativo: sempre o do próprio usuário — cada cliente só enxerga os próprios dados. O cabeçalho
+  /// X-Tenant-Id é ignorado e o Super Admin (sem cliente) não acessa dados de clientes: usa só /v1/platform.
   String get tenant {
     final u = user;
     if (u.isPlatformAdmin) {
-      final h = header('x-tenant-id');
-      if (h == null || h.isEmpty) throw badRequest('Informe o cabeçalho X-Tenant-Id');
-      if (!isUuid(h)) throw badRequest('X-Tenant-Id inválido');
-      return h;
+      throw forbidden('O Super Admin usa só o painel da plataforma e não acessa dados de clientes. Para atender um cliente, entre com o usuário de suporte dele.');
     }
     if (u.tenantId == null) throw forbidden('Usuário sem organização vinculada');
     return u.tenantId!;

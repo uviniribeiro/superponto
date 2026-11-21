@@ -30,6 +30,18 @@ List<NavSection> buildNav(Me me) {
 
   NavItem? when(bool c, NavItem i) => c ? i : null;
 
+  // Super Admin: tela própria, só com as ferramentas da plataforma (como o painel do super admin da v1).
+  if (me.isPlatformAdmin) {
+    add('Plataforma', [
+      const NavItem('Painel', '/plataforma', Icons.admin_panel_settings_rounded),
+      const NavItem('Clientes', '/plataforma/clientes', Icons.verified_user_rounded),
+      const NavItem('Planos', '/plataforma/planos', Icons.layers_rounded),
+    ]);
+    add('Conta', [const NavItem('Minha conta', '/minha-conta', Icons.person_rounded)]);
+    add('Ajuda', [const NavItem('Manual', '/manual', Icons.menu_book_rounded), const NavItem('Conformidade MTE', '/conformidade', Icons.balance_rounded)]);
+    return out;
+  }
+
   add('Principal', [const NavItem('Visão geral', '/', Icons.space_dashboard_rounded)]);
   if (can('org.companies:read')) {
     add('Organização', [
@@ -100,9 +112,6 @@ List<NavSection> buildNav(Me me) {
       when(can('admin.users:manage'), const NavItem('Aparelhos do app', '/usuarios/aparelhos', Icons.phonelink_lock_rounded)),
       when(can('admin.ldap:manage'), const NavItem('Login pela rede (LDAP)', '/usuarios/ldap', Icons.lan_rounded)),
     ]);
-  }
-  if (me.isPlatformAdmin) {
-    add('Plataforma', [const NavItem('Clientes', '/plataforma/clientes', Icons.verified_user_rounded), const NavItem('Planos', '/plataforma/planos', Icons.layers_rounded)]);
   }
   add('Conta', [const NavItem('Minha conta', '/minha-conta', Icons.person_rounded)]);
   add('Ajuda', [

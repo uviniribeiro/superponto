@@ -1,4 +1,4 @@
-import { Body, ConflictException, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, ConflictException, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { CurrentUser, PasswordHasher, PasswordResetService } from '@nestjs/authentication';
 import { randomInt } from 'node:crypto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -29,6 +29,11 @@ export function initialPassword() {
   return `${p}#${randomInt(10, 99)}`;
 }
 type CreateTenant = z.infer<typeof createTenantSchema>;
+const updateTenantSchema = z.object({
+  name: z.string().trim().min(2).max(200).optional(),
+  status: z.enum(['TRIAL', 'ACTIVE', 'SUSPENDED', 'CANCELLED']).optional(),
+});
+const resetSchema = z.object({ who: z.enum(['admin', 'support']) });
 
 /** Administração global (equipe SuperPonto). */
 @ApiTags('plataforma')
@@ -53,6 +58,76 @@ export class TenantsController {
       ]);
       return { data, page: q.page, pageSize: q.pageSize, total };
     });
+  }
+
+  /**
+   * Painel do Super Admin: só números por cliente (empresas, CNPJs, usuários, funcionários ativos,
+   * equipamentos) — nenhum dado de pessoa ou de ponto dos clientes.
+   */
+  @Get('overview')
+  @RequirePermission('platform.tenants:manage')
+  overview() {
+    return this.prisma.asPlatform(async (tx) => {
+      const tenants = await tx.tenant.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } });
+      const rows = await tx.$queryRaw<Array<{ tenant_id: string; companies: number; cnpjs: string[] | null; users: number; employees: number; devices: number }>>`
+        SELECT t.id AS tenant_id,
+          (SELECT count(*)::int FROM companies c WHERE c.tenant_id = t.id AND c.deleted_at IS NULL) AS companies,
+          (SELECT array_agg(c.cnpj ORDER BY c.created_at) FROM companies c WHERE c.tenant_id = t.id AND c.deleted_at IS NULL AND c.cnpj IS NOT NULL) AS cnpjs,
+          (SELECT count(*)::int FROM users u WHERE u.tenant_id = t.id AND u.deleted_at IS NULL AND NOT u.is_support) AS users,
+          (SELECT count(*)::int FROM employment_relationships e WHERE e.tenant_id = t.id AND e.deleted_at IS NULL AND e.status = 'ACTIVE') AS employees,
+          (SELECT count(*)::int FROM devices d WHERE d.tenant_id = t.id AND d.deleted_at IS NULL) AS devices
+        FROM tenants t WHERE t.deleted_at IS NULL`;
+      const by = new Map(rows.map((r) => [r.tenant_id, r]));
+      const data = tenants.map((t) => {
+        const r = by.get(t.id);
+        return { id: t.id, name: t.name, slug: t.slug, status: t.status, createdAt: t.createdAt, companies: r?.companies ?? 0, cnpjs: r?.cnpjs ?? [], users: r?.users ?? 0, employees: r?.employees ?? 0, devices: r?.devices ?? 0 };
+      });
+      const sum = (k: 'companies' | 'users' | 'employees' | 'devices') => data.reduce((a, x) => a + x[k], 0);
+      return {
+        totals: { tenants: data.length, active: data.filter((x) => x.status === 'ACTIVE' || x.status === 'TRIAL').length, suspended: data.filter((x) => x.status === 'SUSPENDED' || x.status === 'CANCELLED').length, companies: sum('companies'), users: sum('users'), employees: sum('employees'), devices: sum('devices') },
+        data,
+      };
+    });
+  }
+
+  /** Renomeia, suspende ou reativa um cliente. Cliente suspenso ou cancelado não entra no sistema. */
+  @Patch(':id')
+  @RequirePermission('platform.tenants:manage')
+  update(@CurrentUser() actor: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body({ schema: updateTenantSchema }) body: z.infer<typeof updateTenantSchema>, @RequestInfo() meta: RequestMeta) {
+    return this.prisma.asPlatform(async (tx) => {
+      const before = await tx.tenant.findFirst({ where: { id, deletedAt: null } });
+      if (!before) throw new NotFoundException('Cliente não encontrado');
+      const tenant = await tx.tenant.update({ where: { id }, data: body });
+      // Suspenso/cancelado: encerra as sessões abertas do cliente.
+      if (body.status === 'SUSPENDED' || body.status === 'CANCELLED') {
+        const ids = (await tx.user.findMany({ where: { tenantId: id }, select: { id: true } })).map((u) => u.id);
+        await tx.refreshToken.updateMany({ where: { userId: { in: ids } }, data: { revoked: true } });
+      }
+      await this.audit.record(tx, { tenantId: id, actorUserId: actor.id, action: 'UPDATE', entity: 'tenant', entityId: id, before, after: tenant, ...meta });
+      return tenant;
+    });
+  }
+
+  /** Nova senha inicial para o "admin" ou o "suporte" do cliente (mostrada uma única vez). */
+  @Post(':id/reset-password')
+  @RequirePermission('platform.tenants:manage')
+  async resetPassword(@CurrentUser() actor: AuthUser, @Param('id', ParseUUIDPipe) id: string, @Body({ schema: resetSchema }) body: z.infer<typeof resetSchema>, @RequestInfo() meta: RequestMeta) {
+    const password = initialPassword();
+    const hash = await new PasswordHasher().hash(password);
+    const user = await this.prisma.asPlatform(async (tx) => {
+      const tenant = await tx.tenant.findFirst({ where: { id, deletedAt: null } });
+      if (!tenant) throw new NotFoundException('Cliente não encontrado');
+      let u = body.who === 'support'
+        ? await tx.user.findFirst({ where: { tenantId: id, isSupport: true, deletedAt: null } })
+        : await tx.user.findFirst({ where: { tenantId: id, username: 'admin', isSupport: false, deletedAt: null } });
+      if (!u && body.who === 'support') u = await tx.user.findUniqueOrThrow({ where: { id: (await this.support.ensureInTx(tx, tenant, hash)).id } });
+      if (!u) throw new NotFoundException('O cliente não tem usuário "admin"');
+      await tx.user.update({ where: { id: u.id }, data: { passwordHash: hash, mustChangePassword: body.who === 'admin', isActive: true } });
+      await tx.refreshToken.updateMany({ where: { userId: u.id }, data: { revoked: true } });
+      await this.audit.record(tx, { tenantId: id, actorUserId: actor.id, action: 'UPDATE', entity: 'user', entityId: u.id, after: { passwordReset: body.who }, ...meta });
+      return u;
+    });
+    return { username: user.username ?? (body.who === 'support' ? 'suporte' : 'admin'), password };
   }
 
   /**

@@ -46,7 +46,7 @@ class _LoginPageState extends State<LoginPage> {
       );
       final next = widget.next != null && widget.next!.startsWith('/') && !widget.next!.startsWith('//') ? widget.next! : null;
       // Super Admin abre no painel da plataforma (clientes); os demais, no painel do próprio cliente.
-      if (mounted) context.go(next ?? (api.me?.isPlatformAdmin == true ? '/plataforma/clientes' : '/'));
+      if (mounted) context.go(next ?? (api.me?.isPlatformAdmin == true ? '/plataforma' : '/'));
     } on ApiException catch (e) {
       setState(() {
         if (e.mfaRequired) _mfa = true;

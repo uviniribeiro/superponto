@@ -13,6 +13,21 @@ import '../widgets/ui.dart';
 const limitLabel = {'limit.employments': 'Funcionários ativos', 'limit.devices': 'Equipamentos', 'limit.users': 'Usuários'};
 const _tenantStatus = {'TRIAL': 'Em teste', 'ACTIVE': 'Ativo', 'SUSPENDED': 'Suspenso', 'CANCELLED': 'Cancelado'};
 
+/// Lista de textos (ex.: os CNPJs de um cliente).
+List<String> _strs(Object? v) => v is List ? [for (final e in v) '$e'] : const [];
+
+Widget tenantStatusPill(BuildContext context, String status) {
+  final t = context.sp;
+  return Pill(
+    _tenantStatus[status] ?? status,
+    color: switch (status) {
+      'ACTIVE' => t.success,
+      'TRIAL' => t.info,
+      _ => t.danger,
+    },
+  );
+}
+
 String slugify(String v) {
   final s = stripAccents(v.toLowerCase()).replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-+|-+$'), '');
   return s.length > 64 ? s.substring(0, 64) : s;
@@ -50,28 +65,31 @@ class _TenantsPageState extends State<TenantsPage> {
         SearchField(hint: 'Buscar cliente…', onChanged: (v) => setState(() => _q = v)),
         const SizedBox(height: 14),
         Async<Map<String, dynamic>>(
-          reloadToken: '$_q|$_token',
-          load: () => api.getMap('/platform/tenants', {'pageSize': 100, 'search': _q}),
+          reloadToken: '$_token',
+          load: () => api.getMap('/platform/tenants/overview'),
           builder: (context, page, _) {
-            final rows = asList(page['data']);
+            final q = stripAccents(_q.toLowerCase().trim());
+            final digits = _q.replaceAll(RegExp(r'\D'), '');
+            final rows = asList(page['data']).where((x) {
+              if (q.isEmpty) return true;
+              final cnpjs = _strs(x['cnpjs']).join(' ');
+              return stripAccents('${x['name']} ${x['slug']}'.toLowerCase()).contains(q) || (digits.length >= 3 && cnpjs.contains(digits));
+            }).toList();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: Text('${page['total'] ?? rows.length} no total', style: TextStyle(color: t.muted)),
+                  child: Text('${rows.length} cliente(s)', style: TextStyle(color: t.muted)),
                 ),
                 GlassTable<Map<String, dynamic>>(
                   rows: rows,
                   empty: EmptyState(
                     icon: Icons.verified_user_rounded,
                     title: _q.isEmpty ? 'Nenhum cliente ainda' : 'Nada encontrado',
-                    body: _q.isEmpty ? 'Crie a primeira organização.' : 'Tente outro termo.',
+                    body: _q.isEmpty ? 'Crie a primeira organização.' : 'Tente outro nome ou CNPJ.',
                   ),
-                  onTap: (x) async {
-                    await api.selectTenant(x['id'] as String);
-                    if (context.mounted) context.go('/empresas');
-                  },
+                  onTap: _details,
                   columns: [
                     Col(
                       'Cliente',
@@ -91,7 +109,11 @@ class _TenantsPageState extends State<TenantsPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('${x['name']}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                Text('${x['slug']} · desde ${brDate(x['createdAt'])}', style: TextStyle(color: t.subtle, fontSize: 12)),
+                                Text(
+                                  _strs(x['cnpjs']).isEmpty ? 'sem CNPJ' : _strs(x['cnpjs']).map(fmtCnpj).join(' · '),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: t.subtle, fontSize: 12),
+                                ),
                               ],
                             ),
                           ),
@@ -100,18 +122,10 @@ class _TenantsPageState extends State<TenantsPage> {
                       flex: 5,
                       primary: true,
                     ),
-                    Col(
-                      'Situação',
-                      (x) => Pill(
-                        _tenantStatus[x['status']] ?? '${x['status']}',
-                        color: switch (x['status']) {
-                          'ACTIVE' => t.success,
-                          'TRIAL' => t.info,
-                          _ => t.danger,
-                        },
-                      ),
-                      flex: 2,
-                    ),
+                    Col('Situação', (x) => tenantStatusPill(context, '${x['status']}'), flex: 2),
+                    Col('Empresas', (x) => txt(x['companies']), flex: 1),
+                    Col('Usuários', (x) => txt(x['users']), flex: 1),
+                    Col('Funcionários', (x) => txt(x['employees']), flex: 2),
                   ],
                   actions: (x) => [TextButton(onPressed: () => _plan(x), child: const Text('Plano'))],
                 ),
@@ -121,6 +135,17 @@ class _TenantsPageState extends State<TenantsPage> {
         ),
       ],
     );
+  }
+
+  /// Ferramentas do Super Admin para um cliente — sem abrir os dados dele.
+  Future<void> _details(Map<String, dynamic> x) async {
+    final changed = await showGlassDialog<bool>(
+      context,
+      title: '${x['name']}',
+      width: 620,
+      builder: (ctx) => TenantAdminPanel(tenant: x, onPlan: () => _plan(x), onCredentials: _showCredentials),
+    );
+    if (changed == true && mounted) setState(() => _token++);
   }
 
   Future<void> _plan(Map<String, dynamic> x) async {
@@ -187,8 +212,10 @@ class _TenantsPageState extends State<TenantsPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Text('O suporte (usuário "suporte") é criado junto, oculto e bloqueado para o cliente. As senhas iniciais aparecem uma única vez ao final.',
-              style: TextStyle(color: context.sp.muted, fontSize: 12.5)),
+          Text(
+            'O suporte (usuário "suporte") é criado junto, oculto e bloqueado para o cliente. As senhas iniciais aparecem uma única vez ao final.',
+            style: TextStyle(color: context.sp.muted, fontSize: 12.5),
+          ),
           const SizedBox(height: 18),
           Align(
             alignment: Alignment.centerRight,
@@ -239,12 +266,15 @@ class _TenantsPageState extends State<TenantsPage> {
         children: [
           SelectableText('CNPJ: ${fmtCnpj('${c['cnpj'] ?? ''}')}', style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          line('Administrador', asMap(c['admin'])),
-          line('Suporte', asMap(c['support'])),
+          if (c['admin'] != null) line('Administrador', asMap(c['admin'])),
+          if (c['support'] != null) line('Suporte', asMap(c['support'])),
           const SizedBox(height: 6),
           Text('Anote agora: estas senhas não aparecem de novo. No primeiro acesso, cada um define a própria senha.', style: TextStyle(color: t.warning, fontSize: 12.5)),
           const SizedBox(height: 16),
-          Align(alignment: Alignment.centerRight, child: GlassButton(label: 'Anotei', onPressed: () => Navigator.pop(ctx))),
+          Align(
+            alignment: Alignment.centerRight,
+            child: GlassButton(label: 'Anotei', onPressed: () => Navigator.pop(ctx)),
+          ),
         ],
       ),
     );
@@ -532,5 +562,194 @@ class _PlansPageState extends State<PlansPage> {
       ),
     );
     if (ok == true && mounted) setState(() => _token++);
+  }
+}
+
+/// Ferramentas do Super Admin para um cliente: números, situação (suspender/reativar), nome, plano e
+/// nova senha do "admin" ou do "suporte". Não abre os dados do cliente — para isso, o suporte entra
+/// com o usuário "suporte" + CNPJ.
+class TenantAdminPanel extends StatefulWidget {
+  const TenantAdminPanel({super.key, required this.tenant, required this.onPlan, required this.onCredentials});
+  final Map<String, dynamic> tenant;
+  final VoidCallback onPlan;
+  final Future<void> Function(Map<String, dynamic> c, String client) onCredentials;
+  @override
+  State<TenantAdminPanel> createState() => _TenantAdminPanelState();
+}
+
+class _TenantAdminPanelState extends State<TenantAdminPanel> {
+  late Map<String, dynamic> x = widget.tenant;
+  bool changed = false;
+
+  Future<void> _patch(Map<String, Object?> body, String ok) async {
+    final r = await run(context, () => api.patch('/platform/tenants/${x['id']}', body), success: ok);
+    if (r != null && mounted) {
+      setState(() {
+        x = {...x, ...asMap(r)};
+        changed = true;
+      });
+    }
+  }
+
+  Future<void> _reset(String who) async {
+    final label = who == 'admin' ? 'administrador' : 'suporte';
+    if (!await confirm(
+      context,
+      title: 'Nova senha do $label',
+      body: 'A senha atual do $label deixa de funcionar e as sessões abertas dele são encerradas. A nova senha aparece uma única vez.',
+      confirmLabel: 'Gerar nova senha',
+    )) {
+      return;
+    }
+    if (!mounted) return;
+    final r = await run(context, () => api.post('/platform/tenants/${x['id']}/reset-password', {'who': who}));
+    if (r == null || !mounted) return;
+    final cnpjs = _strs(x['cnpjs']);
+    await widget.onCredentials({'cnpj': cnpjs.isEmpty ? null : cnpjs.first, who == 'admin' ? 'admin' : 'support': asMap(r)}, '${x['name']}');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.sp;
+    final status = '${x['status']}';
+    final blocked = status == 'SUSPENDED' || status == 'CANCELLED';
+    final cnpjs = _strs(x['cnpjs']);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            tenantStatusPill(context, status),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text('${x['slug']} · desde ${brDate(x['createdAt'])}', style: TextStyle(color: t.subtle, fontSize: 12.5)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        ResponsiveGrid(
+          minItemWidth: 130,
+          spacing: 10,
+          children: [
+            StatTile(label: 'Empresas (CNPJ)', value: '${x['companies']}'),
+            StatTile(label: 'Usuários', value: '${x['users']}'),
+            StatTile(label: 'Funcionários ativos', value: '${x['employees']}'),
+            StatTile(label: 'Relógios', value: '${x['devices']}'),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(cnpjs.isEmpty ? 'Sem CNPJ cadastrado' : 'CNPJ: ${cnpjs.map(fmtCnpj).join(' · ')}', style: TextStyle(color: t.muted)),
+        const SizedBox(height: 18),
+        const SectionTitle('Acessos do cliente'),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            GlassButton(label: 'Nova senha do admin', icon: Icons.key_rounded, onPressed: () => _reset('admin')),
+            GlassButton(label: 'Nova senha do suporte', icon: Icons.support_agent_rounded, onPressed: () => _reset('support')),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text('Para atender o cliente, entre com usuário "suporte" + CNPJ dele. O Super Admin não abre dados de clientes.', style: TextStyle(color: t.subtle, fontSize: 12)),
+        const SizedBox(height: 18),
+        const SectionTitle('Contrato'),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            GlassButton(label: 'Plano e limites', icon: Icons.layers_rounded, onPressed: widget.onPlan),
+            GlassButton(
+              label: 'Renomear',
+              icon: Icons.edit_rounded,
+              onPressed: () async {
+                final v = await promptText(context, title: 'Nome do cliente', label: 'Nome', initial: '${x['name']}');
+                if (v != null && v.trim().length >= 2) await _patch({'name': v.trim()}, 'Nome atualizado');
+              },
+            ),
+            if (blocked)
+              GlassButton(label: 'Reativar cliente', icon: Icons.play_circle_rounded, onPressed: () => _patch({'status': 'ACTIVE'}, 'Cliente reativado'))
+            else
+              GlassButton(
+                label: 'Suspender cliente',
+                icon: Icons.pause_circle_rounded,
+                onPressed: () async {
+                  if (await confirm(
+                    context,
+                    title: 'Suspender ${x['name']}?',
+                    body: 'Ninguém do cliente consegue entrar enquanto estiver suspenso e as sessões abertas são encerradas. Os dados ficam guardados.',
+                    confirmLabel: 'Suspender',
+                  )) {
+                    await _patch({'status': 'SUSPENDED'}, 'Cliente suspenso');
+                  }
+                },
+              ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(onPressed: () => Navigator.pop(context, changed), child: const Text('Fechar')),
+        ),
+      ],
+    );
+  }
+}
+
+/// Início do Super Admin (como o Dashboard do super admin da v1): números da plataforma por cliente.
+class PlatformHomePage extends StatelessWidget {
+  const PlatformHomePage({super.key});
+  @override
+  Widget build(BuildContext context) {
+    if (api.me?.isPlatformAdmin != true) return _restricted();
+    final t = context.sp;
+    return PageScaffold(
+      title: 'Painel do Super Admin',
+      subtitle: 'Visão da plataforma SuperPonto. Os dados de cada cliente ficam só com o cliente.',
+      icon: Icons.admin_panel_settings_rounded,
+      actions: [GlassButton(label: 'Clientes', icon: Icons.verified_user_rounded, onPressed: () => context.go('/plataforma/clientes'))],
+      children: [
+        Async<Map<String, dynamic>>(
+          load: () => api.getMap('/platform/tenants/overview'),
+          builder: (context, o, _) {
+            final s = asMap(o['totals']);
+            final rows = asList(o['data'])..sort((a, b) => (b['employees'] as num).compareTo(a['employees'] as num));
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ResponsiveGrid(
+                  minItemWidth: 200,
+                  children: [
+                    StatTile(
+                      label: 'Clientes',
+                      value: '${s['tenants']}',
+                      icon: Icons.verified_user_rounded,
+                      hint: '${s['active']} ativos · ${s['suspended']} suspensos',
+                      onTap: () => context.go('/plataforma/clientes'),
+                    ),
+                    StatTile(label: 'Empresas (CNPJ)', value: '${s['companies']}', icon: Icons.business_rounded, color: t.info),
+                    StatTile(label: 'Usuários', value: '${s['users']}', icon: Icons.people_alt_rounded, color: t.success),
+                    StatTile(label: 'Funcionários ativos', value: '${s['employees']}', icon: Icons.groups_rounded, color: t.warning),
+                    StatTile(label: 'Relógios', value: '${s['devices']}', icon: Icons.router_rounded),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                const SectionTitle('Clientes por tamanho'),
+                GlassTable<Map<String, dynamic>>(
+                  rows: rows.take(10).toList(),
+                  empty: const EmptyState(icon: Icons.verified_user_rounded, title: 'Nenhum cliente ainda', body: 'Crie o primeiro em Clientes.'),
+                  onTap: (_) => context.go('/plataforma/clientes'),
+                  columns: [
+                    Col('Cliente', (x) => txt(x['name'], bold: true), flex: 5, primary: true),
+                    Col('Situação', (x) => tenantStatusPill(context, '${x['status']}'), flex: 2),
+                    Col('Empresas', (x) => txt(x['companies']), flex: 1),
+                    Col('Funcionários', (x) => txt(x['employees']), flex: 2),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
   }
 }

@@ -15,6 +15,12 @@ final _createTenant = Obj({
   'admin': Obj({'email': email.optional, 'displayName': const Str(trim: true, min: 2, max: 200).optional}).optional,
 });
 
+final _updateTenant = Obj({
+  'name': const Str(trim: true, min: 2, max: 200).optional,
+  'status': const Enum(['TRIAL', 'ACTIVE', 'SUSPENDED', 'CANCELLED']).optional,
+});
+final _reset = Obj({'who': const Enum(['admin', 'support'])});
+
 final _rng = Random.secure();
 
 /// Senha inicial legível (sem caracteres ambíguos), mostrada uma única vez ao Super Admin.
@@ -101,6 +107,74 @@ void platformTenantsRoutes(App app, SupportProvisioning support) {
           'total': await tx.scalar<int>('SELECT count(*)::int FROM tenants WHERE $w', p),
         };
       });
+    });
+
+    // Painel do Super Admin: só números por cliente — nenhum dado de pessoa ou de ponto dos clientes.
+    r.get('/overview', permission: 'platform.tenants:manage', (ctx) {
+      return app.db.asPlatform((tx) async {
+        final rows = await tx.query('''
+          SELECT t.id, t.name, t.slug, t.status, t.created_at,
+            (SELECT count(*)::int FROM companies c WHERE c.tenant_id = t.id AND c.deleted_at IS NULL) AS companies,
+            coalesce((SELECT array_agg(c.cnpj::text ORDER BY c.created_at) FROM companies c WHERE c.tenant_id = t.id AND c.deleted_at IS NULL AND c.cnpj IS NOT NULL), ARRAY[]::text[]) AS cnpjs,
+            (SELECT count(*)::int FROM users u WHERE u.tenant_id = t.id AND u.deleted_at IS NULL AND NOT u.is_support) AS users,
+            (SELECT count(*)::int FROM employment_relationships e WHERE e.tenant_id = t.id AND e.deleted_at IS NULL AND e.status = 'ACTIVE') AS employees,
+            (SELECT count(*)::int FROM devices d WHERE d.tenant_id = t.id AND d.deleted_at IS NULL) AS devices
+          FROM tenants t WHERE t.deleted_at IS NULL ORDER BY t.name ASC''');
+        int sum(String k) => rows.fold(0, (a, x) => a + (x[k]! as int));
+        return {
+          'totals': {
+            'tenants': rows.length,
+            'active': rows.where((x) => x['status'] == 'ACTIVE' || x['status'] == 'TRIAL').length,
+            'suspended': rows.where((x) => x['status'] == 'SUSPENDED' || x['status'] == 'CANCELLED').length,
+            'companies': sum('companies'),
+            'users': sum('users'),
+            'employees': sum('employees'),
+            'devices': sum('devices'),
+          },
+          'data': rows,
+        };
+      });
+    });
+
+    // Renomeia, suspende ou reativa um cliente. Suspenso/cancelado não entra e perde as sessões abertas.
+    r.patch('/:id', permission: 'platform.tenants:manage', (ctx) {
+      final id = ctx.uuidParam('id');
+      final b = _updateTenant.parse(ctx.body);
+      return app.db.asPlatform((tx) async {
+        final before = await tx.one('SELECT * FROM tenants WHERE id = @id AND deleted_at IS NULL', {'id': id});
+        if (before == null) throw notFound('Cliente não encontrado');
+        final after = b.isEmpty ? before : await tx.update('tenants', id, b);
+        if (b['status'] == 'SUSPENDED' || b['status'] == 'CANCELLED') {
+          await tx.execute('UPDATE auth_refresh_tokens SET revoked = true WHERE user_id IN (SELECT id::text FROM users WHERE tenant_id = @t)', {'t': id});
+        }
+        await app.audit.record(tx, tenantId: id, actorUserId: ctx.user.id, action: 'UPDATE', entity: 'tenant', entityId: id, before: before, after: after, meta: ctx.meta);
+        return after;
+      });
+    });
+
+    // Nova senha inicial para o "admin" ou o "suporte" do cliente (mostrada uma única vez).
+    r.post('/:id/reset-password', permission: 'platform.tenants:manage', (ctx) async {
+      final id = ctx.uuidParam('id');
+      final who = _reset.parse(ctx.body)['who']! as String;
+      final password = initialPassword();
+      final hash = await app.hasher.hash(password);
+      final username = await app.db.asPlatform((tx) async {
+        final tenant = await tx.one('SELECT id, slug FROM tenants WHERE id = @id AND deleted_at IS NULL', {'id': id});
+        if (tenant == null) throw notFound('Cliente não encontrado');
+        var u = who == 'support'
+            ? await tx.one('SELECT id, username FROM users WHERE tenant_id = @t AND is_support AND deleted_at IS NULL LIMIT 1', {'t': id})
+            : await tx.one("SELECT id, username FROM users WHERE tenant_id = @t AND username = 'admin' AND NOT is_support AND deleted_at IS NULL LIMIT 1", {'t': id});
+        if (u == null && who == 'support') {
+          final s = await support.ensureInTx(tx, id, tenant['slug']! as String, passwordHash: hash);
+          u = await tx.one('SELECT id, username FROM users WHERE id = @id', {'id': s.id});
+        }
+        if (u == null) throw notFound('O cliente não tem usuário "admin"');
+        await tx.execute('UPDATE users SET password_hash = @h, must_change_password = @m, is_active = true, updated_at = now() WHERE id = @id', {'h': hash, 'm': who == 'admin', 'id': u['id']});
+        await tx.execute('UPDATE auth_refresh_tokens SET revoked = true WHERE user_id = @u', {'u': u['id']});
+        await app.audit.record(tx, tenantId: id, actorUserId: ctx.user.id, action: 'UPDATE', entity: 'user', entityId: u['id'] as String?, after: {'passwordReset': who}, meta: ctx.meta);
+        return (u['username'] as String?) ?? (who == 'support' ? 'suporte' : 'admin');
+      });
+      return {'username': username, 'password': password};
     });
 
     // Cria o cliente como na v1: empresa com o CNPJ, administrador (usuário "admin") e suporte (usuário
