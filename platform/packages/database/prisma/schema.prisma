@@ -2807,3 +2807,10 @@ model RepPRegister {
   @@index([tenantId])
   @@map("rep_p_registers")
 }
+
+/// Administradores da plataforma irrevogáveis (gatilhos no banco impedem excluir, bloquear ou rebaixar).
+model PlatformProtectedAdmin {
+  email String @id
+
+  @@map("platform_protected_admins")
+}

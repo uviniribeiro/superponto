@@ -85,6 +85,8 @@ class App {
     } on HttpError catch (e) {
       return jsonResponse(e.status, e.body, headers: {...cors, ...e.headers});
     } catch (e, s) {
+      // Regra do banco (ex.: administrador da plataforma irrevogável): recusa com a mensagem do gatilho.
+      if (e is DbError && e.code == '42501') return jsonResponse(403, {'statusCode': 403, 'error': 'Forbidden', 'message': e.message}, headers: cors);
       stderr.writeln('Erro não tratado em ${request.method} /${request.url.path}: $e\n$s');
       return jsonResponse(500, {'statusCode': 500, 'message': 'Internal server error'}, headers: cors);
     }

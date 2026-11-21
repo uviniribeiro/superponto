@@ -45,7 +45,7 @@ final router = GoRouter(
   initialLocation: '/',
   redirect: (context, state) {
     final loc = state.matchedLocation;
-    if (!api.ready) return loc == '/splash' ? null : '/splash?next=${Uri.encodeComponent(state.uri.toString())}';
+    if (!api.ready || api.waitingNetwork) return loc == '/splash' ? null : '/splash?next=${Uri.encodeComponent(state.uri.toString())}';
     final isPublic = _public.contains(loc);
     if (loc == '/splash') {
       final next = state.uri.queryParameters['next'];
@@ -107,7 +107,28 @@ class _Splash extends StatelessWidget {
   const _Splash();
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: Center(child: CircularProgressIndicator(color: context.sp.brand)),
+    body: ListenableBuilder(
+      listenable: api,
+      builder: (context, _) => Center(
+        child: !api.waitingNetwork
+            ? CircularProgressIndicator(color: context.sp.brand)
+            : Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.cloud_off_rounded, size: 48, color: context.sp.muted),
+                    const SizedBox(height: 12),
+                    const Text('Sem conexão com o servidor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Text('Seu login continua salvo. Confira a internet e tente de novo.', textAlign: TextAlign.center, style: TextStyle(color: context.sp.muted)),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(onPressed: api.reconnect, icon: const Icon(Icons.refresh_rounded), label: const Text('Tentar de novo')),
+                  ],
+                ),
+              ),
+      ),
+    ),
   );
 }
 

@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'refresh_lock.dart';
+
 class ApiException implements Exception {
   ApiException(this.status, this.message, [this.body]);
   final int status;
@@ -46,11 +48,17 @@ class Api extends ChangeNotifier {
   String? _access, _refresh, _tenant;
   Me? me;
   bool ready = false;
+
+  /// Sem conexão com o servidor ao abrir: o login continua salvo e a tela oferece tentar de novo.
+  bool offline = false;
   SharedPreferences? _prefs;
   Future<bool>? _refreshing;
   final _client = http.Client();
 
   bool get signedIn => me != null;
+
+  /// Há login salvo, mas o servidor não respondeu ao abrir (sem rede).
+  bool get waitingNetwork => offline && me == null && _refresh != null;
   String? get activeTenant => me?.isPlatformAdmin == true ? _tenant : me?.tenantId;
   bool can(String p) => me?.can(p) ?? false;
 
@@ -61,9 +69,21 @@ class Api extends ChangeNotifier {
       if (!kIsWeb && fromBuild.isEmpty) baseUrl = _prefs!.getString('sp.server') ?? baseUrl;
       _refresh = _prefs!.getString('sp.refresh');
       _tenant = _prefs!.getString('sp.tenant');
-      if (_refresh != null && await _doRefresh()) await loadMe();
-    } catch (_) {
-      await _clear();
+    } catch (_) {}
+    await reconnect();
+  }
+
+  /// Retoma a sessão salva. Falha de rede não desloga: só um refresh token recusado pelo servidor encerra o login.
+  Future<void> reconnect() async {
+    offline = false;
+    if (_refresh != null) {
+      try {
+        if (await _doRefresh()) await loadMe();
+      } on ApiException catch (e) {
+        if (e.status == 0 || e.status >= 500) offline = true;
+      } catch (_) {
+        offline = true;
+      }
     }
     ready = true;
     notifyListeners();
@@ -128,24 +148,36 @@ class Api extends ChangeNotifier {
     await _prefs?.remove('sp.refresh');
   }
 
+  /// Renova o access token. Devolve false só quando o servidor recusa o refresh (aí o login acaba);
+  /// sem conexão lança [ApiException] com status 0 e mantém o login salvo.
   Future<bool> _doRefresh() {
-    return _refreshing ??= () async {
+    return _refreshing ??= withRefreshLock(() async {
       try {
+        // Outra aba pode ter renovado: usa o token mais novo do armazenamento.
+        try {
+          await _prefs?.reload();
+          final stored = _prefs?.getString('sp.refresh');
+          if (stored != null) _refresh = stored;
+        } catch (_) {}
         final rt = _refresh;
         if (rt == null) return false;
-        final res = await _client
-            .post(Uri.parse('$baseUrl/v1/auth/token/refresh'), headers: {'content-type': 'application/json'}, body: jsonEncode({'refreshToken': rt}))
-            .timeout(const Duration(seconds: 20));
-        if (res.statusCode != 200) {
+        final http.Response res;
+        try {
+          res = await _client.post(Uri.parse('$baseUrl/v1/auth/token/refresh'), headers: {'content-type': 'application/json'}, body: jsonEncode({'refreshToken': rt})).timeout(const Duration(seconds: 20));
+        } catch (_) {
+          throw ApiException(0, 'Sem conexão com o servidor ($baseUrl).');
+        }
+        if (res.statusCode == 401 || res.statusCode == 400) {
           await _clear();
           return false;
         }
+        if (res.statusCode != 200) throw ApiException(res.statusCode, 'O servidor não respondeu (${res.statusCode}). Tente de novo.');
         await _store(jsonDecode(res.body) as Map<String, dynamic>);
         return true;
       } finally {
         scheduleMicrotask(() => _refreshing = null);
       }
-    }();
+    });
   }
 
   Uri uri(String path, [Map<String, Object?>? query]) {
@@ -173,10 +205,12 @@ class Api extends ChangeNotifier {
     }
 
     var res = await call();
-    if (auth && res.statusCode == 401 && _refresh != null && await _doRefresh()) res = await call();
-    if (auth && res.statusCode == 401 && me != null) {
-      await _clear();
-      notifyListeners();
+    if (auth && res.statusCode == 401 && _refresh != null) {
+      if (await _doRefresh()) {
+        res = await call();
+      } else if (me != null) {
+        notifyListeners(); // refresh recusado: volta ao login
+      }
     }
     return res;
   }
@@ -239,7 +273,7 @@ class Api extends ChangeNotifier {
   Future<Object?> upload(String path, Uint8List bytes, {String contentType = 'text/plain', Map<String, Object?>? query}) async {
     Future<http.Response> call() => _client.post(uri(path, query), headers: {..._headers(json: false), 'content-type': contentType}, body: bytes);
     var res = await call();
-    if (res.statusCode == 401 && await _doRefresh()) res = await call();
+    if (res.statusCode == 401 && _refresh != null && await _doRefresh()) res = await call();
     final text = utf8.decode(res.bodyBytes);
     final data = text.isEmpty ? null : jsonDecode(text);
     if (res.statusCode >= 400) {

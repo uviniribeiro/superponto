@@ -1,4 +1,4 @@
-// Access token (JWT 15 min) e refresh token rotativo (30 dias, família de até 90 dias; reuso revoga a família).
+// Access token (JWT 15 min) e refresh token rotativo (renovado a cada uso; vale até o logoff; reuso revoga a família).
 import '../crypto/tokens.dart';
 import '../db.dart';
 import '../http.dart';
@@ -14,7 +14,8 @@ class TokenService {
   final Db db;
   final JwtSigner signer;
   final MfaService mfa;
-  static const _ttl = Duration(days: 30), _absolute = Duration(days: 90);
+  // O login fica salvo até o usuário sair: cada uso renova por mais 1 ano e a família não tem prazo absoluto.
+  static const _ttl = Duration(days: 365), _absolute = Duration(days: 36500);
 
   /// Emite o par de tokens. Com MFA ativo, exige código TOTP ou de recuperação ([MfaRequired] se faltar ou errar).
   Future<Map<String, Object?>> issue(String userId, {Map<String, Object?> claims = const {}, String? code, String? recoveryCode}) async {

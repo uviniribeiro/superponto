@@ -41,7 +41,7 @@ export function createAppModule(config: AppConfig): DynamicModule {
           cookie: { secure: config.NODE_ENV !== 'test' },
         },
         accessToken: { key: config.JWT_SECRET, issuer: config.API_URL, audience: 'superponto', ttl: '15m' },
-        refreshToken: { ttl: '30d', absoluteTtl: '90d' },
+        refreshToken: { ttl: '365d', absoluteTtl: '36500d' }, // login salvo até o logoff
         mfa: { encryption: { keys: [config.MFA_ENCRYPTION_KEY] }, issuer: 'SuperPonto' },
         passwordReset: { url: `${config.APP_URL}/reset-password`, ttl: '1h' },
       }),
