@@ -162,7 +162,10 @@ export async function importV1(db: Db, backup: V1Backup, opts: { dryRun?: boolea
       // Pessoas, vínculos e usuários.
       const empOf = new Map<string, string>();
       const regs = new Set<string>();
-      for (const p of profiles.filter((x) => x.company_id && ids.has(String(x.company_id)))) {
+      // Usuários da organização mãe primeiro: o "admin" da mãe continua sendo "admin" na v2.
+      const tenantProfiles = profiles.filter((x) => x.company_id && ids.has(String(x.company_id)))
+        .sort((a, b) => Number(String(b.company_id) === rootId) - Number(String(a.company_id) === rootId));
+      for (const p of tenantProfiles) {
         const cpf = s(p.cpf) ? onlyDigits(String(p.cpf)) : null;
         const pis = s(p.pis) ? onlyDigits(String(p.pis)) : null;
         const validCpf = cpf && isValidCpf(cpf) ? cpf : null;
@@ -204,11 +207,15 @@ export async function importV1(db: Db, backup: V1Backup, opts: { dryRun?: boolea
         const linked = personId && (await tx.user.findFirst({ where: { personId } })) ? null : personId;
         if (personId && !linked) report.warnings.push(`${email}: a pessoa já tem outra conta; esta foi importada sem ligação com o funcionário`);
         // Login da v1: usuário = parte do e-mail antes do @ (único dentro do cliente).
-        let username: string | null = email.split('@')[0]!.replace(/[^a-z0-9._-]/g, '').replace(/^[._-]+/, '').slice(0, 60) || null;
-        if (username && (username.length < 2 || (await tx.user.findFirst({ where: { tenantId, username } })))) {
-          report.warnings.push(`${email}: usuário "${username}" não pôde ser usado no login por usuário + CNPJ (repetido ou curto demais)`);
-          username = null;
-        }
+        // Repetido no cliente (ex.: o "admin" de cada unidade da v1): vira "<usuário>.<código da unidade>".
+        const [local, domain] = email.split('@') as [string, string];
+        const base = local.replace(/[^a-z0-9._-]/g, '').replace(/^[._-]+/, '').slice(0, 50);
+        let username: string | null = base.length >= 2 ? base : null;
+        if (username && (await tx.user.findFirst({ where: { tenantId, username } }))) {
+          const alt = `${base}.${domain.split('.')[0]!.replace(/[^a-z0-9]/g, '').slice(0, 8)}`;
+          username = (await tx.user.findFirst({ where: { tenantId, username: alt } })) ? null : alt;
+          report.warnings.push(username ? `${email}: usuário "${base}" já existe no cliente; o login na v2 é "${username}" + CNPJ` : `${email}: usuário repetido, entra só pelo e-mail`);
+        } else if (!username) report.warnings.push(`${email}: usuário curto demais, entra só pelo e-mail`);
         const user = await tx.user.create({ data: { tenantId, email, username, displayName: s(p.full_name) ?? email, personId: linked, passwordHash: s(authUser.encrypted_password), isActive: bool(p.is_active) && !authUser.banned_until, lastLoginAt: authUser.last_sign_in_at ? new Date(String(authUser.last_sign_in_at)) : null } });
         const mine = [...new Set(roles.filter((r) => r.user_id === p.user_id).map((r) => ROLE[String(r.role)]).filter(Boolean) as string[])];
         if (!mine.length) mine.push('employee');
