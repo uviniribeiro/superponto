@@ -51,22 +51,25 @@ export class AuthController {
 
   /** E-mail e senha, ou (como na v1) usuário + CNPJ da empresa e senha. */
   private async verifyLogin(body: z.infer<typeof tokenSchema>, meta: RequestMeta) {
-    const byUser = !body.email;
-    let email = body.email;
-    if (byUser) {
-      const username = (body.username ?? '').toLowerCase();
-      const cnpj = normalizeCnpj(body.cnpj ?? '');
-      if (!username || !cnpj) throw new BadRequestException('Informe o e-mail, ou o usuário e o CNPJ da empresa');
-      // Usuário dentro do cliente dono da empresa com esse CNPJ.
-      const rows = await this.prisma.asPlatform((tx) => tx.$queryRaw<{ email: string }[]>`
-        SELECT u.email FROM users u JOIN companies c ON c.tenant_id = u.tenant_id AND c.deleted_at IS NULL
-        WHERE c.cnpj = ${cnpj} AND u.username = ${username} AND u.deleted_at IS NULL LIMIT 1`);
-      email = rows[0]?.email;
+    if (body.email) {
+      const user = await this.credentials.verify(body.email, body.password, meta);
+      if (!user) throw new UnauthorizedException('E-mail ou senha incorretos');
+      return user;
     }
+    const username = (body.username ?? '').toLowerCase();
+    const cnpj = normalizeCnpj(body.cnpj ?? '');
+    if (!username || !cnpj) throw new BadRequestException('Informe o e-mail, ou o usuário e o CNPJ da empresa');
+    // Usuário dentro do cliente dono da empresa com esse CNPJ. Se mais de um cliente tiver esse CNPJ
+    // e esse usuário, entra na conta cuja senha confere.
+    const rows = await this.prisma.asPlatform((tx) => tx.$queryRaw<{ email: string }[]>`
+      SELECT DISTINCT u.email FROM users u JOIN companies c ON c.tenant_id = u.tenant_id AND c.deleted_at IS NULL
+      WHERE c.cnpj = ${cnpj} AND u.username = ${username} AND u.deleted_at IS NULL ORDER BY u.email LIMIT 5`);
     // Usuário/CNPJ inexistente passa pela mesma verificação de senha (mesmo tempo de resposta).
-    const user = await this.credentials.verify(email ?? 'inexistente@login.invalid', body.password, meta);
-    if (!user) throw new UnauthorizedException(byUser ? 'Usuário, CNPJ ou senha incorretos' : 'E-mail ou senha incorretos');
-    return user;
+    for (const email of rows.length ? rows.map((r) => r.email) : ['inexistente@login.invalid']) {
+      const user = await this.credentials.verify(email, body.password, meta);
+      if (user) return user;
+    }
+    throw new UnauthorizedException('Usuário, CNPJ ou senha incorretos');
   }
 
   /** Login do navegador: cria sessão em cookie httpOnly. */

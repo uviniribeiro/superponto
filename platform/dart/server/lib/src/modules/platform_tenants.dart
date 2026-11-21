@@ -1,4 +1,6 @@
 // /v1/platform/tenants: administração global (equipe SuperPonto) e usuário de suporte de cada cliente.
+import 'dart:math';
+
 import '../app.dart';
 import '../auth/users.dart';
 import '../db.dart';
@@ -9,8 +11,21 @@ final _createTenant = Obj({
   'name': const Str(trim: true, min: 2, max: 200),
   'slug': Str(trim: true, lower: true, pattern: RegExp(r'^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$'), patternMessage: 'Use letras minúsculas, números e hífen'),
   'document': cnpj.optional,
-  'admin': Obj({'email': email, 'displayName': const Str(trim: true, min: 2, max: 200)}),
+  // Sem e-mail, o administrador entra só por usuário (admin) + CNPJ + senha inicial, como na v1.
+  'admin': Obj({'email': email.optional, 'displayName': const Str(trim: true, min: 2, max: 200).optional}).optional,
 });
+
+final _rng = Random.secure();
+
+/// Senha inicial legível (sem caracteres ambíguos), mostrada uma única vez ao Super Admin.
+String initialPassword() {
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  final b = StringBuffer();
+  for (var i = 0; i < 12; i++) {
+    b.write(abc[_rng.nextInt(abc.length)]);
+  }
+  return '$b#${10 + _rng.nextInt(89)}';
+}
 
 /// Endereço do suporte de um cliente: `suporte+slug@dominio`.
 String supportEmailFor(String base, String slug) {
@@ -23,12 +38,24 @@ class SupportProvisioning {
   final App app;
 
   /// Garante o usuário de suporte do cliente dentro de uma transação já aberta. Idempotente.
-  Future<({String id, String email, bool created})> ensureInTx(Tx tx, String tenantId, String slug) async {
-    final existing = await tx.one('SELECT id, email FROM users WHERE tenant_id = @t AND is_support AND deleted_at IS NULL LIMIT 1', {'t': tenantId});
-    if (existing != null) return (id: existing['id']! as String, email: existing['email']! as String, created: false);
+  Future<({String id, String email, bool created})> ensureInTx(Tx tx, String tenantId, String slug, {String? passwordHash}) async {
+    final existing = await tx.one('SELECT id, email, username FROM users WHERE tenant_id = @t AND is_support AND deleted_at IS NULL LIMIT 1', {'t': tenantId});
+    final taken = await tx.one("SELECT 1 FROM users WHERE tenant_id = @t AND username = 'suporte'", {'t': tenantId}) != null;
+    if (existing != null) {
+      // Login da v1: usuário "suporte" + CNPJ (clientes antigos ganham o usuário se estiver livre).
+      if (existing['username'] == null && !taken) await tx.execute("UPDATE users SET username = 'suporte', updated_at = now() WHERE id = @id", {'id': existing['id']});
+      return (id: existing['id']! as String, email: existing['email']! as String, created: false);
+    }
     final email = supportEmailFor(app.config.supportEmail, slug);
     final roleId = await tx.scalar<String>("SELECT id FROM roles WHERE tenant_id IS NULL AND key = 'company_admin'");
-    final user = await tx.insert('users', {'tenantId': tenantId, 'email': email, 'displayName': 'Suporte SuperPonto', 'isSupport': true});
+    final user = await tx.insert('users', {
+      'tenantId': tenantId,
+      'email': email,
+      'username': taken ? null : 'suporte',
+      'displayName': 'Suporte SuperPonto',
+      'isSupport': true,
+      if (passwordHash != null) ...{'passwordHash': passwordHash, 'mustChangePassword': true},
+    });
     await tx.insert('user_roles', {'userId': user['id'], 'roleId': roleId, 'tenantId': tenantId, 'scope': 'TENANT'}, updatedAt: false);
     return (id: user['id']! as String, email: email, created: true);
   }
@@ -40,7 +67,10 @@ class SupportProvisioning {
   /// Clientes antigos sem usuário de suporte recebem um na subida do servidor.
   Future<int> backfill() async {
     final tenants = await app.db.asPlatform(
-      (tx) => tx.query('SELECT id, slug FROM tenants t WHERE deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM users u WHERE u.tenant_id = t.id AND u.is_support AND u.deleted_at IS NULL)'),
+      (tx) => tx.query(
+        'SELECT id, slug FROM tenants t WHERE deleted_at IS NULL AND (NOT EXISTS (SELECT 1 FROM users u WHERE u.tenant_id = t.id AND u.is_support AND u.deleted_at IS NULL) '
+        'OR EXISTS (SELECT 1 FROM users u WHERE u.tenant_id = t.id AND u.is_support AND u.deleted_at IS NULL AND u.username IS NULL))',
+      ),
     );
     var created = 0;
     for (final t in tenants) {
@@ -73,19 +103,35 @@ void platformTenantsRoutes(App app, SupportProvisioning support) {
       });
     });
 
-    // Cria o cliente e seu primeiro administrador, que recebe um e-mail para definir a senha.
+    // Cria o cliente como na v1: empresa com o CNPJ, administrador (usuário "admin") e suporte (usuário
+    // "suporte", oculto e não editável pelo cliente), com senhas iniciais mostradas uma única vez.
     r.post('', permission: 'platform.tenants:manage', (ctx) async {
       final b = _createTenant.parse(ctx.body);
-      final admin = b['admin']! as Map<String, Object?>;
-      final adminEmail = normalizeEmail(admin['email']! as String);
+      final admin = (b['admin'] as Map<String, Object?>?) ?? const {};
+      final realEmail = admin['email'] == null ? null : normalizeEmail(admin['email']! as String);
+      final adminEmail = realEmail ?? 'admin@${b['slug']}.superponto.local';
+      final adminPassword = initialPassword(), supportPassword = initialPassword();
+      final adminHash = await app.hasher.hash(adminPassword), supportHash = await app.hasher.hash(supportPassword);
       final result = await app.db.asPlatform((tx) async {
         if (await tx.one('SELECT 1 FROM tenants WHERE slug = @s', {'s': b['slug']}) != null) throw conflict('Identificador (slug) já em uso');
         if (await tx.one('SELECT 1 FROM users WHERE email = @e', {'e': adminEmail}) != null) throw conflict('E-mail do administrador já cadastrado');
+        if (b['document'] != null && await tx.one('SELECT 1 FROM companies WHERE cnpj = @c AND deleted_at IS NULL', {'c': b['document']}) != null) {
+          throw conflict('Este CNPJ já pertence a outro cliente');
+        }
         final tenant = await tx.insert('tenants', {'name': b['name'], 'slug': b['slug'], if (b['document'] != null) 'document': b['document']});
+        // A empresa com o CNPJ do cliente: é por ela que o login "usuário + CNPJ" encontra o cliente.
+        final company = b['document'] == null ? null : await tx.insert('companies', {'tenantId': tenant['id'], 'legalName': b['name'], 'cnpj': b['document']});
         final roleId = await tx.scalar<String>("SELECT id FROM roles WHERE tenant_id IS NULL AND key = 'company_admin'");
-        final user = await tx.insert('users', {'tenantId': tenant['id'], 'email': adminEmail, 'displayName': admin['displayName']});
+        final user = await tx.insert('users', {
+          'tenantId': tenant['id'],
+          'email': adminEmail,
+          'username': 'admin',
+          'displayName': admin['displayName'] ?? 'Administrador',
+          'passwordHash': adminHash,
+          'mustChangePassword': true,
+        });
         await tx.insert('user_roles', {'userId': user['id'], 'roleId': roleId, 'tenantId': tenant['id'], 'scope': 'TENANT'}, updatedAt: false);
-        final s = await support.ensureInTx(tx, tenant['id']! as String, tenant['slug']! as String);
+        final s = await support.ensureInTx(tx, tenant['id']! as String, tenant['slug']! as String, passwordHash: supportHash);
         await app.audit.record(
           tx,
           tenantId: tenant['id'] as String?,
@@ -93,14 +139,21 @@ void platformTenantsRoutes(App app, SupportProvisioning support) {
           action: 'CREATE',
           entity: 'tenant',
           entityId: tenant['id'] as String?,
-          after: {'tenant': tenant, 'adminEmail': adminEmail},
+          after: {'tenant': tenant, 'adminEmail': adminEmail, 'companyId': company?['id']},
           meta: ctx.meta,
         );
-        return {'tenant': tenant, 'adminId': user['id'], 'supportEmail': s.email};
+        return {'tenant': tenant, 'companyId': company?['id'], 'adminId': user['id'], 'supportEmail': s.email};
       });
-      app.passwordReset.request(adminEmail);
-      support.sendAccess(result['supportEmail']! as String);
-      return result;
+      if (realEmail != null) app.passwordReset.request(realEmail);
+      return {
+        ...result,
+        // Mostrado uma única vez: o banco guarda só o hash.
+        'credentials': {
+          'cnpj': b['document'],
+          'admin': {'username': 'admin', 'password': adminPassword},
+          'support': {'username': 'suporte', 'password': supportPassword},
+        },
+      };
     });
   });
 }

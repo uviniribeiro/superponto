@@ -169,23 +169,26 @@ class _TenantsPageState extends State<TenantsPage> {
           TextField(
             controller: doc,
             inputFormatters: [MaskFormatter(maskCnpjInput)],
-            decoration: const InputDecoration(labelText: 'CNPJ do titular'),
+            decoration: const InputDecoration(labelText: 'CNPJ (empresa mãe) *', helperText: 'Os usuários entram com usuário + este CNPJ + senha'),
           ),
           const SizedBox(height: 16),
-          const SectionTitle('Primeiro administrador'),
+          const SectionTitle('Administrador (usuário "admin")'),
           FormGrid(
             children: [
               TextField(
                 controller: adminName,
-                decoration: const InputDecoration(labelText: 'Nome *'),
+                decoration: const InputDecoration(labelText: 'Nome', hintText: 'Administrador'),
               ),
               TextField(
                 controller: adminEmail,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'E-mail *', helperText: 'Recebe o link para criar a senha'),
+                decoration: const InputDecoration(labelText: 'E-mail (opcional)', helperText: 'Se informado, também recebe o link para criar a senha'),
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Text('O suporte (usuário "suporte") é criado junto, oculto e bloqueado para o cliente. As senhas iniciais aparecem uma única vez ao final.',
+              style: TextStyle(color: context.sp.muted, fontSize: 12.5)),
           const SizedBox(height: 18),
           Align(
             alignment: Alignment.centerRight,
@@ -193,21 +196,23 @@ class _TenantsPageState extends State<TenantsPage> {
               label: 'Criar cliente',
               onPressed: () async {
                 final d = normCnpj(doc.text);
-                if (name.text.trim().length < 2 || slug.text.isEmpty || adminName.text.trim().length < 2 || !adminEmail.text.contains('@')) {
-                  return toast(ctx, 'Preencha os campos obrigatórios', error: true);
-                }
-                if (d.isNotEmpty && !validCnpj(d)) return toast(ctx, 'CNPJ do titular inválido', error: true);
-                final ok = await act(
+                final mail = adminEmail.text.trim();
+                if (name.text.trim().length < 2 || slug.text.isEmpty) return toast(ctx, 'Preencha os campos obrigatórios', error: true);
+                if (!validCnpj(d)) return toast(ctx, 'Informe um CNPJ válido', error: true);
+                if (mail.isNotEmpty && !mail.contains('@')) return toast(ctx, 'E-mail inválido', error: true);
+                final res = await run(
                   ctx,
                   () => api.post('/platform/tenants', {
                     'name': name.text.trim(),
                     'slug': slug.text,
-                    if (d.isNotEmpty) 'document': d,
-                    'admin': {'email': adminEmail.text.trim(), 'displayName': adminName.text.trim()},
+                    'document': d,
+                    'admin': {if (mail.isNotEmpty) 'email': mail, if (adminName.text.trim().length >= 2) 'displayName': adminName.text.trim()},
                   }),
-                  success: 'Cliente criado. O administrador recebeu o e-mail para definir a senha.',
                 );
-                if (ok && ctx.mounted) Navigator.pop(ctx, true);
+                if (res != null && ctx.mounted) {
+                  Navigator.pop(ctx, true);
+                  await _showCredentials(asMap(asMap(res)['credentials']), name.text.trim());
+                }
               },
             ),
           ),
@@ -215,6 +220,34 @@ class _TenantsPageState extends State<TenantsPage> {
       ),
     );
     if (ok == true && mounted) setState(() => _token++);
+  }
+
+  /// Senhas iniciais do admin e do suporte: aparecem só aqui (o banco guarda apenas o hash).
+  Future<void> _showCredentials(Map<String, dynamic> c, String client) async {
+    if (!mounted || c.isEmpty) return;
+    final t = context.sp;
+    Widget line(String who, Map<String, dynamic> x) => Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: SelectableText('$who — usuário: ${x['username']}   senha: ${x['password']}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
+    );
+    await showGlassDialog<void>(
+      context,
+      title: 'Acessos de $client',
+      width: 560,
+      builder: (ctx) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SelectableText('CNPJ: ${fmtCnpj('${c['cnpj'] ?? ''}')}', style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          line('Administrador', asMap(c['admin'])),
+          line('Suporte', asMap(c['support'])),
+          const SizedBox(height: 6),
+          Text('Anote agora: estas senhas não aparecem de novo. No primeiro acesso, cada um define a própria senha.', style: TextStyle(color: t.warning, fontSize: 12.5)),
+          const SizedBox(height: 16),
+          Align(alignment: Alignment.centerRight, child: GlassButton(label: 'Anotei', onPressed: () => Navigator.pop(ctx))),
+        ],
+      ),
+    );
   }
 }
 

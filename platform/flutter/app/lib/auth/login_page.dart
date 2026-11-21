@@ -44,7 +44,9 @@ class _LoginPageState extends State<LoginPage> {
         code: _mfa && !_recovery ? _code.text.trim() : null,
         recoveryCode: _mfa && _recovery ? _code.text.trim() : null,
       );
-      if (mounted) context.go(widget.next != null && widget.next!.startsWith('/') && !widget.next!.startsWith('//') ? widget.next! : '/');
+      final next = widget.next != null && widget.next!.startsWith('/') && !widget.next!.startsWith('//') ? widget.next! : null;
+      // Super Admin abre no painel da plataforma (clientes); os demais, no painel do próprio cliente.
+      if (mounted) context.go(next ?? (api.me?.isPlatformAdmin == true ? '/plataforma/clientes' : '/'));
     } on ApiException catch (e) {
       setState(() {
         if (e.mfaRequired) _mfa = true;

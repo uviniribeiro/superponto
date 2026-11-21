@@ -24,12 +24,17 @@ export class SupportProvisioningService implements OnApplicationBootstrap {
   ) {}
 
   /** Garante o usuário de suporte do cliente dentro de uma transação já aberta. Idempotente. */
-  async ensureInTx(tx: Tx, tenant: { id: string; slug: string }): Promise<{ id: string; email: string; created: boolean }> {
-    const existing = await tx.user.findFirst({ where: { tenantId: tenant.id, isSupport: true, deletedAt: null }, select: { id: true, email: true } });
-    if (existing) return { ...existing, created: false };
+  async ensureInTx(tx: Tx, tenant: { id: string; slug: string }, passwordHash?: string): Promise<{ id: string; email: string; created: boolean }> {
+    const existing = await tx.user.findFirst({ where: { tenantId: tenant.id, isSupport: true, deletedAt: null }, select: { id: true, email: true, username: true } });
+    if (existing) {
+      // Login da v1: usuário "suporte" + CNPJ (clientes antigos ganham o usuário se estiver livre).
+      if (!existing.username && !(await tx.user.findFirst({ where: { tenantId: tenant.id, username: 'suporte' } }))) await tx.user.update({ where: { id: existing.id }, data: { username: 'suporte' } });
+      return { id: existing.id, email: existing.email, created: false };
+    }
     const email = supportEmailFor(this.config.SUPPORT_EMAIL, tenant.slug);
     const role = await tx.role.findFirstOrThrow({ where: { tenantId: null, key: 'company_admin' } });
-    const user = await tx.user.create({ data: { tenantId: tenant.id, email, displayName: 'Suporte SuperPonto', isSupport: true } });
+    const username = (await tx.user.findFirst({ where: { tenantId: tenant.id, username: 'suporte' } })) ? null : 'suporte';
+    const user = await tx.user.create({ data: { tenantId: tenant.id, email, username, displayName: 'Suporte SuperPonto', isSupport: true, ...(passwordHash ? { passwordHash, mustChangePassword: true } : {}) } });
     await tx.userRole.create({ data: { userId: user.id, roleId: role.id, tenantId: tenant.id, scope: 'TENANT' } });
     return { id: user.id, email, created: true };
   }
@@ -41,7 +46,7 @@ export class SupportProvisioningService implements OnApplicationBootstrap {
 
   /** Clientes antigos sem usuário de suporte recebem um na subida da API. */
   async backfill(): Promise<number> {
-    const tenants = await this.prisma.asPlatform((tx) => tx.tenant.findMany({ where: { deletedAt: null, users: { none: { isSupport: true, deletedAt: null } } }, select: { id: true, slug: true } }));
+    const tenants = await this.prisma.asPlatform((tx) => tx.tenant.findMany({ where: { deletedAt: null, OR: [{ users: { none: { isSupport: true, deletedAt: null } } }, { users: { some: { isSupport: true, deletedAt: null, username: null } } }] }, select: { id: true, slug: true } }));
     let created = 0;
     for (const t of tenants) {
       const r = await this.prisma.asPlatform((tx) => this.ensureInTx(tx, t));

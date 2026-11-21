@@ -10,8 +10,11 @@
  * - Marcações viram marcações (origem "importação"), com hash encadeado novo e chave de idempotência.
  * - Equipamentos viram equipamentos (sem senha: o agente local guarda as credenciais).
  *
- * Não migra: papel "super_admin" (a plataforma tem um administrador só), contas de suporte sintéticas
- * da v1 (a v2 cria a própria), diagnósticos, manutenção, preferências e licenças (viram plano na v2).
+ * - Organizações filhas com CNPJ próprio viram outra empresa do cliente (escolha por CNPJ); com o mesmo
+ *   CNPJ, unidades. A conta de suporte da v1 vira o suporte do cliente (usuário "suporte", mesma senha) e a
+ *   de admin ganha o usuário "admin": o login usuário + CNPJ + senha da v1 continua valendo.
+ *
+ * Não migra: papel "super_admin" (a plataforma tem um administrador só), diagnósticos, manutenção, preferências e licenças (viram plano na v2).
  * Rodar de novo pula os clientes já importados (marcados em tenants.settings.v1RootId).
  */
 import { isValidCnpj, isValidCpf, isValidPis, normalizeCnpj, onlyDigits } from '@superponto/br-docs';
@@ -74,42 +77,68 @@ export async function importV1(db: Db, backup: V1Backup, opts: { dryRun?: boolea
       const ids = new Set(companies.filter((c) => rootOf.get(String(c.id)) === rootId).map((c) => String(c.id)));
       const inTenant = (r: Row) => !!r.company_id && ids.has(String(r.company_id));
 
-      // Unidades: organizações filhas e locais georreferenciados.
+      // Organizações filhas: com CNPJ próprio (diferente da mãe) viram outra empresa do mesmo cliente
+      // — o usuário escolhe por CNPJ —; com o mesmo CNPJ viram unidades da empresa a que pertencem.
+      const companyOf = new Map<string, string>([[rootId, company.id]]);
+      const children = companies.filter((c) => c.parent_organization_id && rootOf.get(String(c.id)) === rootId);
+      const usedCnpj = new Set<string>(cnpj ? [cnpj] : []);
+      for (const child of children) {
+        const raw = s(child.cnpj);
+        const own = raw && isValidCnpj(raw) ? normalizeCnpj(raw) : null;
+        if (!own || usedCnpj.has(own) || (await tx.company.findFirst({ where: { cnpj: own, deletedAt: null } }))) continue;
+        usedCnpj.add(own);
+        const c = await tx.company.create({ data: {
+          tenantId, legalName: s(child.name) ?? 'Empresa', tradeName: s(child.trade_name), cnpj: own, segment: SEGMENT[String(child.organization_type)] ?? SEGMENT[String(root.organization_type)] ?? 'GENERAL',
+          city: s(child.city), state: s(child.state)?.slice(0, 2) ?? null, phone: s(child.phone)?.replace(/\D/g, '').slice(0, 11) || null, externalCode: s(child.company_code),
+        } });
+        companyOf.set(String(child.id), c.id);
+        inc('empresas');
+      }
+      /** Empresa de uma organização da v1: a própria (se tem CNPJ próprio) ou a da organização acima. */
+      const companyFor = (orgId: unknown): string => {
+        let cur = companies.find((c) => String(c.id) === String(orgId));
+        for (let guard = 0; cur && guard < 10; guard++) {
+          const hit = companyOf.get(String(cur.id));
+          if (hit) return hit;
+          cur = companies.find((c) => c.id === cur!.parent_organization_id);
+        }
+        return company.id;
+      };
       const unitOf = new Map<string, string>();
-      for (const child of companies.filter((c) => c.parent_organization_id && rootOf.get(String(c.id)) === rootId)) {
-        const u = await tx.companyUnit.create({ data: { tenantId, companyId: company.id, name: s(child.name) ?? 'Unidade', type: 'OFFICE' } });
+      for (const child of children.filter((c) => !companyOf.has(String(c.id)))) {
+        const u = await tx.companyUnit.create({ data: { tenantId, companyId: companyFor(child.parent_organization_id), name: s(child.name) ?? 'Unidade', type: 'OFFICE' } });
         unitOf.set(String(child.id), u.id);
         inc('unidades');
       }
       for (const g of T('public', 'georeferenced_locations').filter(inTenant)) {
         const lat = Number(g.latitude), lon = Number(g.longitude);
         const ok = Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
-        await tx.companyUnit.create({ data: { tenantId, companyId: company.id, name: s(g.description) ?? 'Local', type: 'OPERATIONAL_SITE', address: g.address ? { street: String(g.address) } : undefined, ...(ok ? { latitude: lat, longitude: lon, geofenceM: Math.max(20, Math.min(5000, Number(g.radius_meters) || 100)) } : {}) } });
+        await tx.companyUnit.create({ data: { tenantId, companyId: companyFor(g.company_id), name: s(g.description) ?? 'Local', type: 'OPERATIONAL_SITE', address: g.address ? { street: String(g.address) } : undefined, ...(ok ? { latitude: lat, longitude: lon, geofenceM: Math.max(20, Math.min(5000, Number(g.radius_meters) || 100)) } : {}) } });
         inc('unidades (locais)');
       }
 
       // Cadastros.
       const deptOf = new Map<string, string>();
       for (const d of T('public', 'departments').filter(inTenant).sort((a, b) => (a.parent_id ? 1 : 0) - (b.parent_id ? 1 : 0))) {
-        const r = await tx.department.create({ data: { tenantId, companyId: company.id, name: s(d.name) ?? 'Departamento', parentId: d.parent_id ? deptOf.get(String(d.parent_id)) ?? null : null } });
+        const r = await tx.department.create({ data: { tenantId, companyId: companyFor(d.company_id), name: s(d.name) ?? 'Departamento', parentId: d.parent_id ? deptOf.get(String(d.parent_id)) ?? null : null } });
         deptOf.set(String(d.id), r.id);
         inc('departamentos');
       }
-      const deptByName = async (name: string | null) => {
+      const deptByName = async (name: string | null, companyId = company.id) => {
         if (!name) return null;
-        const hit = await tx.department.findFirst({ where: { companyId: company.id, name, deletedAt: null } });
+        const hit = await tx.department.findFirst({ where: { companyId, name, deletedAt: null } });
         if (hit) return hit.id;
         inc('departamentos');
-        return (await tx.department.create({ data: { tenantId, companyId: company.id, name } })).id;
+        return (await tx.department.create({ data: { tenantId, companyId, name } })).id;
       };
-      const posByName = async (name: string | null) => {
+      const posByName = async (name: string | null, companyId = company.id) => {
         if (!name) return null;
-        const hit = await tx.jobPosition.findFirst({ where: { companyId: company.id, name, deletedAt: null } });
+        const hit = await tx.jobPosition.findFirst({ where: { companyId, name, deletedAt: null } });
         if (hit) return hit.id;
         inc('cargos');
-        return (await tx.jobPosition.create({ data: { tenantId, companyId: company.id, name } })).id;
+        return (await tx.jobPosition.create({ data: { tenantId, companyId, name } })).id;
       };
-      for (const p of T('public', 'positions').filter(inTenant)) await posByName(s(p.name));
+      for (const p of T('public', 'positions').filter(inTenant)) await posByName(s(p.name), companyFor(p.company_id));
       const uniqueCatalog = async (model: 'jobFunction' | 'employeeType', rows: Row[], label: string) => {
         const seen = new Set<string>();
         for (const r of rows.filter((x) => inTenant(x) || !x.company_id)) {
@@ -151,15 +180,25 @@ export async function importV1(db: Db, backup: V1Backup, opts: { dryRun?: boolea
           let reg = s(p.registration_number) ?? `V1-${String(p.id).slice(0, 8)}`;
           while (regs.has(reg)) reg = `${reg}-${String(p.id).slice(0, 4)}`;
           regs.add(reg);
+          const empCompany = companyFor(p.company_id);
           const e = await tx.employment.create({ data: {
-            tenantId, personId, companyId: company.id, registration: reg, hiredAt: new Date(`${s(p.hire_date) ?? String(p.created_at ?? new Date().toISOString()).slice(0, 10)}T00:00:00Z`),
+            tenantId, personId, companyId: empCompany, registration: reg, hiredAt: new Date(`${s(p.hire_date) ?? String(p.created_at ?? new Date().toISOString()).slice(0, 10)}T00:00:00Z`),
             status: bool(p.is_active) ? 'ACTIVE' : 'TERMINATED', unitId: unitOf.get(String(p.company_id)) ?? null,
-            departmentId: await deptByName(s(p.department)), positionId: await posByName(s(p.position)),
+            departmentId: await deptByName(s(p.department), empCompany), positionId: await posByName(s(p.position), empCompany),
           } });
           empOf.set(String(p.id), e.id);
           inc('funcionários');
         }
-        if (!authUser || !email || synthetic || email === PLATFORM_ADMIN) { if (synthetic) inc('contas de suporte da v1 (substituídas)'); continue; }
+        // Suporte da v1 (suporte@<id>.pontomax.local): vira o suporte do cliente na v2 — usuário "suporte",
+        // mesma senha, oculto e não editável pelo cliente. Um por cliente; os demais ficam de fora.
+        if (authUser && email && synthetic) {
+          if (await tx.user.findFirst({ where: { tenantId, isSupport: true } })) { inc('contas de suporte da v1 repetidas (ignoradas)'); continue; }
+          const sup = await tx.user.create({ data: { tenantId, email, username: 'suporte', displayName: 'Suporte SuperPonto', isSupport: true, passwordHash: s(authUser.encrypted_password), isActive: true } });
+          await tx.userRole.create({ data: { userId: sup.id, roleId: systemRoles.get('company_admin')!, tenantId, scope: 'TENANT' } });
+          inc('usuários de suporte');
+          continue;
+        }
+        if (!authUser || !email || email === PLATFORM_ADMIN) continue;
         if (await tx.user.findUnique({ where: { email } })) { report.warnings.push(`${email}: já existe na v2, usuário não importado`); continue; }
         // Mesma pessoa com mais de uma conta na v1: só a primeira fica ligada ao funcionário.
         const linked = personId && (await tx.user.findFirst({ where: { personId } })) ? null : personId;
@@ -198,7 +237,7 @@ export async function importV1(db: Db, backup: V1Backup, opts: { dryRun?: boolea
       for (const d of T('public', 'time_clock_equipment').filter(inTenant)) {
         const rep = s(d.rep_number) ?? s(d.serial_number);
         await tx.device.create({ data: {
-          tenantId, companyId: company.id, name: s(d.name) ?? 'Relógio', manufacturer: s(d.manufacturer), modelName: s(d.model), host: s(d.ip_address), port: d.port ? Number(d.port) : null,
+          tenantId, companyId: companyFor(d.company_id), name: s(d.name) ?? 'Relógio', manufacturer: s(d.manufacturer), modelName: s(d.model), host: s(d.ip_address), port: d.port ? Number(d.port) : null,
           serialNumber: s(d.serial_number), repNumber: rep && /^\d{17}$/.test(rep) ? rep : null, ordinance: 'P671_2021', status: bool(d.is_active ?? 'True') ? 'PENDING' : 'DISABLED',
         } });
         inc('equipamentos');
