@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import '../core/api.dart';
 import '../core/glass.dart';
 import '../core/tokens.dart';
+import '../widgets/masked.dart';
+import '../widgets/ui.dart';
 import 'auth_layout.dart';
 
 class LoginPage extends StatefulWidget {
@@ -16,12 +18,16 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _email = TextEditingController(), _password = TextEditingController(), _code = TextEditingController(), _server = TextEditingController(text: api.baseUrl);
+  final _username = TextEditingController(), _cnpj = TextEditingController(text: maskCnpjInput(api.lastLoginCnpj));
   bool _busy = false, _mfa = false, _recovery = false, _show = false, _showServer = false;
+
+  /// Como na v1: usuário + CNPJ da empresa + senha (padrão), ou e-mail + senha.
+  bool _byCompany = api.lastLoginMode != 'email';
   String? _error;
 
   Future<void> _submit() async {
-    if (_email.text.trim().isEmpty || _password.text.isEmpty) {
-      setState(() => _error = 'Informe e-mail e senha');
+    if (_byCompany ? (_username.text.trim().isEmpty || _cnpj.text.trim().isEmpty || _password.text.isEmpty) : (_email.text.trim().isEmpty || _password.text.isEmpty)) {
+      setState(() => _error = _byCompany ? 'Informe usuário, CNPJ e senha' : 'Informe e-mail e senha');
       return;
     }
     setState(() {
@@ -30,7 +36,14 @@ class _LoginPageState extends State<LoginPage> {
     });
     try {
       if (!kIsWeb && _server.text.trim() != api.baseUrl) await api.setServer(_server.text);
-      await api.signIn(_email.text, _password.text, code: _mfa && !_recovery ? _code.text.trim() : null, recoveryCode: _mfa && _recovery ? _code.text.trim() : null);
+      await api.signIn(
+        _email.text,
+        _password.text,
+        username: _byCompany ? _username.text : null,
+        cnpj: _byCompany ? _cnpj.text : null,
+        code: _mfa && !_recovery ? _code.text.trim() : null,
+        recoveryCode: _mfa && _recovery ? _code.text.trim() : null,
+      );
       if (mounted) context.go(widget.next != null && widget.next!.startsWith('/') && !widget.next!.startsWith('//') ? widget.next! : '/');
     } on ApiException catch (e) {
       setState(() {
@@ -47,20 +60,49 @@ class _LoginPageState extends State<LoginPage> {
     final t = context.sp;
     return AuthLayout(
       title: _mfa ? 'Verificação em duas etapas' : 'Entrar',
-      subtitle: _mfa ? (_recovery ? 'Digite um dos códigos de recuperação.' : 'Digite o código de 6 dígitos do aplicativo autenticador.') : 'Acesse com seu e-mail e senha.',
+      subtitle: _mfa
+          ? (_recovery ? 'Digite um dos códigos de recuperação.' : 'Digite o código de 6 dígitos do aplicativo autenticador.')
+          : (_byCompany ? 'Acesse com seu usuário, o CNPJ da empresa e a senha.' : 'Acesse com seu e-mail e senha.'),
       child: AutofillGroup(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (_error != null) FormMessage(_error!),
             if (!_mfa) ...[
-              TextField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.username, AutofillHints.email],
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'E-mail', prefixIcon: Icon(Icons.alternate_email_rounded, size: 20)),
+              Center(
+                child: GlassTabs(
+                  tabs: const ['Empresa', 'E-mail'],
+                  index: _byCompany ? 0 : 1,
+                  onChanged: (i) => setState(() {
+                    _byCompany = i == 0;
+                    _error = null;
+                  }),
+                ),
               ),
+              const SizedBox(height: 16),
+              if (_byCompany) ...[
+                TextField(
+                  controller: _username,
+                  autofillHints: const [AutofillHints.username],
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
+                  decoration: const InputDecoration(labelText: 'Usuário', prefixIcon: Icon(Icons.person_outline_rounded, size: 20)),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: _cnpj,
+                  textInputAction: TextInputAction.next,
+                  inputFormatters: [MaskFormatter(maskCnpjInput)],
+                  decoration: const InputDecoration(labelText: 'CNPJ da empresa', hintText: '00.000.000/0000-00', prefixIcon: Icon(Icons.business_rounded, size: 20)),
+                ),
+              ] else
+                TextField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.username, AutofillHints.email],
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(labelText: 'E-mail', prefixIcon: Icon(Icons.alternate_email_rounded, size: 20)),
+                ),
               const SizedBox(height: 14),
               TextField(
                 controller: _password,

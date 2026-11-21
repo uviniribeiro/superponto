@@ -18,11 +18,15 @@ import {
   type ForgotDto, type RefreshDto, type ResetDto, type SignInDto,
 } from './auth.schemas.js';
 import { CredentialsService } from './credentials.service.js';
+import { normalizeCnpj } from '@superponto/br-docs';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { RequestInfo, type RequestMeta } from '../common/tenant.js';
 
 const codeSchema = z.object({ code: z.string().regex(/^\d{6}$/, 'Código de 6 dígitos') });
 const tokenSchema = z.object({
-  email: z.string().max(320), password: z.string().min(1).max(256),
+  // E-mail, ou (como na v1) usuário + CNPJ da empresa.
+  email: z.string().trim().max(320).optional(), username: z.string().trim().max(60).optional(), cnpj: z.string().trim().max(20).optional(),
+  password: z.string().min(1).max(256),
   code: z.string().regex(/^\d{6}$/).optional(), recoveryCode: z.string().trim().min(6).max(40).optional(),
 });
 const changePasswordSchema = z.object({ currentPassword: z.string().min(1).max(256), newPassword: z.string().min(12, 'A nova senha precisa de 12 caracteres ou mais').max(128) });
@@ -42,7 +46,28 @@ export class AuthController {
     private readonly tokens: TokenService,
     private readonly passwordReset: PasswordResetService,
     private readonly mfa: MfaService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  /** E-mail e senha, ou (como na v1) usuário + CNPJ da empresa e senha. */
+  private async verifyLogin(body: z.infer<typeof tokenSchema>, meta: RequestMeta) {
+    const byUser = !body.email;
+    let email = body.email;
+    if (byUser) {
+      const username = (body.username ?? '').toLowerCase();
+      const cnpj = normalizeCnpj(body.cnpj ?? '');
+      if (!username || !cnpj) throw new BadRequestException('Informe o e-mail, ou o usuário e o CNPJ da empresa');
+      // Usuário dentro do cliente dono da empresa com esse CNPJ.
+      const rows = await this.prisma.asPlatform((tx) => tx.$queryRaw<{ email: string }[]>`
+        SELECT u.email FROM users u JOIN companies c ON c.tenant_id = u.tenant_id AND c.deleted_at IS NULL
+        WHERE c.cnpj = ${cnpj} AND u.username = ${username} AND u.deleted_at IS NULL LIMIT 1`);
+      email = rows[0]?.email;
+    }
+    // Usuário/CNPJ inexistente passa pela mesma verificação de senha (mesmo tempo de resposta).
+    const user = await this.credentials.verify(email ?? 'inexistente@login.invalid', body.password, meta);
+    if (!user) throw new UnauthorizedException(byUser ? 'Usuário, CNPJ ou senha incorretos' : 'E-mail ou senha incorretos');
+    return user;
+  }
 
   /** Login do navegador: cria sessão em cookie httpOnly. */
   @Public()
@@ -62,8 +87,7 @@ export class AuthController {
   @Post('token')
   @HttpCode(200)
   async issueToken(@Body({ schema: tokenSchema }) body: z.infer<typeof tokenSchema>, @RequestInfo() meta: RequestMeta) {
-    const user = await this.credentials.verify(body.email, body.password, meta);
-    if (!user) throw new UnauthorizedException('E-mail ou senha incorretos');
+    const user = await this.verifyLogin(body, meta);
     const secondFactor = body.code || body.recoveryCode ? { code: body.code, recoveryCode: body.recoveryCode } : undefined;
     try {
       return await this.tokens.issue(user.id, { method: 'password', claims: { amr: ['pwd'] }, secondFactor });

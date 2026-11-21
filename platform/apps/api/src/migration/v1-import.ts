@@ -164,7 +164,13 @@ export async function importV1(db: Db, backup: V1Backup, opts: { dryRun?: boolea
         // Mesma pessoa com mais de uma conta na v1: só a primeira fica ligada ao funcionário.
         const linked = personId && (await tx.user.findFirst({ where: { personId } })) ? null : personId;
         if (personId && !linked) report.warnings.push(`${email}: a pessoa já tem outra conta; esta foi importada sem ligação com o funcionário`);
-        const user = await tx.user.create({ data: { tenantId, email, displayName: s(p.full_name) ?? email, personId: linked, passwordHash: s(authUser.encrypted_password), isActive: bool(p.is_active) && !authUser.banned_until, lastLoginAt: authUser.last_sign_in_at ? new Date(String(authUser.last_sign_in_at)) : null } });
+        // Login da v1: usuário = parte do e-mail antes do @ (único dentro do cliente).
+        let username: string | null = email.split('@')[0]!.replace(/[^a-z0-9._-]/g, '').replace(/^[._-]+/, '').slice(0, 60) || null;
+        if (username && (username.length < 2 || (await tx.user.findFirst({ where: { tenantId, username } })))) {
+          report.warnings.push(`${email}: usuário "${username}" não pôde ser usado no login por usuário + CNPJ (repetido ou curto demais)`);
+          username = null;
+        }
+        const user = await tx.user.create({ data: { tenantId, email, username, displayName: s(p.full_name) ?? email, personId: linked, passwordHash: s(authUser.encrypted_password), isActive: bool(p.is_active) && !authUser.banned_until, lastLoginAt: authUser.last_sign_in_at ? new Date(String(authUser.last_sign_in_at)) : null } });
         const mine = [...new Set(roles.filter((r) => r.user_id === p.user_id).map((r) => ROLE[String(r.role)]).filter(Boolean) as string[])];
         if (!mine.length) mine.push('employee');
         for (const key of mine) await tx.userRole.create({ data: { userId: user.id, roleId: systemRoles.get(key)!, tenantId, scope: 'TENANT' } });

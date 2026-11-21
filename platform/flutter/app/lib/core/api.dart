@@ -105,16 +105,33 @@ class Api extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> signIn(String email, String password, {String? code, String? recoveryCode}) async {
+  /// Login por e-mail, ou (como na v1) por usuário + CNPJ da empresa.
+  Future<void> signIn(String email, String password, {String? username, String? cnpj, String? code, String? recoveryCode}) async {
+    final byUser = username != null;
     final r = await _send(
       'POST',
       '/v1/auth/token',
-      body: {'email': email.trim(), 'password': password, if (code != null && code.isNotEmpty) 'code': code, if (recoveryCode != null && recoveryCode.isNotEmpty) 'recoveryCode': recoveryCode},
+      body: {
+        if (byUser) ...{'username': username.trim(), 'cnpj': (cnpj ?? '').trim()} else 'email': email.trim(),
+        'password': password,
+        if (code != null && code.isNotEmpty) 'code': code,
+        if (recoveryCode != null && recoveryCode.isNotEmpty) 'recoveryCode': recoveryCode,
+      },
       auth: false,
     );
+    if (byUser) {
+      await _prefs?.setString('sp.login.cnpj', (cnpj ?? '').trim());
+      await _prefs?.setString('sp.login.mode', 'company');
+    } else {
+      await _prefs?.setString('sp.login.mode', 'email');
+    }
     await _store(r as Map<String, dynamic>);
     await loadMe();
   }
+
+  /// Última forma de login e CNPJ usados neste aparelho (para não digitar de novo).
+  String get lastLoginMode => _prefs?.getString('sp.login.mode') ?? 'company';
+  String get lastLoginCnpj => _prefs?.getString('sp.login.cnpj') ?? '';
 
   Future<void> loadMe() async {
     me = Me((await get('/auth/me')) as Map<String, dynamic>);

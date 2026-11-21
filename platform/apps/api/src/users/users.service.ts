@@ -9,7 +9,7 @@ import { PrismaService, type Tx } from '../prisma/prisma.service.js';
 import type { BlockInput, UserCreate, UserUpdate } from './users.schemas.js';
 
 const SELECT = {
-  id: true, email: true, displayName: true, isActive: true, isSupport: true, lastLoginAt: true, createdAt: true, accessWeekdays: true, mustChangePassword: true, authSource: true, personId: true, person: { select: { fullName: true } },
+  id: true, email: true, username: true, displayName: true, isActive: true, isSupport: true, lastLoginAt: true, createdAt: true, accessWeekdays: true, mustChangePassword: true, authSource: true, personId: true, person: { select: { fullName: true } },
   accessBlocks: { where: { revokedAt: null }, select: { id: true, reason: true, startsAt: true, endsAt: true }, orderBy: { startsAt: 'desc' }, take: 20 },
   roles: { select: { role: { select: { id: true, key: true, name: true } } } },
 } as const;
@@ -22,7 +22,7 @@ const SELECT = {
 export class UsersService {
   constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly passwordReset: PasswordResetService) {}
 
-  private shape(u: { id: string; email: string; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: Date | null; createdAt: Date; accessWeekdays: number[]; mustChangePassword: boolean; authSource: 'LOCAL' | 'LDAP'; personId: string | null; person: { fullName: string } | null; accessBlocks: Array<{ id: string; reason: string; startsAt: Date; endsAt: Date | null }>; roles: Array<{ role: { id: string; key: string; name: string } }> }, viewer: AuthUser) {
+  private shape(u: { id: string; email: string; username: string | null; displayName: string; isActive: boolean; isSupport: boolean; lastLoginAt: Date | null; createdAt: Date; accessWeekdays: number[]; mustChangePassword: boolean; authSource: 'LOCAL' | 'LDAP'; personId: string | null; person: { fullName: string } | null; accessBlocks: Array<{ id: string; reason: string; startsAt: Date; endsAt: Date | null }>; roles: Array<{ role: { id: string; key: string; name: string } }> }, viewer: AuthUser) {
     const now = new Date();
     const blocks = u.accessBlocks.filter((b) => !b.endsAt || b.endsAt > now);
     const activeBlock = blocks.find((b) => b.startsAt <= now) ?? null;
@@ -62,6 +62,11 @@ export class UsersService {
     return roles.map((r) => r.id);
   }
 
+  private async uniqueUsername(tx: Tx, tenantId: string, username: string, exceptId?: string) {
+    const other = await tx.user.findFirst({ where: { tenantId, username, ...(exceptId ? { id: { not: exceptId } } : {}) }, select: { id: true } });
+    if (other) throw new ConflictException('Este usuário já existe neste cliente');
+  }
+
   async create(tenantId: string, actor: AuthUser, input: UserCreate, meta: RequestMeta) {
     const email = normalizeEmail(input.email);
     // E-mail é único na plataforma inteira: a checagem precisa enxergar todos os clientes
@@ -72,7 +77,8 @@ export class UsersService {
       await assertLimit(tx, tenantId, 'limit.users');
       const ldap = input.authSource === 'LDAP';
       if (ldap) await this.requireLdap(tx, tenantId);
-      const user = await tx.user.create({ data: { tenantId, email, displayName: input.displayName, accessWeekdays: input.accessWeekdays ?? [], mustChangePassword: ldap ? false : input.mustChangePassword ?? false, authSource: ldap ? 'LDAP' : 'LOCAL' } });
+      if (input.username) await this.uniqueUsername(tx, tenantId, input.username);
+      const user = await tx.user.create({ data: { tenantId, email, username: input.username ?? null, displayName: input.displayName, accessWeekdays: input.accessWeekdays ?? [], mustChangePassword: ldap ? false : input.mustChangePassword ?? false, authSource: ldap ? 'LDAP' : 'LOCAL' } });
       await tx.userRole.createMany({ data: roleIds.map((roleId) => ({ userId: user.id, roleId, tenantId, scope: 'TENANT' as const })) });
       const saved = await tx.user.findUniqueOrThrow({ where: { id: user.id }, select: SELECT });
       await this.audit.record(tx, { tenantId, actorUserId: actor.id, action: 'CREATE', entity: 'user', entityId: user.id, after: { email, displayName: input.displayName, roleIds }, ...meta });
@@ -104,7 +110,9 @@ export class UsersService {
         const other = await tx.user.findFirst({ where: { personId: input.personId, id: { not: id } } });
         if (other) throw new ConflictException('Este funcionário já está ligado a outro usuário');
       }
+      if (input.username) await this.uniqueUsername(tx, tenantId, input.username, id);
       await tx.user.update({ where: { id }, data: {
+        ...(input.username !== undefined ? { username: input.username } : {}),
         ...(input.personId !== undefined ? { personId: input.personId } : {}),
         displayName: input.displayName, isActive: input.isActive, accessWeekdays: input.accessWeekdays,
         mustChangePassword: toLdap || (before.authSource === 'LDAP' && !toLocal) ? false : input.mustChangePassword,

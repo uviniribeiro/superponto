@@ -82,6 +82,9 @@ describe('Migração da v1', () => {
     await api(app).post('/v1/auth/token').send({ email: 'gestora@prefeitura-migra.test', password: 'SenhaAntigaDaV1!' }).expect(200);
     const after = await owner.$transaction(async (tx) => { await tx.$queryRaw`SELECT set_config('app.bypass_rls', 'on', true)`; return tx.user.findUniqueOrThrow({ where: { email: 'gestora@prefeitura-migra.test' } }); });
     expect(after.passwordHash).toMatch(/^\$scrypt\$/);
+    // Login da v1 continua: usuário (parte antes do @) + CNPJ da empresa + senha.
+    expect(after.username).toBe('gestora');
+    await api(app).post('/v1/auth/token').send({ username: 'gestora', cnpj: '11.222.333/0001-81', password: 'SenhaAntigaDaV1!' }).expect(200);
     await api(app).post('/v1/auth/token').send({ email: 'gestora@prefeitura-migra.test', password: 'SenhaAntigaDaV1!' }).expect(200);
 
     const again = await importV1(owner as never, backup);

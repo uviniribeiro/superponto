@@ -12,8 +12,13 @@ import '../validate.dart';
 final _weekdays = const Arr(Num(int: true, min: 0, max: 6), max: 7).map((v) => ({...(v as List).cast<int>()}.toList()..sort()));
 final _roleIds = const Arr(uuid, min: 1, max: 10, message: 'Escolha ao menos um perfil');
 
+/// Login da v1 (usuário + CNPJ da empresa + senha): único dentro do cliente.
+final _username = Str(trim: true, max: 60, pattern: RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{1,59}$'), patternMessage: 'Usuário: 2 a 60 letras, números, ponto, hífen ou sublinhado, sem espaços')
+    .map((v) => (v as String).toLowerCase());
+
 final userCreate = Obj({
   'email': email,
+  'username': _username.optional,
   'displayName': const Str(trim: true, min: 2, max: 200),
   'roleIds': _roleIds,
   'accessWeekdays': _weekdays.optional,
@@ -21,6 +26,7 @@ final userCreate = Obj({
   'authSource': const Enum(['LOCAL', 'LDAP']).optional,
 });
 final userUpdate = Obj({
+  'username': _username.nullish,
   'displayName': const Str(trim: true, min: 2, max: 200).optional,
   'isActive': const Bool().optional,
   'roleIds': _roleIds.optional,
@@ -71,7 +77,7 @@ String _slug(String v) {
 }
 
 const _userCols =
-    'u.id, u.email, u.display_name, u.is_active, u.is_support, u.last_login_at, u.created_at, u.access_weekdays, '
+    'u.id, u.email, u.username, u.display_name, u.is_active, u.is_support, u.last_login_at, u.created_at, u.access_weekdays, '
     'u.must_change_password, u.auth_source::text AS auth_source, u.person_id';
 
 class UsersModule {
@@ -80,6 +86,11 @@ class UsersModule {
   Db get db => app.db;
 
   /// Usuário com pessoa, bloqueios vigentes e perfis (mesmo formato da API em Node).
+  Future<void> _uniqueUsername(Tx tx, String tenantId, String username, [String? exceptId]) async {
+    final other = await tx.one('SELECT id FROM users WHERE tenant_id = @t AND username = @u AND (@x::uuid IS NULL OR id <> @x::uuid)', {'t': tenantId, 'u': username, 'x': exceptId});
+    if (other != null) throw conflict('Este usuário já existe neste cliente');
+  }
+
   Future<List<Row>> _load(Tx tx, String where, Map<String, Object?> p, {String order = '', String limit = ''}) async {
     final users = await tx.query('SELECT $_userCols, pe.full_name AS person_full_name FROM users u LEFT JOIN people pe ON pe.id = u.person_id WHERE $where $order $limit', p);
     if (users.isEmpty) return users;
@@ -196,9 +207,11 @@ class UsersModule {
           final roleIds = await _assignableRoles(tx, tenantId, (input['roleIds']! as List).cast<String>());
           await assertLimit(tx, tenantId, 'limit.users');
           if (ldap) await _requireLdap(tx, tenantId);
+          if (input['username'] != null) await _uniqueUsername(tx, tenantId, input['username']! as String);
           final user = await tx.insert('users', {
             'tenantId': tenantId,
             'email': mail,
+            'username': input['username'],
             'displayName': input['displayName'],
             'accessWeekdays': (input['accessWeekdays'] as List?)?.cast<int>() ?? <int>[],
             'mustChangePassword': ldap ? false : (input['mustChangePassword'] ?? false),
@@ -250,7 +263,9 @@ class UsersModule {
               throw conflict('Este funcionário já está ligado a outro usuário');
             }
           }
+          if (input['username'] != null) await _uniqueUsername(tx, tenantId, input['username']! as String, id);
           final data = <String, Object?>{
+            if (input.containsKey('username')) 'username': input['username'],
             if (input.containsKey('personId')) 'personId': personId,
             if (input['displayName'] != null) 'displayName': input['displayName'],
             if (input['isActive'] != null) 'isActive': input['isActive'],

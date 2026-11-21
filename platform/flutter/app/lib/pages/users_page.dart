@@ -1,4 +1,5 @@
 // Usuários (quem acessa e com qual perfil) e perfis com permissões por recurso.
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/api.dart';
@@ -75,7 +76,7 @@ class _UsersPageState extends State<UsersPage> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
-                                  '${u['email']}',
+                                  u['username'] != null ? '${u['username']} · ${u['email']}' : '${u['email']}',
                                   style: TextStyle(color: t.subtle, fontSize: 12),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -173,6 +174,7 @@ class _UserFormState extends State<_UserForm> {
   Map<String, dynamic>? get u => widget.user;
   bool get self => u?['isSelf'] == true;
   late final _name = TextEditingController(text: u?['displayName'] as String?), _email = TextEditingController(text: u?['email'] as String?);
+  late final _username = TextEditingController(text: u?['username'] as String?);
   late bool _active = u?['isActive'] as bool? ?? true, _mustChange = u?['mustChangePassword'] == true;
   late final List<String> _roles = [for (final r in asList(u?['roles'])) r['id'] as String];
   late final List<int> _days = [for (final d in (u?['accessWeekdays'] as List? ?? const [])) (d as num).toInt()];
@@ -194,13 +196,20 @@ class _UserFormState extends State<_UserForm> {
         ),
         const SizedBox(height: 12),
         TextField(
+          controller: _username,
+          autocorrect: false,
+          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9._-]')), LengthLimitingTextInputFormatter(60)],
+          decoration: const InputDecoration(labelText: 'Usuário (login)', helperText: 'Para entrar com usuário + CNPJ da empresa + senha. Sem espaços.'),
+        ),
+        const SizedBox(height: 12),
+        TextField(
           controller: _email,
           enabled: u == null,
           keyboardType: TextInputType.emailAddress,
           decoration: InputDecoration(
             labelText: 'E-mail *',
             helperText: u != null
-                ? 'O e-mail é o login e não pode ser trocado'
+                ? 'O e-mail também entra no login e não pode ser trocado'
                 : ldap
                 ? 'O e-mail precisa ser o mesmo do diretório da organização'
                 : 'O usuário recebe um convite para criar a própria senha',
@@ -303,11 +312,14 @@ class _UserFormState extends State<_UserForm> {
               if (_name.text.trim().length < 2) return toast(context, 'Informe o nome', error: true);
               if (u == null && !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(_email.text.trim())) return toast(context, 'E-mail inválido', error: true);
               if (_roles.isEmpty) return toast(context, 'Escolha ao menos um perfil', error: true);
+              final login = _username.text.trim().toLowerCase();
+              if (login.isNotEmpty && !RegExp(r'^[a-z0-9][a-z0-9._-]{1,59}$').hasMatch(login)) return toast(context, 'Usuário: 2 a 60 letras, números, ponto, hífen ou sublinhado', error: true);
               setState(() => _busy = true);
               final ok = await act(
                 context,
                 () => u != null
                     ? api.patch('/users/${u!['id']}', {
+                        'username': login.isEmpty ? null : login,
                         'displayName': _name.text.trim(),
                         'isActive': _active,
                         'roleIds': _roles,
@@ -317,6 +329,7 @@ class _UserFormState extends State<_UserForm> {
                         if (!self) 'authSource': _source,
                       })
                     : api.post('/users', {
+                        if (login.isNotEmpty) 'username': login,
                         'displayName': _name.text.trim(),
                         'email': _email.text.trim(),
                         'roleIds': _roles,

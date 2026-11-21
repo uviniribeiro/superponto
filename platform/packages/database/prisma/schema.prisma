@@ -1839,6 +1839,8 @@ model User {
   tenantId           String?    @map("tenant_id") @db.Uuid
   personId           String?    @unique @map("person_id") @db.Uuid
   email              String     @unique
+  /// login da v1: usuário + CNPJ da empresa + senha (único dentro do cliente)
+  username           String?
   passwordHash       String?    @map("password_hash")
   displayName        String     @map("display_name")
   isPlatformAdmin    Boolean    @default(false) @map("is_platform_admin")
@@ -1866,6 +1868,8 @@ model User {
   preferences   NotificationPreference[]
 
   @@map("users")
+
+  @@unique([tenantId, username])
 }
 
 // -----------------------------------------------------------------------------

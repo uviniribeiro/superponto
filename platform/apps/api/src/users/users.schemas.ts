@@ -1,9 +1,13 @@
 import { z } from 'zod';
 
+/** Login da v1 (usuário + CNPJ da empresa + senha): único dentro do cliente. */
+const username = z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9._-]{1,59}$/, 'Usuário: 2 a 60 letras, números, ponto, hífen ou sublinhado, sem espaços');
+
 const weekdays = z.array(z.number().int().min(0).max(6)).max(7).transform((v) => [...new Set(v)].sort());
 
 export const userCreateSchema = z.object({
   email: z.email(),
+  username: username.optional(),
   displayName: z.string().trim().min(2).max(200),
   roleIds: z.array(z.uuid()).min(1, 'Escolha ao menos um perfil').max(10),
   /** dias com acesso (0 = domingo … 6 = sábado); vazio = todos */
@@ -15,6 +19,7 @@ export const userCreateSchema = z.object({
 export type UserCreate = z.infer<typeof userCreateSchema>;
 
 export const userUpdateSchema = z.object({
+  username: username.nullable().optional(),
   displayName: z.string().trim().min(2).max(200).optional(),
   isActive: z.boolean().optional(),
   roleIds: z.array(z.uuid()).min(1, 'Escolha ao menos um perfil').max(10).optional(),

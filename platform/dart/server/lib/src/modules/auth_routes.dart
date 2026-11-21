@@ -1,4 +1,6 @@
 // /v1/auth: token (apps e web), refresh, MFA, troca e redefinição de senha.
+import 'package:sp_core/sp_core.dart' show normalizeCnpj;
+
 import '../app.dart';
 import '../auth/token_service.dart';
 import '../http.dart';
@@ -6,7 +8,10 @@ import '../validate.dart';
 
 final _code = Obj({'code': Str(pattern: RegExp(r'^\d{6}$'), patternMessage: 'Código de 6 dígitos')});
 final _token = Obj({
-  'email': const Str(max: 320),
+  // E-mail, ou (como na v1) usuário + CNPJ da empresa.
+  'email': const Str(trim: true, max: 320).optional,
+  'username': const Str(trim: true, max: 60).optional,
+  'cnpj': const Str(trim: true, max: 20).optional,
   'password': const Str(min: 1, max: 256),
   'code': Str(pattern: RegExp(r'^\d{6}$')).optional,
   'recoveryCode': const Str(trim: true, min: 6, max: 40).optional,
@@ -23,8 +28,17 @@ void authRoutes(App app) {
     // Login dos apps e da web: access token (15 min) + refresh token rotativo.
     r.post('/token', access: Access.public, status: 200, throttle: 10, (ctx) async {
       final b = _token.parse(ctx.body);
-      final user = await app.credentials.verify(b['email']! as String, b['password']! as String, ctx.meta);
-      if (user == null) throw unauthorized('E-mail ou senha incorretos');
+      final byUser = b['email'] == null;
+      String? loginEmail = b['email'] as String?;
+      if (byUser) {
+        final username = (b['username'] as String?)?.toLowerCase() ?? '';
+        final cnpj = normalizeCnpj((b['cnpj'] as String?) ?? '');
+        if (username.isEmpty || cnpj.isEmpty) throw badRequest('Informe o e-mail, ou o usuário e o CNPJ da empresa');
+        loginEmail = await _emailFor(app, username, cnpj);
+      }
+      // Usuário/CNPJ inexistente passa pela mesma verificação de senha (mesmo tempo de resposta).
+      final user = await app.credentials.verify(loginEmail ?? 'inexistente@login.invalid', b['password']! as String, ctx.meta);
+      if (user == null) throw unauthorized(byUser ? 'Usuário, CNPJ ou senha incorretos' : 'E-mail ou senha incorretos');
       try {
         return await app.tokens.issue(
           user.id,
@@ -103,3 +117,12 @@ void authRoutes(App app) {
     });
   });
 }
+
+/// E-mail da conta pelo login da v1: usuário dentro do cliente dono da empresa com esse CNPJ.
+Future<String?> _emailFor(App app, String username, String cnpj) => app.db.asPlatform(
+      (tx) => tx.scalar<String>(
+        'SELECT u.email FROM users u JOIN companies c ON c.tenant_id = u.tenant_id AND c.deleted_at IS NULL '
+        'WHERE c.cnpj = @c AND u.username = @u AND u.deleted_at IS NULL LIMIT 1',
+        {'c': cnpj, 'u': username},
+      ),
+    );
