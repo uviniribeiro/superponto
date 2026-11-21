@@ -22,6 +22,8 @@ for (const pkg of ['br-docs', 'time-engine', 'rep-protocols', 'database', 'api']
 if (process.env.MIGRATION_DATABASE_URL) {
   sh('npx prisma migrate deploy', { cwd: path.join(root, 'packages/database'), env: { ...process.env, DATABASE_URL: process.env.MIGRATION_DATABASE_URL } });
   sh('node apps/api/dist/seed.js', { env: { ...process.env, DATABASE_URL: process.env.MIGRATION_DATABASE_URL, SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL || 'viniciusacacio1@gmail.com' } });
+  // Clientes, empresas, usuários e senhas da v1 (mesmo banco) — só quando V1_IMPORT=dry|apply.
+  sh('node scripts/v1-import-db.mjs');
 } else {
   console.warn('MIGRATION_DATABASE_URL não definida: migrações da v2 não aplicadas neste build.');
 }
