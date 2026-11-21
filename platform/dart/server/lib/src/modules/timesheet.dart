@@ -16,6 +16,7 @@ import '../crypto/tokens.dart' show b64url, b64urlDecode, safeEqual, sha256Hex;
 import '../db.dart';
 import '../http.dart';
 import '../validate.dart';
+import 'certificates.dart';
 import 'schedules.dart';
 import 'structure.dart' show Catalog, catalogRoutes;
 import 'timesheet_core.dart';
@@ -250,7 +251,10 @@ double _distanceM(double lat1, double lon1, double lat2, double lon2) {
 }
 
 class TimesheetModule {
-  TimesheetModule(this.app, this.schedules) : core0 = TimesheetCore(schedules);
+  TimesheetModule(this.app, this.schedules, {this.certificates}) : core0 = TimesheetCore(schedules);
+
+  /// Assinatura CAdES (.p7s) dos arquivos legais com o certificado da empresa.
+  final Certificates? certificates;
   final App app;
   final SchedulesModule schedules;
   final TimesheetCore core0;
@@ -788,12 +792,17 @@ class TimesheetModule {
           ),
         );
         final content = '${lines.join('\r\n')}\r\n';
+        final bytes = latin1.encode(content.replaceAll(RegExp(r'[^\x00-\xFF]'), '?'));
+        final filename = 'AFD_REP-P_${cnpj.replaceAll(RegExp(r'\W'), '')}_${q['from']}_${q['to']}.txt';
+        final signed = await _signFile(tenantId, q['companyId']! as String, bytes, filename);
+        if (signed.warning != null) warnings.add(signed.warning!);
         return {
-          'filename': 'AFD_REP-P_${cnpj.replaceAll(RegExp(r'\W'), '')}_${q['from']}_${q['to']}.txt',
+          'filename': filename,
           'mime': 'text/plain;charset=iso-8859-1',
-          'base64': base64.encode(latin1.encode(content.replaceAll(RegExp(r'[^\x00-\xFF]'), '?'))),
+          'base64': base64.encode(bytes),
           'records': data.rows.length,
           'warnings': warnings,
+          'signature': signed.signature,
         };
       });
 
@@ -814,7 +823,17 @@ class TimesheetModule {
       // Espelho diário: todos os funcionários da empresa num dia, com a situação de cada um.
       r.get('/daily', permission: 'time.calculations:read', (ctx) => daily(ctx.tenant, _daily.parse(ctx.query)));
 
-      r.get('/aej', permission: 'reports.reports:export', (ctx) => _aej(ctx.tenant, _calculate.parse(ctx.query)));
+      r.get('/aej', permission: 'reports.reports:export', (ctx) async {
+        final q = _calculate.parse(ctx.query);
+        final out = await _aej(ctx.tenant, q);
+        // O app grava o AEJ em UTF-8: a assinatura cobre exatamente esses bytes.
+        final signed = await _signFile(ctx.tenant, q['companyId']! as String, utf8.encode(out['content']! as String), out['filename']! as String);
+        return {
+          ...out,
+          'warnings': [...(out['warnings']! as List), ?signed.warning],
+          'signature': signed.signature,
+        };
+      });
 
       // Cálculo em lote: grava a apuração dos dias abertos do período.
       r.post('/calculate', permission: 'time.closings:manage', status: 200, (ctx) async {
@@ -1710,6 +1729,9 @@ class TimesheetModule {
   }
 
   // ------------------------------------------------------------------ AEJ (Portaria 671)
+  Future<({Map<String, Object?>? signature, String? warning})> _signFile(String tenantId, String companyId, List<int> bytes, String filename) async =>
+      certificates == null ? (signature: null, warning: null) : certificates!.signExport(tenantId, companyId, bytes, filename);
+
   Future<Map<String, Object?>> _aej(String tenantId, Map<String, Object?> q) async {
     final companyId = q['companyId']! as String, from = q['from']! as String, to = q['to']! as String;
     String hhmm(Object? v) => v == null ? '' : (v as String).replaceFirst(':', '');

@@ -101,7 +101,7 @@ assinado e ciência do espelho, NSR do REP-P.
 e recebimento (empregador, funcionários, digitais, data/hora, registros) por equipamento ou grupo;
 protocolo do agente local com chave por equipamento; cadastro × relógio; alerta de sem comunicação e
 retorno por e-mail; gráfico diário; exportação das linhas originais do AFD; AEJ (Portaria 671) gerado da
-apuração (10 testes). Falta o programa do agente para cada marca de relógio e a assinatura CAdES.
+apuração (10 testes). Assinatura CAdES (.p7s) do AFD do REP-P e do AEJ com o certificado A1 da empresa (cifrado no servidor). Homologação dos drivers em equipamento real pendente.
 
 **Relatórios (fase 7)** — 30 relatórios com filtros padronizados, montador por campos e exportação Excel,
 CSV e PDF pela impressão (10 testes).

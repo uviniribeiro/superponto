@@ -343,7 +343,7 @@ Future<bool> confirm(BuildContext context, {required String title, required Stri
   return r ?? false;
 }
 
-Future<String?> promptText(BuildContext context, {required String title, required String label, String? initial, String confirmLabel = 'Salvar', int maxLines = 1, bool required = true}) async {
+Future<String?> promptText(BuildContext context, {required String title, required String label, String? initial, String confirmLabel = 'Salvar', int maxLines = 1, bool required = true, bool obscure = false, String? help}) async {
   final c = TextEditingController(text: initial);
   final r = await showGlassDialog<String>(
     context,
@@ -355,8 +355,10 @@ Future<String?> promptText(BuildContext context, {required String title, require
         TextField(
           controller: c,
           autofocus: true,
-          maxLines: maxLines,
-          decoration: InputDecoration(labelText: label),
+          maxLines: obscure ? 1 : maxLines,
+          obscureText: obscure,
+          decoration: InputDecoration(labelText: label, helperText: help, helperMaxLines: 3),
+          onSubmitted: obscure ? (_) => required && c.text.isEmpty ? null : Navigator.pop(ctx, c.text) : null,
         ),
         const SizedBox(height: 18),
         Align(
@@ -365,7 +367,7 @@ Future<String?> promptText(BuildContext context, {required String title, require
             label: confirmLabel,
             onPressed: () {
               if (required && c.text.trim().isEmpty) return;
-              Navigator.pop(ctx, c.text.trim());
+              Navigator.pop(ctx, obscure ? c.text : c.text.trim());
             },
           ),
         ),

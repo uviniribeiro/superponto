@@ -5,6 +5,7 @@ import 'src/app.dart';
 import 'src/config.dart';
 import 'src/http.dart';
 import 'src/modules/auth_routes.dart';
+import 'src/modules/certificates.dart';
 import 'src/modules/companies.dart';
 import 'src/modules/dashboard.dart';
 import 'src/modules/devices.dart';
@@ -46,7 +47,8 @@ App buildApp(AppConfig config) {
   final lookup = LookupService()..routes(app);
   dashboardRoutes(app, holidays);
   final schedules = SchedulesModule(app, holidays)..routes();
-  final timesheet = TimesheetModule(app, schedules)..routes();
+  final certificates = Certificates(app)..routes();
+  final timesheet = TimesheetModule(app, schedules, certificates: certificates)..routes();
   final reports = ReportsModule(app, timesheet.core0, holidays)..routes();
   PayrollModule(app, reports).routes();
   final tools = ToolsModule(app, timesheet)..routes();

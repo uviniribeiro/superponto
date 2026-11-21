@@ -27,6 +27,13 @@ class _ClosingPageState extends State<ClosingPage> {
   String? _busy;
   int _token = 0;
 
+  /// Grava a assinatura destacada (.p7s) ao lado do arquivo, quando a API assinou.
+  Future<bool> _saveSignature(Object? sig) async {
+    if (sig is! Map) return false;
+    await saveBytes(base64Decode('${sig['base64']}'), '${sig['filename']}', mime: '${sig['mime'] ?? 'application/pkcs7-signature'}');
+    return true;
+  }
+
   Future<void> _go(String key, Future<void> Function() f) async {
     setState(() => _busy = key);
     try {
@@ -115,10 +122,11 @@ class _ClosingPageState extends State<ClosingPage> {
                             onPressed: () => _go('aej', () async {
                               final r = await api.getMap('/timesheet/aej', {'companyId': companyId, 'from': _from, 'to': _to});
                               final path = await saveBytes(utf8.encode('${r['content']}'), '${r['filename']}', mime: 'text/plain');
+                              await _saveSignature(r['signature']);
                               if (!mounted) return;
                               setState(() => _aejWarnings = [for (final w in (r['warnings'] as List? ?? const [])) '$w']);
                               final tot = asMap(r['totals']);
-                              toast(this.context, 'AEJ gerado (${tot['marcacoes']} marcações, ${tot['vinculos']} vínculos): $path');
+                              toast(this.context, 'AEJ gerado (${tot['marcacoes']} marcações, ${tot['vinculos']} vínculos)${r['signature'] != null ? ' + assinatura .p7s' : ''}: $path');
                             }),
                           ),
                         if (canExport)
@@ -130,8 +138,10 @@ class _ClosingPageState extends State<ClosingPage> {
                             onPressed: () => _go('afd', () async {
                               final r = await api.getMap('/timesheet/afd-rep-p', {'companyId': companyId, 'from': _from, 'to': _to});
                               final path = await saveBytes(base64Decode('${r['base64']}'), '${r['filename']}', mime: '${r['mime'] ?? 'text/plain'}');
+                              final signed = await _saveSignature(r['signature']);
                               if (!mounted) return;
-                              toast(this.context, 'AFD do REP-P: ${r['records']} registro(s) — $path');
+                              setState(() => _aejWarnings = [for (final w in (r['warnings'] as List? ?? const [])) '$w']);
+                              toast(this.context, 'AFD do REP-P: ${r['records']} registro(s)${signed ? ' + assinatura .p7s' : ''} — $path');
                             }),
                           ),
                       ],
@@ -146,7 +156,7 @@ class _ClosingPageState extends State<ClosingPage> {
                         children: [
                           for (final w in _aejWarnings) Text('• $w', style: TextStyle(color: t.warning, fontSize: 13)),
                           const SizedBox(height: 6),
-                          const Text('Confira o arquivo no validador do MTE e assine (CAdES, certificado ICP-Brasil da empresa) antes de entregar.', style: TextStyle(fontSize: 12.5)),
+                          const Text('Confira o arquivo no validador do MTE antes de entregar. A assinatura (.p7s) sai junto quando a empresa tem certificado digital cadastrado (Empresas › Certificado digital).', style: TextStyle(fontSize: 12.5)),
                         ],
                       ),
                     ),

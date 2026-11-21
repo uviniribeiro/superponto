@@ -497,6 +497,7 @@ model Company {
   ruleSets         AttendanceRuleSet[]
   calendars        Calendar[]
   devices          Device[]
+  certificate      CompanyCertificate?
   closings         TimeClosing[]
   approvalFlows    ApprovalFlow[]
   bankPolicy       BankPolicy?
@@ -2806,6 +2807,27 @@ model RepPRegister {
 
   @@index([tenantId])
   @@map("rep_p_registers")
+}
+
+/// Certificado ICP-Brasil A1 da empresa (PFX e senha cifrados) para assinar AFD do REP-P e AEJ (CAdES .p7s).
+model CompanyCertificate {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  companyId    String   @unique @map("company_id") @db.Uuid
+  pfxEnc       String   @map("pfx_enc")
+  passwordEnc  String   @map("password_enc")
+  subject      String
+  issuer       String
+  serialNumber String   @map("serial_number")
+  notBefore    DateTime @map("not_before") @db.Timestamptz(6)
+  notAfter     DateTime @map("not_after") @db.Timestamptz(6)
+  uploadedById String?  @map("uploaded_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("company_certificates")
 }
 
 /// Administradores da plataforma irrevogáveis (gatilhos no banco impedem excluir, bloquear ou rebaixar).

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import type { AuthUser } from '../auth/auth-user.js';
 import { RequirePermission } from '../authorization/authorization.js';
 import { ActiveTenant, RequestInfo, type RequestMeta } from '../common/tenant.js';
+import { CertificatesModule, CertificatesService } from '../companies/certificates.js';
 import { SchedulesModule } from '../schedules/schedules.module.js';
 import { CatalogService, catalogController, type CatalogConfig } from '../structure/catalog.factory.js';
 import type { Tx } from '../prisma/prisma.service.js';
@@ -34,7 +35,7 @@ export const JUSTIFICATIONS: CatalogConfig = {
 @ApiBearerAuth()
 @Controller('v1/timesheet')
 export class TimesheetController {
-  constructor(private readonly svc: TimesheetService, private readonly aejSvc: AejService, private readonly repP: RepPService) {}
+  constructor(private readonly svc: TimesheetService, private readonly aejSvc: AejService, private readonly repP: RepPService, private readonly certs: CertificatesService) {}
 
   /** REP-P: número no INPI e último NSR da empresa. */
   @Get('rep-p')
@@ -48,7 +49,11 @@ export class TimesheetController {
   /** AFD (Portaria 671) das marcações do REP-P (navegador/app) no período. */
   @Get('afd-rep-p')
   @RequirePermission('reports.reports:export')
-  repPAfd(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Query({ schema: repPAfdSchema }) q: z.infer<typeof repPAfdSchema>, @RequestInfo() m: RequestMeta) { return this.repP.afd(t, u, q, m); }
+  async repPAfd(@ActiveTenant() t: string, @CurrentUser() u: AuthUser, @Query({ schema: repPAfdSchema }) q: z.infer<typeof repPAfdSchema>, @RequestInfo() m: RequestMeta) {
+    const out = await this.repP.afd(t, u, q, m);
+    const s = await this.certs.signExport(t, q.companyId, Buffer.from(out.base64, 'base64'), out.filename);
+    return { ...out, warnings: s.warning ? [...out.warnings, s.warning] : out.warnings, signature: s.signature };
+  }
 
   /** Espelho de ponto de um funcionário. */
   @Get()
@@ -67,7 +72,12 @@ export class TimesheetController {
   /** AEJ (Portaria 671) do período, gerado da apuração. */
   @Get('aej')
   @RequirePermission('reports.reports:export')
-  aej(@ActiveTenant() t: string, @Query({ schema: calculateSchema }) q: { companyId: string; from: string; to: string }) { return this.aejSvc.generate(t, q.companyId, q.from, q.to); }
+  async aej(@ActiveTenant() t: string, @Query({ schema: calculateSchema }) q: { companyId: string; from: string; to: string }) {
+    const out = await this.aejSvc.generate(t, q.companyId, q.from, q.to);
+    // O app grava o AEJ em UTF-8: a assinatura cobre exatamente esses bytes.
+    const s = await this.certs.signExport(t, q.companyId, Buffer.from(out.content, 'utf8'), out.filename);
+    return { ...out, warnings: s.warning ? [...out.warnings, s.warning] : out.warnings, signature: s.signature };
+  }
 
   @Post('calculate')
   @HttpCode(200)
@@ -273,7 +283,7 @@ export class RequestsController {
 }
 
 @Module({
-  imports: [SchedulesModule],
+  imports: [SchedulesModule, CertificatesModule],
   controllers: [
     TimesheetController, AdjustmentsController, AbsencesController, ClosingsController, PunchController, BankController, ApprovalFlowsController, RequestsController,
     catalogController(JUSTIFICATIONS),

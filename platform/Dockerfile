@@ -40,6 +40,8 @@ COPY --from=api-deps /app/package.json ./
 COPY --from=api-deps /app/packages packages
 COPY --from=api-deps /app/apps/api/package.json apps/api/
 COPY --from=api-deps /app/apps/api/dist apps/api/dist
+# openssl: assinatura CAdES (.p7s) do AFD do REP-P e do AEJ com o certificado ICP-Brasil da empresa.
+RUN apk add --no-cache openssl
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 CMD wget -qO- http://127.0.0.1:3000/health || exit 1
@@ -79,8 +81,9 @@ COPY flutter/app ./
 RUN flutter build web --release --no-web-resources-cdn
 
 FROM debian:bookworm-slim AS api-dart
-# libssl3 traz a libcrypto usada no scrypt e no AES-GCM (mesmo formato de senhas e segredos da API em Node).
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 tzdata wget && rm -rf /var/lib/apt/lists/* \
+# libssl3 traz a libcrypto usada no scrypt e no AES-GCM (mesmo formato de senhas e segredos da API em Node);
+# o openssl assina o AFD do REP-P e o AEJ (CAdES .p7s) com o certificado ICP-Brasil da empresa.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 openssl tzdata wget && rm -rf /var/lib/apt/lists/* \
  && useradd --system --uid 10001 superponto
 COPY --from=dart-build /out/sp_server /usr/local/bin/sp_server
 COPY --from=flutter-web /app/build/web /srv/web
