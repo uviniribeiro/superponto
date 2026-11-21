@@ -101,3 +101,4 @@ pacotes e API → migrações e seed da v2 → Flutter web → `.vercel/output` 
 - E-mail da v2: defina `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e `MAIL_FROM` nas variáveis
   do projeto `superponto-v2` (Vercel → Settings → Environment Variables).
 - A v1 (`superponto`) também é publicada pela própria Vercel a cada push.
+- O `.vercelignore` da raiz não pode ignorar `platform/`: ele vale para todos os projetos da Vercel ligados ao repositório.

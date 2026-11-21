@@ -5,4 +5,7 @@ deploy/vps/backups
 server
 coverage
 *.dump
-platform
+# A pasta platform/ (v2) NÃO entra aqui: o projeto superponto-v2 da Vercel compila a partir dela.
+platform/node_modules
+platform/flutter/app/build
+platform/apps/web/.next
