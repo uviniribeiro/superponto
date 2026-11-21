@@ -147,7 +147,7 @@ conteúdo das telas (`npm run docs -w @superponto/web`).
 | Decisão | Situação |
 |---|---|
 | Banco | **Supabase** (esquema `superponto`), pronto para VPS: `scripts/db-move.sh` testado de ponta a ponta |
-| API | Imagem Docker + `deploy/docker-compose.yml`; roda em qualquer servidor com Docker |
+| API | Imagem `ghcr.io/…/superponto-v2` + `deploy/docker-compose.yml` (banco, migrações, API, HTTPS); publicação nos servidores pronta e desligada até a troca |
 | Communication Server | Repositório `uviniribeiro/superponto-communication-server` criado; recebe o código na fase 7 |
 | Dados da v1 (Lovable Cloud) | **Backup completo feito em 15/11/2026** (35 contas com senha, 11 empresas, 28 perfis, 12 marcações, 16 arquivos); importação validada; aguarda os secrets do Supabase próprio |
 

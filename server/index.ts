@@ -572,7 +572,7 @@ app.post('/functions/v1/cnpj-lookup', async (req, res) => {
       return res.status(404).json({ error: 'CNPJ não encontrado' });
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as Record<string, string | undefined>;
 
     res.json({
       cnpj: data.cnpj,

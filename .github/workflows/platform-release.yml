@@ -56,6 +56,17 @@ jobs:
             ${{ steps.meta.outputs.image }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # Migrações + seed para o servidor v2 (platform/deploy/docker-compose.yml).
+      - uses: docker/build-push-action@v6
+        with:
+          context: platform
+          target: setup
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}-setup:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.image }}-setup:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   android:
     name: Android (APK)

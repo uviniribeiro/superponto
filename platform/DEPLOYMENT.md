@@ -5,7 +5,7 @@ A v1 continua em produção pelos fluxos de `deploy/` na raiz. A v2 roda com:
 | Peça | Agora | Depois (VPS) |
 |---|---|---|
 | PostgreSQL 17 | **Supabase** (esquema `superponto`, fora da API REST do Supabase) | PostgreSQL do `docker-compose` (perfil `vps`) |
-| API NestJS + Redis | Docker (`platform/deploy/docker-compose.yml`) em qualquer servidor | o mesmo |
+| API Dart + app web | Docker (`platform/deploy/docker-compose.yml`: PostgreSQL, migrações, API e HTTPS) | o mesmo |
 | Web (Next.js) | Vercel ou o mesmo servidor | o mesmo |
 | Communication Server | servidor dedicado com IPv4 próprio | o mesmo |
 
@@ -71,3 +71,19 @@ comunicação** (repositório `superponto-communication-server`), que repassa ao
 3. No servidor de comunicação, use `SYSTEM_URL=https://<este sistema>` e o mesmo `COMM_SERVER_TOKEN`.
 
 Detalhes em [COMMUNICATION_SERVER.md](COMMUNICATION_SERVER.md).
+
+## Hoje e na troca de servidores
+
+**Hoje (em produção):** cada push na `main` roda "Publicar sistema (Supabase + site)": migrações e
+Edge Functions no Supabase e o site na Vercel (`superponto.vercel.app`). Nada disso muda.
+
+**Pronto para a troca (desligado):**
+
+1. Servidor do sistema: clonar o repositório em `/opt/superponto`, `docker login ghcr.io` com um token
+   de leitura de pacotes, copiar `platform/deploy/.env.example` para `platform/deploy/.env` e preencher.
+2. Servidor de comunicação: clonar `superponto-communication-server` em
+   `/opt/superponto-communication-server`, preencher `.env` (mesmo `COMM_SERVER_TOKEN`).
+3. No GitHub (Settings > Secrets and variables > Actions): secrets `V2_SSH_HOST`, `V2_SSH_USER`,
+   `V2_SSH_KEY` (e `COMM_SSH_*`), variáveis `V2_DEPLOY_ENABLED=true` (e `COMM_DEPLOY_ENABLED=true`).
+4. A partir daí, cada publicação da v2 ("SuperPonto v2 — publicação") atualiza os servidores pelo
+   workflow "SuperPonto v2 — servidores". A migração dos dados segue o roteiro do VIRADA.md.

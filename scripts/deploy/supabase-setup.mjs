@@ -88,10 +88,13 @@ async function cmdAuth() {
   const smtpHost = env('SMTP_HOST');
   const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
   const sender = env('SMTP_SENDER_EMAIL') || (isEmail(env('SMTP_USER')) ? env('SMTP_USER') : '');
-  if (smtpHost && !isEmail(sender)) {
-    fail('SMTP configurado sem remetente válido: crie o secret ou a variável SMTP_SENDER_EMAIL com o e-mail que envia (ex.: nao-responda@seudominio.com.br).');
+  // Sem remetente válido não dá para gravar o SMTP (o Supabase recusa). A publicação segue: os links de
+  // recuperação são atualizados e o SMTP que já estiver no projeto continua como está.
+  const smtpReady = Boolean(smtpHost) && isEmail(sender);
+  if (smtpHost && !smtpReady) {
+    console.log('::warning::SMTP_HOST definido, mas sem remetente válido: o SMTP atual do Supabase foi mantido. Para atualizá-lo, crie a variável SMTP_SENDER_EMAIL com o e-mail que envia (ex.: nao-responda@seudominio.com.br).');
   }
-  if (smtpHost) {
+  if (smtpReady) {
     Object.assign(config, {
       smtp_host: smtpHost,
       smtp_port: env('SMTP_PORT', '587'),
@@ -103,12 +106,12 @@ async function cmdAuth() {
       // Personalizar o modelo de e-mail exige SMTP próprio no plano gratuito do Supabase.
       mailer_subjects_recovery: 'SuperPonto - redefinição de senha',
     });
-  } else {
+  } else if (!smtpHost) {
     console.log('::warning::SMTP não configurado: o Supabase usa o e-mail padrão, limitado a poucas mensagens por hora e só para membros da equipe do projeto. Defina os secrets SMTP_* para produção.');
   }
 
   await mgmt(`/projects/${ref}/config/auth`, { method: 'PATCH', body: config });
-  console.log(`Auth configurado: site ${site}, recuperação de senha em ${site}/reset-password${smtpHost ? ', SMTP próprio' : ''}.`);
+  console.log(`Auth configurado: site ${site}, recuperação de senha em ${site}/reset-password${smtpReady ? ', SMTP próprio' : ''}.`);
 }
 
 /** Garante a conta SUPER_ADMIN_EMAIL como Super Admin (e, por padrão, a única). */
