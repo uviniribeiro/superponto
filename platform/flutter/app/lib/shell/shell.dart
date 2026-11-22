@@ -261,11 +261,15 @@ class _NavTileState extends State<_NavTile> {
           duration: const Duration(milliseconds: 180),
           margin: const EdgeInsets.symmetric(vertical: 1.5),
           padding: EdgeInsets.symmetric(horizontal: widget.collapsed ? 0 : 12, vertical: 10),
+          // Pílula de vidro (como no vídeo): item ativo com vidro claro, borda luminosa e brilho no topo.
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            gradient: a ? LinearGradient(colors: [t.brand.withValues(alpha: 0.2), t.brand.withValues(alpha: 0.06)]) : null,
+            borderRadius: BorderRadius.circular(999),
+            gradient: a
+                ? LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [t.fg.withValues(alpha: 0.16), t.fg.withValues(alpha: 0.05)])
+                : null,
             color: a ? null : (_h ? t.hover : Colors.transparent),
-            border: Border.all(color: a ? t.brand.withValues(alpha: 0.3) : Colors.transparent),
+            border: Border.all(color: a ? t.highlight : (_h ? t.border : Colors.transparent)),
+            boxShadow: a ? [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(0, 3))] : null,
           ),
           child: Row(
             mainAxisAlignment: widget.collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,

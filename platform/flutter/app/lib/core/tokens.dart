@@ -31,7 +31,7 @@ class SpTokens extends ThemeExtension<SpTokens> {
   final Color success, info, danger, warning, glowA, glowB;
   final bool dark;
 
-  static const radius = 24.0;
+  static const radius = 28.0;
   static const radiusSm = 14.0;
 
   static const darkTokens = SpTokens(
@@ -44,17 +44,17 @@ class SpTokens extends ThemeExtension<SpTokens> {
     fg: Color(0xFFF4F4F5),
     muted: Color(0xFFA1A1AA),
     subtle: Color(0xFF71717A),
-    surface: Color(0x801E2126),
-    surfaceStrong: Color(0xCC1A1C20),
-    border: Color(0x14FFFFFF),
-    highlight: Color(0x2EFFFFFF),
+    surface: Color(0x5C2A2622),
+    surfaceStrong: Color(0x9E1F1C1A),
+    border: Color(0x1FFFFFFF),
+    highlight: Color(0x4DFFFFFF),
     hover: Color(0x0FFFFFFF),
     success: Color(0xFF34D399),
     info: Color(0xFF60A5FA),
     danger: Color(0xFFF87171),
     warning: Color(0xFFFB923C),
-    glowA: Color(0x33FCC419),
-    glowB: Color(0x2660A5FA),
+    glowA: Color(0x4DFCC419),
+    glowB: Color(0x40C2611F),
     dark: true,
   );
 
@@ -68,7 +68,7 @@ class SpTokens extends ThemeExtension<SpTokens> {
     fg: Color(0xFF18181B),
     muted: Color(0xFF52525B),
     subtle: Color(0xFF71717A),
-    surface: Color(0xA6FFFFFF),
+    surface: Color(0x8CFFFFFF),
     surfaceStrong: Color(0xE6FFFFFF),
     border: Color(0x1A0F172A),
     highlight: Color(0xCCFFFFFF),

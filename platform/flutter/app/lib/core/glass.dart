@@ -52,6 +52,8 @@ class _BlobPainter extends CustomPainter {
     blob(Offset(w * (0.15 + 0.08 * math.sin(a)), h * (0.1 + 0.06 * math.cos(a))), m * 0.45, t.glowA);
     blob(Offset(w * (0.9 + 0.06 * math.cos(a * 1.3)), h * (0.35 + 0.1 * math.sin(a))), m * 0.4, t.glowB);
     blob(Offset(w * (0.55 + 0.12 * math.sin(a * 0.7)), h * (1.0 + 0.05 * math.cos(a))), m * 0.42, t.glowA.withValues(alpha: t.glowA.a * 0.6));
+    // Luz quente ambiente (como a sala desfocada atrás do vidro nos vídeos de referência).
+    blob(Offset(w * 0.35, h * 0.55), m * 0.35, t.glowB.withValues(alpha: t.glowB.a * 0.7));
   }
 
   @override
@@ -60,7 +62,7 @@ class _BlobPainter extends CustomPainter {
 
 /// Painel de vidro: desfoque do que está atrás, preenchimento translúcido, borda com luz no topo.
 class Glass extends StatelessWidget {
-  const Glass({super.key, required this.child, this.padding = const EdgeInsets.all(20), this.radius = SpTokens.radius, this.blur = 14, this.strong = false, this.tint, this.onTap, this.margin});
+  const Glass({super.key, required this.child, this.padding = const EdgeInsets.all(20), this.radius = SpTokens.radius, this.blur = 18, this.strong = false, this.tint, this.onTap, this.margin});
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? margin;
@@ -155,10 +157,21 @@ class _RimPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.white.withValues(alpha: t.dark ? 0.05 : 0.25),
+            Colors.white.withValues(alpha: t.dark ? 0.10 : 0.35),
             Colors.white.withValues(alpha: 0),
           ],
         ).createShader(shine),
+    );
+    // reflexo suave na borda de baixo (vidro espesso)
+    final low = Rect.fromLTWH(0, size.height - math.min(40, size.height * 0.3), size.width, math.min(40, size.height * 0.3));
+    canvas.drawRect(
+      low,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Colors.white.withValues(alpha: t.dark ? 0.04 : 0.15), Colors.white.withValues(alpha: 0)],
+        ).createShader(low),
     );
     canvas.restore();
   }
