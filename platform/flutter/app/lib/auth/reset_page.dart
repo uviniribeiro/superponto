@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../core/api.dart';
 import '../core/glass.dart';
+import '../widgets/password_strength.dart';
 import 'auth_layout.dart';
 
 /// Recebe ?token=… do e-mail. Só o servidor decide se o token vale (uso único, 1 hora); a tela não autoriza nada sozinha.
@@ -19,7 +20,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   String? _error;
 
   Future<void> _submit() async {
-    if (_p1.text.length < 12) return setState(() => _error = 'A senha precisa de 12 caracteres ou mais');
+    if (!passwordOk(_p1.text)) return setState(() => _error = passwordRule);
     if (_p1.text != _p2.text) return setState(() => _error = 'As senhas não conferem');
     setState(() {
       _busy = true;
@@ -46,7 +47,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     }
     return AuthLayout(
       title: 'Nova senha',
-      subtitle: 'Use 12 caracteres ou mais. Seu e-mail de acesso não muda.',
+      subtitle: 'Use 6+ caracteres com maiúscula, minúscula, número e símbolo. Seu e-mail de acesso não muda.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -61,6 +62,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               autofillHints: const [AutofillHints.newPassword],
               decoration: const InputDecoration(labelText: 'Nova senha'),
             ),
+            PasswordStrength(controller: _p1),
             const SizedBox(height: 14),
             TextField(
               controller: _p2,

@@ -8,6 +8,7 @@ import '../core/logo.dart';
 import '../core/tokens.dart';
 import '../main.dart' show saveThemeMode, themeMode;
 import 'nav.dart';
+import 'onboarding.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.location, required this.child});
@@ -19,6 +20,14 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   bool _collapsed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !api.me!.mustChangePassword) maybeShowWhatsNew(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +72,14 @@ class _AppShellState extends State<AppShell> {
                 child: Column(
                   children: [
                     _TopBar(wide: wide, t: t),
-                    Expanded(child: page),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          Positioned.fill(child: page),
+                          Positioned(right: 16, bottom: 16, left: wide ? null : 16, child: _tour(sections)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -72,6 +88,18 @@ class _AppShellState extends State<AppShell> {
         ),
       ),
     );
+  }
+
+  /// Tour da tela atual na primeira visita (cada menu tem o seu).
+  Widget _tour(List<NavSection> sections) {
+    final path = widget.location.split('?').first;
+    String title = 'esta tela';
+    for (final sec in sections) {
+      for (final i in sec.items) {
+        if (i.path == path) title = i.label;
+      }
+    }
+    return TourCard(key: ValueKey('tour$path'), path: path, title: title);
   }
 }
 
@@ -264,9 +292,7 @@ class _NavTileState extends State<_NavTile> {
           // Pílula de vidro (como no vídeo): item ativo com vidro claro, borda luminosa e brilho no topo.
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
-            gradient: a
-                ? LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [t.fg.withValues(alpha: 0.16), t.fg.withValues(alpha: 0.05)])
-                : null,
+            gradient: a ? LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [t.fg.withValues(alpha: 0.16), t.fg.withValues(alpha: 0.05)]) : null,
             color: a ? null : (_h ? t.hover : Colors.transparent),
             border: Border.all(color: a ? t.highlight : (_h ? t.border : Colors.transparent)),
             boxShadow: a ? [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(0, 3))] : null,

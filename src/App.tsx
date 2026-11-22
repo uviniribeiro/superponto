@@ -12,6 +12,7 @@ const CollapsibleSidebar = React.lazy(() => import("@/components/layout/Collapsi
 const SuperAdminLayout = React.lazy(() => import("@/components/layout/SuperAdminLayout"));
 const GuidedTourButton = React.lazy(() => import("@/components/GuidedTour").then((module) => ({ default: module.GuidedTourButton })));
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
+import { NewVersionBanner } from "@/components/NewVersionBanner";
 import { GlobalWatermark } from "@/components/GlobalWatermark";
 import { HolidayThemeProvider } from "@/components/HolidayThemeProvider";
 import { HolidayBanner } from "@/components/HolidayBanner";
@@ -215,6 +216,7 @@ const App = () => (
           <Sonner position="top-right" richColors closeButton />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
+              <NewVersionBanner />
               <MaintenanceBanner />
               <GlobalWatermark />
               <HolidayBanner />

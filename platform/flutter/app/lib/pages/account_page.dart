@@ -7,6 +7,7 @@ import '../core/api.dart';
 import '../core/glass.dart';
 import '../core/tokens.dart';
 import '../widgets/otp_field.dart';
+import '../widgets/password_strength.dart';
 import '../widgets/ui.dart';
 
 class AccountPage extends StatefulWidget {
@@ -22,7 +23,7 @@ class _AccountPageState extends State<AccountPage> {
 
   Future<void> _change() async {
     setState(() => _error = null);
-    if (_next.text.length < 12) return setState(() => _error = 'A nova senha precisa de 12 caracteres ou mais');
+    if (!passwordOk(_next.text)) return setState(() => _error = passwordRule);
     if (_next.text != _conf.text) return setState(() => _error = 'As senhas novas não conferem');
     setState(() => _busy = true);
     try {
@@ -59,8 +60,9 @@ class _AccountPageState extends State<AccountPage> {
             controller: _next,
             obscureText: true,
             autofillHints: const [AutofillHints.newPassword],
-            decoration: const InputDecoration(labelText: 'Nova senha', helperText: '12 caracteres ou mais'),
+            decoration: const InputDecoration(labelText: 'Nova senha'),
           ),
+          PasswordStrength(controller: _next),
           const SizedBox(height: 12),
           TextField(
             controller: _conf,

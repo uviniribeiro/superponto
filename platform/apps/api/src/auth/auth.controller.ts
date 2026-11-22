@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { ApiTags } from '@nestjs/swagger';
 import type { AuthUser } from './auth-user.js';
 import {
-  forgotSchema, refreshSchema, resetSchema, signInSchema,
+  forgotSchema, refreshSchema, resetSchema, signInSchema, strongPassword,
   type ForgotDto, type RefreshDto, type ResetDto, type SignInDto,
 } from './auth.schemas.js';
 import { CredentialsService } from './credentials.service.js';
@@ -29,7 +29,7 @@ const tokenSchema = z.object({
   password: z.string().min(1).max(256),
   code: z.string().regex(/^\d{6}$/).optional(), recoveryCode: z.string().trim().min(6).max(40).optional(),
 });
-const changePasswordSchema = z.object({ currentPassword: z.string().min(1).max(256), newPassword: z.string().min(12, 'A nova senha precisa de 12 caracteres ou mais').max(128) });
+const changePasswordSchema = z.object({ currentPassword: z.string().min(1).max(256), newPassword: strongPassword });
 
 const publicUser = (u: AuthUser) => ({
   id: u.id, email: u.email, displayName: u.displayName, tenantId: u.tenantId, personId: u.personId,

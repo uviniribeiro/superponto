@@ -17,10 +17,16 @@ final _token = Obj({
   'code': Str(pattern: RegExp(r'^\d{6}$')).optional,
   'recoveryCode': const Str(trim: true, min: 6, max: 40).optional,
 });
-final _change = Obj({'currentPassword': const Str(min: 1, max: 256), 'newPassword': const Str(min: 12, max: 128, message: 'A nova senha precisa de 12 caracteres ou mais')});
+const _pwMsg = 'A senha precisa de 6 ou mais caracteres, com letra maiúscula, minúscula, número e símbolo';
+/// Política de senha: 6+ caracteres com maiúscula, minúscula, número e símbolo.
+final strongPassword = const Str(min: 6, max: 128, message: _pwMsg).refine((v) {
+  final s = v as String;
+  return RegExp(r'[A-Z]').hasMatch(s) && RegExp(r'[a-z]').hasMatch(s) && RegExp(r'\d').hasMatch(s) && RegExp(r'[^A-Za-z0-9]').hasMatch(s);
+}, _pwMsg);
+final _change = Obj({'currentPassword': const Str(min: 1, max: 256), 'newPassword': strongPassword});
 final _refresh = Obj({'refreshToken': const Str(min: 1)});
 final _forgot = Obj({'email': email});
-final _reset = Obj({'token': const Str(min: 1), 'password': const Str(min: 12, max: 128)});
+final _reset = Obj({'token': const Str(min: 1), 'password': strongPassword});
 final _signOut = Obj({'refreshToken': const Str().optional});
 
 void authRoutes(App app) {

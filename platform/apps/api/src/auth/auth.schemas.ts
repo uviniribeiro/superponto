@@ -10,5 +10,8 @@ export const forgotSchema = z.object({ email: z.email() });
 export type ForgotDto = z.infer<typeof forgotSchema>;
 
 /** Senha nova: 12+ caracteres (OWASP ASVS). Senhas antigas mais curtas continuam valendo no login. */
-export const resetSchema = z.object({ token: z.string().min(1), password: z.string().min(12).max(128) });
+/** Política de senha: 6+ caracteres com maiúscula, minúscula, número e símbolo. */
+export const strongPassword = z.string().min(6, 'A senha precisa de 6 ou mais caracteres, com letra maiúscula, minúscula, número e símbolo').max(128)
+  .refine((v) => /[A-Z]/.test(v) && /[a-z]/.test(v) && /\d/.test(v) && /[^A-Za-z0-9]/.test(v), 'A senha precisa de 6 ou mais caracteres, com letra maiúscula, minúscula, número e símbolo');
+export const resetSchema = z.object({ token: z.string().min(1), password: strongPassword });
 export type ResetDto = z.infer<typeof resetSchema>;
