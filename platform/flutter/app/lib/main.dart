@@ -11,6 +11,7 @@ import 'auth/login_page.dart';
 import 'auth/reset_page.dart';
 import 'core/api.dart';
 import 'core/tokens.dart';
+import 'pages/legal_pages.dart';
 import 'pages/registry.dart';
 import 'shell/shell.dart';
 
@@ -38,11 +39,10 @@ Future<void> main() async {
   runApp(const SuperPontoApp());
 }
 
-const _public = ['/login', '/forgot-password', '/reset-password'];
+const _public = ['/login', '/forgot-password', '/reset-password', '/privacidade', '/termos', '/consentimento'];
 
 /// Telas que o Super Admin usa: as da plataforma, a própria conta e a ajuda.
-bool platformAllowed(String loc) =>
-    loc.startsWith('/plataforma') || loc.startsWith('/minha-conta') || loc.startsWith('/manual') || loc.startsWith('/conformidade');
+bool platformAllowed(String loc) => loc.startsWith('/plataforma') || _public.contains(loc) || loc.startsWith('/minha-conta') || loc.startsWith('/manual') || loc.startsWith('/conformidade');
 
 final router = GoRouter(
   refreshListenable: api,
@@ -70,6 +70,11 @@ final router = GoRouter(
       path: '/login',
       builder: (_, s) => LoginPage(next: s.uri.queryParameters['next']),
     ),
+    for (final d in ['privacidade', 'termos', 'consentimento'])
+      GoRoute(
+        path: '/$d',
+        builder: (_, _) => LegalPage(doc: d),
+      ),
     GoRoute(path: '/forgot-password', builder: (_, _) => const ForgotPasswordPage()),
     GoRoute(
       path: '/reset-password',
@@ -127,7 +132,11 @@ class _Splash extends StatelessWidget {
                     const SizedBox(height: 12),
                     const Text('Sem conexão com o servidor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 6),
-                    Text('Seu login continua salvo. Confira a internet e tente de novo.', textAlign: TextAlign.center, style: TextStyle(color: context.sp.muted)),
+                    Text(
+                      'Seu login continua salvo. Confira a internet e tente de novo.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: context.sp.muted),
+                    ),
                     const SizedBox(height: 16),
                     FilledButton.icon(onPressed: api.reconnect, icon: const Icon(Icons.refresh_rounded), label: const Text('Tentar de novo')),
                   ],

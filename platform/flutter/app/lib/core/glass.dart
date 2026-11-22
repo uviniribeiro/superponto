@@ -170,7 +170,10 @@ class _RimPainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
-          colors: [Colors.white.withValues(alpha: t.dark ? 0.04 : 0.15), Colors.white.withValues(alpha: 0)],
+          colors: [
+            Colors.white.withValues(alpha: t.dark ? 0.04 : 0.15),
+            Colors.white.withValues(alpha: 0),
+          ],
         ).createShader(low),
     );
     canvas.restore();

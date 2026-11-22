@@ -59,6 +59,7 @@ class Api extends ChangeNotifier {
 
   /// Há login salvo, mas o servidor não respondeu ao abrir (sem rede).
   bool get waitingNetwork => offline && me == null && _refresh != null;
+
   /// Cliente ativo: sempre o do próprio usuário (o Super Admin não entra em cliente nenhum).
   String? get activeTenant => me?.tenantId;
   bool can(String p) => me?.can(p) ?? false;
@@ -170,7 +171,9 @@ class Api extends ChangeNotifier {
         if (rt == null) return false;
         final http.Response res;
         try {
-          res = await _client.post(Uri.parse('$baseUrl/v1/auth/token/refresh'), headers: {'content-type': 'application/json'}, body: jsonEncode({'refreshToken': rt})).timeout(const Duration(seconds: 20));
+          res = await _client
+              .post(Uri.parse('$baseUrl/v1/auth/token/refresh'), headers: {'content-type': 'application/json'}, body: jsonEncode({'refreshToken': rt}))
+              .timeout(const Duration(seconds: 20));
         } catch (_) {
           throw ApiException(0, 'Sem conexão com o servidor ($baseUrl).');
         }
@@ -197,10 +200,7 @@ class Api extends ChangeNotifier {
     return q.isEmpty ? u : u.replace(queryParameters: {...u.queryParameters, ...q});
   }
 
-  Map<String, String> _headers({bool json = true}) => {
-    if (json) 'content-type': 'application/json',
-    if (_access != null) 'authorization': 'Bearer $_access',
-  };
+  Map<String, String> _headers({bool json = true}) => {if (json) 'content-type': 'application/json', if (_access != null) 'authorization': 'Bearer $_access'};
 
   Future<http.Response> _raw(String method, Uri u, {Object? body, bool auth = true}) async {
     Future<http.Response> call() {

@@ -156,7 +156,10 @@ class _ClosingPageState extends State<ClosingPage> {
                         children: [
                           for (final w in _aejWarnings) Text('• $w', style: TextStyle(color: t.warning, fontSize: 13)),
                           const SizedBox(height: 6),
-                          const Text('Confira o arquivo no validador do MTE antes de entregar. A assinatura (.p7s) sai junto quando a empresa tem certificado digital cadastrado (Empresas › Certificado digital).', style: TextStyle(fontSize: 12.5)),
+                          const Text(
+                            'Confira o arquivo no validador do MTE antes de entregar. A assinatura (.p7s) sai junto quando a empresa tem certificado digital cadastrado (Empresas › Certificado digital).',
+                            style: TextStyle(fontSize: 12.5),
+                          ),
                         ],
                       ),
                     ),

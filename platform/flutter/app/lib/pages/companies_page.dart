@@ -535,18 +535,29 @@ class _CertificateSettingsState extends State<CertificateSettings> {
     _load();
   }
 
-  void _load() => api.getMap('/companies/${widget.companyId}/certificate').then((d) {
-    if (mounted) setState(() => (_cert = d['certificate'] == null ? null : asMap(d['certificate']), _loaded = true));
-  }, onError: (_) {
-    if (mounted) setState(() => _loaded = true);
-  });
+  void _load() => api
+      .getMap('/companies/${widget.companyId}/certificate')
+      .then(
+        (d) {
+          if (mounted) setState(() => (_cert = d['certificate'] == null ? null : asMap(d['certificate']), _loaded = true));
+        },
+        onError: (_) {
+          if (mounted) setState(() => _loaded = true);
+        },
+      );
 
   Future<void> _upload() async {
     final f = await pickFile(['pfx', 'p12']);
     if (f == null || !mounted) return;
     if (f.$1.length > 64 * 1024) return toast(context, 'O arquivo do certificado deve ter até 64 KB', error: true);
-    final pass = await promptText(context, title: 'Senha do certificado', label: 'Senha do arquivo ${f.$2}', confirmLabel: 'Enviar', obscure: true,
-        help: 'O arquivo e a senha ficam cifrados no servidor e só são usados para assinar o AFD e o AEJ.');
+    final pass = await promptText(
+      context,
+      title: 'Senha do certificado',
+      label: 'Senha do arquivo ${f.$2}',
+      confirmLabel: 'Enviar',
+      obscure: true,
+      help: 'O arquivo e a senha ficam cifrados no servidor e só são usados para assinar o AFD e o AEJ.',
+    );
     if (pass == null || !mounted) return;
     setState(() => _busy = true);
     final r = await run(context, () => api.put('/companies/${widget.companyId}/certificate', {'pfxBase64': base64Encode(f.$1), 'password': pass}), success: 'Certificado digital salvo');
@@ -568,14 +579,15 @@ class _CertificateSettingsState extends State<CertificateSettings> {
       children: [
         const SectionTitle('Certificado digital (assinatura do AFD e do AEJ)'),
         if (c == null)
-          Text('Nenhum certificado enviado. Sem ele, o AFD do REP-P e o AEJ saem sem a assinatura eletrônica (.p7s) exigida pela Portaria 671.',
-              style: TextStyle(color: t.warning, fontSize: 12.5))
+          Text('Nenhum certificado enviado. Sem ele, o AFD do REP-P e o AEJ saem sem a assinatura eletrônica (.p7s) exigida pela Portaria 671.', style: TextStyle(color: t.warning, fontSize: 12.5))
         else ...[
           Text('${c['subject']}', style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
           Text('Emitido por ${c['issuer']}', style: TextStyle(color: t.muted, fontSize: 12.5)),
-          Text('Válido de ${brDate(c['notBefore'])} até ${brDate(c['notAfter'])}${expired ? ' — VENCIDO' : ''} · série ${c['serialNumber']}',
-              style: TextStyle(color: expired ? t.danger : t.muted, fontSize: 12.5)),
+          Text(
+            'Válido de ${brDate(c['notBefore'])} até ${brDate(c['notAfter'])}${expired ? ' — VENCIDO' : ''} · série ${c['serialNumber']}',
+            style: TextStyle(color: expired ? t.danger : t.muted, fontSize: 12.5),
+          ),
         ],
         if (widget.canEdit) ...[
           const SizedBox(height: 10),
@@ -583,7 +595,14 @@ class _CertificateSettingsState extends State<CertificateSettings> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              GlassButton(label: c == null ? 'Enviar certificado A1 (.pfx)' : 'Trocar certificado', icon: Icons.verified_user_rounded, kind: BtnKind.glass, small: true, loading: _busy, onPressed: _upload),
+              GlassButton(
+                label: c == null ? 'Enviar certificado A1 (.pfx)' : 'Trocar certificado',
+                icon: Icons.verified_user_rounded,
+                kind: BtnKind.glass,
+                small: true,
+                loading: _busy,
+                onPressed: _upload,
+              ),
               if (c != null)
                 GlassButton(
                   label: 'Remover',

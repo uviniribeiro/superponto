@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/api.dart';
+import '../pages/legal_pages.dart';
 import '../widgets/otp_field.dart';
 import '../core/glass.dart';
 import '../core/tokens.dart';
@@ -181,6 +182,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: Text('Esqueci minha senha', style: TextStyle(color: t.muted)),
                 ),
               ),
+            const LegalLinks(),
           ],
         ),
       ),

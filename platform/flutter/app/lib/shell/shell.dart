@@ -9,6 +9,7 @@ import '../core/tokens.dart';
 import '../main.dart' show saveThemeMode, themeMode;
 import 'nav.dart';
 import 'onboarding.dart';
+import '../pages/legal_pages.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.location, required this.child});
@@ -25,7 +26,10 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !api.me!.mustChangePassword) maybeShowWhatsNew(context);
+      if (!mounted || api.me!.mustChangePassword) return;
+      maybeAskLegalConsent(context).then((_) {
+        if (mounted && api.signedIn) maybeShowWhatsNew(context);
+      });
     });
   }
 

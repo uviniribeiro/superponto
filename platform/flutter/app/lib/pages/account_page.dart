@@ -7,6 +7,7 @@ import '../core/api.dart';
 import '../core/glass.dart';
 import '../core/tokens.dart';
 import '../widgets/otp_field.dart';
+import 'legal_pages.dart';
 import '../widgets/password_strength.dart';
 import '../widgets/ui.dart';
 
@@ -89,6 +90,7 @@ class _AccountPageState extends State<AccountPage> {
       icon: Icons.person_rounded,
       maxWidth: 1100,
       children: [
+        const Align(alignment: Alignment.centerLeft, child: LegalLinks()),
         if (me.mustChangePassword)
           Glass(
             margin: const EdgeInsets.only(bottom: 14),
