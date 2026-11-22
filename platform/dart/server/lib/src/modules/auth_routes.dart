@@ -80,6 +80,20 @@ void authRoutes(App app) {
 
     r.get('/me', (ctx) => ctx.user.toPublic());
 
+    // Aceite dos documentos legais (LGPD): último aceite e registro com versão, data/hora, IP e aparelho.
+    r.get('/legal-consent', (ctx) async {
+      final row = await app.db.asPlatform((tx) => tx.one('SELECT version, accepted_at FROM legal_consents WHERE user_id = @u ORDER BY accepted_at DESC LIMIT 1', {'u': ctx.user.id}));
+      return {'version': row?['version'], 'acceptedAt': row?['acceptedAt']};
+    });
+    r.post('/legal-consent', status: 201, (ctx) async {
+      final v = Obj({'version': const Str(trim: true, min: 1, max: 40)}).parse(ctx.body)['version'];
+      await app.db.asPlatform((tx) => tx.execute(
+        'INSERT INTO legal_consents (user_id, tenant_id, version, ip, user_agent) VALUES (@u, @t, @v, @ip, @ua)',
+        {'u': ctx.user.id, 't': ctx.user.tenantId, 'v': v, 'ip': ctx.ip, 'ua': ctx.userAgent},
+      ));
+      return {'version': v};
+    });
+
     r.get('/mfa', (ctx) async {
       final enrolled = await app.mfa.isEnrolled(ctx.user.id);
       return {'enrolled': enrolled, 'recoveryCodesLeft': enrolled ? await app.mfa.remainingRecoveryCodes(ctx.user.id) : 0};

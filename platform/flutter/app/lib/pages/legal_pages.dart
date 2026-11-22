@@ -12,7 +12,7 @@ import '../core/tokens.dart';
 const legalVersion = '2026-11-22';
 
 /// Canal do Encarregado (DPO) do SuperPonto — ajuste aqui quando houver e-mail próprio.
-const dpoContact = 'o canal de suporte do SuperPonto (Minha conta > Ajuda) ou o Encarregado (DPO) indicado pela sua empresa';
+const dpoContact = 'o Encarregado (DPO) pelo e-mail suporte@maxponto.com';
 
 typedef _Doc = (String title, String subtitle, List<(String, String)> sections);
 
@@ -199,7 +199,16 @@ Future<void> maybeAskLegalConsent(BuildContext context) async {
     p = await SharedPreferences.getInstance();
   } catch (_) {}
   final key = 'sp.legal.${api.me?.id ?? ''}';
-  if (p == null || p.getString(key) == legalVersion || !context.mounted) return;
+  if (p?.getString(key) == legalVersion || !context.mounted) return;
+  // O aceite fica registrado no servidor (prova: versão, data/hora, IP e aparelho).
+  try {
+    final r = await api.getMap('/auth/legal-consent');
+    if (r['version'] == legalVersion) {
+      await p?.setString(key, legalVersion);
+      return;
+    }
+  } catch (_) {}
+  if (!context.mounted) return;
   var ok = false;
   await showDialog<void>(
     context: context,
@@ -252,5 +261,9 @@ Future<void> maybeAskLegalConsent(BuildContext context) async {
       },
     ),
   );
-  if (ok) await p.setString(key, legalVersion);
+  if (!ok) return;
+  try {
+    await api.post('/auth/legal-consent', {'version': legalVersion});
+    await p?.setString(key, legalVersion);
+  } catch (_) {}
 }

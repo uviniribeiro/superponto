@@ -29,6 +29,7 @@ const tokenSchema = z.object({
   password: z.string().min(1).max(256),
   code: z.string().regex(/^\d{6}$/).optional(), recoveryCode: z.string().trim().min(6).max(40).optional(),
 });
+const legalSchema = z.object({ version: z.string().trim().min(1).max(40) });
 const changePasswordSchema = z.object({ currentPassword: z.string().min(1).max(256), newPassword: strongPassword });
 
 const publicUser = (u: AuthUser) => ({
@@ -172,6 +173,21 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: AuthUser) {
     return publicUser(user);
+  }
+
+  /** Último aceite dos documentos legais (LGPD) deste usuário. */
+  @Get('legal-consent')
+  async legalConsent(@CurrentUser() user: AuthUser) {
+    const r = await this.prisma.asPlatform((tx) => tx.$queryRaw<Array<{ version: string; accepted_at: Date }>>`SELECT version, accepted_at FROM legal_consents WHERE user_id = ${user.id}::uuid ORDER BY accepted_at DESC LIMIT 1`);
+    return { version: r[0]?.version ?? null, acceptedAt: r[0]?.accepted_at ?? null };
+  }
+
+  /** Registra o aceite (prova: versão, data/hora, IP e aparelho). */
+  @Post('legal-consent')
+  @HttpCode(201)
+  async acceptLegal(@CurrentUser() user: AuthUser, @Body({ schema: legalSchema }) body: { version: string }, @RequestInfo() meta: RequestMeta) {
+    await this.prisma.asPlatform((tx) => tx.$executeRaw`INSERT INTO legal_consents (user_id, tenant_id, version, ip, user_agent) VALUES (${user.id}::uuid, ${user.tenantId}::uuid, ${body.version}, ${meta.ip}, ${meta.userAgent})`);
+    return { version: body.version };
   }
 
   /** Mesma resposta, no mesmo tempo, exista ou não a conta. */
