@@ -15,20 +15,12 @@ class LiquidBackdrop extends StatefulWidget {
   State<LiquidBackdrop> createState() => _LiquidBackdropState();
 }
 
-class _LiquidBackdropState extends State<LiquidBackdrop> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(seconds: 40))..repeat();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
+class _LiquidBackdropState extends State<LiquidBackdrop> {
+  // Fundo estático: antes as manchas se moviam a cada quadro e obrigavam todo vidro (desfoque) a ser
+  // recalculado 60–144 vezes por segundo. Parado, o desfoque só é refeito quando algo muda na tela.
   @override
   Widget build(BuildContext context) {
     final t = context.sp;
-    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-    if (reduce) _c.stop();
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -37,12 +29,7 @@ class _LiquidBackdropState extends State<LiquidBackdrop> with SingleTickerProvid
             gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [t.bg, t.bgDeep]),
           ),
         ),
-        RepaintBoundary(
-          child: AnimatedBuilder(
-            animation: _c,
-            builder: (_, _) => CustomPaint(painter: _BlobPainter(_c.value, t)),
-          ),
-        ),
+        RepaintBoundary(child: CustomPaint(painter: _BlobPainter(0.12, t))),
         BackdropGroup(child: widget.child),
       ],
     );
@@ -73,7 +60,7 @@ class _BlobPainter extends CustomPainter {
 
 /// Painel de vidro: desfoque do que está atrás, preenchimento translúcido, borda com luz no topo.
 class Glass extends StatelessWidget {
-  const Glass({super.key, required this.child, this.padding = const EdgeInsets.all(20), this.radius = SpTokens.radius, this.blur = 22, this.strong = false, this.tint, this.onTap, this.margin});
+  const Glass({super.key, required this.child, this.padding = const EdgeInsets.all(20), this.radius = SpTokens.radius, this.blur = 14, this.strong = false, this.tint, this.onTap, this.margin});
   final Widget child;
   final EdgeInsetsGeometry padding;
   final EdgeInsetsGeometry? margin;
@@ -100,8 +87,8 @@ class Glass extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: t.dark ? 0.35 : 0.08),
-            blurRadius: 30,
-            offset: const Offset(0, 12),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -118,11 +105,13 @@ class Glass extends StatelessWidget {
     }
     return Padding(
       padding: margin ?? EdgeInsets.zero,
-      child: ClipRRect(
-        borderRadius: br,
-        child: BackdropFilter.grouped(
-          filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: body,
+      child: RepaintBoundary(
+        child: ClipRRect(
+          borderRadius: br,
+          child: BackdropFilter.grouped(
+            filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+            child: body,
+          ),
         ),
       ),
     );

@@ -67,10 +67,7 @@ class _CompanyScopeState extends State<CompanyScope> {
               width: isWide(context) ? 340 : double.infinity,
               label: 'Empresa (CNPJ)',
               value: _id,
-              items: [
-                if (widget.allowAll) (null, 'Todos os CNPJs'),
-                for (final c in list) (c['id'] as String, c['cnpj'] != null ? '${companyName(c)} · ${fmtCnpj(c['cnpj'])}' : companyName(c)),
-              ],
+              items: [if (widget.allowAll) (null, 'Todos os CNPJs'), for (final c in list) (c['id'] as String, c['cnpj'] != null ? '${companyName(c)} · ${fmtCnpj(c['cnpj'])}' : companyName(c))],
               onChanged: (v) => setState(() => _lastCompany = _id = v),
             );
       return widget.builder(context, _id, picker);

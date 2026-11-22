@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../core/api.dart';
 import '../core/glass.dart';
 import '../core/tokens.dart';
+import '../widgets/otp_field.dart';
 import '../widgets/ui.dart';
 
 class AccountPage extends StatefulWidget {
@@ -199,12 +200,7 @@ class _MfaCardState extends State<MfaCard> {
             const SizedBox(height: 12),
             Text('2. Digite o código de 6 dígitos que aparece no aplicativo.', style: TextStyle(color: t.muted)),
             const SizedBox(height: 8),
-            TextField(
-              controller: _code,
-              keyboardType: TextInputType.number,
-              inputFormatters: digitsOnly(6),
-              decoration: const InputDecoration(labelText: 'Código'),
-            ),
+            OtpField(controller: _code),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -246,12 +242,9 @@ class _MfaCardState extends State<MfaCard> {
                         ),
                         const SizedBox(height: 12),
                         if (_disabling) ...[
-                          TextField(
-                            controller: _code,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: digitsOnly(6),
-                            decoration: const InputDecoration(labelText: 'Código atual do aplicativo'),
-                          ),
+                          Text('Código atual do aplicativo', style: TextStyle(color: t.muted)),
+                          const SizedBox(height: 8),
+                          OtpField(controller: _code),
                           const SizedBox(height: 10),
                           Wrap(
                             spacing: 8,

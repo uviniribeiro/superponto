@@ -343,7 +343,17 @@ Future<bool> confirm(BuildContext context, {required String title, required Stri
   return r ?? false;
 }
 
-Future<String?> promptText(BuildContext context, {required String title, required String label, String? initial, String confirmLabel = 'Salvar', int maxLines = 1, bool required = true, bool obscure = false, String? help}) async {
+Future<String?> promptText(
+  BuildContext context, {
+  required String title,
+  required String label,
+  String? initial,
+  String confirmLabel = 'Salvar',
+  int maxLines = 1,
+  bool required = true,
+  bool obscure = false,
+  String? help,
+}) async {
   final c = TextEditingController(text: initial);
   final r = await showGlassDialog<String>(
     context,
@@ -596,20 +606,26 @@ class StatTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
+                // Números sobem contando (como no vídeo de referência); textos aparecem com leve fade.
                 TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0.6, end: 1),
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeOutBack,
-                  builder: (_, v, child) => Opacity(opacity: v.clamp(0, 1), child: child),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      value,
-                      maxLines: 1,
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: t.fg, letterSpacing: -0.5, fontFeatures: const [ui.FontFeature.tabularFigures()]),
-                    ),
-                  ),
+                  tween: Tween(begin: 0, end: 1),
+                  duration: const Duration(milliseconds: 700),
+                  curve: Curves.easeOutCubic,
+                  builder: (_, v, _) {
+                    final n = int.tryParse(value);
+                    return Opacity(
+                      opacity: n != null ? 1 : v,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          n != null ? '${(n * v).round()}' : value,
+                          maxLines: 1,
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: t.fg, letterSpacing: -0.5, fontFeatures: const [ui.FontFeature.tabularFigures()]),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 if (hint != null)
                   Text(

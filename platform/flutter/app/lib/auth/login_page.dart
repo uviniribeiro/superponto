@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/api.dart';
+import '../widgets/otp_field.dart';
 import '../core/glass.dart';
 import '../core/tokens.dart';
 import '../widgets/masked.dart';
@@ -19,6 +20,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _email = TextEditingController(), _password = TextEditingController(), _code = TextEditingController(), _server = TextEditingController(text: api.baseUrl);
   final _username = TextEditingController(), _cnpj = TextEditingController(text: maskCnpjInput(api.lastLoginCnpj));
+  OtpState _otp = OtpState.idle;
   bool _busy = false, _mfa = false, _recovery = false, _show = false, _showServer = false;
 
   /// Como na v1: usuário + CNPJ da empresa + senha (padrão), ou e-mail + senha.
@@ -33,6 +35,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       _busy = true;
       _error = null;
+      _otp = OtpState.idle;
     });
     try {
       if (!kIsWeb && _server.text.trim() != api.baseUrl) await api.setServer(_server.text);
@@ -44,11 +47,19 @@ class _LoginPageState extends State<LoginPage> {
         code: _mfa && !_recovery ? _code.text.trim() : null,
         recoveryCode: _mfa && _recovery ? _code.text.trim() : null,
       );
+      if (_mfa && !_recovery && mounted) {
+        setState(() => _otp = OtpState.success);
+        await Future<void>.delayed(const Duration(milliseconds: 750));
+      }
       final next = widget.next != null && widget.next!.startsWith('/') && !widget.next!.startsWith('//') ? widget.next! : null;
       // Super Admin abre no painel da plataforma (clientes); os demais, no painel do próprio cliente.
       if (mounted) context.go(next ?? (api.me?.isPlatformAdmin == true ? '/plataforma' : '/'));
     } on ApiException catch (e) {
       setState(() {
+        if (_mfa && !_recovery) {
+          _otp = OtpState.error;
+          _code.clear();
+        }
         if (e.mfaRequired) _mfa = true;
         _error = e.mfaRequired && !_mfa ? null : e.message;
       });
@@ -121,7 +132,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
-            ] else
+            ] else if (!_recovery)
+              OtpField(controller: _code, state: _otp, onCompleted: (_) => _busy ? null : _submit())
+            else
               TextField(
                 controller: _code,
                 autofocus: true,
