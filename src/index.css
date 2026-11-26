@@ -66,7 +66,7 @@
     --input: 223 28% 89%;
     --ring: 215 100% 45%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
 
     /* Sidebar meia-noite */
     --sidebar-background: 209 80% 12%;
@@ -642,3 +642,7 @@
     pointer-events: none;
   }
 }
+
+/* Layout V14: rolagem horizontal sem barra visível */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

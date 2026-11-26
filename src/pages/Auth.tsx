@@ -284,17 +284,26 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-sidebar-border bg-sidebar px-5 py-5 md:px-10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6">
-          <PontoMaxLogo inverse />
-          <p className="hidden text-sm text-sidebar-foreground/80 md:block">Mais controle, menos burocracia.</p>
-          <Button variant="ghost" asChild className="text-sidebar-foreground hover:bg-sidebar-accent"><a href="/terminal"><MonitorSmartphone />Terminal de Ponto</a></Button>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-muted/50 flex flex-col">
+      {/* Fundo desfocado com a cor da marca (como o "Glassy OTP") */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-32 -left-24 h-[28rem] w-[28rem] rounded-full bg-primary/25 blur-3xl" />
+        <div className="absolute top-1/3 -right-32 h-[32rem] w-[32rem] rounded-full bg-accent/25 blur-3xl" />
+        <div className="absolute -bottom-40 left-1/3 h-[26rem] w-[26rem] rounded-full bg-primary/15 blur-3xl" />
+      </div>
+      <header className="relative z-10 flex items-center justify-between gap-4 px-5 py-4 md:px-10">
+        <PontoMaxLogo />
+        <Button variant="ghost" asChild className="rounded-full bg-background/50 backdrop-blur-md border border-border/60"><a href="/terminal"><MonitorSmartphone />Terminal de Ponto</a></Button>
       </header>
-      <div className="mx-auto w-full max-w-lg px-5 py-9 md:py-14">
-        <div className="mb-8 text-center"><h1 className="text-3xl font-bold">Acesse o PontoMax</h1><p className="mt-3 text-sm text-muted-foreground">Gestão de ponto, jornadas e operações.</p></div>
-        <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+      <div className="relative z-10 mx-auto w-full max-w-md flex-1 px-4 pb-10 pt-2 md:pt-8">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/30 bg-background/60 shadow-lg backdrop-blur-xl">
+            <Shield className="h-6 w-6 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">Acesse o PontoMax</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">Gestão de ponto, jornadas e operações.</p>
+        </div>
+        <div className="flex flex-col overflow-hidden rounded-[28px] border border-white/40 dark:border-white/10 bg-background/60 backdrop-blur-2xl shadow-[0_24px_60px_-20px_rgba(0,0,0,.35)] animate-in fade-in-0 zoom-in-95 duration-500">
           <div className="grid grid-cols-3 gap-2 p-2">
             {roleTiles.map(({ type, label, icon: Icon }) => {
               const active = loginType === type;
@@ -305,10 +314,10 @@ export default function Auth() {
                   onClick={() => selectRole(type)}
                   aria-pressed={active}
                   className={cn(
-                    'flex flex-col items-center justify-center gap-1 h-auto rounded-md px-2 py-3 transition-all',
+                    'flex flex-col items-center justify-center gap-1 h-auto rounded-2xl px-2 py-3 transition-all duration-200',
                     active
                       ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground hover:bg-muted',
+                      : 'bg-background/40 text-secondary-foreground hover:bg-muted',
                   )}
                 >
                   <Icon className={cn('h-4 w-4', active ? 'text-accent' : 'text-muted-foreground')} />

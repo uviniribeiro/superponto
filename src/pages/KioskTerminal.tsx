@@ -514,7 +514,7 @@ export default function KioskTerminal() {
         name: res.employeeName,
       });
       resetEmployee();
-      setTimeout(() => setSuccess(null), 8000);
+      setTimeout(() => setSuccess(null), 3000);
     } catch {
       // Fila offline: o registro nunca é perdido, mesmo durante a manutenção
       const q = [...readQueue(), punch];
@@ -528,7 +528,7 @@ export default function KioskTerminal() {
       });
       toast.info('Registro salvo no terminal e será enviado assim que a conexão voltar.');
       resetEmployee();
-      setTimeout(() => setSuccess(null), 8000);
+      setTimeout(() => setSuccess(null), 3000);
     } finally {
       setPunching(false);
     }
@@ -608,8 +608,25 @@ export default function KioskTerminal() {
 
   // ---------------- Terminal ativo ----------------
   return (
-    <div className="flex min-h-screen flex-col bg-background p-4 md:p-6">
-      <header className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-3">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-muted/50 p-3 md:p-6">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-32 -left-24 h-[26rem] w-[26rem] rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-40 -right-24 h-[28rem] w-[28rem] rounded-full bg-accent/20 blur-3xl" />
+      </div>
+      {/* Confirmação em tela cheia (estilo "verificado"): some sozinha */}
+      {success && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-md animate-in fade-in-0 duration-200" role="status" aria-live="assertive">
+          <div className="flex flex-col items-center gap-4 rounded-[32px] border border-white/40 bg-background/80 px-10 py-9 text-center shadow-2xl animate-in zoom-in-90 duration-300">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500 text-white shadow-[0_12px_40px_-8px_rgba(16,185,129,.7)] animate-in zoom-in-50 spin-in-12 duration-500">
+              <CheckCircle2 className="h-11 w-11" />
+            </div>
+            <p className="text-2xl font-bold">{success.label} registrada</p>
+            <p className="text-lg">{success.name}</p>
+            <p className="text-sm text-muted-foreground tabular-nums">{success.time} · NSR {success.nsr}</p>
+          </div>
+        </div>
+      )}
+      <header className="relative z-10 mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-3 rounded-3xl border border-border/60 bg-background/70 p-4 shadow-sm backdrop-blur-xl md:p-5">
         <div>
           <p className="text-sm text-muted-foreground">{session.companyName}</p>
           <h1 className="text-xl font-semibold">{session.terminalName}</h1>
@@ -636,7 +653,7 @@ export default function KioskTerminal() {
         </div>
       </header>
 
-      <main className="mx-auto mt-4 w-full max-w-4xl flex-1 space-y-4">
+      <main className="relative z-10 mx-auto mt-4 w-full max-w-4xl flex-1 space-y-4">
         {pendingApproval && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
@@ -671,11 +688,11 @@ export default function KioskTerminal() {
               type="button"
               onClick={() => selectMode(key)}
               aria-label={label}
-              className={`flex flex-col items-center justify-center gap-2 rounded-2xl border p-3 transition-colors md:p-5 ${
-                mode === key ? 'border-primary bg-primary/10' : 'bg-card hover:bg-accent'
+              className={`flex flex-col items-center justify-center gap-2 rounded-3xl border p-3 transition-all duration-200 active:scale-95 md:p-5 ${
+                mode === key ? 'border-transparent bg-foreground text-background shadow-lg' : 'border-border/60 bg-background/70 backdrop-blur-xl hover:bg-muted'
               }`}
             >
-              <Icon className={`h-8 w-8 md:h-10 md:w-10 ${mode === key ? 'text-primary' : 'text-muted-foreground'}`} />
+              <Icon className={`h-8 w-8 md:h-10 md:w-10 ${mode === key ? 'text-background' : 'text-muted-foreground'}`} />
               <span className="text-center text-[11px] font-medium leading-tight md:text-sm">{label}</span>
             </button>
           ))}
