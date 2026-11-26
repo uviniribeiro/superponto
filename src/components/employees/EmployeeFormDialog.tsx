@@ -192,6 +192,7 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
         department: formData.department || null,
         position: formData.position || null,
         hire_date: formData.hire_date || null,
+        birth_date: formData.birth_date || null,
         is_active: formData.status === 'active',
       };
 

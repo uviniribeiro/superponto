@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Download } from 'lucide-react';
 import { HelpButton } from '@/components/HelpButton';
+import { AejExportCard } from '@/components/reports/AejExportCard';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ReportFilters } from '@/components/reports/ReportFilters';
 import { MTEExports } from '@/components/reports/MTEExports';
@@ -172,6 +173,7 @@ export default function MTEExportsPage() {
             startDate={filters.startDate}
             endDate={filters.endDate}
           />
+          <AejExportCard startDate={filters.startDate} endDate={filters.endDate} company={companySettings as any} />
         </div>
       )}
 

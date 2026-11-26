@@ -159,6 +159,8 @@ const menuCategories: MenuCategory[] = [
       { title: 'Meus Registros', icon: ListChecks, href: '/my-records', roles: ['admin', 'manager', 'employee'] },
       { title: 'Minhas Ocorrências', icon: AlertCircle, href: '/point-occurrences', roles: ['admin', 'manager', 'employee'] },
       { title: 'Minhas Férias', icon: CalendarDays, href: '/vacations', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Meu Banco de Horas', icon: Timer, href: '/my-time-bank', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Troca de Escala/Folga', icon: CalendarDays, href: '/schedule-swaps', roles: ['admin', 'manager', 'employee'] },
       { title: 'Sugestões', icon: Bell, href: '/suggestions', roles: ['admin', 'manager', 'employee'] },
       { title: 'Esqueci minha senha', icon: Key, href: '/forgot-password', roles: ['admin', 'manager', 'employee'] },
       { title: 'Minha Conta', icon: UserCog, href: '/account-settings', roles: ['admin', 'manager', 'employee'] },
@@ -220,6 +222,7 @@ const menuCategories: MenuCategory[] = [
     items: [
       { title: 'Ajustes de Ponto', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
       { title: 'Ocorrências', icon: AlertCircle, href: '/point-occurrences', roles: ['admin', 'manager'] },
+      { title: 'Painel de Ocorrências', icon: AlertCircle, href: '/occurrence-panel', roles: ['admin', 'manager'] },
       { title: 'Abono em Lote', icon: ListChecks, href: '/batch-absolutions', roles: ['admin'] },
       { title: 'Autorização de Extras', icon: Clock, href: '/overtime-authorizations', roles: ['admin', 'manager'] },
       { title: 'Homologação do Ponto', icon: FileCheck, href: '/point-homologation', roles: ['admin', 'manager'] },
@@ -245,6 +248,7 @@ const menuCategories: MenuCategory[] = [
     roles: ['admin', 'manager', 'employee'],
     items: [
       { title: 'Banco de Horas', icon: Timer, href: '/time-bank', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Lançamentos do Banco', icon: Timer, href: '/time-bank/ledger', roles: ['admin', 'manager'] },
       { title: 'Compensação', icon: ArrowUpDown, href: '/compensation-bank', roles: ['admin'] },
       { title: 'Dashboard de HE', icon: BarChart3, href: '/overtime-dashboard', roles: ['admin', 'manager'] },
       { title: 'Regras de HE', icon: TrendingUp, href: '/overtime-percentages', roles: ['admin'] },
@@ -409,6 +413,9 @@ const menuCategories: MenuCategory[] = [
       { title: 'Unidades (Matriz/Filiais)', icon: Building2, href: '/company-units', roles: ['admin'] },
       { title: 'Usuários', icon: Users, href: '/users', roles: ['admin'] },
       { title: 'Bloqueio de Acesso', icon: Ban, href: '/access-blocks', roles: ['admin'] },
+      { title: 'Política de Aprovação', icon: ListChecks, href: '/approval-policies', roles: ['admin'] },
+      { title: 'E-mails Agendados', icon: Bell, href: '/notification-schedules', roles: ['admin'] },
+      { title: 'Log de Processos', icon: FileText, href: '/process-log', roles: ['admin'] },
       { title: 'Manual do Sistema', icon: BookOpen, href: '/system-manual', roles: ['admin', 'manager', 'employee'] },
     ]
   },

@@ -1,3 +1,4 @@
+import { addApproval, levelsFor } from '@/lib/approvalPolicy';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,9 +69,25 @@ export default function Adjustments() {
     if (!selectedAdjustment || !profile) return;
 
     try {
+      // Política de aprovação em níveis: enquanto faltar nível, registra a aprovação e mantém pendente.
+      let approvals: unknown = (selectedAdjustment as any).approvals ?? [];
+      if (approved) {
+        const step = addApproval(approvals, await levelsFor('adjustments'), { id: profile.id, name: profile.full_name ?? '' });
+        if (step.error) { toast.error(step.error); return; }
+        approvals = step.approvals;
+        if (!step.final) {
+          const { error: e1 } = await (supabase as any).from('adjustment_requests').update({ approvals }).eq('id', selectedAdjustment.id);
+          if (e1) throw e1;
+          toast.success(`Aprovação registrada (${step.approvals.length}). Aguarda o próximo nível.`);
+          setSelectedAdjustment(null);
+          fetchAdjustments();
+          return;
+        }
+      }
       const { error } = await supabase
         .from('adjustment_requests')
         .update({
+          approvals: approvals as never,
           status: approved ? 'approved' : 'rejected',
           reviewed_by: profile.id,
           reviewed_at: new Date().toISOString(),

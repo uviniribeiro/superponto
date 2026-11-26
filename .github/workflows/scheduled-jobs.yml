@@ -9,6 +9,7 @@ on:
     - cron: '5 10 * * 1'    # 07:05 de segunda: relatório semanal
     - cron: '0 4 1 1 *'     # 01/01: feriados nacionais do ano
     - cron: '0 4 31 12 *'   # 31/12: feriados do ano seguinte
+    - cron: '2 9-23 * * *'  # 06h às 20h (Brasília), de hora em hora: e-mails agendados de ocorrências
   workflow_dispatch:
     inputs:
       function:
@@ -36,6 +37,7 @@ jobs:
             '0 10 * * *')  f=check-overtime ;;
             '5 10 * * 1')  f=send-weekly-report ;;
             '0 4 1 1 *'|'0 4 31 12 *') f=sync-national-holidays ;;
+            '2 9-23 * * *') f=occurrence-digest ;;
             *) f="${{ inputs.function }}" ;;
           esac
           echo "function=$f" >> "$GITHUB_OUTPUT"

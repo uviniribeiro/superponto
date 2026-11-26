@@ -4,8 +4,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { calculateDay, DEFAULT_ATTENDANCE_RULES, type DayCalculationResult, type PunchInput } from './timeCalculation';
 
-export interface PersonRow { id: string; full_name: string; registration_number: string | null; department: string | null; position: string | null; pis: string | null; failed_login_attempts?: number | null; last_failed_login?: string | null }
-export interface DayRow { person: PersonRow; date: string; result: DayCalculationResult; punches: { type: string; at: string; mobile: boolean }[]; scheduled: boolean; absenceReason?: string }
+export interface PersonRow { id: string; full_name: string; registration_number: string | null; department: string | null; position: string | null; pis: string | null; cpf?: string | null; birth_date?: string | null; failed_login_attempts?: number | null; last_failed_login?: string | null }
+export interface DayRow { person: PersonRow; date: string; result: DayCalculationResult; punches: { type: string; at: string; mobile: boolean }[]; scheduled: boolean; absenceReason?: string; breakStart?: string | null; breakMobility?: number }
 
 type Schedule = Record<string, string | number | null>;
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -21,7 +21,7 @@ export function eachDay(from: string, to: string): string[] {
 }
 
 export async function loadPeriod(from: string, to: string, opts: { department?: string; profileId?: string } = {}): Promise<{ people: PersonRow[]; days: DayRow[] }> {
-  let pq = db.from('profiles').select('id, full_name, registration_number, department, position, pis, failed_login_attempts, last_failed_login').eq('is_active', true).order('full_name');
+  let pq = db.from('profiles').select('id, full_name, registration_number, department, position, pis, cpf, birth_date, failed_login_attempts, last_failed_login').eq('is_active', true).order('full_name');
   if (opts.department) pq = pq.eq('department', opts.department);
   if (opts.profileId) pq = pq.eq('id', opts.profileId);
   const { data: people = [] } = await pq;
@@ -30,12 +30,14 @@ export async function loadPeriod(from: string, to: string, opts: { department?: 
 
   const startIso = new Date(`${from}T00:00:00-03:00`).toISOString();
   const endIso = new Date(`${to}T23:59:59-03:00`).toISOString();
-  const [sch, hol, rec, abs] = await Promise.all([
+  const [sch, hol, rec, abs, scales] = await Promise.all([
     db.from('employee_schedules').select('profile_id, start_date, end_date, work_schedules(*)').in('profile_id', ids),
     db.from('holidays').select('date, end_date, is_recurring'),
     db.from('time_records').select('profile_id, record_type, recorded_at, latitude, device_info').in('profile_id', ids).gte('recorded_at', startIso).lte('recorded_at', endIso).order('recorded_at'),
     db.from('employee_absences').select('profile_id, start_date, end_date, absence_type, reason').in('profile_id', ids).eq('status', 'approved').lte('start_date', to).gte('end_date', from),
+    db.from('scheduled_scales').select('profile_id, scale_date, is_work_day').in('profile_id', ids).gte('scale_date', from).lte('scale_date', to),
   ]);
+  const scaleOf = new Map<string, boolean>(((scales?.data ?? []) as any[]).map((x) => [`${x.profile_id}|${x.scale_date}`, x.is_work_day !== false]));
 
   const isHoliday = (day: string) => (hol.data ?? []).some((h: any) => {
     if (h.is_recurring) return String(h.date).slice(5) === day.slice(5);
@@ -56,8 +58,15 @@ export async function loadPeriod(from: string, to: string, opts: { department?: 
     for (const day of eachDay(from, to)) {
       const ws: Schedule | undefined = mine.find((s: any) => s.start_date <= day && (!s.end_date || s.end_date >= day))?.work_schedules;
       const dow = DAYS[new Date(`${day}T12:00:00`).getDay()];
-      const start = ws?.[`${dow}_start`] as string | null | undefined;
-      const end = ws?.[`${dow}_end`] as string | null | undefined;
+      let start = ws?.[`${dow}_start`] as string | null | undefined;
+      let end = ws?.[`${dow}_end`] as string | null | undefined;
+      // Escala agendada (inclusive trocas aprovadas) prevalece sobre o horário semanal.
+      const override = scaleOf.get(`${person.id}|${day}`);
+      if (override === false) { start = null; end = null; }
+      if (override === true && !(start && end) && ws) {
+        const d = DAYS.find((x) => ws[`${x}_start`] && ws[`${x}_end`]);
+        if (d) { start = ws[`${d}_start`] as string; end = ws[`${d}_end`] as string; }
+      }
       const breakMin = Number(ws?.break_duration_minutes ?? 0);
       const holiday = isHoliday(day);
       const scheduled = !!(start && end) && !holiday;
@@ -74,7 +83,7 @@ export async function loadPeriod(from: string, to: string, opts: { department?: 
         absence: absence ? { type: 'full', reason: absence.reason ?? absence.absence_type } : null,
       });
       days.push({
-        person, date: day, result, scheduled, absenceReason: absence ? (absence.reason ?? absence.absence_type) : undefined,
+        person, date: day, result, scheduled, breakStart: scheduled ? (ws?.break_start as string | null) ?? null : null, breakMobility: Number(ws?.break_mobility_minutes ?? 0), absenceReason: absence ? (absence.reason ?? absence.absence_type) : undefined,
         punches: recs.map((r) => ({ type: r.record_type, at: r.recorded_at, mobile: r.latitude != null || /android|iphone|mobile|app/i.test(r.device_info ?? '') })),
       });
     }

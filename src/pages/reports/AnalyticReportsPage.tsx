@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { loadPeriod, fmtMin, fmtTime, fmtDate, type DayRow, type PersonRow } from '@/lib/attendancePeriod';
 
-type Report = { key: string; label: string; single?: boolean; build: (days: DayRow[], people: PersonRow[]) => { cols: string[]; rows: (string | number)[][] } };
+type Auth = { profile_id: string; start_date: string; end_date: string; approved_minutes: number; mode: string };
+type Report = { key: string; label: string; single?: boolean; build: (days: DayRow[], people: PersonRow[], auths: Auth[]) => { cols: string[]; rows: (string | number)[][] } };
 
 const pct = (a: number, b: number) => (b ? `${((a / b) * 100).toFixed(1)}%` : '—');
 const who = (p: PersonRow) => [p.full_name, p.registration_number ?? '', p.department ?? ''];
@@ -60,6 +61,21 @@ const REPORTS: Report[] = [
   },
   { key: 'late', label: 'Analítico de atraso', build: (days) => ({ cols: ['Funcionário', 'Matrícula', 'Departamento', 'Data', 'Marcações', 'Atraso', 'Saída antecipada'], rows: days.filter((d) => d.result.lateMinutes || d.result.earlyLeaveMinutes).map((d) => [...who(d.person), fmtDate(d.date), punchList(d), fmtMin(d.result.lateMinutes), fmtMin(d.result.earlyLeaveMinutes)]) }) },
   { key: 'overtime', label: 'Analítico de extra', build: (days) => ({ cols: ['Funcionário', 'Matrícula', 'Departamento', 'Data', 'Marcações', 'Trabalhadas', 'Extra', 'Noturno'], rows: days.filter((d) => d.result.overtimeMinutes > 0).map((d) => [...who(d.person), fmtDate(d.date), punchList(d), fmtMin(d.result.workedMinutes), fmtMin(d.result.overtimeMinutes), fmtMin(d.result.nightMinutes)]) }) },
+  {
+    key: 'unauthorized', label: 'Extra sem autorização (política de hora extra)',
+    build: (days, _p, auths) => ({
+      cols: ['Funcionário', 'Matrícula', 'Departamento', 'Data', 'Extra feita', 'Autorizado', 'Excedente'],
+      rows: (() => { const used = new Map<Auth, number>(); return days.filter((d) => d.result.overtimeMinutes > 0).flatMap((d) => {
+        const a = auths.find((x) => x.profile_id === d.person.id && x.start_date <= d.date && x.end_date >= d.date);
+        // Por dia: limite diário. No período: o saldo autorizado vai sendo consumido dia a dia.
+        const left = a ? (a.mode === 'per_day' ? a.approved_minutes : Math.max(0, a.approved_minutes - (used.get(a) ?? 0))) : 0;
+        const allowed = Math.min(left, d.result.overtimeMinutes);
+        if (a && a.mode !== 'per_day') used.set(a, (used.get(a) ?? 0) + allowed);
+        const over = d.result.overtimeMinutes - allowed;
+        return over > 0 ? [[...who(d.person), fmtDate(d.date), fmtMin(d.result.overtimeMinutes), fmtMin(allowed), fmtMin(over)]] : [];
+      }); })(),
+    }),
+  },
   { key: 'absence', label: 'Analítico de falta', build: (days) => ({ cols: ['Funcionário', 'Matrícula', 'Departamento', 'Data', 'Horas previstas'], rows: days.filter((d) => d.result.isAbsent && !d.absenceReason).map((d) => [...who(d.person), fmtDate(d.date), fmtMin(d.result.expectedMinutes)]) }) },
   { key: 'break', label: 'Déficit de intervalo', build: (days) => ({ cols: ['Funcionário', 'Matrícula', 'Departamento', 'Data', 'Marcações', 'Intervalo feito', 'Déficit'], rows: days.filter((d) => d.result.intraJourneyShortfallMinutes > 0).map((d) => [...who(d.person), fmtDate(d.date), punchList(d), fmtMin(d.result.breakMinutes), fmtMin(d.result.intraJourneyShortfallMinutes)]) }) },
   { key: 'incomplete', label: 'Marcação incompleta', build: (days) => ({ cols: ['Funcionário', 'Matrícula', 'Departamento', 'Data', 'Marcações'], rows: days.filter((d) => d.result.incomplete).map((d) => [...who(d.person), fmtDate(d.date), punchList(d)]) }) },
@@ -68,6 +84,29 @@ const REPORTS: Report[] = [
     build: (days) => ({ cols: ['Funcionário', 'Matrícula', 'Departamento', 'Data', 'Marcações', 'Motivo'], rows: days.filter((d) => { const s = d.punches.filter((p) => p.type === 'break_start').length, e = d.punches.filter((p) => p.type === 'break_end').length; return s !== e; }).map((d) => [...who(d.person), fmtDate(d.date), punchList(d), 'Início e fim de intervalo não formam pares']) }),
   },
   { key: 'mobile', label: 'Marcações pelo celular', build: (days) => ({ cols: ['Funcionário', 'Matrícula', 'Departamento', 'Data', 'Hora', 'Tipo'], rows: days.flatMap((d) => d.punches.filter((p) => p.mobile).map((p) => [...who(d.person), fmtDate(d.date), fmtTime(p.at), ({ entry: 'Entrada', exit: 'Saída', break_start: 'Início intervalo', break_end: 'Fim intervalo' } as Record<string, string>)[p.type] ?? p.type])) }) },
+  {
+    key: 'mobility', label: 'Intervalo fora da janela (mobilidade)',
+    build: (days) => ({
+      cols: ['Funcionário', 'Matrícula', 'Departamento', 'Data', 'Início previsto', 'Janela', 'Início real', 'Diferença'],
+      rows: days.flatMap((d) => {
+        const bs = d.punches.find((p) => p.type === 'break_start');
+        if (!d.breakStart || !bs) return [];
+        const real = new Date(bs.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });
+        const toM = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+        const diff = toM(real) - toM(d.breakStart);
+        return Math.abs(diff) > (d.breakMobility ?? 0) ? [[...who(d.person), fmtDate(d.date), d.breakStart.slice(0, 5), `±${d.breakMobility ?? 0} min`, real, `${diff > 0 ? '+' : ''}${diff} min`]] : [];
+      }),
+    }),
+  },
+  {
+    key: 'birthdays', label: 'Aniversariantes do mês', single: true,
+    build: (_d, people) => ({
+      cols: ['Funcionário', 'Matrícula', 'Departamento', 'Dia', 'Idade que completa'],
+      rows: people.filter((p) => p.birth_date).map((p) => p as PersonRow & { birth_date: string }).filter((p) => p.birth_date.slice(5, 7) === _d[0]?.date.slice(5, 7))
+        .sort((a, b) => a.birth_date.slice(8).localeCompare(b.birth_date.slice(8)))
+        .map((p) => [...who(p), `${p.birth_date.slice(8, 10)}/${p.birth_date.slice(5, 7)}`, Number(_d[0].date.slice(0, 4)) - Number(p.birth_date.slice(0, 4))]),
+    }),
+  },
   { key: 'logins', label: 'Falhas de login', build: (_d, people) => ({ cols: ['Funcionário', 'Matrícula', 'Departamento', 'Tentativas com falha', 'Última falha'], rows: people.filter((p) => (p.failed_login_attempts ?? 0) > 0).map((p) => [...who(p), p.failed_login_attempts ?? 0, p.last_failed_login ? new Date(p.last_failed_login).toLocaleString('pt-BR') : '—']) }) },
 ];
 
@@ -78,7 +117,7 @@ export default function AnalyticReportsPage() {
   const [to, setTo] = useState(today);
   const [department, setDepartment] = useState('all');
   const [departments, setDepartments] = useState<string[]>([]);
-  const [data, setData] = useState<{ people: PersonRow[]; days: DayRow[] } | null>(null);
+  const [data, setData] = useState<{ people: PersonRow[]; days: DayRow[]; auths: Auth[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const report = REPORTS.find((r) => r.key === key)!;
 
@@ -91,13 +130,17 @@ export default function AnalyticReportsPage() {
     setBusy(true);
     try {
       const f = report.single ? to : from;
-      setData(await loadPeriod(f, to, { department: department === 'all' ? undefined : department }));
+      const [period, { data: auths }] = await Promise.all([
+        loadPeriod(f, to, { department: department === 'all' ? undefined : department }),
+        (supabase as any).from('overtime_authorizations').select('profile_id, start_date, end_date, approved_minutes, mode').lte('start_date', to).gte('end_date', f),
+      ]);
+      setData({ ...period, auths: auths ?? [] });
     } finally {
       setBusy(false);
     }
   };
 
-  const table = useMemo(() => (data ? report.build(data.days, data.people) : null), [data, report]);
+  const table = useMemo(() => (data ? report.build(data.days, data.people, data.auths) : null), [data, report]);
 
   const csv = () => {
     if (!table) return;

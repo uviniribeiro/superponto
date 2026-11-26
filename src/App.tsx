@@ -93,6 +93,13 @@ const OnCallSchedules = React.lazy(() => import("@/pages/OnCallSchedules"));
 const BatchAbsolutions = React.lazy(() => import("@/pages/BatchAbsolutions"));
 const OvertimeAuthorizations = React.lazy(() => import("@/pages/OvertimeAuthorizations"));
 const AccessBlocks = React.lazy(() => import("@/pages/AccessBlocks"));
+const TimeBankLedger = React.lazy(() => import("@/pages/TimeBankLedger"));
+const MyTimeBank = React.lazy(() => import("@/pages/MyTimeBank"));
+const ScheduleSwaps = React.lazy(() => import("@/pages/ScheduleSwaps"));
+const ApprovalPolicies = React.lazy(() => import("@/pages/ApprovalPolicies"));
+const NotificationSchedules = React.lazy(() => import("@/pages/NotificationSchedules"));
+const OccurrencePanel = React.lazy(() => import("@/pages/OccurrencePanel"));
+const ProcessLog = React.lazy(() => import("@/pages/ProcessLog"));
 const MaritalStatuses = React.lazy(() => import("@/pages/MaritalStatuses"));
 const Cities = React.lazy(() => import("@/pages/Cities"));
 const CompensationBank = React.lazy(() => import("@/pages/CompensationBank"));
@@ -286,6 +293,13 @@ const App = () => (
                   <Route path="absences" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Absences /></ProtectedRoute>} />
                   <Route path="users" element={<ProtectedRoute requiredRoles={['admin']}><Users /></ProtectedRoute>} />
                   <Route path="access-blocks" element={<ProtectedRoute requiredRoles={['admin']}><AccessBlocks /></ProtectedRoute>} />
+                  <Route path="time-bank/ledger" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><TimeBankLedger /></ProtectedRoute>} />
+                  <Route path="my-time-bank" element={<ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}><MyTimeBank /></ProtectedRoute>} />
+                  <Route path="schedule-swaps" element={<ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}><ScheduleSwaps /></ProtectedRoute>} />
+                  <Route path="approval-policies" element={<ProtectedRoute requiredRoles={['admin']}><ApprovalPolicies /></ProtectedRoute>} />
+                  <Route path="notification-schedules" element={<ProtectedRoute requiredRoles={['admin']}><NotificationSchedules /></ProtectedRoute>} />
+                  <Route path="occurrence-panel" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OccurrencePanel /></ProtectedRoute>} />
+                  <Route path="process-log" element={<ProtectedRoute requiredRoles={['admin']}><ProcessLog /></ProtectedRoute>} />
                   <Route path="overtime-dashboard" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OvertimeDashboard /></ProtectedRoute>} />
                   <Route path="timesheet" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Timesheet /></ProtectedRoute>} />
                   <Route path="import-export" element={<ProtectedRoute requiredRoles={['admin']}><ImportExport /></ProtectedRoute>} />

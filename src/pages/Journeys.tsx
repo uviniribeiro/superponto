@@ -48,6 +48,8 @@ interface WorkSchedule {
   sunday_end: string | null;
   break_duration_minutes: number | null;
   tolerance_minutes: number | null;
+  break_start?: string | null;
+  break_mobility_minutes?: number | null;
   night_shift_start: string | null;
   night_shift_end: string | null;
   night_shift_reduction_percent: number | null;
@@ -106,6 +108,8 @@ export default function Journeys() {
     holiday_treatment: 'normal',
     break_duration_minutes: 60,
     tolerance_minutes: 10,
+    break_start: '',
+    break_mobility_minutes: 0,
     is_night_shift: false,
     night_shift_start: '22:00',
     night_shift_end: '05:00',
@@ -162,6 +166,8 @@ export default function Journeys() {
         holiday_treatment: schedule.holiday_treatment || 'normal',
         break_duration_minutes: schedule.break_duration_minutes || 60,
         tolerance_minutes: schedule.tolerance_minutes || 10,
+        break_start: schedule.break_start?.slice(0, 5) || '',
+        break_mobility_minutes: schedule.break_mobility_minutes || 0,
         is_night_shift: !!schedule.night_shift_start,
         night_shift_start: schedule.night_shift_start?.slice(0, 5) || '22:00',
         night_shift_end: schedule.night_shift_end?.slice(0, 5) || '05:00',
@@ -194,6 +200,8 @@ export default function Journeys() {
         holiday_treatment: 'normal',
         break_duration_minutes: 60,
         tolerance_minutes: 10,
+        break_start: '',
+        break_mobility_minutes: 0,
         is_night_shift: false,
         night_shift_start: '22:00',
         night_shift_end: '05:00',
@@ -236,6 +244,8 @@ export default function Journeys() {
         holiday_treatment: formData.holiday_treatment as 'normal' | 'overtime' | 'off',
         break_duration_minutes: formData.break_duration_minutes,
         tolerance_minutes: formData.tolerance_minutes,
+        break_start: formData.break_start || null,
+        break_mobility_minutes: formData.break_mobility_minutes || 0,
         night_shift_start: formData.is_night_shift ? formData.night_shift_start : null,
         night_shift_end: formData.is_night_shift ? formData.night_shift_end : null,
         night_shift_reduction_percent: formData.night_shift_reduction_percent,
@@ -537,6 +547,17 @@ export default function Journeys() {
                     value={formData.tolerance_minutes}
                     onChange={(e) => setFormData({ ...formData, tolerance_minutes: parseInt(e.target.value) || 0 })}
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Início previsto do intervalo</Label>
+                  <Input type="time" value={formData.break_start ?? ''} onChange={(e) => setFormData({ ...formData, break_start: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Mobilidade do intervalo (± min)</Label>
+                  <Input type="number" min={0} max={240} value={formData.break_mobility_minutes ?? 0} onChange={(e) => setFormData({ ...formData, break_mobility_minutes: Math.min(240, Math.max(0, parseInt(e.target.value) || 0)) })} />
                 </div>
               </div>
 
