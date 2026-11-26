@@ -1,4 +1,4 @@
-project_id = "sfbyujjvfxicuuafjtoy"
+project_id = "rndzjlsvlbiiqaxryqpu"
 
 [functions.two-factor-auth]
 verify_jwt = false
