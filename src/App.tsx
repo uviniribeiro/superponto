@@ -91,6 +91,7 @@ const CustomNotifications = React.lazy(() => import("@/pages/CustomNotifications
 const CommuteTime = React.lazy(() => import("@/pages/CommuteTime"));
 const OnCallSchedules = React.lazy(() => import("@/pages/OnCallSchedules"));
 const BatchAbsolutions = React.lazy(() => import("@/pages/BatchAbsolutions"));
+const OvertimeAuthorizations = React.lazy(() => import("@/pages/OvertimeAuthorizations"));
 const MaritalStatuses = React.lazy(() => import("@/pages/MaritalStatuses"));
 const Cities = React.lazy(() => import("@/pages/Cities"));
 const CompensationBank = React.lazy(() => import("@/pages/CompensationBank"));
@@ -337,6 +338,7 @@ const App = () => (
                   <Route path="commute-time" element={<ProtectedRoute requiredRoles={['admin']}><CommuteTime /></ProtectedRoute>} />
                   <Route path="on-call-schedules" element={<ProtectedRoute requiredRoles={['admin']}><OnCallSchedules /></ProtectedRoute>} />
                   <Route path="batch-absolutions" element={<ProtectedRoute requiredRoles={['admin']}><BatchAbsolutions /></ProtectedRoute>} />
+                  <Route path="overtime-authorizations" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OvertimeAuthorizations /></ProtectedRoute>} />
                   <Route path="marital-statuses" element={<ProtectedRoute requiredRoles={['admin']}><MaritalStatuses /></ProtectedRoute>} />
                   <Route path="cities" element={<ProtectedRoute requiredRoles={['admin']}><Cities /></ProtectedRoute>} />
                   <Route path="compensation-bank" element={<ProtectedRoute requiredRoles={['admin']}><CompensationBank /></ProtectedRoute>} />

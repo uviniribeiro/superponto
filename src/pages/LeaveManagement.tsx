@@ -16,6 +16,7 @@ import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Baby, Calendar, Check, Clock, FileText, Heart, Plane, Plus, User, UserMinus, X } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { ImportAbsencesDialog } from '@/components/absences/ImportAbsencesDialog';
 
 interface Profile {
   id: string;
@@ -238,6 +239,7 @@ export default function LeaveManagement() {
           description="Férias, licenças, atestados e outros afastamentos"
           className="mb-0 min-w-0 flex-1 border-0 bg-transparent p-0 backdrop-blur-none sm:p-0"
         />
+        {canManage && <ImportAbsencesDialog companyId={company?.id} userId={user?.id} onDone={fetchData} />}
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
           if (!open) resetForm();

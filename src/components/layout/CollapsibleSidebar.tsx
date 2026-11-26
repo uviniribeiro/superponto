@@ -220,6 +220,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Ajustes de Ponto', icon: ClipboardCheck, href: '/adjustments', roles: ['admin', 'manager'] },
       { title: 'Ocorrências', icon: AlertCircle, href: '/point-occurrences', roles: ['admin', 'manager'] },
       { title: 'Abono em Lote', icon: ListChecks, href: '/batch-absolutions', roles: ['admin'] },
+      { title: 'Autorização de Extras', icon: Clock, href: '/overtime-authorizations', roles: ['admin', 'manager'] },
       { title: 'Homologação do Ponto', icon: FileCheck, href: '/point-homologation', roles: ['admin', 'manager'] },
       { title: 'Regras de Apuração', icon: SlidersHorizontal, href: '/attendance-rules', roles: ['admin', 'manager'] },
       { title: 'Calculadora de Horas', icon: Clock, href: '/hours-calculator', roles: ['admin', 'manager'] },
