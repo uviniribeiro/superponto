@@ -5,6 +5,8 @@
 const STATIC_ALLOWED_ORIGINS = [
   "https://maxponto.srv.br",
   "https://www.maxponto.srv.br",
+  "https://superponto.vercel.app",
+  "https://superponto-admin.vercel.app",
   "http://localhost:8080",
   "http://localhost:5173",
   "capacitor://localhost",

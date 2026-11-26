@@ -15,6 +15,7 @@ import { getCNPJFeedback, cleanCNPJ } from '@/lib/validators';
 import { cn } from '@/lib/utils';
 import { PontoMaxLogo } from '@/components/PontoMaxLogo';
 import { APP_MODE, homePathFor } from '@/lib/appMode';
+import { isAdminHost } from '@/lib/adminHost';
 
 
 type LoginType = 'company' | 'city_hall' | 'super_admin';
@@ -42,7 +43,8 @@ export default function Auth() {
   const navigate = useNavigate();
   const { signIn, user, loading, mustChangePassword, isSuperAdmin } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [loginType, setLoginType] = useState<LoginType>('company');
+  const adminHost = isAdminHost();
+  const [loginType, setLoginType] = useState<LoginType>(adminHost ? 'super_admin' : 'company');
   const [cityHalls, setCityHalls] = useState<{ id: string; name: string; code: string }[]>([]);
   const [sectors, setSectors] = useState<{ id: string; name: string; sector: string; code: string }[]>([]);
   const [selectedCityHall, setSelectedCityHall] = useState('');
@@ -280,7 +282,6 @@ export default function Auth() {
   const roleTiles: { type: LoginType; label: string; icon: React.ElementType }[] = [
     { type: 'company', label: 'Empresa', icon: Building2 },
     { type: 'city_hall', label: 'Prefeitura', icon: Landmark },
-    { type: 'super_admin', label: 'Admin', icon: Shield },
   ];
 
   const selectRole = (type: LoginType) => {
@@ -301,18 +302,18 @@ export default function Auth() {
       </div>
       <header className="relative z-10 flex items-center justify-between gap-4 px-5 py-4 md:px-10">
         <PontoMaxLogo />
-        <Button variant="ghost" asChild className="rounded-full bg-background/50 backdrop-blur-md border border-border/60"><a href="/terminal"><MonitorSmartphone />Terminal de Ponto</a></Button>
+        {!adminHost && <Button variant="ghost" asChild className="rounded-full bg-background/50 backdrop-blur-md border border-border/60"><a href="/terminal"><MonitorSmartphone />Terminal de Ponto</a></Button>}
       </header>
       <div className="relative z-10 mx-auto w-full max-w-md flex-1 px-4 pb-10 pt-2 md:pt-8">
         <div className="mb-6 flex flex-col items-center text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/30 bg-background/60 shadow-lg backdrop-blur-xl">
             <Shield className="h-6 w-6 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Acesse o PontoMax</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">Gestão de ponto, jornadas e operações.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{adminHost ? 'Painel do Super Admin' : 'Acesse o PontoMax'}</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">{adminHost ? 'Acesso restrito à administração da plataforma.' : 'Gestão de ponto, jornadas e operações.'}</p>
         </div>
         <div className="flex flex-col overflow-hidden rounded-[28px] border border-white/40 dark:border-white/10 bg-background/60 backdrop-blur-2xl shadow-[0_24px_60px_-20px_rgba(0,0,0,.35)] animate-in fade-in-0 zoom-in-95 duration-500">
-          <div className="grid grid-cols-3 gap-2 p-2">
+          {!adminHost && <div className="grid grid-cols-2 gap-2 p-2">
             {roleTiles.map(({ type, label, icon: Icon }) => {
               const active = loginType === type;
               return (
@@ -333,7 +334,7 @@ export default function Auth() {
                 </Button>
               );
             })}
-          </div>
+          </div>}
 
           <div className="flex-1 p-6 lg:p-10">
             <form onSubmit={handleLogin} className="mx-auto w-full max-w-sm space-y-5">

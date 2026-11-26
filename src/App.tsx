@@ -8,6 +8,14 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import SuperAdminProtectedRoute from "@/components/SuperAdminProtectedRoute";
+import { isAdminHost, ADMIN_URL } from "@/lib/adminHost";
+
+/** Painel do Super Admin só no endereço próprio (fora da tela de entrada normal). */
+function ExternalRedirect({ to }: { to: string }) {
+  React.useEffect(() => { window.location.replace(to); }, [to]);
+  return null;
+}
+
 const CollapsibleSidebar = React.lazy(() => import("@/components/layout/V14Layout"));
 const SuperAdminLayout = React.lazy(() => import("@/components/layout/SuperAdminLayout"));
 const GuidedTourButton = React.lazy(() => import("@/components/GuidedTour").then((module) => ({ default: module.GuidedTourButton })));
@@ -231,14 +239,14 @@ const App = () => (
               <HolidayBanner />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
-                <Route path="/" element={<Navigate to={startPathFor(APP_MODE)} replace />} />
+                <Route path="/" element={<Navigate to={isAdminHost() ? "/super-admin" : startPathFor(APP_MODE)} replace />} />
                 <Route path="/auth" element={<Auth />} />
                  <Route path="/forgot-password" element={<ForgotPassword />} />
                  <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/terminal" element={<Suspense fallback={<PageLoader />}><KioskTerminal /></Suspense>} />
                 <Route path="/terminal/motorista" element={<Suspense fallback={<PageLoader />}><DriverTerminal /></Suspense>} />
 
-                <Route path="/super-admin-auth" element={<SuperAdminAuth />} />
+                <Route path="/super-admin-auth" element={isAdminHost() ? <Navigate to="/auth" replace /> : <ExternalRedirect to={`${ADMIN_URL}/auth`} />} />
                 <Route path="/super-admin-teste/empresas" element={<Suspense fallback={<PageLoader />}><SuperAdminCompaniesSandbox /></Suspense>} />
                 
                 {/* Public Legal Pages */}
@@ -248,7 +256,7 @@ const App = () => (
                 <Route path="/legal/cookies" element={<CookiePolicy />} />
                 
                 {/* Super Admin Routes */}
-                <Route path="/super-admin" element={
+                <Route path="/super-admin" element={!isAdminHost() ? <ExternalRedirect to={`${ADMIN_URL}/auth`} /> :
                   <SuperAdminProtectedRoute>
                     <SuperAdminLayout />
                   </SuperAdminProtectedRoute>
