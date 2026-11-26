@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.overtime_authorizations (
 CREATE INDEX IF NOT EXISTS idx_overtime_auth_profile ON public.overtime_authorizations(profile_id, start_date);
 ALTER TABLE public.overtime_authorizations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Gestores gerenciam autorizações de extra da empresa" ON public.overtime_authorizations FOR ALL
-  USING ((has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'manager')) AND company_id = get_user_company_id(auth.uid()))
-  WITH CHECK ((has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'manager')) AND company_id = get_user_company_id(auth.uid()));
+  USING ((has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'manager'::app_role)) AND company_id = get_user_company_id(auth.uid()))
+  WITH CHECK ((has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'manager'::app_role)) AND company_id = get_user_company_id(auth.uid()));
 CREATE POLICY "Funcionário vê as próprias autorizações" ON public.overtime_authorizations FOR SELECT
   USING (profile_id = get_profile_id(auth.uid()));
