@@ -286,6 +286,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Registros Pendentes', icon: ClipboardList, href: '/equipment/pending', roles: ['admin'] },
       { title: 'Funcionários no REP', icon: Users, href: '/equipment/employees', roles: ['admin'] },
       { title: 'Logs de Comunicação', icon: FileText, href: '/equipment/logs', roles: ['admin'] },
+      { title: 'Gráficos e Grupos de REP', icon: Activity, href: '/equipment/charts', roles: ['admin'] },
       { title: 'Conformidade MTE', icon: Shield, href: '/equipment/compliance', roles: ['admin'] },
       { title: 'Terminais de Ponto', icon: MonitorSmartphone, href: '/kiosk-terminals', roles: ['admin'] },
       { title: 'App do Terminal', icon: Smartphone, href: '/terminal-app', roles: ['admin'] },

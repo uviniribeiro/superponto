@@ -149,6 +149,7 @@ const EquipmentAdd = React.lazy(() => import("@/pages/equipment/EquipmentAdd"));
 const EquipmentEmployees = React.lazy(() => import("@/pages/equipment/EquipmentEmployees"));
 const EquipmentPendingRecords = React.lazy(() => import("@/pages/equipment/EquipmentPendingRecords"));
 const EquipmentLogs = React.lazy(() => import("@/pages/equipment/EquipmentLogs"));
+const CommunicationCharts = React.lazy(() => import("@/pages/equipment/CommunicationCharts"));
 const EquipmentStatus = React.lazy(() => import("@/pages/equipment/EquipmentStatus"));
 const EquipmentSync = React.lazy(() => import("@/pages/equipment/EquipmentSync"));
 const EquipmentHelp = React.lazy(() => import("@/pages/equipment/EquipmentHelp"));
@@ -371,6 +372,7 @@ const App = () => (
                   <Route path="equipment/employees" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentEmployees /></ProtectedRoute>} />
                   <Route path="equipment/pending" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentPendingRecords /></ProtectedRoute>} />
                   <Route path="equipment/logs" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentLogs /></ProtectedRoute>} />
+                  <Route path="equipment/charts" element={<ProtectedRoute requiredRoles={['admin']}><CommunicationCharts /></ProtectedRoute>} />
                   <Route path="equipment/status" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentStatus /></ProtectedRoute>} />
                   <Route path="equipment/sync" element={<ProtectedRoute requiredRoles={['admin']}><EquipmentSync /></ProtectedRoute>} />
                   <Route path="equipment/compliance" element={<ProtectedRoute requiredRoles={['admin']}><MTECompliancePanel /></ProtectedRoute>} />
