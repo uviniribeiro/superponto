@@ -199,7 +199,7 @@ Future<void> maybeAskLegalConsent(BuildContext context) async {
     p = await SharedPreferences.getInstance();
   } catch (_) {}
   final key = 'sp.legal.${api.me?.id ?? ''}';
-  if (p?.getString(key) == legalVersion || !context.mounted) return;
+  if (p?.getString(key) == legalVersion || p?.getString('sp.legal') == legalVersion || !context.mounted) return;
   // O aceite fica registrado no servidor (prova: versão, data/hora, IP e aparelho).
   try {
     final r = await api.getMap('/auth/legal-consent');
@@ -262,8 +262,10 @@ Future<void> maybeAskLegalConsent(BuildContext context) async {
     ),
   );
   if (!ok) return;
+  // Aceite fica salvo no aparelho na hora (não pergunta de novo) e também no servidor (prova LGPD).
+  await p?.setString(key, legalVersion);
+  await p?.setString('sp.legal', legalVersion);
   try {
     await api.post('/auth/legal-consent', {'version': legalVersion});
-    await p?.setString(key, legalVersion);
   } catch (_) {}
 }

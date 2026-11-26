@@ -129,13 +129,16 @@ class _TourCardState extends State<TourCard> {
     super.initState();
     _steps = _tips[widget.path] ?? ['Bem-vindo a ${widget.title}.', 'Use a busca e os filtros no topo da tela; toque num item para ver detalhes.'];
     _prefs().then((p) {
-      if (p != null && p.getBool('sp.tour.${widget.path}') != true && mounted) setState(() => _show = true);
+      if (p != null && p.getBool('sp.tour.off') != true && p.getBool('sp.tour.${widget.path}') != true && mounted) setState(() => _show = true);
     });
   }
 
-  Future<void> _close() async {
+  /// Concluir: não mostra mais nesta tela. Pular: desliga o tour em todas as telas (salvo no aparelho).
+  Future<void> _close({bool all = false}) async {
     setState(() => _show = false);
-    (await _prefs())?.setBool('sp.tour.${widget.path}', true);
+    final p = await _prefs();
+    await p?.setBool('sp.tour.${widget.path}', true);
+    if (all) await p?.setBool('sp.tour.off', true);
   }
 
   @override
@@ -181,7 +184,7 @@ class _TourCardState extends State<TourCard> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton(onPressed: _close, child: const Text('Pular')),
+                      TextButton(onPressed: () => _close(all: true), child: const Text('Pular tour')),
                       TextButton(onPressed: () => _step < _steps.length - 1 ? setState(() => _step++) : _close(), child: Text(_step < _steps.length - 1 ? 'Próximo' : 'Concluir')),
                     ],
                   ),
