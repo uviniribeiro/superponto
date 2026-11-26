@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
+import type { ReportData } from '@/lib/reportExport';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -130,19 +132,8 @@ export function WorkedHoursReport({ records, companySettings, startDate, endDate
 
   const totals = getTotals();
 
-  const generatePDF = async () => {
-    const doc = await createA4PDF({
-      title: 'Relatório de Horas Trabalhadas',
-      period: {
-        start: format(parseISO(startDate), 'dd/MM/yyyy'),
-        end: format(parseISO(endDate), 'dd/MM/yyyy'),
-      },
-    });
-
-    const branding = await getCompanyBranding();
-    let y = getContentStartY(doc);
-    y = addCompanyInfo(doc, y, branding);
-
+  /** Mesmo conteúdo do PDF, para todos os formatos de exportação e o envio por e-mail. */
+  const reportData = (): ReportData => {
     const tableData = workedData.map(emp => [
       emp.name,
       emp.department,
@@ -151,26 +142,16 @@ export function WorkedHoursReport({ records, companySettings, startDate, endDate
       formatMinutes(emp.totalWorkedMinutes),
       formatMinutes(emp.avgDailyMinutes),
     ]);
-
-    addTable(
-      doc,
-      y,
-      [['Funcionário', 'Departamento', 'Cargo', 'Dias', 'Total Horas', 'Média Diária']],
-      tableData,
-      [[
+    return { title: 'Relatório de Horas Trabalhadas', period: { start: startDate, end: endDate }, columns: [['Funcionário', 'Departamento', 'Cargo', 'Dias', 'Total Horas', 'Média Diária']][0], rows: tableData, totals: [
         'TOTAL',
         '',
         '',
         String(totals.totalDays),
         formatMinutes(totals.totalMinutes),
         '',
-      ]],
-      { headColor: [59, 130, 246] }
-    );
-
-    addFooter(doc);
-    doc.save(`Relatorio_Horas_Trabalhadas_${format(new Date(), 'yyyyMMdd')}.pdf`);
+      ] };
   };
+
 
   return (
     <>
@@ -194,10 +175,7 @@ export function WorkedHoursReport({ records, companySettings, startDate, endDate
               <Printer className="h-4 w-4 mr-2" />
               Imprimir
             </Button>
-            <Button onClick={generatePDF} className="gradient-primary">
-              <Download className="h-4 w-4 mr-2" />
-              Baixar PDF
-            </Button>
+            <ReportExportMenu getData={reportData} disabled={false} />
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-4">

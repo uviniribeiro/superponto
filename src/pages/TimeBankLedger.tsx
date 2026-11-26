@@ -1,5 +1,6 @@
 // Banco de horas com lançamentos: saldo do período por funcionário (apuração) + lançamentos, e ações
 // em lote — zerar saldos, pagar saldos positivos ou lançar ajuste manual.
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
 import { useState } from 'react';
 import { PiggyBank, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -68,6 +69,7 @@ export default function TimeBankLedger() {
           <Button onClick={calc} disabled={busy || from > to} className="rounded-full">{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Calcular saldos</Button>
           <div className="grid min-w-[220px] flex-1 gap-2"><Label>Observação dos lançamentos</Label><Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex.: fechamento de novembro" /></div>
           <Button variant="outline" onClick={() => apply('payment')} disabled={!sel.size} className="rounded-full">Pagar positivos</Button>
+          <ReportExportMenu disabled={!rows.length} getData={() => ({ title: 'Saldos do banco de horas', period: { start: from, end: to }, columns: ['Funcionário', 'Matrícula', 'Apuração do período', 'Lançamentos', 'Saldo'], rows: rows.map((r) => [r.name, r.reg ?? '', fmtMin(r.period), fmtMin(r.entries), fmtMin(r.total)]) })} />
           <Button variant="destructive" onClick={() => apply('reset')} disabled={!sel.size} className="rounded-full">Zerar saldos</Button>
         </CardContent>
       </Card>

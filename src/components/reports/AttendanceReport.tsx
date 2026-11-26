@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
+import type { ReportData } from '@/lib/reportExport';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -131,19 +133,8 @@ export function AttendanceReport({ records, employees, holidays, companySettings
 
   const averages = getAverages();
 
-  const generatePDF = async () => {
-    const doc = await createA4PDF({
-      title: 'Relatório de Frequência',
-      period: {
-        start: format(parseISO(startDate), 'dd/MM/yyyy'),
-        end: format(parseISO(endDate), 'dd/MM/yyyy'),
-      },
-    });
-
-    const branding = await getCompanyBranding();
-    let y = getContentStartY(doc);
-    y = addCompanyInfo(doc, y, branding);
-
+  /** Mesmo conteúdo do PDF, para todos os formatos de exportação e o envio por e-mail. */
+  const reportData = (): ReportData => {
     const tableData = attendanceData.map(emp => [
       emp.name,
       emp.department,
@@ -153,23 +144,9 @@ export function AttendanceReport({ records, employees, holidays, companySettings
       formatMinutes(emp.totalWorkedMinutes),
       `${emp.attendanceRate.toFixed(1)}%`,
     ]);
-
-    const finalY = addTable(
-      doc,
-      y,
-      [['Funcionário', 'Departamento', 'Dias Úteis', 'Presentes', 'Ausentes', 'Horas', '% Freq.']],
-      tableData,
-      undefined,
-      { headColor: [34, 197, 94] }
-    );
-
-    doc.setFontSize(9);
-    doc.text(`Média de Frequência: ${averages.avgRate.toFixed(1)}%`, 14, finalY + 8);
-    doc.text(`Média de Horas: ${formatMinutes(Math.round(averages.avgWorked))}`, 100, finalY + 8);
-
-    addFooter(doc);
-    doc.save(`Relatorio_Frequencia_${format(new Date(), 'yyyyMMdd')}.pdf`);
+    return { title: 'Relatório de Frequência', period: { start: startDate, end: endDate }, columns: [['Funcionário', 'Departamento', 'Dias Úteis', 'Presentes', 'Ausentes', 'Horas', '% Freq.']][0], rows: tableData, totals: undefined };
   };
+
 
   return (
     <>
@@ -193,10 +170,7 @@ export function AttendanceReport({ records, employees, holidays, companySettings
               <Printer className="h-4 w-4 mr-2" />
               Imprimir
             </Button>
-            <Button onClick={generatePDF} className="gradient-primary">
-              <Download className="h-4 w-4 mr-2" />
-              Baixar PDF
-            </Button>
+            <ReportExportMenu getData={reportData} disabled={false} />
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-4">

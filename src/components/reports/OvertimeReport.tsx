@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
+import type { ReportData } from '@/lib/reportExport';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -159,19 +161,8 @@ export function OvertimeReport({ records, companySettings, startDate, endDate }:
 
   const totals = getTotals();
 
-  const generatePDF = async () => {
-    const doc = await createA4PDF({
-      title: 'Relatório de Horas Extras',
-      period: {
-        start: format(parseISO(startDate), 'dd/MM/yyyy'),
-        end: format(parseISO(endDate), 'dd/MM/yyyy'),
-      },
-    });
-
-    const branding = await getCompanyBranding();
-    let y = getContentStartY(doc);
-    y = addCompanyInfo(doc, y, branding);
-
+  /** Mesmo conteúdo do PDF, para todos os formatos de exportação e o envio por e-mail. */
+  const reportData = (): ReportData => {
     const tableData = overtimeData.map(emp => [
       emp.name,
       emp.department,
@@ -179,25 +170,15 @@ export function OvertimeReport({ records, companySettings, startDate, endDate }:
       formatMinutes(emp.overtime100Minutes),
       formatMinutes(emp.totalOvertimeMinutes),
     ]);
-
-    addTable(
-      doc,
-      y,
-      [['Funcionário', 'Departamento', 'HE 50%', 'HE 100%', 'Total']],
-      tableData,
-      [[
+    return { title: 'Relatório de Horas Extras', period: { start: startDate, end: endDate }, columns: [['Funcionário', 'Departamento', 'HE 50%', 'HE 100%', 'Total']][0], rows: tableData, totals: [
         'TOTAL',
         '',
         formatMinutes(totals.overtime50),
         formatMinutes(totals.overtime100),
         formatMinutes(totals.total),
-      ]],
-      { headColor: [16, 185, 129] }
-    );
-
-    addFooter(doc);
-    doc.save(`Relatorio_Horas_Extras_${format(new Date(), 'yyyyMMdd')}.pdf`);
+      ] };
   };
+
 
   return (
     <>
@@ -221,10 +202,7 @@ export function OvertimeReport({ records, companySettings, startDate, endDate }:
               <Printer className="h-4 w-4 mr-2" />
               Imprimir
             </Button>
-            <Button onClick={generatePDF} className="gradient-primary">
-              <Download className="h-4 w-4 mr-2" />
-              Baixar PDF
-            </Button>
+            <ReportExportMenu getData={reportData} disabled={false} />
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-4">

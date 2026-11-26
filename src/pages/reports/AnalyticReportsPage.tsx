@@ -2,7 +2,7 @@
 // atraso/extra/falta, déficit de intervalo, marcação incompleta, intervalo não calculável, marcação
 // mobile e falhas de login. Filtros por período e departamento; exporta CSV e imprime.
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, Download, Printer, Loader2 } from 'lucide-react';
+import { BarChart3, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
 import { loadPeriod, fmtMin, fmtTime, fmtDate, type DayRow, type PersonRow } from '@/lib/attendancePeriod';
 
 type Auth = { profile_id: string; start_date: string; end_date: string; approved_minutes: number; mode: string };
@@ -142,15 +143,6 @@ export default function AnalyticReportsPage() {
 
   const table = useMemo(() => (data ? report.build(data.days, data.people, data.auths) : null), [data, report]);
 
-  const csv = () => {
-    if (!table) return;
-    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
-    const body = [table.cols, ...table.rows].map((r) => r.map(esc).join(';')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['﻿' + body], { type: 'text/csv;charset=utf-8' }));
-    a.download = `${report.key}-${from}-${to}.csv`;
-    a.click();
-  };
 
   return (
     <div className="space-y-6">
@@ -175,8 +167,7 @@ export default function AnalyticReportsPage() {
           </div>
           <div className="flex gap-2 md:col-span-5">
             <Button onClick={run} disabled={busy || (!report.single && from > to)} className="rounded-full">{busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Gerar</Button>
-            <Button variant="outline" onClick={csv} disabled={!table?.rows.length} className="rounded-full"><Download className="mr-2 h-4 w-4" />CSV / Excel</Button>
-            <Button variant="outline" onClick={() => window.print()} disabled={!table?.rows.length} className="rounded-full"><Printer className="mr-2 h-4 w-4" />Imprimir / PDF</Button>
+            <ReportExportMenu disabled={!table?.rows.length} getData={() => table && ({ title: report.label, period: { start: report.single ? to : from, end: to }, subtitle: department === 'all' ? undefined : `Departamento: ${department}`, columns: table.cols, rows: table.rows })} />
           </div>
         </CardContent>
       </Card>

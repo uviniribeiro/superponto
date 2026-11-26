@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
+import type { ReportData } from '@/lib/reportExport';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -200,6 +202,21 @@ export function MirrorPointReport({
 
   const totals = getTotals();
 
+  /** Linhas do espelho para os demais formatos e o envio por e-mail (o PDF continua o modelo legal). */
+  const reportData = (): ReportData => ({
+    title: `Espelho de Ponto — ${employee.full_name}`,
+    subtitle: [employee.registration_number && `Matrícula ${employee.registration_number}`, employee.cpf && `CPF ${employee.cpf}`].filter(Boolean).join(' · '),
+    period: { start: startDate, end: endDate },
+    columns: ['Data', 'Dia', 'Entrada', 'Saída Int.', 'Retorno', 'Saída', 'Trabalhado', 'Saldo', 'Obs.'],
+    rows: dailySummaries.map((d) => [
+      format(d.date, 'dd/MM'), format(d.date, 'EEE', { locale: ptBR }).toUpperCase(),
+      d.isHoliday ? 'FERIADO' : d.entry || '-', d.isHoliday ? '-' : d.breakStart || '-', d.isHoliday ? '-' : d.breakEnd || '-', d.isHoliday ? '-' : d.exit || '-',
+      d.isHoliday ? '-' : formatMinutes(d.workedMinutes), d.isHoliday ? '-' : (d.balance >= 0 ? '+' : '') + formatMinutes(d.balance),
+      d.observations.join(', ') || (d.isHoliday ? 'Feriado' : d.isWeekend ? 'Folga' : '-'),
+    ]),
+    totals: ['TOTAL', '', '', '', '', '', formatMinutes(totals.workedTotal), (totals.balanceTotal >= 0 ? '+' : '') + formatMinutes(totals.balanceTotal), `${totals.absences} falta(s)`],
+  });
+
   const generatePDF = () => {
     const doc = new jsPDF();
     const monthName = format(parseISO(startDate), 'MMMM/yyyy', { locale: ptBR });
@@ -296,10 +313,7 @@ export function MirrorPointReport({
               <Printer className="h-4 w-4 mr-2" />
               Imprimir
             </Button>
-            <Button onClick={generatePDF} className="gradient-primary">
-              <Download className="h-4 w-4 mr-2" />
-              Baixar PDF
-            </Button>
+            <ReportExportMenu getData={reportData} onPdf={generatePDF} />
           </div>
 
           {/* Summary Cards */}

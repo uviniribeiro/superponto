@@ -1,5 +1,6 @@
 // Log de processos: o que foi feito no sistema (inclusões, alterações e exclusões), por quem e quando,
 // a partir da auditoria (audit_logs). Também traz o relatório de permissões por perfil.
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,7 +37,8 @@ export default function ProcessLog() {
       <Tabs defaultValue="log">
         <TabsList className="rounded-full"><TabsTrigger value="log" className="rounded-full">Log de processos</TabsTrigger><TabsTrigger value="roles" className="rounded-full">Funcionalidades por perfil</TabsTrigger><TabsTrigger value="users" className="rounded-full">Usuários por perfil</TabsTrigger></TabsList>
         <TabsContent value="log" className="space-y-3">
-          <Input placeholder="Buscar por usuário, tela ou descrição…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-md rounded-full" />
+          <div className="flex flex-wrap items-center gap-3"><Input placeholder="Buscar por usuário, tela ou descrição…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-md rounded-full" />
+          <ReportExportMenu disabled={!filtered.length} getData={() => ({ title: 'Log de processos', columns: ['Data e hora', 'Usuário', 'Ação', 'Onde', 'Descrição', 'IP'], rows: filtered.map((l) => [new Date(l.created_at).toLocaleString('pt-BR'), l.user_name, ACTION[l.action] ?? l.action, l.menu_section ?? l.table_name, l.description ?? '', l.ip_address ?? '']) })} /></div>
           <Card className="rounded-3xl"><CardContent className="p-0">
             <Table>
               <TableHeader><TableRow><TableHead>Data e hora</TableHead><TableHead>Usuário</TableHead><TableHead>Ação</TableHead><TableHead>Onde</TableHead><TableHead>Descrição</TableHead><TableHead>IP</TableHead></TableRow></TableHeader>

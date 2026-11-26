@@ -1,4 +1,5 @@
 // Meu extrato do banco de horas: saldo de cada dia do mês, lançamentos (zerado, pago, ajuste) e total.
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
 import { useEffect, useState } from 'react';
 import { Wallet } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,7 +37,11 @@ export default function MyTimeBank() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Meu banco de horas" description="Saldo de cada dia e os lançamentos do mês." icon={Wallet} />
+      <PageHeader title="Meu banco de horas" description="Saldo de cada dia e os lançamentos do mês." icon={Wallet}
+        actions={<ReportExportMenu disabled={!days.length} getData={() => ({ title: `Extrato do banco de horas — ${profile?.full_name ?? ''}`, period: { start: `${month}-01`, end: days.at(-1)?.date ?? `${month}-01` },
+          columns: ['Data', 'Trabalhadas', 'Previstas', 'Saldo do dia', 'Observação'],
+          rows: [...days.filter((d) => d.scheduled || d.punches.length).map((d) => [fmtDate(d.date), fmtMin(d.result.workedMinutes), fmtMin(d.result.expectedMinutes), fmtMin(d.result.balanceMinutes), d.absenceReason ?? '']), ...entries.map((e) => [fmtDate(e.entry_date), '', '', fmtMin(e.minutes), `${KIND[e.kind] ?? e.kind}${e.notes ? ` — ${e.notes}` : ''}`])],
+          totals: ['SALDO DO MÊS', '', '', fmtMin(periodo + lanc), ''] })} />} />
       <div className="grid gap-4 sm:grid-cols-4">
         <Card className="rounded-3xl"><CardContent className="p-5"><Label>Mês</Label><Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="mt-2" /></CardContent></Card>
         {[['Saldo dos dias', periodo], ['Lançamentos', lanc], ['Saldo do mês', periodo + lanc]].map(([l, v]) => (

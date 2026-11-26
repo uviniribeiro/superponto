@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -187,6 +188,12 @@ export default function TurnoverReport() {
             <RefreshCw className={`h-4 w-4 mr-2 ${calculating ? 'animate-spin' : ''}`} />
             Calcular
           </Button>
+          <ReportExportMenu disabled={!monthlyData.length} getData={() => ({
+            title: `Turnover ${year}`, period: { start: `${year}-01-01`, end: `${year}-12-31` },
+            columns: ['Mês', 'Funcionários', 'Admissões', 'Demissões', 'Turnover (%)'],
+            rows: monthlyData.map((m) => [m.month, m.total, m.admissoes, m.demissoes, m.turnover.toFixed(2)]),
+            totals: ['TOTAL', '', monthlyData.reduce((a, m) => a + m.admissoes, 0), monthlyData.reduce((a, m) => a + m.demissoes, 0), ''],
+          })} />
         </div>
       </div>
 
