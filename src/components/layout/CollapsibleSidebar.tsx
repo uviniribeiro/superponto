@@ -100,6 +100,7 @@ import {
   Stethoscope,
   Banknote,
   LayoutList,
+  Ban,
 } from 'lucide-react';
 import { Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -406,6 +407,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Dados da Empresa', icon: FileCheck, href: '/company', roles: ['admin'] },
       { title: 'Unidades (Matriz/Filiais)', icon: Building2, href: '/company-units', roles: ['admin'] },
       { title: 'Usuários', icon: Users, href: '/users', roles: ['admin'] },
+      { title: 'Bloqueio de Acesso', icon: Ban, href: '/access-blocks', roles: ['admin'] },
       { title: 'Manual do Sistema', icon: BookOpen, href: '/system-manual', roles: ['admin', 'manager', 'employee'] },
     ]
   },

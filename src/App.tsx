@@ -92,6 +92,7 @@ const CommuteTime = React.lazy(() => import("@/pages/CommuteTime"));
 const OnCallSchedules = React.lazy(() => import("@/pages/OnCallSchedules"));
 const BatchAbsolutions = React.lazy(() => import("@/pages/BatchAbsolutions"));
 const OvertimeAuthorizations = React.lazy(() => import("@/pages/OvertimeAuthorizations"));
+const AccessBlocks = React.lazy(() => import("@/pages/AccessBlocks"));
 const MaritalStatuses = React.lazy(() => import("@/pages/MaritalStatuses"));
 const Cities = React.lazy(() => import("@/pages/Cities"));
 const CompensationBank = React.lazy(() => import("@/pages/CompensationBank"));
@@ -283,6 +284,7 @@ const App = () => (
                   <Route path="time-bank" element={<TimeBank />} />
                   <Route path="absences" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Absences /></ProtectedRoute>} />
                   <Route path="users" element={<ProtectedRoute requiredRoles={['admin']}><Users /></ProtectedRoute>} />
+                  <Route path="access-blocks" element={<ProtectedRoute requiredRoles={['admin']}><AccessBlocks /></ProtectedRoute>} />
                   <Route path="overtime-dashboard" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><OvertimeDashboard /></ProtectedRoute>} />
                   <Route path="timesheet" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Timesheet /></ProtectedRoute>} />
                   <Route path="import-export" element={<ProtectedRoute requiredRoles={['admin']}><ImportExport /></ProtectedRoute>} />

@@ -136,6 +136,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (profileData) {
+        // Bloqueio de acesso por período: com bloqueio vigente, encerra a sessão e avisa o motivo.
+        const { data: block } = await (supabase as any).rpc('current_access_block');
+        const active = Array.isArray(block) ? block[0] : null;
+        if (active) {
+          const until = active.ends_at ? ` até ${new Date(active.ends_at).toLocaleString('pt-BR')}` : '';
+          try { sessionStorage.setItem('sp.access-block', `Acesso bloqueado${until}: ${active.reason}`); } catch { /* sem armazenamento */ }
+          await supabase.auth.signOut();
+          return;
+        }
         setProfile(profileData as unknown as Profile);
 
         // Fetch company if profile has company_id

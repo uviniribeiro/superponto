@@ -87,6 +87,14 @@ export default function Auth() {
   const formIsValid = !usernameError && !passwordError && !companyCodeError;
 
 
+  // Aviso de bloqueio de acesso por período (gravado pelo AuthContext ao encerrar a sessão).
+  useEffect(() => {
+    try {
+      const msg = sessionStorage.getItem('sp.access-block');
+      if (msg) { sessionStorage.removeItem('sp.access-block'); toast.error(msg, { duration: 10000 }); }
+    } catch { /* sem armazenamento */ }
+  }, []);
+
   useEffect(() => {
     if (!loading && user) {
       if (mustChangePassword && !isSuperAdmin) {
