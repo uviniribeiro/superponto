@@ -319,6 +319,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Banco de Horas', icon: Timer, href: '/reports/time-bank', roles: ['admin', 'manager'] },
       { title: 'Presença', icon: ListChecks, href: '/reports/attendance', roles: ['admin', 'manager'] },
       { title: 'Turnover', icon: BarChart3, href: '/reports/turnover', roles: ['admin', 'manager'] },
+      { title: 'Relatórios Analíticos', icon: BarChart3, href: '/reports/analytic', roles: ['admin', 'manager'] },
       { title: 'Exportação MTE', icon: Download, href: '/reports/mte', roles: ['admin'] },
     ]
   },

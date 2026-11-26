@@ -106,6 +106,7 @@ const AttendancePage = React.lazy(() => import("@/pages/reports/AttendancePage")
 const TimeBankPage = React.lazy(() => import("@/pages/reports/TimeBankPage"));
 const MTEExportsPage = React.lazy(() => import("@/pages/reports/MTEExportsPage"));
 const TurnoverReport = React.lazy(() => import("@/pages/TurnoverReport"));
+const AnalyticReportsPage = React.lazy(() => import("@/pages/reports/AnalyticReportsPage"));
 
 // Import/Export
 const ImportExport = React.lazy(() => import("@/pages/ImportExport"));
@@ -357,6 +358,7 @@ const App = () => (
                   <Route path="reports/time-bank" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><TimeBankPage /></ProtectedRoute>} />
                   <Route path="reports/mte" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><MTEExportsPage /></ProtectedRoute>} />
                   <Route path="reports/turnover" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><TurnoverReport /></ProtectedRoute>} />
+                  <Route path="reports/analytic" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><AnalyticReportsPage /></ProtectedRoute>} />
                   {/* Tools */}
                   <Route path="hours-calculator" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><HoursCalculator /></ProtectedRoute>} />
                   <Route path="custom-texts" element={<ProtectedRoute requiredRoles={['admin']}><CustomTexts /></ProtectedRoute>} />
