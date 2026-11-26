@@ -24,6 +24,27 @@ function bearer(req: Request): string | null {
   return header.replace(/^Bearer\s+/i, "").trim() || null;
 }
 
+function jwtRole(token: string): string | null {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return null;
+    const json = JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(part.length / 4) * 4, "=")));
+    return typeof json.role === "string" ? json.role : null;
+  } catch {
+    return null;
+  }
+}
+
+async function isServiceRoleKey(supabaseUrl: string, token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1`, { headers: { apikey: token, Authorization: `Bearer ${token}` } });
+    await res.body?.cancel();
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Resolves the caller identity from the request JWT.
  * Throws AuthError when the caller is anonymous or the token is invalid.
@@ -43,6 +64,13 @@ export async function getAuthContext(req: Request): Promise<AuthContext> {
 
   // The anon key alone is NOT an identity.
   if (token === anonKey) throw new AuthError("Autenticação obrigatória");
+
+  // Chave service_role em outro formato que o da variável (ex.: a legada em JWT usada pelo agendador
+  // do GitHub, quando o projeto expõe a chave nova): aceita só se o próprio Supabase a reconhecer como
+  // service_role (a rota de administração do Auth recusa qualquer outra chave).
+  if (jwtRole(token) === "service_role" && await isServiceRoleKey(supabaseUrl, token)) {
+    return { userId: "service_role", roles: ["service_role"], companyId: null, isServiceRole: true };
+  }
 
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
