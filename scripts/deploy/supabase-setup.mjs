@@ -37,7 +37,10 @@ async function request(url, { method = 'GET', headers = {}, body } = {}) {
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) {
     const detail = typeof data === 'string' ? data.slice(0, 300) : JSON.stringify(data).slice(0, 300);
-    throw new Error(`${method} ${url.replace(/\?.*/, '')} -> HTTP ${res.status}: ${detail}`);
+    const hint = res.status === 401 && url.includes('api.supabase.com')
+      ? ' — o secret SUPABASE_ACCESS_TOKEN expirou ou foi revogado: gere outro em supabase.com/dashboard/account/tokens e atualize em Settings > Secrets and variables > Actions'
+      : '';
+    throw new Error(`${method} ${url.replace(/\?.*/, '')} -> HTTP ${res.status}: ${detail}${hint}`);
   }
   return data;
 }

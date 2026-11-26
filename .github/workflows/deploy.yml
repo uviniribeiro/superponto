@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Conferir configuração
         id: check
@@ -47,11 +47,17 @@ jobs:
           if [ -n "$missing" ]; then
             echo "::warning::Publicação automática aguardando configuração. Cadastre os secrets:$missing (veja deploy/SUPABASE.md)."
             echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          # Token do Supabase válido? (nunca imprime o valor)
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN")
+          if [ "$code" = "401" ] || [ "$code" = "403" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN expirou ou foi revogado (HTTP $code). Gere outro em supabase.com/dashboard/account/tokens e atualize o secret em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: steps.check.outputs.ready == 'true'
         with:
           node-version: 22

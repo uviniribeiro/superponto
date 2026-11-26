@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useEquipmentData, getManufacturerLabel, getModelLabel, PORTARIA_OPTIONS } from '@/hooks/useEquipmentData';
 import EquipmentFormDialog from '@/components/equipment/EquipmentFormDialog';
+import { AgentKeyButton } from '@/components/equipment/AgentKeyButton';
 import { PageHeader } from '@/components/shared/PageHeader';
 
 export default function EquipmentList() {
@@ -152,6 +153,7 @@ export default function EquipmentList() {
                         >
                           <Activity className={`h-4 w-4 ${testConnectionMutation.isPending ? 'animate-pulse' : ''}`} />
                         </Button>
+                        <AgentKeyButton equipmentId={equipment.id} name={equipment.name} />
                         <Button
                           variant="ghost"
                           size="icon"
