@@ -12,3 +12,10 @@ export const TERMINAL_URL = 'https://superponto-terminal.vercel.app';
 export function isTerminalHost(hostname: string = typeof window !== 'undefined' ? window.location.hostname : ''): boolean {
   return /^superponto-terminal(\.|-)/.test(hostname) || hostname.startsWith('terminal.');
 }
+
+/** App do funcionário (PWA/celular): superponto-app.vercel.app (ou domínio "app."). */
+export const EMPLOYEE_APP_URL = 'https://superponto-app.vercel.app';
+
+export function isEmployeeAppHost(hostname: string = typeof window !== 'undefined' ? window.location.hostname : ''): boolean {
+  return /^superponto-app(\.|-)/.test(hostname) || hostname.startsWith('app.');
+}

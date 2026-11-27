@@ -37,6 +37,7 @@ const PageLoader = () => (
 import Auth from "@/pages/Auth";
 const KioskTerminal = React.lazy(() => import("@/pages/KioskTerminal"));
 const PunchReceipt = React.lazy(() => import("@/pages/PunchReceipt"));
+import { InstallHint } from "@/components/pwa/InstallHint";
 const ForgotPassword = React.lazy(() => import("@/pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("@/pages/ResetPassword"));
 const SuperAdminAuth = React.lazy(() => import("@/pages/SuperAdminAuth"));
@@ -239,6 +240,7 @@ const StandaloneTerminal = () => (
     <TooltipProvider delayDuration={300}>
       <Toaster />
       <Sonner position="top-right" richColors closeButton />
+      <InstallHint />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
@@ -260,6 +262,7 @@ const App = () => isTerminalHost() || APP_MODE === 'terminal' ? <StandaloneTermi
         <HolidayThemeProvider>
           <Toaster />
           <Sonner position="top-right" richColors closeButton />
+          <InstallHint />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
               <MaintenanceBanner />

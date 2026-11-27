@@ -311,7 +311,7 @@ export default function Auth() {
       </div>
       <header className="relative z-10 flex items-center justify-between gap-4 px-5 py-4 md:px-10">
         <PontoMaxLogo />
-        {!adminHost && <Button variant="ghost" asChild className="rounded-full bg-background/50 backdrop-blur-md border border-border/60"><a href="/terminal"><MonitorSmartphone />Terminal de Ponto</a></Button>}
+        {!adminHost && APP_MODE !== 'funcionario' && <Button variant="ghost" asChild className="rounded-full bg-background/50 backdrop-blur-md border border-border/60"><a href="/terminal"><MonitorSmartphone />Terminal de Ponto</a></Button>}
       </header>
       <div className="relative z-10 mx-auto w-full max-w-md flex-1 px-4 pb-10 pt-2 md:pt-8">
         <div className="mb-6 flex flex-col items-center text-center">
@@ -538,12 +538,14 @@ export default function Auth() {
                 Conexão protegida e registros com assinatura criptográfica.
               </p>
 
-              <a
-                href="/terminal"
-                className="block text-center text-xs font-semibold text-brand underline-offset-4 hover:underline md:hidden"
-              >
-                Usar este dispositivo como Terminal de Ponto
-              </a>
+              {APP_MODE !== 'funcionario' && (
+                <a
+                  href="/terminal"
+                  className="block text-center text-xs font-semibold text-brand underline-offset-4 hover:underline md:hidden"
+                >
+                  Usar este dispositivo como Terminal de Ponto
+                </a>
+              )}
             </form>
           </div>
         </div>

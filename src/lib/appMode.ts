@@ -10,7 +10,9 @@ export function resolveAppMode(value: string | undefined): AppMode {
   return value === 'funcionario' || value === 'terminal' ? value : 'web';
 }
 
-export const APP_MODE: AppMode = resolveAppMode(import.meta.env.VITE_APP_MODE);
+/** No endereço do app do funcionário (PWA) o site se comporta como o app instalado. */
+const employeeHost = typeof window !== 'undefined' && (/^superponto-app(\.|-)/.test(window.location.hostname) || window.location.hostname.startsWith('app.'));
+export const APP_MODE: AppMode = employeeHost ? 'funcionario' : resolveAppMode(import.meta.env.VITE_APP_MODE);
 
 /** Primeira tela ao abrir o app. */
 export function startPathFor(mode: AppMode): string {
