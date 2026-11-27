@@ -78,7 +78,12 @@ async function v2(path: string, token: string | null, body?: unknown): Promise<T
   return { success: true, ...json };
 }
 
-const v2Record = (r: TerminalResult): TerminalResult => ({
+const v2Record = (r: TerminalResult): TerminalResult => r.meal ? ({
+  success: true,
+  duplicated: !!r.duplicated,
+  employeeName: String(r.employee ?? ''),
+  meal: { meal_name: String((r.meal as any).mealName ?? 'Refeição'), recorded_at: String((r.meal as any).recordedAt ?? new Date().toISOString()) },
+}) : ({
   success: true,
   duplicated: !!r.duplicated,
   employeeName: String(r.employee ?? ''),
@@ -121,7 +126,7 @@ const v2Backend: Backend = {
   session: async (token) => {
     const r = await v2('session', token);
     if (!r.success) return r.code === 'terminal_invalid' ? r : { ...r, success: false };
-    return { success: true, terminal: { name: (r.terminal as any)?.name, status: (r.terminal as any)?.status, activationCode: (r.terminal as any)?.activationCode }, company: r.company };
+    return { success: true, terminal: { name: (r.terminal as any)?.name, status: (r.terminal as any)?.status, activationCode: (r.terminal as any)?.activationCode, purpose: (r.terminal as any)?.purpose }, company: r.company };
   },
   activate: async (cnpj, name) => {
     const r = await v2('activate', null, { cnpj, name: name || undefined });
