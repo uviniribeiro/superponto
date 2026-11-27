@@ -1034,7 +1034,7 @@ export default function KioskTerminal() {
                   <CardDescription>{secondRef.current ? 'Segunda verificação.' : 'Em seguida, olhe para a câmera para a conferência do rosto.'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <form onSubmit={(e) => { e.preventDefault(); identify(identifier); }} className="flex gap-2">
+                  <form onSubmit={(e) => { e.preventDefault(); identify(identifier); }} className="flex gap-2" data-sp-keypad="own">
                     <Input value={identifier} onChange={(e) => { touch(); setIdentifier(e.target.value); }} inputMode="numeric" autoFocus
                       type={method === 'pin' ? 'password' : 'text'} className="h-14 text-center text-2xl tracking-widest" aria-label={KEYPAD_LABEL[method]} />
                     <Button type="submit" className="h-14 px-6" disabled={busy || !identifier}>{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Confirmar'}</Button>

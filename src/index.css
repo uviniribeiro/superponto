@@ -646,3 +646,10 @@
 /* Layout V14: rolagem horizontal sem barra visível */
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Teclado da tela aberto: diálogos centralizados sobem para a área visível acima dele. */
+html.sp-kb-open [role="dialog"].fixed.top-\[50\%\] {
+  top: calc((100dvh - var(--sp-kb-h, 0px)) / 2) !important;
+  max-height: calc(100dvh - var(--sp-kb-h, 0px) - 16px);
+  overflow-y: auto;
+}
