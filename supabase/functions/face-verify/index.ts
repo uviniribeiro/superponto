@@ -19,7 +19,31 @@ Deno.serve(async (req) => {
   const secret = Deno.env.get('FACE_VERIFY_SECRET') ?? '';
   if (!secret || !safeEqual(req.headers.get('x-face-secret') ?? '', secret)) return json({ error: 'unauthorized' }, 401);
   try {
-    const { selfie, reference } = await req.json();
+    const payload = await req.json();
+    const { selfie, reference } = payload;
+    // Modo 1:N: { selfie, references: [{ id, image }] } → qual cadastro é a pessoa (ou nenhum).
+    if (Array.isArray(payload.references)) {
+      const refs = (payload.references as Array<{ id: string; image: string }>).filter((r) => typeof r?.image === 'string' && r.image.length < 2_000_000).slice(0, 40);
+      if (typeof selfie !== 'string' || !refs.length) return json({ error: 'imagens inválidas' }, 400);
+      const ai1 = aiConfig();
+      if (!ai1) return json({ error: 'verificação facial indisponível' }, 503);
+      const content: unknown[] = [
+        { type: 'text', text: `Identificação 1:N. A PRIMEIRA imagem é a pessoa diante do terminal; as ${refs.length} seguintes são fotos de cadastro numeradas a partir de 1. Qual delas é a mesma pessoa? Considere apenas traços faciais. Se não houver rosto nítido na primeira imagem, responda face=false. Responda apenas com JSON: {"face": true|false, "index": <número da foto ou 0 se nenhuma>, "confidence": <0 a 100>}` },
+        { type: 'image_url', image_url: { url: asDataUrl(selfie) } },
+        ...refs.map((r) => ({ type: 'image_url', image_url: { url: asDataUrl(r.image) } })),
+      ];
+      const res1 = await aiChat(ai1, { messages: [{ role: 'user', content }] });
+      if (!res1.ok) {
+        console.error('face-verify 1:N ai error', res1.status, await res1.text());
+        return json({ error: 'falha na verificação' }, 502);
+      }
+      const t1 = (await res1.json())?.choices?.[0]?.message?.content ?? '';
+      const m1 = /\{[\s\S]*\}/.exec(t1);
+      let q: { face?: boolean; index?: number; confidence?: number } = {};
+      try { q = m1 ? JSON.parse(m1[0]) : {}; } catch { q = {}; }
+      const i = Number(q.index || 0);
+      return json({ face: q.face !== false, id: i >= 1 && i <= refs.length ? refs[i - 1].id : null, confidence: Number(q.confidence || 0) });
+    }
     if (typeof selfie !== 'string' || typeof reference !== 'string' || selfie.length > 2_000_000 || reference.length > 2_000_000) {
       return json({ error: 'imagens inválidas' }, 400);
     }

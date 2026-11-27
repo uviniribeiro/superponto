@@ -258,157 +258,127 @@ Deno.serve(async (req) => {
       return json({ success: true, employees: data || [] });
     }
 
-    async function buildIdentifyResponse(profileId: string, methodType: string) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, full_name, registration_number, department, position, photo_url, is_active, company_id')
-        .eq('id', profileId)
-        .maybeSingle();
-
-      if (!profile || !profile.is_active || profile.company_id !== terminal.company_id) {
-        return json({ success: false, error: 'Funcionário inativo ou de outra empresa.' }, 403);
-      }
-
-      const allowed = await authorizedProfileIds();
-      if (allowed && !allowed.includes(profile.id)) {
-        await supabase.from('identification_validation_attempts').insert({
-          profile_id: profile.id,
-          company_id: terminal.company_id,
-          method_type: methodType,
-          success: false,
-          reason: `Funcionário não autorizado no terminal ${terminal.name}`,
-          user_agent: `kiosk terminal=${terminal.name}`,
-        });
-        return json({ success: false, error: 'Você não está autorizado a registrar ponto neste terminal.' }, 403);
-      }
-
-      const start = new Date(); start.setHours(0, 0, 0, 0);
-      const end = new Date(); end.setHours(23, 59, 59, 999);
-      const { data: todayRecords } = await supabase
-        .from('time_records')
-        .select('record_type, recorded_at')
-        .eq('profile_id', profile.id)
-        .gte('recorded_at', start.toISOString())
-        .lte('recorded_at', end.toISOString())
-        .order('recorded_at', { ascending: true });
-
-      const last = (todayRecords || []).at(-1)?.record_type as RecordType | undefined;
-      const nextIndex = last ? RECORD_ORDER.indexOf(last) + 1 : 0;
-      const nextRecordType = nextIndex < RECORD_ORDER.length ? RECORD_ORDER[nextIndex] : null;
-
-      await supabase.from('identification_validation_attempts').insert({
-        profile_id: profile.id,
-        company_id: terminal.company_id,
-        method_type: methodType,
-        success: true,
-        reason: `Identificação aceita no terminal ${terminal.name}`,
-        user_agent: `kiosk terminal=${terminal.name}`,
-      });
-
-      await supabase.from('kiosk_terminals')
-        .update({ last_used_at: new Date().toISOString() })
-        .eq('id', terminal.id);
-
-      return json({
-        success: true,
-        methodType,
-        employee: {
-          id: profile.id,
-          full_name: profile.full_name,
-          registration_number: profile.registration_number,
-          department: profile.department,
-          position: profile.position,
-          photo_url: await signPhotoUrl(supabase, profile.photo_url),
-        },
-        todayRecords: todayRecords || [],
-        nextRecordType,
-      });
-    }
-
     // ---------------------------------------------------------------
-    // 4) Identificação por QR, código de barras, PIN, RFID, matrícula ou CPF
+    // 4) Identificação: QR Code, código de barras, PIN, matrícula ou CPF.
+    //    Nenhum desses registra sozinho: o terminal sempre confere o rosto (1:1) com a foto do cadastro.
     // ---------------------------------------------------------------
-    if (action === 'identify') {
-      const rawIdentifier = String(body?.identifier || '').trim();
-      if (!rawIdentifier) {
-        return json({ success: false, error: 'Informe o QR Code, PIN, matrícula ou CPF.' }, 400);
-      }
+    const METHOD_NAME: Record<string, string> = {
+      qrcode: 'do QR Code', barcode: 'do crachá', pin: 'do PIN', rfid: 'do cartão', registration: 'da matrícula', cpf: 'do CPF', manual: 'da identificação',
+    };
 
+    async function resolveIdentifier(rawIdentifier: string): Promise<{ profileId: string; methodType: string } | { error: string; status: number }> {
+      if (!rawIdentifier) return { error: 'Informe o QR Code, PIN, matrícula ou CPF.', status: 400 };
       const digitsOnly = rawIdentifier.replace(/\D/g, '');
-      let profileId: string | null = null;
-      let methodType = 'manual';
-
       const { data: method } = await supabase
         .from('employee_identification_methods')
-        .select('profile_id, company_id, method_type, is_active, expires_at')
+        .select('profile_id, method_type, is_active, expires_at')
         .eq('company_id', terminal.company_id)
         .eq('identifier', rawIdentifier)
         .maybeSingle();
-
       if (method) {
-        methodType = method.method_type;
-        if (!method.is_active) {
-          return json({ success: false, error: 'Este método de identificação está inativo. Procure o RH.' }, 403);
-        }
-        if (method.expires_at && new Date(method.expires_at) <= new Date()) {
-          return json({ success: false, error: 'QR Code expirado. Solicite um novo ao RH.' }, 403);
-        }
-        profileId = method.profile_id;
-        if (method.method_type === 'qrcode') {
-          // QR Code sozinho não registra: o terminal precisa confirmar o rosto do dono do QR.
-          const { data: owner } = await supabase.from('profiles')
-            .select('id, full_name, photo_url, is_active, company_id').eq('id', method.profile_id).maybeSingle();
-          if (!owner || !owner.is_active || owner.company_id !== terminal.company_id) {
-            return json({ success: false, error: 'Funcionário inativo ou de outra empresa.' }, 403);
-          }
-          if (!owner.photo_url) {
-            return json({ success: false, error: 'Funcionário sem foto cadastrada para a verificação facial. Procure o RH.' }, 403);
-          }
-          const allowed = await authorizedProfileIds();
-          if (allowed && !allowed.includes(owner.id)) {
-            return json({ success: false, error: 'Você não está autorizado a registrar ponto neste terminal.' }, 403);
-          }
-          return json({ success: true, requireFace: true, methodType: 'qrcode', employee: { id: owner.id, full_name: owner.full_name } });
-        }
-      } else {
-        const { data: byRegistration } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('company_id', terminal.company_id)
-          .eq('registration_number', rawIdentifier)
-          .eq('is_active', true)
-          .maybeSingle();
-
-        if (byRegistration) {
-          profileId = byRegistration.id;
-          methodType = 'registration';
-        } else if (digitsOnly.length === 11) {
-          const { data: byCpf } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('company_id', terminal.company_id)
-            .eq('cpf', digitsOnly)
-            .eq('is_active', true)
-            .maybeSingle();
-          if (byCpf) {
-            profileId = byCpf.id;
-            methodType = 'cpf';
-          }
-        }
+        if (method.method_type === 'facial') return { error: 'Use o reconhecimento facial.', status: 400 };
+        if (!method.is_active) return { error: 'Este método de identificação está inativo. Procure o RH.', status: 403 };
+        if (method.expires_at && new Date(method.expires_at) <= new Date()) return { error: 'QR Code expirado. Solicite um novo ao RH.', status: 403 };
+        return { profileId: method.profile_id, methodType: method.method_type };
       }
+      const { data: byRegistration } = await supabase.from('profiles').select('id')
+        .eq('company_id', terminal.company_id).eq('registration_number', rawIdentifier).eq('is_active', true).maybeSingle();
+      if (byRegistration) return { profileId: byRegistration.id, methodType: 'registration' };
+      if (digitsOnly.length === 11) {
+        const { data: byCpf } = await supabase.from('profiles').select('id')
+          .eq('company_id', terminal.company_id).eq('cpf', digitsOnly).eq('is_active', true).maybeSingle();
+        if (byCpf) return { profileId: byCpf.id, methodType: 'cpf' };
+      }
+      await supabase.from('identification_validation_attempts').insert({
+        company_id: terminal.company_id, method_type: 'kiosk', success: false,
+        reason: 'Identificação não encontrada no terminal de ponto', user_agent: `kiosk terminal=${terminal.name}`,
+      });
+      return { error: 'Funcionário não encontrado nesta empresa.', status: 404 };
+    }
 
-      if (!profileId) {
+    async function loadOwner(profileId: string) {
+      const { data: owner } = await supabase.from('profiles')
+        .select('id, full_name, photo_url, is_active, company_id').eq('id', profileId).maybeSingle();
+      if (!owner || !owner.is_active || owner.company_id !== terminal.company_id) return { error: 'Funcionário inativo ou de outra empresa.', status: 403 };
+      if (!owner.photo_url) return { error: 'Funcionário sem foto cadastrada para a verificação facial. Procure o RH.', status: 403 };
+      const allowed = await authorizedProfileIds();
+      if (allowed && !allowed.includes(owner.id)) return { error: 'Você não está autorizado a registrar ponto neste terminal.', status: 403 };
+      return { owner };
+    }
+
+    /** Rosto conferido: próxima marcação do dia gravada na hora. */
+    async function verifiedPunch(owner: { id: string; full_name: string }, methodType: string, confidence: number) {
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const { data: todayRecords } = await supabase.from('time_records')
+        .select('record_type, recorded_at').eq('profile_id', owner.id)
+        .gte('recorded_at', start.toISOString()).order('recorded_at', { ascending: true });
+      const last = (todayRecords || []).at(-1)?.record_type as RecordType | undefined;
+      const nextIndex = last ? RECORD_ORDER.indexOf(last) + 1 : 0;
+      if (nextIndex >= RECORD_ORDER.length) {
+        return json({ success: false, error: 'Todos os registros do dia já foram feitos para este funcionário.' }, 409);
+      }
+      await supabase.from('identification_validation_attempts').insert({
+        profile_id: owner.id, company_id: terminal.company_id, method_type: `${methodType}_facial`, success: true,
+        reason: `Rosto conferido (${methodType}, confiança ${confidence}%) no terminal ${terminal.name}`,
+        user_agent: `kiosk terminal=${terminal.name}`,
+      });
+      await supabase.from('kiosk_terminals').update({ last_used_at: new Date().toISOString() }).eq('id', terminal.id);
+      return await insertPunch(owner, RECORD_ORDER[nextIndex], methodType === 'facial' ? ' | facial' : ` | ${methodType} + facial`);
+    }
+
+    if (action === 'identify') {
+      const r = await resolveIdentifier(String(body?.identifier || '').trim());
+      if ('error' in r) return json({ success: false, error: r.error }, r.status);
+      const o = await loadOwner(r.profileId);
+      if ('error' in o) return json({ success: false, error: o.error }, o.status);
+      return json({ success: true, requireFace: true, methodType: r.methodType, employee: { id: o.owner.id, full_name: o.owner.full_name } });
+    }
+
+    // Conferência 1:1: o rosto no terminal contra a foto do dono da identificação; se bater, registra.
+    if (action === 'verify-face' || action === 'verify-qr-face') {
+      const raw = String(body?.identifier || '').trim();
+      const selfie = String(body?.selfieBase64 || '');
+      if (!raw || !selfie) return json({ success: false, error: 'Identifique-se e olhe para a câmera.' }, 400);
+      const r = await resolveIdentifier(raw);
+      if ('error' in r) return json({ success: false, error: r.error }, r.status);
+      const o = await loadOwner(r.profileId);
+      if ('error' in o) return json({ success: false, error: o.error }, o.status);
+      const owner = o.owner;
+      const reference = await signPhotoUrl(supabase, owner.photo_url);
+      if (!reference) return json({ success: false, error: 'Funcionário sem foto cadastrada para a verificação facial. Procure o RH.' }, 403);
+
+      const ai = aiConfig();
+      if (!ai) return json({ success: false, error: 'Verificação facial indisponível no momento.' }, 500);
+      const aiRes = await aiChat(ai, {
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Verificação de identidade 1:1. A PRIMEIRA imagem é a pessoa diante do terminal agora; a SEGUNDA é a foto do cadastro. São a mesma pessoa? Considere apenas traços faciais (ignore iluminação, óculos, barba e fundo). Se não houver rosto nítido na primeira imagem, responda face=false. Responda apenas com JSON: {"face": true|false, "same": true|false, "confidence": <0 a 100>}' },
+            { type: 'image_url', image_url: { url: selfie.startsWith('data:') ? selfie : `data:image/jpeg;base64,${selfie}` } },
+            { type: 'image_url', image_url: { url: reference } },
+          ],
+        }],
+      });
+      if (!aiRes.ok) {
+        console.error('verify face ai error', aiRes.status, await aiRes.text());
+        return json({ success: false, error: 'Não foi possível concluir a verificação facial. Tente novamente.' }, 502);
+      }
+      const aiJson = await aiRes.json();
+      const text = aiJson?.choices?.[0]?.message?.content ?? '';
+      const m = /\{[\s\S]*\}/.exec(text);
+      let parsed: { face?: boolean; same?: boolean; confidence?: number } = {};
+      try { parsed = m ? JSON.parse(m[0]) : {}; } catch { parsed = {}; }
+      const confidence = Number(parsed.confidence || 0);
+      if (parsed.face === false) return json({ success: false, code: 'no_face', error: 'Rosto não detectado. Olhe para a câmera.' }, 422);
+      if (!parsed.same || confidence < 75) {
+        const refused = `Registro recusado, pessoa divergente ${METHOD_NAME[r.methodType] ?? 'da identificação'}.`;
         await supabase.from('identification_validation_attempts').insert({
-          company_id: terminal.company_id,
-          method_type: 'kiosk',
-          success: false,
-          reason: 'Identificação não encontrada no terminal de ponto',
-          user_agent: `kiosk terminal=${terminal.name}`,
+          profile_id: owner.id, company_id: terminal.company_id, method_type: `${r.methodType}_facial`, success: false,
+          reason: `${refused} (confiança ${confidence}%) no terminal ${terminal.name}`, user_agent: `kiosk terminal=${terminal.name}`,
         });
-        return json({ success: false, error: 'Funcionário não encontrado nesta empresa.' }, 404);
+        return json({ success: false, code: 'face_mismatch', error: refused }, 403);
       }
-
-      return await buildIdentifyResponse(profileId, methodType);
+      return await verifiedPunch(owner, r.methodType, confidence);
     }
 
     // ---------------------------------------------------------------
@@ -482,7 +452,8 @@ Deno.serve(async (req) => {
         return json({ success: false, error: 'Rosto não reconhecido. Aproxime-se, melhore a iluminação e tente de novo, ou use o QR Code.' }, 404);
       }
 
-      return await buildIdentifyResponse(signedRoster[idx - 1].id, 'facial');
+      const who = roster.find((p: any) => p.id === signedRoster[idx - 1].id)!;
+      return await verifiedPunch({ id: who.id, full_name: who.full_name }, 'facial', confidence);
     }
 
     async function insertPunch(profile: { id: string; full_name: string }, recordType: RecordType, extra = '') {
@@ -523,124 +494,11 @@ Deno.serve(async (req) => {
     }
 
     // ---------------------------------------------------------------
-    // 5b) QR Code + verificação facial 1:1 — compara o rosto no terminal com a foto do dono do QR
-    //     e, se for a mesma pessoa, registra o ponto na hora.
-    // ---------------------------------------------------------------
-    if (action === 'verify-qr-face') {
-      const qr = String(body?.identifier || '').trim();
-      const selfie = String(body?.selfieBase64 || '');
-      if (!qr || !selfie) return json({ success: false, error: 'Leia o QR Code e olhe para a câmera.' }, 400);
-
-      const { data: method } = await supabase
-        .from('employee_identification_methods')
-        .select('profile_id, is_active, expires_at')
-        .eq('company_id', terminal.company_id)
-        .eq('method_type', 'qrcode')
-        .eq('identifier', qr)
-        .maybeSingle();
-      if (!method || !method.is_active) return json({ success: false, error: 'QR Code inválido ou substituído. Procure o RH.' }, 403);
-      if (method.expires_at && new Date(method.expires_at) <= new Date()) {
-        return json({ success: false, error: 'QR Code expirado. Solicite um novo ao RH.' }, 403);
-      }
-      const { data: owner } = await supabase.from('profiles')
-        .select('id, full_name, photo_url, is_active, company_id').eq('id', method.profile_id).maybeSingle();
-      if (!owner || !owner.is_active || owner.company_id !== terminal.company_id) {
-        return json({ success: false, error: 'Funcionário inativo ou de outra empresa.' }, 403);
-      }
-      const allowed = await authorizedProfileIds();
-      if (allowed && !allowed.includes(owner.id)) {
-        return json({ success: false, error: 'Você não está autorizado a registrar ponto neste terminal.' }, 403);
-      }
-      const reference = await signPhotoUrl(supabase, owner.photo_url);
-      if (!reference) return json({ success: false, error: 'Funcionário sem foto cadastrada para a verificação facial. Procure o RH.' }, 403);
-
-      const ai = aiConfig();
-      if (!ai) return json({ success: false, error: 'Verificação facial indisponível no momento.' }, 500);
-      const aiRes = await aiChat(ai, {
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Verificação de identidade 1:1. A PRIMEIRA imagem é a pessoa diante do terminal agora; a SEGUNDA é a foto do cadastro. São a mesma pessoa? Considere apenas traços faciais (ignore iluminação, óculos, barba e fundo). Se não houver rosto nítido na primeira imagem, responda same=false. Responda apenas com JSON: {"face": true|false, "same": true|false, "confidence": <0 a 100>}' },
-            { type: 'image_url', image_url: { url: selfie.startsWith('data:') ? selfie : `data:image/jpeg;base64,${selfie}` } },
-            { type: 'image_url', image_url: { url: reference } },
-          ],
-        }],
-      });
-      if (!aiRes.ok) {
-        console.error('qr face ai error', aiRes.status, await aiRes.text());
-        return json({ success: false, error: 'Não foi possível concluir a verificação facial. Tente novamente.' }, 502);
-      }
-      const aiJson = await aiRes.json();
-      const text = aiJson?.choices?.[0]?.message?.content ?? '';
-      const m = /\{[\s\S]*\}/.exec(text);
-      let parsed: { face?: boolean; same?: boolean; confidence?: number } = {};
-      try { parsed = m ? JSON.parse(m[0]) : {}; } catch { parsed = {}; }
-      const confidence = Number(parsed.confidence || 0);
-
-      if (parsed.face === false) {
-        return json({ success: false, code: 'no_face', error: 'Rosto não detectado. Olhe para a câmera.' }, 422);
-      }
-      if (!parsed.same || confidence < 75) {
-        await supabase.from('identification_validation_attempts').insert({
-          profile_id: owner.id,
-          company_id: terminal.company_id,
-          method_type: 'qrcode_facial',
-          success: false,
-          reason: `Registro recusado: pessoa divergente do QR Code (confiança ${confidence}%) no terminal ${terminal.name}`,
-          user_agent: `kiosk terminal=${terminal.name}`,
-        });
-        return json({ success: false, code: 'face_mismatch', error: 'Registro recusado, pessoa divergente do QR Code.' }, 403);
-      }
-
-      // Mesma pessoa: próxima marcação do dia e registro imediato.
-      const start = new Date(); start.setHours(0, 0, 0, 0);
-      const { data: todayRecords } = await supabase.from('time_records')
-        .select('record_type, recorded_at').eq('profile_id', owner.id)
-        .gte('recorded_at', start.toISOString()).order('recorded_at', { ascending: true });
-      const last = (todayRecords || []).at(-1)?.record_type as RecordType | undefined;
-      const nextIndex = last ? RECORD_ORDER.indexOf(last) + 1 : 0;
-      if (nextIndex >= RECORD_ORDER.length) {
-        return json({ success: false, error: 'Todos os registros do dia já foram feitos para este funcionário.' }, 409);
-      }
-      await supabase.from('identification_validation_attempts').insert({
-        profile_id: owner.id,
-        company_id: terminal.company_id,
-        method_type: 'qrcode_facial',
-        success: true,
-        reason: `QR Code + rosto conferidos (confiança ${confidence}%) no terminal ${terminal.name}`,
-        user_agent: `kiosk terminal=${terminal.name}`,
-      });
-      await supabase.from('kiosk_terminals').update({ last_used_at: new Date().toISOString() }).eq('id', terminal.id);
-      return await insertPunch(owner, RECORD_ORDER[nextIndex], ' | QR Code + facial');
-    }
-
-    // ---------------------------------------------------------------
     // 6) Registro de ponto
     // ---------------------------------------------------------------
     if (action === 'punch') {
-      const profileId = String(body?.profileId || '');
-      const recordType = String(body?.recordType || '') as RecordType;
-
-      if (!profileId || !RECORD_ORDER.includes(recordType)) {
-        return json({ success: false, error: 'Dados do registro inválidos.' }, 400);
-      }
-
-      const allowed = await authorizedProfileIds();
-      if (allowed && !allowed.includes(profileId)) {
-        return json({ success: false, error: 'Funcionário não autorizado neste terminal.' }, 403);
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, full_name, company_id, is_active')
-        .eq('id', profileId)
-        .maybeSingle();
-
-      if (!profile || !profile.is_active || profile.company_id !== terminal.company_id) {
-        return json({ success: false, error: 'Funcionário inválido para este terminal.' }, 403);
-      }
-
-      return await insertPunch(profile, recordType);
+      // Toda marcação passa pela conferência do rosto (verify-face / identify-face).
+      return json({ success: false, code: 'face_required', error: 'O registro exige a verificação facial. Atualize o terminal.' }, 410);
     }
 
     return json({ success: false, error: 'Ação não reconhecida.' }, 400);
