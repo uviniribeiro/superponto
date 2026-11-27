@@ -16,10 +16,20 @@ import {
   LogOut, CheckCircle2, AlertCircle, Wifi, WifiOff, Wrench, ArrowLeft, CloudUpload, ShieldCheck,
 } from 'lucide-react';
 import {
-  backendFor, flushQueue, OfflineError, readQueue, readRejected, resolveVersion, writeQueue, clearRejected,
+  backendFor, flushQueue, OfflineError, readQueue, readRejected, resolveVersion, writeQueue, clearRejected, receiptUrl,
   type QueuedPunch, type SystemVersion, type TerminalMethod, type TerminalResult,
 } from '@/lib/terminalBackend';
 import { scanVideoFrame, useBarcodeWedge } from '@/lib/barcodeScan';
+import QRCode from 'qrcode';
+
+/** Desafios aleatórios da prova de vida (a câmera é espelhada: "esquerda" na tela). */
+const CHALLENGES: { key: string; text: string }[] = [
+  { key: 'left', text: 'Vire levemente o rosto para o seu lado ESQUERDO' },
+  { key: 'right', text: 'Vire levemente o rosto para o seu lado DIREITO' },
+  { key: 'closer', text: 'Aproxime o rosto da câmera' },
+  { key: 'up', text: 'Levante levemente o queixo' },
+];
+const NEXT_LABEL: Record<string, string> = { entry: 'Início do intervalo', break_start: 'Fim do intervalo', break_end: 'Saída' };
 
 const STORAGE_KEY = 'pontomax.kiosk.session';
 
@@ -95,7 +105,8 @@ export default function KioskTerminal() {
   const [busy, setBusy] = useState(false);
   const [hint, setHint] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ label: string; time: string; nsr: number | string; name: string; offline?: boolean } | null>(null);
+  const [success, setSuccess] = useState<{ label: string; time: string; nsr: number | string; name: string; offline?: boolean; qr?: string; next?: string } | null>(null);
+  const [challenge, setChallenge] = useState<string | null>(null);
   const [refused, setRefused] = useState<string | null>(null);
   /** Primeira identificação (aguardando rosto ou segunda verificação). */
   const pendingRef = useRef<{ method: Method; value: string; name: string; offline?: boolean } | null>(null);
@@ -372,14 +383,27 @@ export default function KioskTerminal() {
 
   const handleResult = useCallback((res: TerminalResult) => {
     if (res?.success && res.record) {
-      setSuccess({
-        label: res.record.record_type ? `${RECORD_LABELS[res.record.record_type as RecordType] ?? 'Marcação'} registrada` : 'Ponto registrado',
-        time: new Date(res.record.recorded_at).toLocaleTimeString('pt-BR'),
-        nsr: res.record.nsr,
+      const rec = res.record;
+      const base = {
+        label: rec.record_type ? `${RECORD_LABELS[rec.record_type as RecordType] ?? 'Marcação'} registrada` : 'Ponto registrado',
+        time: new Date(rec.recorded_at).toLocaleTimeString('pt-BR'),
+        nsr: rec.nsr,
         name: res.employeeName || '',
-      });
+        next: rec.record_type ? NEXT_LABEL[rec.record_type] : undefined,
+      };
+      setSuccess(base);
+      // Comprovante: QR Code para o funcionário abrir no celular
+      if (rec.transaction_hash) {
+        QRCode.toDataURL(receiptUrl(session?.version, rec.transaction_hash), { width: 220, margin: 1 }).then((qr) => setSuccess((s) => (s ? { ...s, qr } : s))).catch(() => undefined);
+      }
       stageRef.current = 'idle';
-      setTimeout(() => { setSuccess(null); goIdle(); }, 2600);
+      setTimeout(() => { setSuccess(null); goIdle(); }, rec.transaction_hash ? 6000 : 2600);
+      return;
+    }
+    if (res?.code === 'liveness_failed') {
+      setRefused(res.error || 'Registro recusado: prova de vida não confirmada.');
+      stageRef.current = 'idle';
+      setTimeout(() => { setRefused(null); goIdle(); }, 3500);
       return;
     }
     if (res?.code === 'face_mismatch' || res?.code === 'factor_mismatch') {
@@ -455,17 +479,18 @@ export default function KioskTerminal() {
     }
   }, [backend, handleResult, openCamera, queueOffline, session, setStage, showError]);
 
-  const submitFace = useCallback(async (selfie: string) => {
+  const submitFace = useCallback(async (selfie: string, live: { selfie2?: string; challenge?: string } = {}) => {
     if (!session) return;
     const pending = pendingRef.current;
     if (pending?.offline) {
-      return queueOffline({ kind: 'face', method: pending.method, value: pending.value, selfie, label: `${LABEL[pending.method]} ${pending.method === 'pin' ? '••••' : pending.value}` });
+      return queueOffline({ kind: 'face', method: pending.method, value: pending.value, selfie, ...live, label: `${LABEL[pending.method]} ${pending.method === 'pin' ? '••••' : pending.value}` });
     }
     setHint(pending ? 'Conferindo o rosto com a identificação…' : 'Reconhecendo…');
     try {
       const res = pending
-        ? await backend.verifyFace(session.deviceToken, pending.method, pending.value, selfie, { clientPunchId: crypto.randomUUID() })
-        : await backend.identifyFace(session.deviceToken, selfie, { clientPunchId: crypto.randomUUID() });
+        ? await backend.verifyFace(session.deviceToken, pending.method, pending.value, selfie, { clientPunchId: crypto.randomUUID(), ...live })
+        : await backend.identifyFace(session.deviceToken, selfie, { clientPunchId: crypto.randomUUID(), ...live });
+      if (res?.code === 'liveness_retry') { cooldownUntil.current = Date.now() + 600; setHint(res.error || 'Siga a instrução na tela.'); return; }
       if (res?.code === 'no_face') { cooldownUntil.current = Date.now() + 800; setHint(pending ? `${pending.name}, olhe para a câmera` : 'Posicione o rosto no centro'); return; }
       if (!pending && !res?.success && (res?.code === 'not_recognized' || (!res?.code && res?.error))) {
         setHint(res.error || 'Rosto não reconhecido.');
@@ -475,7 +500,7 @@ export default function KioskTerminal() {
       handleResult(res);
     } catch (e) {
       if (e instanceof OfflineError) {
-        queueOffline(pending ? { kind: 'face', method: pending.method, value: pending.value, selfie, label: pending.name } : { kind: 'faceN', selfie, label: 'Reconhecimento facial' }, pending?.name);
+        queueOffline(pending ? { kind: 'face', method: pending.method, value: pending.value, selfie, ...live, label: pending.name } : { kind: 'faceN', selfie, ...live, label: 'Reconhecimento facial' }, pending?.name);
       } else showError('Erro ao conferir o rosto.');
     }
   }, [backend, handleResult, queueOffline, session, showError]);
@@ -538,8 +563,17 @@ export default function KioskTerminal() {
             stableFrames.current += 1;
             if (stableFrames.current >= 2) {
               stableFrames.current = 0;
-              const frame = captureFrame(pendingRef.current?.offline || !online ? 360 : 480);
-              if (frame) await submitFace(frame);
+              const width = pendingRef.current?.offline || !online ? 360 : 480;
+              const frame = captureFrame(width);
+              if (frame) {
+                // Prova de vida: desafio aleatório e segunda foto ~1,2 s depois
+                const ch = CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
+                setChallenge(ch.text);
+                await new Promise((r) => setTimeout(r, 1200));
+                const frame2 = captureFrame(width);
+                setChallenge(null);
+                await submitFace(frame, frame2 ? { selfie2: frame2, challenge: ch.key } : {});
+              }
             }
           } else {
             stableFrames.current = 0;
@@ -645,6 +679,13 @@ export default function KioskTerminal() {
             <p className="text-2xl font-bold">{success.label}</p>
             <p className="text-lg">{success.name}</p>
             <p className="text-sm text-muted-foreground tabular-nums">{success.offline ? `${success.time} · sem internet — será conferida e enviada ao reconectar` : `${success.time} · NSR ${success.nsr}`}</p>
+            {success.next && <p className="text-sm">Próxima marcação: <strong>{success.next}</strong></p>}
+            {success.qr && (
+              <div className="mt-1 flex flex-col items-center gap-1">
+                <img src={success.qr} alt="QR Code do comprovante" className="h-36 w-36 rounded-xl bg-white p-1" />
+                <p className="text-xs text-muted-foreground">Aponte a câmera do celular para baixar o comprovante</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -764,6 +805,9 @@ export default function KioskTerminal() {
               <CardContent className="space-y-4">
                 <div className="relative overflow-hidden rounded-xl border">
                   <video ref={videoRef} className={`w-full max-h-[45vh] object-cover ${facingRef.current === 'user' ? '-scale-x-100' : ''}`} muted playsInline autoPlay />
+                  {stage === 'face' && challenge && (
+                    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-primary/90 p-3 text-center text-lg font-bold text-primary-foreground animate-in fade-in-0 slide-in-from-top-2">{challenge}</div>
+                  )}
                   {stage === 'face' && (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                       <div className="h-40 w-40 rounded-full border-4 border-primary/70 md:h-56 md:w-56" />

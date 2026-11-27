@@ -18,13 +18,13 @@ export interface TerminalResult {
   requireSecond?: boolean;
   options?: TerminalMethod[];
   employee?: { id?: string; full_name: string };
-  record?: { record_type: string | null; recorded_at: string; nsr: number | string };
+  record?: { record_type: string | null; recorded_at: string; nsr: number | string; transaction_hash?: string };
   employeeName?: string;
   duplicated?: boolean;
   [k: string]: unknown;
 }
 
-export interface OfflineInfo { clientRecordedAt?: string; clientPunchId?: string }
+export interface OfflineInfo { clientRecordedAt?: string; clientPunchId?: string; selfie2?: string; challenge?: string }
 
 /** Falha de rede (sem resposta do servidor): o terminal guarda a marcação na fila offline. */
 export class OfflineError extends Error {
@@ -81,7 +81,7 @@ const v2Record = (r: TerminalResult): TerminalResult => ({
   success: true,
   duplicated: !!r.duplicated,
   employeeName: String(r.employee ?? ''),
-  record: { record_type: null, recorded_at: String(r.recordedAt ?? new Date().toISOString()), nsr: (r.nsr as number) ?? '' },
+  record: { record_type: null, recorded_at: String(r.recordedAt ?? new Date().toISOString()), nsr: (r.nsr as number) ?? '', transaction_hash: String(r.hash ?? '') },
 });
 
 export interface Backend {
@@ -162,6 +162,8 @@ export interface QueuedPunch {
   method?: TerminalMethod;
   value?: string;
   selfie?: string;
+  selfie2?: string;
+  challenge?: string;
   second?: { method: TerminalMethod; value: string };
   label?: string;
 }
@@ -206,7 +208,7 @@ export function clearRejected() {
 export async function flushQueue(backend: Backend, token: string): Promise<{ sent: number; rejected: number }> {
   let sent = 0, rejected = 0;
   for (const item of readQueue()) {
-    const off = { clientRecordedAt: item.at, clientPunchId: item.id };
+    const off = { clientRecordedAt: item.at, clientPunchId: item.id, selfie2: item.selfie2, challenge: item.challenge };
     let r: TerminalResult;
     try {
       if (item.kind === 'faceN') r = item.selfie ? await backend.identifyFace(token, item.selfie, off) : { success: false, error: 'Foto não guardada' };
@@ -228,4 +230,18 @@ export async function flushQueue(backend: Backend, token: string): Promise<{ sen
     writeQueue(readQueue().filter((q) => q.id !== item.id));
   }
   return { sent, rejected };
+}
+
+/** Endereço público do comprovante (QR Code mostrado no terminal depois do registro). */
+export const receiptUrl = (version: SystemVersion | undefined, hash: string) => `https://superponto.vercel.app/comprovante/${version === 'v2' ? 'v2' : 'v1'}/${hash}`;
+
+export async function fetchReceipt(version: string, hash: string): Promise<Record<string, any> | null> {
+  if (version === 'v2') {
+    try {
+      const r = await fetch(`${V2_API}/kiosk-device/receipt/${hash}`);
+      return r.ok ? await r.json() : null;
+    } catch { return null; }
+  }
+  const r = await v1({ action: 'receipt', hash }).catch(() => null);
+  return r?.success ? (r.receipt as Record<string, any>) : null;
 }

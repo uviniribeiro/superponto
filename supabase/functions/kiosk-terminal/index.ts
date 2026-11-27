@@ -4,6 +4,7 @@ import { cleanCNPJ, validateCNPJ } from "../_shared/cnpj.ts";
 
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { aiChat, aiConfig } from "../_shared/ai.ts";
+import { checkLiveness, livenessVerdict } from "../_shared/liveness.ts";
 
 
 let corsHeaders: Record<string, string> = getCorsHeaders(new Request("http://localhost"));
@@ -84,6 +85,31 @@ Deno.serve(async (req) => {
     // ---------------------------------------------------------------
     // 1) Solicitação de ativação do terminal (aguarda liberação do ADM)
     // ---------------------------------------------------------------
+    // ---------------------------------------------------------------
+    // Comprovante público da marcação (QR Code mostrado no terminal). O hash SHA-256 da marcação é
+    // a chave: impossível de adivinhar. Dados mínimos (Portaria 671: comprovante de registro).
+    // ---------------------------------------------------------------
+    if (action === 'receipt') {
+      const hash = String(body?.hash || '').toLowerCase();
+      if (!/^[0-9a-f]{64}$/.test(hash)) return json({ success: false, error: 'Comprovante inválido.' }, 400);
+      const { data: rec } = await supabase.from('time_records')
+        .select('recorded_at, record_type, nsr, transaction_hash, profile_id, company_id, device_info').eq('transaction_hash', hash).maybeSingle();
+      if (!rec) return json({ success: false, error: 'Comprovante não encontrado.' }, 404);
+      const [{ data: p }, { data: c }] = await Promise.all([
+        supabase.from('profiles').select('full_name, cpf, pis').eq('id', rec.profile_id).maybeSingle(),
+        supabase.from('companies').select('name, cnpj, address').eq('id', rec.company_id).maybeSingle(),
+      ]);
+      const mask = (v: string | null | undefined) => (v ? `***.${String(v).replace(/\D/g, '').slice(3, 6)}.***-**` : null);
+      return json({
+        success: true,
+        receipt: {
+          employee: p?.full_name ?? '', cpf: mask(p?.cpf), company: c?.name ?? '', cnpj: c?.cnpj ?? '', address: c?.address ?? null,
+          recordedAt: rec.recorded_at, recordType: rec.record_type, nsr: rec.nsr, hash: rec.transaction_hash,
+          collector: String(rec.device_info ?? '').split('|')[1]?.trim() ?? 'Terminal',
+        },
+      });
+    }
+
     if (action === 'activate') {
       const cnpj = cleanCNPJ(String(body?.cnpj || ''));
       const terminalName = String(body?.terminalName || '').trim() || 'Terminal de Ponto';
@@ -343,6 +369,19 @@ Deno.serve(async (req) => {
       return await insertPunch(owner, RECORD_ORDER[nextIndex], methodType === 'facial' ? ' | facial' : ` | ${methodType} + facial`);
     }
 
+    /** Resultado da prova de vida em resposta do terminal (ou null se passou). */
+    async function livenessBlock(lv: Awaited<ReturnType<typeof checkLiveness>>, profileId: string | null, methodType: string) {
+      const v = livenessVerdict(lv);
+      if (v === 'ok') return null;
+      if (v === 'retry') return json({ success: false, code: 'liveness_retry', error: 'Não deu para confirmar a prova de vida. Siga a instrução na tela.' }, 422);
+      await supabase.from('identification_validation_attempts').insert({
+        profile_id: profileId, company_id: terminal.company_id, method_type: `${methodType}_liveness`, success: false,
+        reason: `Registro recusado: prova de vida não confirmada (possível foto ou tela, confiança ${lv.confidence}%) no terminal ${terminal.name}`,
+        user_agent: `kiosk terminal=${terminal.name}`,
+      });
+      return json({ success: false, code: 'liveness_failed', error: 'Registro recusado: prova de vida não confirmada (use o rosto real, não foto ou tela).' }, 403);
+    }
+
     if (action === 'identify') {
       const r = await resolveIdentifier(String(body?.identifier || '').trim());
       if ('error' in r) return json({ success: false, error: r.error }, r.status);
@@ -366,6 +405,7 @@ Deno.serve(async (req) => {
 
       const ai = aiConfig();
       if (!ai) return json({ success: false, error: 'Verificação facial indisponível no momento.' }, 500);
+      const livenessP = checkLiveness(selfie, body?.selfie2 ? String(body.selfie2) : undefined, body?.challenge ? String(body.challenge) : undefined);
       const aiRes = await aiChat(ai, {
         messages: [{
           role: 'user',
@@ -387,6 +427,8 @@ Deno.serve(async (req) => {
       try { parsed = m ? JSON.parse(m[0]) : {}; } catch { parsed = {}; }
       const confidence = Number(parsed.confidence || 0);
       if (parsed.face === false) return json({ success: false, code: 'no_face', error: 'Rosto não detectado. Olhe para a câmera.' }, 422);
+      const lvBlock = await livenessBlock(await livenessP, owner.id, r.methodType);
+      if (lvBlock) return lvBlock;
       if (!parsed.same || confidence < 75) {
         const refused = `Registro recusado, pessoa divergente ${METHOD_NAME[r.methodType] ?? 'da identificação'}.`;
         await supabase.from('identification_validation_attempts').insert({
@@ -444,6 +486,7 @@ Deno.serve(async (req) => {
       }
 
 
+      const livenessP = checkLiveness(selfie, body?.selfie2 ? String(body.selfie2) : undefined, body?.challenge ? String(body.challenge) : undefined);
       const aiRes = await aiChat(ai, { messages: [{ role: 'user', content }] });
 
       if (!aiRes.ok) {
@@ -469,6 +512,8 @@ Deno.serve(async (req) => {
         return json({ success: false, error: 'Rosto não reconhecido. Aproxime-se, melhore a iluminação e tente de novo, ou use o QR Code.' }, 404);
       }
 
+      const lvBlock = await livenessBlock(await livenessP, signedRoster[idx - 1].id, 'facial');
+      if (lvBlock) return lvBlock;
       const who = roster.find((p: any) => p.id === signedRoster[idx - 1].id)!;
       return await verifiedPunch({ id: who.id, full_name: who.full_name }, 'facial', confidence);
     }

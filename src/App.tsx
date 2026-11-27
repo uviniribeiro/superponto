@@ -35,6 +35,7 @@ const PageLoader = () => (
 // Auth (eager - needed immediately)
 import Auth from "@/pages/Auth";
 const KioskTerminal = React.lazy(() => import("@/pages/KioskTerminal"));
+const PunchReceipt = React.lazy(() => import("@/pages/PunchReceipt"));
 const ForgotPassword = React.lazy(() => import("@/pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("@/pages/ResetPassword"));
 const SuperAdminAuth = React.lazy(() => import("@/pages/SuperAdminAuth"));
@@ -237,6 +238,7 @@ const StandaloneTerminal = () => (
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/terminal" element={<KioskTerminal />} />
+            <Route path="/comprovante/:version/:hash" element={<PunchReceipt />} />
             <Route path="*" element={<Navigate to="/terminal" replace />} />
           </Routes>
         </Suspense>
@@ -264,6 +266,7 @@ const App = () => isTerminalHost() ? <StandaloneTerminal /> : (
                  <Route path="/forgot-password" element={<ForgotPassword />} />
                  <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/terminal" element={<Suspense fallback={<PageLoader />}><KioskTerminal /></Suspense>} />
+                <Route path="/comprovante/:version/:hash" element={<Suspense fallback={<PageLoader />}><PunchReceipt /></Suspense>} />
                 <Route path="/terminal/motorista" element={<Suspense fallback={<PageLoader />}><DriverTerminal /></Suspense>} />
 
                 <Route path="/super-admin-auth" element={isAdminHost() ? <Navigate to="/auth" replace /> : <ExternalRedirect to={`${ADMIN_URL}/auth`} />} />
