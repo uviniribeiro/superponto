@@ -130,6 +130,7 @@ async function odt(d: ReportData): Promise<Blob> {
 
 async function rtf(d: ReportData): Promise<Blob> {
   const head = await headerLines(d);
+  // eslint-disable-next-line no-control-regex -- RTF: escapa tudo fora do ASCII
   const esc = (v: Cell) => s(v).replace(/\\/g, '\\\\').replace(/[{}]/g, (m) => `\\${m}`).replace(/[^\x00-\x7f]/g, (c) => `\\u${c.charCodeAt(0)}?`);
   const width = Math.floor((d.columns.length > 6 ? 15000 : 10000) / d.columns.length);
   const rowRtf = (r: Cell[], bold = false) => `\\trowd\\trgaph60${r.map((_, i) => `\\clbrdrt\\brdrs\\clbrdrl\\brdrs\\clbrdrb\\brdrs\\clbrdrr\\brdrs${bold ? '\\clcbpat2' : ''}\\cellx${width * (i + 1)}`).join('')}\n${r.map((c) => `\\pard\\intbl\\fs16${bold ? '\\b\\cf1' : ''} ${esc(c)}${bold ? '\\b0\\cf0' : ''}\\cell`).join('')}\\row\n`;
