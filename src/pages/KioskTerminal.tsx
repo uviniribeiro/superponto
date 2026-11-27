@@ -100,6 +100,12 @@ export default function KioskTerminal() {
   const rafRef = useRef<number | null>(null);
   const modeRef = useRef<Mode>('keypad');
   const busyRef = useRef(false);
+  // QR Code + rosto: QR lido aguardando a verificação facial do dono
+  const loopRef = useRef<'code' | 'face' | null>(null);
+  const qrPendingRef = useRef<{ identifier: string; name: string } | null>(null);
+  const qrTimerRef = useRef<number | null>(null);
+  const [qrPending, setQrPending] = useState<{ identifier: string; name: string } | null>(null);
+  const [refused, setRefused] = useState<string | null>(null);
 
   const [clock, setClock] = useState(new Date());
   useEffect(() => {
@@ -284,6 +290,7 @@ export default function KioskTerminal() {
   const stopCamera = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
+    loopRef.current = null;
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
     setScanning(false);
@@ -333,8 +340,63 @@ export default function KioskTerminal() {
     return canvas.toDataURL('image/jpeg', 0.7);
   };
 
+  const clearQrPending = useCallback(() => {
+    qrPendingRef.current = null;
+    setQrPending(null);
+    if (qrTimerRef.current) { clearTimeout(qrTimerRef.current); qrTimerRef.current = null; }
+  }, []);
+
+  /** Volta a procurar QR Code com a mesma câmera (sem reabrir o stream). */
+  const resumeCodeRef = useRef<() => void>(() => undefined);
+
+  const submitQrFace = useCallback(async (selfieBase64: string) => {
+    const pending = qrPendingRef.current;
+    if (!session || !pending) return;
+    busyRef.current = true;
+    setIdentifying(true);
+    setFaceHint('Conferindo rosto com o QR Code...');
+    try {
+      const res = await call({
+        action: 'verify-qr-face', deviceToken: session.deviceToken, identifier: pending.identifier, selfieBase64,
+        clientPunchId: crypto.randomUUID(), userAgent: navigator.userAgent,
+      }, 2);
+      if (res?.success) {
+        clearQrPending();
+        setSuccess({
+          label: RECORD_LABELS[res.record.record_type as RecordType] ?? 'Marcação',
+          time: new Date(res.record.recorded_at).toLocaleTimeString('pt-BR'),
+          nsr: res.record.nsr,
+          name: res.employeeName,
+        });
+        setTimeout(() => { setSuccess(null); resumeCodeRef.current(); }, 2500);
+        loopRef.current = null;
+      } else if (res?.code === 'no_face') {
+        setFaceHint(`${pending.name}, olhe para a câmera`);
+      } else {
+        clearQrPending();
+        loopRef.current = null;
+        if (res?.code === 'face_mismatch') {
+          setRefused(res.error || 'Registro recusado, pessoa divergente do QR Code.');
+          setTimeout(() => { setRefused(null); resumeCodeRef.current(); }, 3500);
+        } else {
+          setError(res?.error || 'Não foi possível concluir a verificação.');
+          setTimeout(() => resumeCodeRef.current(), 1500);
+        }
+      }
+    } catch {
+      clearQrPending();
+      loopRef.current = null;
+      setError('Sem conexão para conferir o rosto. Tente novamente em instantes.');
+      setTimeout(() => resumeCodeRef.current(), 1500);
+    } finally {
+      setIdentifying(false);
+      busyRef.current = false;
+    }
+  }, [call, session, clearQrPending]);
+
   const submitFace = useCallback(async (selfieBase64: string) => {
     if (!session) return;
+    if (qrPendingRef.current) return submitQrFace(selfieBase64);
     busyRef.current = true;
     setIdentifying(true);
     setFaceHint('Confirmando identidade...');
@@ -354,7 +416,7 @@ export default function KioskTerminal() {
       setIdentifying(false);
       busyRef.current = false;
     }
-  }, [call, session, stopCamera]);
+  }, [call, session, stopCamera, submitQrFace]);
 
   /** Detecção local de pontos do rosto: usa FaceDetector nativo quando disponível
    *  e, caso contrário, detecta a presença estável de um rosto pelo contraste central. */
@@ -364,7 +426,7 @@ export default function KioskTerminal() {
   const faceTick = useCallback(async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas || !streamRef.current) return;
+    if (!video || !canvas || !streamRef.current || loopRef.current !== 'face') return;
     if (!busyRef.current && video.readyState === video.HAVE_ENOUGH_DATA) {
       let detected = false;
       try {
@@ -397,24 +459,25 @@ export default function KioskTerminal() {
 
       if (detected) {
         stableFrames.current += 1;
-        setFaceHint(stableFrames.current < 3 ? 'Rosto detectado, mantenha-se parado...' : 'Reconhecendo...');
-        if (stableFrames.current >= 3) {
+        setFaceHint(stableFrames.current < 2 ? 'Rosto detectado, mantenha-se parado...' : 'Reconhecendo...');
+        if (stableFrames.current >= 2) {
           stableFrames.current = 0;
           const frame = captureFrame();
           if (frame) { await submitFace(frame); }
         }
       } else {
         stableFrames.current = 0;
-        setFaceHint('Posicione o rosto no centro');
+        setFaceHint(qrPendingRef.current ? `${qrPendingRef.current.name}, olhe para a câmera` : 'Posicione o rosto no centro');
       }
     }
+    if (loopRef.current !== 'face') return;
     rafRef.current = requestAnimationFrame(() => { faceTick(); });
   }, [submitFace]);
 
   const codeTick = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas || !streamRef.current) return;
+    if (!video || !canvas || !streamRef.current || loopRef.current !== 'code') return;
     if (!busyRef.current && video.readyState === video.HAVE_ENOUGH_DATA) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -424,6 +487,11 @@ export default function KioskTerminal() {
         const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(image.data, image.width, image.height);
         if (code?.data) {
+          if (modeRef.current === 'qrcode') {
+            loopRef.current = null;
+            qrScanRef.current(code.data);
+            return;
+          }
           stopCamera();
           handleIdentify(code.data, modeRef.current);
           return;
@@ -433,16 +501,67 @@ export default function KioskTerminal() {
     rafRef.current = requestAnimationFrame(codeTick);
   }, [handleIdentify, stopCamera]);
 
+  resumeCodeRef.current = () => {
+    if (!streamRef.current || modeRef.current !== 'qrcode') return;
+    setFaceHint('Posicione o rosto no centro');
+    loopRef.current = 'code';
+    rafRef.current = requestAnimationFrame(codeTick);
+  };
+
+  /** QR lido: identifica o dono e, na mesma câmera, já pede o rosto para a conferência 1:1. */
+  const qrScanRef = useRef<(raw: string) => void>(() => undefined);
+  qrScanRef.current = async (raw: string) => {
+    if (!session) return;
+    busyRef.current = true;
+    setIdentifying(true);
+    setError(null);
+    try {
+      const res = await call({ action: 'identify', deviceToken: session.deviceToken, identifier: raw.trim(), method: 'qrcode' });
+      if (res?.success && res.requireFace) {
+        const name = String(res.employee?.full_name || '').split(' ')[0] || 'Funcionário';
+        qrPendingRef.current = { identifier: raw.trim(), name };
+        setQrPending({ identifier: raw.trim(), name: res.employee?.full_name || name });
+        setFaceHint(`${name}, olhe para a câmera`);
+        stableFrames.current = 0;
+        if (qrTimerRef.current) clearTimeout(qrTimerRef.current);
+        qrTimerRef.current = window.setTimeout(() => {
+          if (!qrPendingRef.current) return;
+          clearQrPending();
+          setError('Tempo esgotado para a verificação facial. Leia o QR Code novamente.');
+          resumeCodeRef.current();
+        }, 15_000);
+        loopRef.current = 'face';
+        rafRef.current = requestAnimationFrame(() => { faceTick(); });
+      } else if (res?.success) {
+        stopCamera();
+        setEmployee(res.employee);
+        setTodayRecords(res.todayRecords || []);
+        setNextRecordType(res.nextRecordType);
+      } else {
+        setError(res?.error || 'QR Code não reconhecido.');
+        setTimeout(() => resumeCodeRef.current(), 1500);
+      }
+    } catch {
+      setError('Sem conexão com o servidor no momento. Tente novamente em instantes.');
+      setTimeout(() => resumeCodeRef.current(), 1500);
+    } finally {
+      setIdentifying(false);
+      busyRef.current = false;
+    }
+  };
+
   const startCamera = useCallback(async (target: Mode) => {
     setCameraError(null);
     setError(null);
     stopCamera();
     modeRef.current = target;
+    clearQrPending();
     stableFrames.current = 0;
     setFaceHint('Posicione o rosto no centro');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: target === 'facial' ? 'user' : 'environment' },
+        // QR Code usa a câmera frontal: a mesma imagem serve para a conferência do rosto.
+        video: { facingMode: target === 'barcode' ? 'environment' : 'user' },
       });
       streamRef.current = stream;
       setScanning(true);
@@ -451,6 +570,7 @@ export default function KioskTerminal() {
           videoRef.current.srcObject = stream;
           videoRef.current.play().catch(() => undefined);
         }
+        loopRef.current = target === 'facial' ? 'face' : 'code';
         if (target === 'facial') faceTick(); else codeTick();
       });
     } catch (e: any) {
@@ -460,7 +580,7 @@ export default function KioskTerminal() {
           : 'Não foi possível acessar a câmera deste terminal.'
       );
     }
-  }, [codeTick, faceTick, stopCamera]);
+  }, [codeTick, faceTick, stopCamera, clearQrPending]);
 
   const selectMode = (m: Mode) => {
     setMode(m);
@@ -626,6 +746,17 @@ export default function KioskTerminal() {
           </div>
         </div>
       )}
+      {refused && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-md animate-in fade-in-0 duration-200" role="alert" aria-live="assertive">
+          <div className="flex max-w-md flex-col items-center gap-4 rounded-[32px] border border-destructive/40 bg-background/90 px-10 py-9 text-center shadow-2xl animate-in zoom-in-90 duration-300">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-destructive text-destructive-foreground shadow-[0_12px_40px_-8px_rgba(239,68,68,.7)]">
+              <AlertCircle className="h-11 w-11" />
+            </div>
+            <p className="text-2xl font-bold text-destructive">Registro recusado</p>
+            <p className="text-lg">Pessoa divergente do QR Code.</p>
+          </div>
+        </div>
+      )}
       <header className="relative z-10 mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-3 rounded-3xl border border-border/60 bg-background/70 p-4 shadow-sm backdrop-blur-xl md:p-5">
         <div>
           <p className="text-sm text-muted-foreground">{session.companyName}</p>
@@ -709,21 +840,23 @@ export default function KioskTerminal() {
                   ? 'Olhe para a câmera — o reconhecimento é automático.'
                   : mode === 'keypad'
                     ? 'Use o PIN, a matrícula ou o CPF.'
-                    : 'Mantenha o crachá a cerca de 20 cm da câmera.'}
+                    : mode === 'qrcode'
+                      ? (qrPending ? `QR Code de ${qrPending.name} lido — olhe para a câmera para confirmar.` : 'Mostre o QR Code; em seguida olhe para a câmera para a conferência facial.')
+                      : 'Mantenha o crachá a cerca de 20 cm da câmera.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {scanning && (
                 <div className="relative overflow-hidden rounded-xl border">
                   <video ref={videoRef} className="w-full max-h-[38vh] object-cover" muted playsInline />
-                  {mode === 'facial' && (
+                  {(mode === 'facial' || qrPending) && (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                       <div className="h-40 w-40 rounded-full border-4 border-primary/70 md:h-56 md:w-56" />
                     </div>
                   )}
                   <div className="absolute bottom-0 left-0 right-0 bg-background/80 p-2 text-center text-sm">
                     {identifying ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> {faceHint}</span>
-                      : mode === 'facial' ? faceHint : 'Procurando código...'}
+                      : mode === 'facial' || qrPending ? faceHint : 'Procurando código...'}
                   </div>
                 </div>
               )}

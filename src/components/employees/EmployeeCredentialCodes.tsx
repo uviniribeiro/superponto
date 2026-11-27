@@ -66,17 +66,16 @@ export function EmployeeCredentialCodes({ profileId, companyId, employeeName, ph
   const generate = async (type: 'qrcode' | 'barcode') => {
     setWorking(type);
     try {
+      // QR Code: o banco substitui o identificador por um hash SHA-256 exclusivo do cadastro (SPQR1.<hash>).
       const identifier = type === 'qrcode' ? `PM-${randomToken(16)}` : randomToken(12);
-      await supabase.from('employee_identification_methods')
-        .update({ is_active: false }).eq('profile_id', profileId).eq('method_type', type);
-      const { error } = await supabase.from('employee_identification_methods').insert({
-        profile_id: profileId,
-        company_id: companyId,
-        method_type: type,
-        identifier,
-        is_active: true,
-        expires_at: type === 'qrcode' ? new Date(Date.now() + 365 * 86_400_000).toISOString() : null,
-      });
+      const expires_at = type === 'qrcode' ? new Date(Date.now() + 365 * 86_400_000).toISOString() : null;
+      const current = methods.find(m => m.method_type === type);
+      const { error } = current
+        ? await supabase.from('employee_identification_methods')
+            .update({ identifier, is_active: true, expires_at }).eq('id', current.id)
+        : await supabase.from('employee_identification_methods').insert({
+            profile_id: profileId, company_id: companyId, method_type: type, identifier, is_active: true, expires_at,
+          });
       if (error) throw error;
       toast.success(type === 'qrcode' ? 'QR Code gerado.' : 'Código de barras gerado.');
       await load();
@@ -150,11 +149,12 @@ export function EmployeeCredentialCodes({ profileId, companyId, employeeName, ph
               </div>
               <div className="space-y-2">
                 <p className="flex items-center gap-2 font-medium"><QrCode className="h-4 w-4" /> QR Code</p>
-                {qr?.identifier && <p className="font-mono text-xs text-muted-foreground">{qr.identifier}</p>}
+                {qr?.identifier && <p className="max-w-[260px] break-all font-mono text-[10px] text-muted-foreground" title="Hash exclusivo do cadastro">{qr.identifier}</p>}
+                <p className="max-w-[260px] text-xs text-muted-foreground">No terminal, depois do QR o funcionário olha para a câmera: se o rosto não for o do cadastro, o registro é recusado.</p>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => generate('qrcode')} disabled={working === 'qrcode'}>
                     {working === 'qrcode' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                    {qr ? 'Gerar novo' : 'Gerar QR Code'}
+                    {qr ? 'Gerar novo (invalida o atual)' : 'Gerar QR Code'}
                   </Button>
                   {qr && <Button size="sm" variant="ghost" onClick={downloadQr}><Download className="mr-2 h-4 w-4" /> Baixar</Button>}
                 </div>

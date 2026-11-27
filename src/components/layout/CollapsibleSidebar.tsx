@@ -102,7 +102,7 @@ import {
   LayoutList,
   Ban,
 } from 'lucide-react';
-import { Bot } from 'lucide-react';
+import { Bot, QrCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu as MenuIcon, X as CloseIcon } from 'lucide-react';
@@ -160,6 +160,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Minhas Ocorrências', icon: AlertCircle, href: '/point-occurrences', roles: ['admin', 'manager', 'employee'] },
       { title: 'Minhas Férias', icon: CalendarDays, href: '/vacations', roles: ['admin', 'manager', 'employee'] },
       { title: 'Meu Banco de Horas', icon: Timer, href: '/my-time-bank', roles: ['admin', 'manager', 'employee'] },
+      { title: 'Meu QR Code', icon: QrCode, href: '/my-qrcode', roles: ['admin', 'manager', 'employee'] },
       { title: 'Troca de Escala/Folga', icon: CalendarDays, href: '/schedule-swaps', roles: ['admin', 'manager', 'employee'] },
       { title: 'Sugestões', icon: Bell, href: '/suggestions', roles: ['admin', 'manager', 'employee'] },
       { title: 'Esqueci minha senha', icon: Key, href: '/forgot-password', roles: ['admin', 'manager', 'employee'] },
