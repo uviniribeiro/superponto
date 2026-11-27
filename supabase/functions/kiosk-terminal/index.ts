@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
 
     const { data: terminal } = await supabase
       .from('kiosk_terminals')
-      .select('id, name, company_id, is_active, status, allow_all_employees, activation_code, latitude, longitude, address, companies:company_id(id, name, is_active)')
+      .select('id, name, company_id, is_active, status, allow_all_employees, activation_code, latitude, longitude, address, purpose, companies:company_id(id, name, is_active)')
       .eq('device_token', deviceToken)
       .maybeSingle();
 
@@ -199,6 +199,7 @@ Deno.serve(async (req) => {
       latitude: terminal.latitude,
       longitude: terminal.longitude,
       address: terminal.address,
+      purpose: (terminal as any).purpose ?? 'punch',
     };
 
     // Atualiza a localização do terminal quando o dispositivo informa
@@ -337,7 +338,45 @@ Deno.serve(async (req) => {
     }
 
     /** Rosto conferido: próxima marcação do dia gravada na hora. */
+    /** Terminal de refeitório: registra a refeição do horário (limite diário, preço e parte do funcionário). */
+    async function mealRecord(owner: { id: string; full_name: string }, methodType: string, confidence: number) {
+      const at = body?.clientRecordedAt ? new Date(String(body.clientRecordedAt)) : new Date();
+      if (isNaN(at.getTime()) || at.getTime() > Date.now() + 5 * 60_000 || at.getTime() < Date.now() - 7 * 86_400_000) {
+        return json({ success: false, code: 'offline_expired', error: 'Registro offline fora do prazo aceito (até 7 dias).' }, 422);
+      }
+      const hash = body?.clientPunchId ? await sha256(['meal', owner.id, String(body.clientPunchId)].join('|')) : await sha256(['meal', owner.id, at.toISOString(), crypto.randomUUID()].join('|'));
+      const { data: dup } = await supabase.from('meal_records').select('meal_name, recorded_at, transaction_hash').eq('transaction_hash', hash).maybeSingle();
+      if (dup) return json({ success: true, meal: dup, employeeName: owner.full_name, duplicated: true });
+      const hhmm = at.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false });
+      const { data: types } = await supabase.from('meal_types').select('id, name, start_time, end_time, price, employee_share, daily_limit')
+        .eq('company_id', terminal.company_id).eq('is_active', true);
+      const type = (types ?? []).find((t: any) => {
+        const s = String(t.start_time).slice(0, 5), e = String(t.end_time).slice(0, 5);
+        return s <= e ? hhmm >= s && hhmm <= e : hhmm >= s || hhmm <= e;
+      });
+      if (!type) return json({ success: false, code: 'meal_closed', error: `Refeitório fechado agora (${hhmm}). Confira os horários das refeições.` }, 409);
+      const day = at.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+      const { count } = await supabase.from('meal_records').select('id', { count: 'exact', head: true })
+        .eq('profile_id', owner.id).eq('meal_type_id', type.id)
+        .gte('recorded_at', new Date(`${day}T00:00:00-03:00`).toISOString()).lt('recorded_at', new Date(`${day}T23:59:59.999-03:00`).toISOString());
+      if ((count ?? 0) >= type.daily_limit) {
+        return json({ success: false, code: 'meal_limit', error: `Registro recusado: ${type.name} já registrado hoje (limite ${type.daily_limit}).` }, 409);
+      }
+      const price = Number(type.price || 0);
+      const { data: rec, error } = await supabase.from('meal_records').insert({
+        company_id: terminal.company_id, profile_id: owner.id, meal_type_id: type.id, meal_name: type.name, recorded_at: at.toISOString(),
+        price, employee_amount: Math.round(price * Number(type.employee_share || 0)) / 100, terminal_id: terminal.id,
+        verification: `${methodType}${methodType === 'facial' ? '' : '+facial'} (${confidence}%)`, transaction_hash: hash,
+      }).select('meal_name, recorded_at, transaction_hash').single();
+      if (error) {
+        console.error('meal insert', error);
+        return json({ success: false, error: 'Não foi possível registrar a refeição.' }, 500);
+      }
+      return json({ success: true, meal: rec, employeeName: owner.full_name });
+    }
+
     async function verifiedPunch(owner: { id: string; full_name: string }, methodType: string, confidence: number) {
+      if ((terminal as any).purpose === 'meal') return mealRecord(owner, methodType, confidence);
       // Marcação offline: vale a hora em que foi feita no terminal (até 7 dias atrás, nunca no futuro).
       const offlineAt = body?.clientRecordedAt ? new Date(String(body.clientRecordedAt)) : null;
       if (offlineAt && (isNaN(offlineAt.getTime()) || offlineAt.getTime() > Date.now() + 5 * 60_000 || offlineAt.getTime() < Date.now() - 7 * 86_400_000)) {

@@ -21,6 +21,7 @@ export interface TerminalResult {
   record?: { record_type: string | null; recorded_at: string; nsr: number | string; transaction_hash?: string };
   employeeName?: string;
   duplicated?: boolean;
+  meal?: { meal_name: string; recorded_at: string; transaction_hash?: string };
   [k: string]: unknown;
 }
 

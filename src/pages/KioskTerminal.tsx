@@ -62,6 +62,8 @@ interface KioskSession {
   status?: string;
   activationCode?: string | null;
   version?: SystemVersion;
+  /** 'meal' = terminal do refeitório */
+  purpose?: string;
 }
 
 const IDLE_AFTER_MS = 25_000;
@@ -174,7 +176,7 @@ export default function KioskTerminal() {
         .then((res) => {
           if (res?.success) {
             const t = res.terminal as any, c = res.company as any;
-            const updated = { ...saved, terminalName: t?.name ?? saved.terminalName, companyName: c?.name ?? saved.companyName, status: t?.status, activationCode: t?.activationCode };
+            const updated = { ...saved, terminalName: t?.name ?? saved.terminalName, companyName: c?.name ?? saved.companyName, status: t?.status, activationCode: t?.activationCode, purpose: t?.purpose ?? saved.purpose };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
             setSession(updated);
           } else if (res?.code === 'terminal_invalid') {
@@ -197,7 +199,7 @@ export default function KioskTerminal() {
       backendFor(session.version).session(session.deviceToken).then((res) => {
         const st = (res.terminal as any)?.status;
         if (res.success && st && st !== session.status) {
-          const updated = { ...session, status: st, activationCode: (res.terminal as any)?.activationCode };
+          const updated = { ...session, status: st, activationCode: (res.terminal as any)?.activationCode, purpose: (res.terminal as any)?.purpose ?? session.purpose };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
           setSession(updated);
         }
@@ -382,6 +384,18 @@ export default function KioskTerminal() {
   }, [goIdle, showError]);
 
   const handleResult = useCallback((res: TerminalResult) => {
+    if (res?.success && res.meal) {
+      setSuccess({ label: `${res.meal.meal_name} registrado`, time: new Date(res.meal.recorded_at).toLocaleTimeString('pt-BR'), nsr: 'refeitório', name: res.employeeName || '' });
+      stageRef.current = 'idle';
+      setTimeout(() => { setSuccess(null); goIdle(); }, 2600);
+      return;
+    }
+    if (res?.code === 'meal_limit') {
+      setRefused(res.error || 'Refeição já registrada hoje.');
+      stageRef.current = 'idle';
+      setTimeout(() => { setRefused(null); goIdle(); }, 3500);
+      return;
+    }
     if (res?.success && res.record) {
       const rec = res.record;
       const base = {
@@ -678,7 +692,7 @@ export default function KioskTerminal() {
             </div>
             <p className="text-2xl font-bold">{success.label}</p>
             <p className="text-lg">{success.name}</p>
-            <p className="text-sm text-muted-foreground tabular-nums">{success.offline ? `${success.time} · sem internet — será conferida e enviada ao reconectar` : `${success.time} · NSR ${success.nsr}`}</p>
+            <p className="text-sm text-muted-foreground tabular-nums">{success.offline ? `${success.time} · sem internet — será conferida e enviada ao reconectar` : success.nsr === 'refeitório' ? `${success.time} · refeitório` : `${success.time} · NSR ${success.nsr}`}</p>
             {success.next && <p className="text-sm">Próxima marcação: <strong>{success.next}</strong></p>}
             {success.qr && (
               <div className="mt-1 flex flex-col items-center gap-1">
@@ -704,10 +718,10 @@ export default function KioskTerminal() {
       {stage === 'idle' ? (
         // ---------------- Espera: data e hora; a câmera detecta quem se aproxima ----------------
         <button type="button" onClick={() => setStage('select')} className="relative z-10 flex flex-1 flex-col items-center justify-center gap-4 text-center outline-none" aria-label="Iniciar registro de ponto">
-          <p className="text-lg text-muted-foreground">{session.companyName} · {session.terminalName}</p>
+          <p className="text-lg text-muted-foreground">{session.companyName} · {session.terminalName}{session.purpose === 'meal' ? ' · Refeitório' : ''}</p>
           <p className="text-[18vw] font-bold leading-none tabular-nums tracking-tight md:text-[12rem]">{timeStr}</p>
           <p className="text-4xl font-semibold tabular-nums md:text-6xl">{dateStr}</p>
-          <p className="mt-6 flex items-center gap-2 text-muted-foreground"><ScanFace className="h-5 w-5" /> Aproxime-se da câmera para registrar o ponto</p>
+          <p className="mt-6 flex items-center gap-2 text-muted-foreground"><ScanFace className="h-5 w-5" /> {session.purpose === 'meal' ? 'Aproxime-se da câmera para registrar a refeição' : 'Aproxime-se da câmera para registrar o ponto'}</p>
           <div className="mt-2 flex flex-wrap justify-center gap-2">
             <Badge variant={online ? 'secondary' : 'destructive'} className="gap-1">{online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}{online ? 'Conectado' : 'Reconectando...'}</Badge>
             {maintenance && <Badge variant="outline" className="gap-1"><Wrench className="h-3 w-3" /> Manutenção — registro liberado</Badge>}
