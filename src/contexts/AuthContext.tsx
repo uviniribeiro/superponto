@@ -3,6 +3,9 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { validateCNPJ, cleanCNPJ } from '@/lib/validators';
 import { recordPasswordRecoveryEvent } from '@/lib/passwordRecovery';
+import { isAdminHost } from '@/lib/adminHost';
+
+const V2_URL = 'https://superponto-v2.vercel.app/login';
 
 type AppRole = 'admin' | 'manager' | 'employee' | 'super_admin';
 
@@ -151,10 +154,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if ((profileData as any).company_id) {
           const { data: companyData } = await supabase
             .from('companies')
-            .select('id, name, company_code, cnpj, sector, organization_type, teacher_module_enabled, doctor_module_enabled, payroll_module_enabled')
+            .select('id, name, company_code, cnpj, sector, organization_type, teacher_module_enabled, doctor_module_enabled, payroll_module_enabled, system_version')
             .eq('id', (profileData as any).company_id)
             .maybeSingle();
 
+          // Cliente liberado para a v2 pelo Super Admin: entra na v2 com o mesmo usuário, CNPJ e senha.
+          if ((companyData as any)?.system_version === 'v2' && !isAdminHost()) {
+            try { sessionStorage.setItem('sp.access-block', 'Sua empresa já usa a nova versão do SuperPonto. Abrindo…'); } catch { /* sem armazenamento */ }
+            await supabase.auth.signOut();
+            window.location.replace(V2_URL);
+            return;
+          }
           if (companyData) {
             setCompany(companyData as unknown as Company);
           }

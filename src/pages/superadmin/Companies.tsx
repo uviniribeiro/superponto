@@ -27,6 +27,7 @@ interface Company {
   cnpj: string | null;
   company_code: string;
   is_active: boolean;
+  system_version?: 'v1' | 'v2';
   license_status: string | null;
   created_at: string;
   organization_type: 'company' | 'city_hall';
@@ -362,6 +363,14 @@ export default function SuperAdminCompanies() {
     }
   };
 
+  /** Libera a v1 ou a v2 para o cliente (vale também para as unidades/filiais dele). */
+  const setSystemVersion = async (company: Company, version: 'v1' | 'v2') => {
+    const { error } = await (supabase as any).from('companies').update({ system_version: version }).or(`id.eq.${company.id},parent_organization_id.eq.${company.id}`);
+    if (error) return toast.error('Erro ao trocar a versão', { description: error.message });
+    toast.success(version === 'v2' ? `${company.name}: usuários passam a entrar na v2` : `${company.name}: usuários voltam para a v1`);
+    fetchCompanies();
+  };
+
   const toggleCompanyStatus = async (company: Company) => {
     try {
       const { error } = await supabase
@@ -671,6 +680,7 @@ export default function SuperAdminCompanies() {
                   <TableHead>CNPJ</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Licença</TableHead>
+                  <TableHead>Versão</TableHead>
                   <TableHead>Módulos</TableHead>
                   <TableHead>Cadastro</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -690,6 +700,12 @@ export default function SuperAdminCompanies() {
                       <Badge variant={company.license_status === 'active' ? 'default' : company.license_status === 'expired' ? 'destructive' : 'secondary'}>
                         {company.license_status === 'active' ? 'Ativa' : company.license_status === 'expired' ? 'Expirada' : 'Pendente'}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Select value={company.system_version ?? 'v1'} onValueChange={(v) => setSystemVersion(company, v as 'v1' | 'v2')}>
+                        <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
+                        <SelectContent><SelectItem value="v1">v1</SelectItem><SelectItem value="v2">v2</SelectItem></SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">

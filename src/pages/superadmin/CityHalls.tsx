@@ -701,6 +701,14 @@ export default function SuperAdminCityHalls() {
     }
   };
 
+  /** Libera a v1 ou a v2 para a prefeitura e todos os setores dela. */
+  const setSystemVersion = async (cityHall: Company, version: 'v1' | 'v2') => {
+    const { error } = await (supabase as any).from('companies').update({ system_version: version }).or(`id.eq.${cityHall.id},parent_organization_id.eq.${cityHall.id}`);
+    if (error) return toast.error('Erro ao trocar a versão', { description: error.message });
+    toast.success(version === 'v2' ? `${cityHall.name}: usuários passam a entrar na v2` : `${cityHall.name}: usuários voltam para a v1`);
+    fetchCompanies();
+  };
+
   const toggleCityHallStatus = async (cityHall: Company) => {
     try {
       const { error } = await supabase
@@ -1052,6 +1060,10 @@ export default function SuperAdminCityHalls() {
                             <Key className="h-4 w-4 mr-1" />
                             Licença
                           </Button>
+                          <Select value={(cityHall as any).system_version ?? 'v1'} onValueChange={(v) => setSystemVersion(cityHall, v as 'v1' | 'v2')}>
+                            <SelectTrigger className="h-8 w-20" title="Versão do sistema"><SelectValue /></SelectTrigger>
+                            <SelectContent><SelectItem value="v1">v1</SelectItem><SelectItem value="v2">v2</SelectItem></SelectContent>
+                          </Select>
                           <Button
                             variant="ghost"
                             size="sm"
