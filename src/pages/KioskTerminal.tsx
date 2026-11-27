@@ -13,7 +13,7 @@ import { CnpjInput } from '@/components/shared/CnpjInput';
 import { toast } from 'sonner';
 import {
   Loader2, MonitorSmartphone, QrCode, Barcode, ScanFace, Delete, KeyRound, CameraOff, IdCard, Hash,
-  LogOut, CheckCircle2, AlertCircle, Wifi, WifiOff, Wrench, ArrowLeft, CloudUpload, ShieldCheck,
+  LogOut, CheckCircle2, AlertCircle, Wifi, WifiOff, Wrench, ArrowLeft, CloudUpload, ShieldCheck, UtensilsCrossed,
 } from 'lucide-react';
 import {
   backendFor, flushQueue, OfflineError, readQueue, readRejected, resolveVersion, writeQueue, clearRejected, receiptUrl,
@@ -64,6 +64,43 @@ interface KioskSession {
   version?: SystemVersion;
   /** 'meal' = terminal do refeitório */
   purpose?: string;
+  /** horários das refeições (terminal do refeitório) */
+  meals?: { name: string; start: string; end: string }[];
+}
+
+/** Refeição aberta agora e a próxima (para a tela de espera do refeitório). */
+function mealStatus(meals: KioskSession['meals'], now: Date) {
+  if (!meals?.length) return null;
+  const hm = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const open = meals.find((m) => (m.start <= m.end ? hm >= m.start && hm <= m.end : hm >= m.start || hm <= m.end));
+  const next = meals.find((m) => m.start > hm) ?? meals[0];
+  return { open, next };
+}
+
+/**
+ * Tela cheia e tela sempre ligada também no navegador/PWA (no APK o Android já faz isso): pede tela
+ * cheia no primeiro toque e de novo se ela for fechada; mantém a tela acesa (Screen Wake Lock).
+ */
+function useKioskScreen() {
+  useEffect(() => {
+    let lock: any = null;
+    const wake = async () => {
+      try { if ((navigator as any).wakeLock && document.visibilityState === 'visible') lock = await (navigator as any).wakeLock.request('screen'); } catch { /* sem suporte */ }
+    };
+    const full = () => {
+      const el = document.documentElement as any;
+      if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).catch(() => undefined);
+    };
+    const onVis = () => { if (document.visibilityState === 'visible') wake(); };
+    wake();
+    window.addEventListener('pointerdown', full);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('pointerdown', full);
+      document.removeEventListener('visibilitychange', onVis);
+      try { lock?.release?.(); } catch { /* ignora */ }
+    };
+  }, []);
 }
 
 const IDLE_AFTER_MS = 25_000;
@@ -81,6 +118,8 @@ function useTerminalManifest() {
 
 export default function KioskTerminal() {
   useTerminalManifest();
+  useKioskScreen();
+  const [purpose, setPurpose] = useState<'punch' | 'meal'>('punch');
   const [session, setSession] = useState<KioskSession | null>(null);
   const [booting, setBooting] = useState(true);
 
@@ -176,7 +215,7 @@ export default function KioskTerminal() {
         .then((res) => {
           if (res?.success) {
             const t = res.terminal as any, c = res.company as any;
-            const updated = { ...saved, terminalName: t?.name ?? saved.terminalName, companyName: c?.name ?? saved.companyName, status: t?.status, activationCode: t?.activationCode, purpose: t?.purpose ?? saved.purpose };
+            const updated = { ...saved, terminalName: t?.name ?? saved.terminalName, companyName: c?.name ?? saved.companyName, status: t?.status, activationCode: t?.activationCode, purpose: t?.purpose ?? saved.purpose, meals: (res.meals as KioskSession['meals']) ?? saved.meals };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
             setSession(updated);
           } else if (res?.code === 'terminal_invalid') {
@@ -221,7 +260,7 @@ export default function KioskTerminal() {
         if (!navigator.geolocation) return resolve(null);
         navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 5000 });
       });
-      const res = await backendFor(version).activate(cnpj, terminalName, { latitude: coords?.coords.latitude ?? null, longitude: coords?.coords.longitude ?? null });
+      const res = await backendFor(version).activate(cnpj, terminalName, { latitude: coords?.coords.latitude ?? null, longitude: coords?.coords.longitude ?? null }, purpose);
       if (!res?.success) {
         setActivationError(res?.error || 'Não foi possível ativar o terminal.');
         return;
@@ -229,7 +268,7 @@ export default function KioskTerminal() {
       const t = res.terminal as any, c = res.company as any;
       const newSession: KioskSession = {
         deviceToken: String(res.deviceToken), terminalName: t?.name ?? terminalName, companyName: c?.name ?? '',
-        status: String(res.status ?? 'pending'), activationCode: (res.activationCode as string) ?? null, version,
+        status: String(res.status ?? 'pending'), activationCode: (res.activationCode as string) ?? null, version, purpose,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newSession));
       setSession(newSession);
@@ -638,6 +677,18 @@ export default function KioskTerminal() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
+              <Label>Este aparelho vai registrar</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {([['punch', 'Ponto', ScanFace], ['meal', 'Refeitório', UtensilsCrossed]] as const).map(([k, l, Icon]) => (
+                  <button key={k} type="button" onClick={() => setPurpose(k)}
+                    className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold ${purpose === k ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted'}`}>
+                    <Icon className="h-4 w-4" />{l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="kiosk-cnpj">CNPJ da empresa</Label>
               <CnpjInput id="kiosk-cnpj" value={cnpj} onChange={setCnpj} showHintWhenEmpty />
             </div>
@@ -721,6 +772,13 @@ export default function KioskTerminal() {
           <p className="text-lg text-muted-foreground">{session.companyName} · {session.terminalName}{session.purpose === 'meal' ? ' · Refeitório' : ''}</p>
           <p className="text-[18vw] font-bold leading-none tabular-nums tracking-tight md:text-[12rem]">{timeStr}</p>
           <p className="text-4xl font-semibold tabular-nums md:text-6xl">{dateStr}</p>
+          {session.purpose === 'meal' && (() => {
+            const st = mealStatus(session.meals, clock);
+            if (!st) return <p className="mt-4 flex items-center gap-2 text-xl text-amber-600"><UtensilsCrossed className="h-6 w-6" /> Nenhuma refeição cadastrada</p>;
+            return st.open
+              ? <p className="mt-4 flex items-center gap-2 rounded-full bg-emerald-500/15 px-5 py-2 text-2xl font-semibold text-emerald-700 dark:text-emerald-400"><UtensilsCrossed className="h-7 w-7" /> {st.open.name} aberto · até {st.open.end}</p>
+              : <p className="mt-4 flex items-center gap-2 rounded-full bg-muted px-5 py-2 text-2xl font-semibold text-muted-foreground"><UtensilsCrossed className="h-7 w-7" /> Refeitório fechado · próximo: {st.next.name} às {st.next.start}</p>;
+          })()}
           <p className="mt-6 flex items-center gap-2 text-muted-foreground"><ScanFace className="h-5 w-5" /> {session.purpose === 'meal' ? 'Aproxime-se da câmera para registrar a refeição' : 'Aproxime-se da câmera para registrar o ponto'}</p>
           <div className="mt-2 flex flex-wrap justify-center gap-2">
             <Badge variant={online ? 'secondary' : 'destructive'} className="gap-1">{online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}{online ? 'Conectado' : 'Reconectando...'}</Badge>

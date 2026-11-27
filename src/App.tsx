@@ -250,7 +250,8 @@ const StandaloneTerminal = () => (
   </ThemeProvider>
 );
 
-const App = () => isTerminalHost() ? <StandaloneTerminal /> : (
+// O app Android do terminal (VITE_APP_MODE=terminal) e o endereço do terminal abrem só o terminal.
+const App = () => isTerminalHost() || APP_MODE === 'terminal' ? <StandaloneTerminal /> : (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider delayDuration={300}>

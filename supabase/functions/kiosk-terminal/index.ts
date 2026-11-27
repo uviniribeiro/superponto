@@ -150,6 +150,7 @@ Deno.serve(async (req) => {
           name: terminalName,
           device_token: deviceToken,
           status: 'pending',
+          purpose: body?.purpose === 'meal' ? 'meal' : 'punch',
           activation_code: code,
           latitude: body?.latitude ?? null,
           longitude: body?.longitude ?? null,
@@ -215,8 +216,15 @@ Deno.serve(async (req) => {
     // 2) Sessão do terminal (revalidação no carregamento)
     // ---------------------------------------------------------------
     if (action === 'session') {
+      // Terminal do refeitório: horários das refeições para a tela de espera (aberta agora / próxima).
+      let meals: unknown[] = [];
+      if ((terminal as any).purpose === 'meal') {
+        const { data } = await supabase.from('meal_types').select('name, start_time, end_time').eq('company_id', terminal.company_id).eq('is_active', true).order('start_time');
+        meals = (data ?? []).map((m: any) => ({ name: m.name, start: String(m.start_time).slice(0, 5), end: String(m.end_time).slice(0, 5) }));
+      }
       return json({
         success: true,
+        meals,
         terminal: terminalPayload,
         company: { id: terminal.company_id, name: companyInfo?.name ?? '' },
       });

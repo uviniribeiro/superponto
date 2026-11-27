@@ -21,7 +21,7 @@ const variants = {
   },
   terminal: {
     appId: 'br.com.pontomax.terminal',
-    appName: 'PontoMax Terminal',
+    appName: 'SuperPonto Terminal',
     androidPath: 'android-terminal',
     iosPath: 'ios-terminal',
     color: '#0f172a',

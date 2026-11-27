@@ -11,6 +11,7 @@ const STATIC_ALLOWED_ORIGINS = [
   "http://localhost:8080",
   "http://localhost:5173",
   "capacitor://localhost",
+  "https://localhost",
   "http://localhost",
 ];
 

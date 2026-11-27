@@ -94,7 +94,7 @@ export interface Backend {
   version: SystemVersion;
   health(): Promise<TerminalResult>;
   session(token: string): Promise<TerminalResult>;
-  activate(cnpj: string, name: string, coords?: { latitude: number | null; longitude: number | null }): Promise<TerminalResult>;
+  activate(cnpj: string, name: string, coords?: { latitude: number | null; longitude: number | null }, purpose?: 'punch' | 'meal'): Promise<TerminalResult>;
   identify(token: string, method: TerminalMethod, value: string): Promise<TerminalResult>;
   verifyFace(token: string, method: TerminalMethod, value: string, selfie: string, off?: OfflineInfo): Promise<TerminalResult>;
   identifyFace(token: string, selfie: string, off?: OfflineInfo): Promise<TerminalResult>;
@@ -105,7 +105,7 @@ const v1Backend: Backend = {
   version: 'v1',
   health: () => v1({ action: 'health' }),
   session: (token) => v1({ action: 'session', deviceToken: token }),
-  activate: (cnpj, name, coords) => v1({ action: 'activate', cnpj, terminalName: name, latitude: coords?.latitude ?? null, longitude: coords?.longitude ?? null }),
+  activate: (cnpj, name, coords, purpose) => v1({ action: 'activate', cnpj, terminalName: name, purpose, latitude: coords?.latitude ?? null, longitude: coords?.longitude ?? null }),
   identify: (token, method, value) => v1({ action: 'identify', deviceToken: token, identifier: value, method }),
   verifyFace: (token, method, value, selfie, off) => v1({ action: 'verify-face', deviceToken: token, identifier: value, method, selfieBase64: selfie, userAgent: navigator.userAgent, ...off }),
   identifyFace: (token, selfie, off) => v1({ action: 'identify-face', deviceToken: token, selfieBase64: selfie, userAgent: navigator.userAgent, ...off }),
@@ -126,10 +126,10 @@ const v2Backend: Backend = {
   session: async (token) => {
     const r = await v2('session', token);
     if (!r.success) return r.code === 'terminal_invalid' ? r : { ...r, success: false };
-    return { success: true, terminal: { name: (r.terminal as any)?.name, status: (r.terminal as any)?.status, activationCode: (r.terminal as any)?.activationCode, purpose: (r.terminal as any)?.purpose }, company: r.company };
+    return { success: true, terminal: { name: (r.terminal as any)?.name, status: (r.terminal as any)?.status, activationCode: (r.terminal as any)?.activationCode, purpose: (r.terminal as any)?.purpose }, company: r.company, meals: r.meals };
   },
-  activate: async (cnpj, name) => {
-    const r = await v2('activate', null, { cnpj, name: name || undefined });
+  activate: async (cnpj, name, _coords, purpose) => {
+    const r = await v2('activate', null, { cnpj, name: name || undefined, purpose });
     if (!r.success) return r;
     return { success: true, deviceToken: r.deviceToken, activationCode: r.activationCode, status: r.status, terminal: r.terminal, company: r.company };
   },
