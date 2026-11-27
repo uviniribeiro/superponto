@@ -1,3 +1,4 @@
+import { TERMINAL_URL } from '@/lib/adminHost';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -132,11 +133,25 @@ export default function KioskTerminals() {
         </p>
       </header>
 
+      <Card className="rounded-3xl">
+        <CardContent className="flex flex-wrap items-center gap-5 p-5">
+          <div className="min-w-[260px] flex-1 space-y-1">
+            <p className="font-semibold">App SuperPonto Terminal (independente do sistema)</p>
+            <p className="text-sm text-muted-foreground">
+              No tablet, abra <a className="font-medium text-primary underline" href={TERMINAL_URL} target="_blank" rel="noreferrer">{TERMINAL_URL.replace('https://', '')}</a> e
+              instale ("Adicionar à tela inicial"). Informe o CNPJ: o app reconhece sozinho se a empresa usa a v1 ou a v2.
+              Funciona com QR Code, código de barras, PIN, matrícula, CPF e reconhecimento facial, e guarda as marcações quando fica sem internet.
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(TERMINAL_URL); toast.success('Endereço copiado'); }}>Copiar endereço</Button>
+        </CardContent>
+      </Card>
+
       {loading ? (
         <div className="space-y-3">{[0, 1].map(i => <Skeleton key={i} className="h-28 w-full" />)}</div>
       ) : terminals.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">
-          Nenhum terminal solicitou ativação ainda. Abra <strong>/terminal</strong> no tablet e informe o CNPJ da empresa.
+          Nenhum terminal solicitou ativação ainda. Abra <strong>{TERMINAL_URL.replace('https://', '')}</strong> no tablet e informe o CNPJ da empresa.
         </CardContent></Card>
       ) : (
         <div className="grid gap-3">

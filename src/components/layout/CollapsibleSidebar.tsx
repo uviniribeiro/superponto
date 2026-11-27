@@ -213,6 +213,8 @@ const menuCategories: MenuCategory[] = [
       { title: 'Folha de Ponto', icon: FileText, href: '/timesheet', roles: ['admin', 'manager'] },
       { title: 'Cartões de Ponto', icon: FileText, href: '/point-cards', roles: ['admin', 'manager'] },
       { title: 'Registrar Ponto', icon: Clock, href: '/time-clock', roles: ['admin', 'manager'] },
+      { title: 'Crachás e Códigos de Barras', icon: QrCode, href: '/badges', roles: ['admin'] },
+      { title: 'App do Terminal', icon: MonitorSmartphone, href: '/kiosk-terminals', roles: ['admin'] },
     ]
   },
   {

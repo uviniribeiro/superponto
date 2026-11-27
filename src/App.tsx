@@ -104,6 +104,7 @@ const AccessBlocks = React.lazy(() => import("@/pages/AccessBlocks"));
 const TimeBankLedger = React.lazy(() => import("@/pages/TimeBankLedger"));
 const MyTimeBank = React.lazy(() => import("@/pages/MyTimeBank"));
 const MyQrCode = React.lazy(() => import("@/pages/MyQrCode"));
+const BadgeConversion = React.lazy(() => import("@/pages/BadgeConversion"));
 const ScheduleSwaps = React.lazy(() => import("@/pages/ScheduleSwaps"));
 const ApprovalPolicies = React.lazy(() => import("@/pages/ApprovalPolicies"));
 const NotificationSchedules = React.lazy(() => import("@/pages/NotificationSchedules"));
@@ -323,6 +324,7 @@ const App = () => isTerminalHost() ? <StandaloneTerminal /> : (
                   <Route path="time-bank/ledger" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><TimeBankLedger /></ProtectedRoute>} />
                   <Route path="my-time-bank" element={<ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}><MyTimeBank /></ProtectedRoute>} />
                   <Route path="my-qrcode" element={<ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}><MyQrCode /></ProtectedRoute>} />
+                  <Route path="badges" element={<ProtectedRoute requiredRoles={['admin']}><BadgeConversion /></ProtectedRoute>} />
                   <Route path="schedule-swaps" element={<ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}><ScheduleSwaps /></ProtectedRoute>} />
                   <Route path="approval-policies" element={<ProtectedRoute requiredRoles={['admin']}><ApprovalPolicies /></ProtectedRoute>} />
                   <Route path="notification-schedules" element={<ProtectedRoute requiredRoles={['admin']}><NotificationSchedules /></ProtectedRoute>} />
