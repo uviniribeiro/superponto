@@ -8,7 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import SuperAdminProtectedRoute from "@/components/SuperAdminProtectedRoute";
-import { isAdminHost, ADMIN_URL } from "@/lib/adminHost";
+import { isAdminHost, isTerminalHost, ADMIN_URL } from "@/lib/adminHost";
 
 /** Painel do Super Admin só no endereço próprio (fora da tela de entrada normal). */
 function ExternalRedirect({ to }: { to: string }) {
@@ -226,7 +226,25 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
+/** No endereço do app de terminal, só o terminal existe (sem login nem telas do sistema). */
+const StandaloneTerminal = () => (
+  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <TooltipProvider delayDuration={300}>
+      <Toaster />
+      <Sonner position="top-right" richColors closeButton />
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/terminal" element={<KioskTerminal />} />
+            <Route path="*" element={<Navigate to="/terminal" replace />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </TooltipProvider>
+  </ThemeProvider>
+);
+
+const App = () => isTerminalHost() ? <StandaloneTerminal /> : (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider delayDuration={300}>

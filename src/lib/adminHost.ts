@@ -5,3 +5,10 @@ export const ADMIN_URL = 'https://superponto-admin.vercel.app';
 export function isAdminHost(hostname: string = typeof window !== 'undefined' ? window.location.hostname : ''): boolean {
   return /^superponto-admin(\.|-)/.test(hostname) || hostname.startsWith('admin.');
 }
+
+/** App de terminal independente: superponto-terminal.vercel.app (ou domínio "terminal."). */
+export const TERMINAL_URL = 'https://superponto-terminal.vercel.app';
+
+export function isTerminalHost(hostname: string = typeof window !== 'undefined' ? window.location.hostname : ''): boolean {
+  return /^superponto-terminal(\.|-)/.test(hostname) || hostname.startsWith('terminal.');
+}

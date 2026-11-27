@@ -1,0 +1,15 @@
+{
+  "name": "SuperPonto Terminal",
+  "short_name": "Terminal",
+  "description": "Terminal de ponto SuperPonto (v1 e v2): QR Code, código de barras, PIN, matrícula, CPF e reconhecimento facial.",
+  "start_url": "/terminal",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": [
+    { "src": "/pontomax-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

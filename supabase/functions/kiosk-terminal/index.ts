@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
     //    Nenhum desses registra sozinho: o terminal sempre confere o rosto (1:1) com a foto do cadastro.
     // ---------------------------------------------------------------
     const METHOD_NAME: Record<string, string> = {
-      qrcode: 'do QR Code', barcode: 'do crachá', pin: 'do PIN', rfid: 'do cartão', registration: 'da matrícula', cpf: 'do CPF', manual: 'da identificação',
+      qrcode: 'do QR Code', barcode: 'do código de barras', badge_legacy: 'do crachá', pin: 'do PIN', rfid: 'do cartão', registration: 'da matrícula', cpf: 'do CPF', manual: 'da identificação',
     };
 
     async function resolveIdentifier(rawIdentifier: string): Promise<{ profileId: string; methodType: string } | { error: string; status: number }> {
@@ -281,13 +281,17 @@ Deno.serve(async (req) => {
         if (method.expires_at && new Date(method.expires_at) <= new Date()) return { error: 'QR Code expirado. Solicite um novo ao RH.', status: 403 };
         return { profileId: method.profile_id, methodType: method.method_type };
       }
+      // Matrícula e CPF: se houver mais de um cadastro com o mesmo número, exige QR Code ou PIN.
+      const AMBIGUOUS = 'Há mais de um cadastro com esta identificação: use o QR Code, o código de barras ou o PIN.';
       const { data: byRegistration } = await supabase.from('profiles').select('id')
-        .eq('company_id', terminal.company_id).eq('registration_number', rawIdentifier).eq('is_active', true).maybeSingle();
-      if (byRegistration) return { profileId: byRegistration.id, methodType: 'registration' };
+        .eq('company_id', terminal.company_id).eq('registration_number', rawIdentifier).eq('is_active', true).limit(2);
+      if (byRegistration && byRegistration.length > 1) return { error: AMBIGUOUS, status: 409 };
+      if (byRegistration?.length === 1) return { profileId: byRegistration[0].id, methodType: 'registration' };
       if (digitsOnly.length === 11) {
         const { data: byCpf } = await supabase.from('profiles').select('id')
-          .eq('company_id', terminal.company_id).eq('cpf', digitsOnly).eq('is_active', true).maybeSingle();
-        if (byCpf) return { profileId: byCpf.id, methodType: 'cpf' };
+          .eq('company_id', terminal.company_id).eq('cpf', digitsOnly).eq('is_active', true).limit(2);
+        if (byCpf && byCpf.length > 1) return { error: AMBIGUOUS, status: 409 };
+        if (byCpf?.length === 1) return { profileId: byCpf[0].id, methodType: 'cpf' };
       }
       await supabase.from('identification_validation_attempts').insert({
         company_id: terminal.company_id, method_type: 'kiosk', success: false,
@@ -308,10 +312,23 @@ Deno.serve(async (req) => {
 
     /** Rosto conferido: próxima marcação do dia gravada na hora. */
     async function verifiedPunch(owner: { id: string; full_name: string }, methodType: string, confidence: number) {
-      const start = new Date(); start.setHours(0, 0, 0, 0);
+      // Marcação offline: vale a hora em que foi feita no terminal (até 7 dias atrás, nunca no futuro).
+      const offlineAt = body?.clientRecordedAt ? new Date(String(body.clientRecordedAt)) : null;
+      if (offlineAt && (isNaN(offlineAt.getTime()) || offlineAt.getTime() > Date.now() + 5 * 60_000 || offlineAt.getTime() < Date.now() - 7 * 86_400_000)) {
+        return json({ success: false, code: 'offline_expired', error: 'Marcação offline fora do prazo aceito (até 7 dias).' }, 422);
+      }
+      const ref = offlineAt ?? new Date();
+      if (body?.clientPunchId) {
+        const { data: dup } = await supabase.from('time_records').select('id, nsr, recorded_at, record_type, transaction_hash')
+          .eq('transaction_hash', await punchHash(owner.id, '', ref)).maybeSingle();
+        if (dup) return json({ success: true, record: dup, employeeName: owner.full_name, duplicated: true });
+      }
+      // Dia local (America/Sao_Paulo) da marcação
+      const localDay = ref.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+      const start = new Date(`${localDay}T00:00:00-03:00`);
       const { data: todayRecords } = await supabase.from('time_records')
         .select('record_type, recorded_at').eq('profile_id', owner.id)
-        .gte('recorded_at', start.toISOString()).order('recorded_at', { ascending: true });
+        .gte('recorded_at', start.toISOString()).lt('recorded_at', ref.toISOString()).order('recorded_at', { ascending: true });
       const last = (todayRecords || []).at(-1)?.record_type as RecordType | undefined;
       const nextIndex = last ? RECORD_ORDER.indexOf(last) + 1 : 0;
       if (nextIndex >= RECORD_ORDER.length) {
@@ -319,7 +336,7 @@ Deno.serve(async (req) => {
       }
       await supabase.from('identification_validation_attempts').insert({
         profile_id: owner.id, company_id: terminal.company_id, method_type: `${methodType}_facial`, success: true,
-        reason: `Rosto conferido (${methodType}, confiança ${confidence}%) no terminal ${terminal.name}`,
+        reason: `Rosto conferido (${methodType}, confiança ${confidence}%) no terminal ${terminal.name}${offlineAt ? ' — marcação offline' : ''}`,
         user_agent: `kiosk terminal=${terminal.name}`,
       });
       await supabase.from('kiosk_terminals').update({ last_used_at: new Date().toISOString() }).eq('id', terminal.id);
@@ -456,14 +473,19 @@ Deno.serve(async (req) => {
       return await verifiedPunch({ id: who.id, full_name: who.full_name }, 'facial', confidence);
     }
 
+    /** Hash de idempotência: com clientPunchId (fila do terminal) o mesmo envio nunca duplica. */
+    async function punchHash(profileId: string, recordType: string, recordedAt: Date) {
+      const punchId = String(body?.clientPunchId || '');
+      return punchId
+        ? await sha256(['kiosk', profileId, punchId].join('|'))
+        : await sha256([profileId, recordType, recordedAt.toISOString(), body?.latitude ?? '', body?.longitude ?? '', crypto.randomUUID()].join('|'));
+    }
+
     async function insertPunch(profile: { id: string; full_name: string }, recordType: RecordType, extra = '') {
       const clientRecordedAt = body?.clientRecordedAt ? new Date(String(body.clientRecordedAt)) : null;
       const queued = !!clientRecordedAt && !isNaN(clientRecordedAt.getTime());
       const recordedAt = queued ? clientRecordedAt! : new Date();
-      const punchId = String(body?.clientPunchId || crypto.randomUUID());
-      const transactionHash = await sha256(
-        [profile.id, recordType, recordedAt.toISOString(), body?.latitude ?? '', body?.longitude ?? '', punchId].join('|')
-      );
+      const transactionHash = await punchHash(profile.id, recordType, recordedAt);
       const { data: existing } = await supabase
         .from('time_records')
         .select('id, nsr, recorded_at, record_type, transaction_hash')
