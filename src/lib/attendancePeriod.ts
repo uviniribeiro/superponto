@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { calculateDay, DEFAULT_ATTENDANCE_RULES, type DayCalculationResult, type PunchInput } from './timeCalculation';
 
 export interface PersonRow { id: string; full_name: string; registration_number: string | null; department: string | null; position: string | null; pis: string | null; cpf?: string | null; birth_date?: string | null; failed_login_attempts?: number | null; last_failed_login?: string | null }
-export interface DayRow { person: PersonRow; date: string; result: DayCalculationResult; punches: { type: string; at: string; mobile: boolean }[]; scheduled: boolean; absenceReason?: string; breakStart?: string | null; breakMobility?: number }
+export interface DayRow { person: PersonRow; date: string; result: DayCalculationResult; punches: { type: string; at: string; mobile: boolean }[]; scheduled: boolean; absenceReason?: string; breakStart?: string | null; breakMobility?: number; expectedStart?: string | null; expectedEnd?: string | null; tolerance?: number }
 
 type Schedule = Record<string, string | number | null>;
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -83,7 +83,7 @@ export async function loadPeriod(from: string, to: string, opts: { department?: 
         absence: absence ? { type: 'full', reason: absence.reason ?? absence.absence_type } : null,
       });
       days.push({
-        person, date: day, result, scheduled, breakStart: scheduled ? (ws?.break_start as string | null) ?? null : null, breakMobility: Number(ws?.break_mobility_minutes ?? 0), absenceReason: absence ? (absence.reason ?? absence.absence_type) : undefined,
+        person, date: day, result, scheduled, expectedStart: scheduled ? start : null, expectedEnd: scheduled ? end : null, tolerance: tol, breakStart: scheduled ? (ws?.break_start as string | null) ?? null : null, breakMobility: Number(ws?.break_mobility_minutes ?? 0), absenceReason: absence ? (absence.reason ?? absence.absence_type) : undefined,
         punches: recs.map((r) => ({ type: r.record_type, at: r.recorded_at, mobile: r.latitude != null || /android|iphone|mobile|app/i.test(r.device_info ?? '') })),
       });
     }

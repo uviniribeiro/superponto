@@ -102,7 +102,7 @@ import {
   LayoutList,
   Ban,
 } from 'lucide-react';
-import { Bot, QrCode } from 'lucide-react';
+import { Bot, QrCode, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu as MenuIcon, X as CloseIcon } from 'lucide-react';
@@ -209,6 +209,7 @@ const menuCategories: MenuCategory[] = [
     icon: Clock,
     roles: ['admin', 'manager'],
     items: [
+      { title: 'Central do Gestor', icon: AlertTriangle, href: '/manager-hub', roles: ['admin', 'manager'] },
       { title: 'Espelho de Ponto', icon: ClipboardList, href: '/mirror-point', roles: ['admin', 'manager'] },
       { title: 'Folha de Ponto', icon: FileText, href: '/timesheet', roles: ['admin', 'manager'] },
       { title: 'Cartões de Ponto', icon: FileText, href: '/point-cards', roles: ['admin', 'manager'] },
