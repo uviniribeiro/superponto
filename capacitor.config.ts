@@ -14,7 +14,7 @@ const app = process.env.PONTOMAX_APP === 'terminal' ? 'terminal' : 'funcionario'
 const variants = {
   funcionario: {
     appId: 'br.com.pontomax.app',
-    appName: 'PontoMax',
+    appName: 'SuperPonto',
     androidPath: 'android-funcionario',
     iosPath: 'ios-funcionario',
     color: '#0f172a',
@@ -40,6 +40,8 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     // Terminal: libera HTTP só para falar com a catraca na rede local (o app e a API seguem em HTTPS).
     cleartext: app === 'terminal',
+    // App do funcionário: clientes da v2 abrem o sistema da v2 dentro do próprio app.
+    allowNavigation: app === 'funcionario' ? ['superponto-v2.vercel.app'] : [],
   },
   android: {
     path: v.androidPath,

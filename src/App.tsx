@@ -17,6 +17,7 @@ function ExternalRedirect({ to }: { to: string }) {
 }
 
 const CollapsibleSidebar = React.lazy(() => import("@/components/layout/V14Layout"));
+const MobileShell = React.lazy(() => import("@/components/layout/MobileShell"));
 const SuperAdminLayout = React.lazy(() => import("@/components/layout/SuperAdminLayout"));
 const GuidedTourButton = React.lazy(() => import("@/components/GuidedTour").then((module) => ({ default: module.GuidedTourButton })));
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
@@ -299,7 +300,8 @@ const App = () => isTerminalHost() || APP_MODE === 'terminal' ? <StandaloneTermi
                 {/* Regular App Routes */}
                 <Route path="/" element={
                   <ProtectedRoute>
-                    <CollapsibleSidebar />
+                    {/* App do funcionário (Android/iPhone): navegação de app com barra inferior */}
+                    {APP_MODE === 'funcionario' ? <MobileShell /> : <CollapsibleSidebar />}
                   </ProtectedRoute>
                 }>
                   <Route path="home" element={<Home />} />

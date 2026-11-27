@@ -239,6 +239,15 @@ export default function Auth() {
             loginType === 'company' ? cleanCNPJ(loginData.companyCode) : loginData.companyCode,
         };
         const validData = loginSchema.parse(payload);
+        // Empresa liberada só na v2: o mesmo app/endereço leva para o login da v2 (mesmo usuário e senha).
+        if (loginType === 'company') {
+          const { data: ver } = await (supabase as any).rpc('kiosk_system_version', { p_cnpj: validData.companyCode });
+          if (ver === 'v2') {
+            toast.info('Sua empresa usa o SuperPonto v2: abrindo o acesso da v2…');
+            window.location.href = 'https://superponto-v2.vercel.app/login';
+            return;
+          }
+        }
         const { error } = await signIn(validData.username, validData.password, validData.companyCode);
         
         if (error) {
