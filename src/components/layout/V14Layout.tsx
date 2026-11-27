@@ -1,9 +1,9 @@
-// Layout "Dashboard V14": barra superior com abas em pílula (categorias), trilho de ícones à esquerda
-// (telas da categoria), busca de telas (Ctrl+K), notificações, tema e conta. Mantém menus, permissões e
-// a paleta de cores do sistema (tokens do Tailwind).
+// Layout principal: menu lateral esquerdo recolhível, organizado por categorias com o nome de cada tela,
+// busca de telas (Ctrl+K), notificações, tema e conta. Mantém menus, permissões e a paleta do sistema.
+// Fluidez: só transições de CSS (largura/opacidade), estado do menu guardado no aparelho.
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Search, LogOut, Settings, ChevronDown, Menu as MenuIcon, Home, Smartphone, Users, CalendarDays, Clock, Timer, BarChart3, Router, Bus, Puzzle, ShieldCheck } from 'lucide-react';
+import { Search, LogOut, Settings, ChevronDown, ChevronsLeft, ChevronsRight, Menu as MenuIcon, Home, Smartphone, Users, CalendarDays, Clock, Timer, BarChart3, Router, Bus, Puzzle, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationCenter } from '@/components/NotificationCenter';
@@ -24,7 +25,7 @@ import { cn } from '@/lib/utils';
 
 type Category = (typeof menuCategories)[number];
 
-/** Abas do topo: cada uma reúne categorias afins (as telas aparecem no trilho, separadas por seção). */
+/** Categorias do menu lateral: cada uma reúne grupos afins de telas. */
 const GROUPS: { id: string; title: string; icon: React.ComponentType<{ className?: string }>; cats: string[] }[] = [
   { id: 'inicio', title: 'Início', icon: Home, cats: ['home', 'monitoramento'] },
   { id: 'meu-ponto', title: 'Meu Ponto', icon: Smartphone, cats: ['meu-ponto'] },
@@ -46,6 +47,12 @@ export default function V14Layout() {
   const navigate = useNavigate();
   const [company, setCompany] = useState<{ company_name?: string; logo_url?: string } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem('sp.menu.collapsed') === '1'; } catch { return false; } });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => { try { return JSON.parse(localStorage.getItem('sp.menu.groups') ?? '{}'); } catch { return {}; } });
+  useEffect(() => { try { localStorage.setItem('sp.menu.collapsed', collapsed ? '1' : '0'); } catch { /* sem armazenamento */ } }, [collapsed]);
+  useEffect(() => { try { localStorage.setItem('sp.menu.groups', JSON.stringify(openGroups)); } catch { /* sem armazenamento */ } }, [openGroups]);
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   useEffect(() => {
     supabase.from('company_settings').select('company_name, logo_url').limit(1).maybeSingle().then(({ data }) => data && setCompany(data));
@@ -87,107 +94,164 @@ export default function V14Layout() {
   const go = (href: string) => { setSearchOpen(false); navigate(href); };
   const out = async () => { await signOut(); navigate('/auth'); };
 
-  const pill = (active: boolean) => cn(
-    'h-9 px-4 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 inline-flex items-center gap-2',
-    active ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+  const currentItem = current?.items.find((i) => isActive(i.href));
+  const isOpen = (id: string) => openGroups[id] ?? id === group?.id;
+  const toggle = (id: string) => setOpenGroups((o) => ({ ...o, [id]: !isOpen(id) }));
+
+  const itemClass = (active: boolean) => cn(
+    'group/item flex items-center gap-3 rounded-xl px-3 h-9 text-[13px] font-medium transition-colors duration-150',
+    active ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+  );
+
+  const nav = (mini: boolean) => (
+    <nav className="flex-1 overflow-y-auto overscroll-contain px-2.5 py-2 [scrollbar-width:thin]">
+      {groups.map((g) => {
+        const active = g.id === group?.id;
+        if (mini) {
+          return (
+            <DropdownMenu key={g.id}>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" aria-label={g.title} className={cn('mx-auto my-0.5 flex h-10 w-10 items-center justify-center rounded-xl transition-colors duration-150', active ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}>
+                      <g.icon className="h-[18px] w-[18px]" />
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="right">{g.title}</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent side="right" align="start" className="max-h-[70vh] w-64 overflow-y-auto rounded-2xl">
+                {g.sections.map((sec, si) => (
+                  <React.Fragment key={sec.id}>
+                    {si > 0 && <DropdownMenuSeparator />}
+                    <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">{sec.title}</DropdownMenuLabel>
+                    {sec.items.map((i: Item) => (
+                      <DropdownMenuItem key={i.href} onClick={() => navigate(i.href)} className={cn('gap-2 rounded-lg', isActive(i.href) && 'bg-muted font-semibold')}>
+                        <i.icon className="h-4 w-4" />{i.title}
+                      </DropdownMenuItem>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        }
+        const open = isOpen(g.id);
+        return (
+          <div key={g.id} className="mb-1">
+            <button type="button" onClick={() => toggle(g.id)} aria-expanded={open}
+              className={cn('flex w-full items-center gap-3 rounded-xl px-3 h-10 text-sm font-semibold transition-colors duration-150', active ? 'text-foreground' : 'text-foreground/80 hover:bg-muted')}>
+              <g.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-primary' : 'text-muted-foreground')} />
+              <span className="flex-1 truncate text-left">{g.title}</span>
+              <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
+            </button>
+            <div className={cn('grid transition-[grid-template-rows] duration-200 ease-out', open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]')}>
+              <div className="overflow-hidden">
+                <div className="ml-[18px] border-l border-border/70 pl-2.5 pb-1">
+                  {g.sections.map((sec) => (
+                    <div key={sec.id} className="pt-1">
+                      {g.sections.length > 1 && <p className="px-3 pb-0.5 pt-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/80">{sec.title}</p>}
+                      {sec.items.map((i: Item) => (
+                        <Link key={i.href} to={i.href} className={itemClass(isActive(i.href))}>
+                          <i.icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{i.title}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </nav>
+  );
+
+  const brand = (mini: boolean) => (
+    <div className={cn('flex h-16 shrink-0 items-center gap-2.5 border-b border-border/60', mini ? 'justify-center px-2' : 'px-4')}>
+      <Link to="/home" className="flex min-w-0 items-center gap-2.5">
+        <img src={company?.logo_url || pontoMaxClockIcon} alt={company?.company_name || APP_NAME} className="h-8 w-8 shrink-0 rounded-xl object-contain" />
+        {!mini && <span className="truncate text-sm font-semibold">{company?.company_name || APP_NAME}</span>}
+      </Link>
+    </div>
+  );
+
+  const userBox = (mini: boolean) => (
+    <div className="shrink-0 border-t border-border/60 p-2.5">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className={cn('flex w-full items-center gap-2.5 rounded-xl p-1.5 transition-colors hover:bg-muted', mini && 'justify-center')}>
+            <Avatar className="h-8 w-8"><AvatarFallback className="bg-primary text-xs text-primary-foreground">{initials}</AvatarFallback></Avatar>
+            {!mini && (
+              <span className="flex min-w-0 flex-1 flex-col items-start leading-tight">
+                <span className="w-full truncate text-left text-xs font-semibold">{profile?.full_name || 'Usuário'}</span>
+                <span className="w-full truncate text-left text-[10px] text-muted-foreground">{profile?.email}</span>
+              </span>
+            )}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="right" align="end" className="w-56 rounded-2xl">
+          <DropdownMenuLabel><p className="text-sm font-medium">{profile?.full_name || 'Usuário'}</p><p className="text-xs text-muted-foreground">{profile?.email}</p></DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => navigate('/account-settings')}><Settings className="mr-2 h-4 w-4" />Minha conta</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={out} className="text-destructive"><LogOut className="mr-2 h-4 w-4" />Sair</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
+  const searchBtn = (mini: boolean) => (
+    <div className="px-2.5 pt-2.5">
+      <button type="button" onClick={() => setSearchOpen(true)} className={cn('flex h-9 w-full items-center gap-2 rounded-xl border border-border/70 bg-muted/40 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted', mini && 'justify-center px-0')} aria-label="Buscar telas">
+        <Search className="h-4 w-4 shrink-0" />
+        {!mini && <><span className="flex-1 text-left">Buscar…</span><kbd className="rounded-md border bg-background px-1.5 text-[10px]">Ctrl K</kbd></>}
+      </button>
+    </div>
   );
 
   return (
-    <div className="min-h-screen w-full bg-muted/40 p-2 sm:p-3">
-      <div className="mx-auto max-w-[1600px] min-h-[calc(100vh-1.5rem)] rounded-3xl bg-background shadow-[0_1px_2px_rgba(0,0,0,.04),0_12px_40px_-12px_rgba(0,0,0,.12)] border border-border/60 flex flex-col overflow-hidden">
-        {/* Barra superior */}
-        <header className="sticky top-0 z-40 flex items-center gap-3 px-3 sm:px-5 h-16 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-          <Link to="/home" className="flex items-center gap-2 shrink-0">
-            <img src={company?.logo_url || pontoMaxClockIcon} alt={company?.company_name || APP_NAME} className="h-8 w-8 rounded-xl object-contain" />
-            <span className="hidden md:block font-semibold text-sm max-w-[160px] truncate">{company?.company_name || APP_NAME}</span>
-          </Link>
+    <div className="flex h-screen w-full overflow-hidden bg-muted/40">
+      {/* Menu lateral (computador) */}
+      <aside
+        className={cn('relative hidden shrink-0 flex-col border-r border-border/60 bg-background transition-[width] duration-200 ease-out will-change-[width] md:flex', collapsed ? 'w-[76px]' : 'w-[272px]')}
+      >
+        {brand(collapsed)}
+        {searchBtn(collapsed)}
+        {nav(collapsed)}
+        {userBox(collapsed)}
+        <button type="button" onClick={() => setCollapsed((c) => !c)} aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          className="absolute -right-3 top-[52px] z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:text-foreground">
+          {collapsed ? <ChevronsRight className="h-3.5 w-3.5" /> : <ChevronsLeft className="h-3.5 w-3.5" />}
+        </button>
+      </aside>
 
-          <nav className="flex-1 min-w-0 overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-1 w-max mx-auto">
-              {groups.map((g) => (
-                <button key={g.id} type="button" onClick={() => navigate(g.sections[0].items[0].href)} className={pill(group?.id === g.id)} title={g.title}>
-                  <g.icon className="h-4 w-4 xl:hidden" />
-                  <span className="hidden xl:inline">{g.title}</span>
-                </button>
-              ))}
-            </div>
-          </nav>
+      {/* Menu lateral (celular) */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="flex w-[290px] flex-col p-0">
+          {brand(false)}
+          {searchBtn(false)}
+          {nav(false)}
+          {userBox(false)}
+        </SheetContent>
+      </Sheet>
 
-          <div className="flex items-center gap-1 shrink-0">
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <button type="button" onClick={() => setSearchOpen(true)} className="h-9 w-9 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Buscar">
-                  <Search className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Buscar telas (Ctrl+K)</TooltipContent>
-            </Tooltip>
-            <NotificationCenter />
-            <ThemeToggle />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button type="button" className="ml-1 flex items-center gap-2 rounded-full border border-border/70 pl-1 pr-2 h-10 hover:bg-muted">
-                  <Avatar className="h-8 w-8"><AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback></Avatar>
-                  <span className="hidden lg:flex flex-col items-start leading-tight max-w-[140px]">
-                    <span className="text-xs font-semibold truncate max-w-[140px]">{profile?.full_name || 'Usuário'}</span>
-                    <span className="text-[10px] text-muted-foreground truncate max-w-[140px]">{profile?.email}</span>
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-2xl">
-                <DropdownMenuLabel>
-                  <p className="text-sm font-medium">{profile?.full_name || 'Usuário'}</p>
-                  <p className="text-xs text-muted-foreground">{profile?.email}</p>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/account-settings')}><Settings className="w-4 h-4 mr-2" />Minha conta</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={out} className="text-destructive"><LogOut className="w-4 h-4 mr-2" />Sair</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border/60 bg-background/80 px-3 backdrop-blur-xl sm:px-6">
+          <button type="button" onClick={() => setMobileOpen(true)} className="inline-flex h-9 w-9 items-center justify-center rounded-xl hover:bg-muted md:hidden" aria-label="Abrir menu"><MenuIcon className="h-5 w-5" /></button>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{group?.title}{current && group && current.title !== group.title ? ` › ${current.title}` : ''}</p>
+            <p className="truncate text-base font-semibold leading-tight">{currentItem?.title ?? current?.title ?? 'Início'}</p>
           </div>
+          <NotificationCenter />
+          <ThemeToggle />
         </header>
-
-        <div className="flex flex-1 min-h-0">
-          {/* Trilho de ícones (telas da categoria) */}
-          {group && (
-            <aside className="hidden md:flex flex-col items-center gap-1.5 w-16 py-4 border-r border-border/60 overflow-y-auto no-scrollbar">
-              {group.sections.map((sec, si) => (
-                <React.Fragment key={sec.id}>
-                  {si > 0 && <div className="my-1.5 h-px w-8 bg-border" title={sec.title} />}
-                  {sec.items.map((i: Item) => (
-                    <Tooltip key={i.href} delayDuration={0}>
-                      <TooltipTrigger asChild>
-                        <Link to={i.href} aria-label={i.title}
-                          className={cn('h-10 w-10 shrink-0 rounded-full inline-flex items-center justify-center transition-all duration-200',
-                            isActive(i.href) ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}>
-                          <i.icon className="h-[18px] w-[18px]" />
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right"><span className="text-[10px] uppercase text-muted-foreground">{sec.title}</span><br />{i.title}</TooltipContent>
-                    </Tooltip>
-                  ))}
-                </React.Fragment>
-              ))}
-            </aside>
-          )}
-
-          <main className="flex-1 min-w-0 overflow-auto">
-            {/* Celular: telas da categoria em pílulas */}
-            {group && (
-              <div className="md:hidden flex gap-1 overflow-x-auto no-scrollbar px-3 pt-3">
-                <MenuIcon className="h-4 w-4 m-2.5 shrink-0 text-muted-foreground" />
-                {group.sections.flatMap((sec) => sec.items).map((i: Item) => (
-                  <Link key={i.href} to={i.href} className={pill(isActive(i.href))}>{i.title}</Link>
-                ))}
-              </div>
-            )}
-            <div key={location.pathname} className="p-4 lg:p-7 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
-              <Outlet />
-            </div>
-          </main>
-        </div>
+        <main className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
+          <div key={location.pathname} className="mx-auto max-w-[1600px] p-4 lg:p-7 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+            <Outlet />
+          </div>
+        </main>
       </div>
 
       <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
