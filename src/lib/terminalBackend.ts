@@ -98,6 +98,7 @@ export interface Backend {
   identify(token: string, method: TerminalMethod, value: string): Promise<TerminalResult>;
   verifyFace(token: string, method: TerminalMethod, value: string, selfie: string, off?: OfflineInfo): Promise<TerminalResult>;
   identifyFace(token: string, selfie: string, off?: OfflineInfo): Promise<TerminalResult>;
+  reportTurnstile(token: string, online: boolean): Promise<unknown>;
   verifyTwoFactor(token: string, first: { method: TerminalMethod; value: string }, second: { method: TerminalMethod; value: string }, off?: OfflineInfo): Promise<TerminalResult>;
 }
 
@@ -109,6 +110,7 @@ const v1Backend: Backend = {
   identify: (token, method, value) => v1({ action: 'identify', deviceToken: token, identifier: value, method }),
   verifyFace: (token, method, value, selfie, off) => v1({ action: 'verify-face', deviceToken: token, identifier: value, method, selfieBase64: selfie, userAgent: navigator.userAgent, ...off }),
   identifyFace: (token, selfie, off) => v1({ action: 'identify-face', deviceToken: token, selfieBase64: selfie, userAgent: navigator.userAgent, ...off }),
+  reportTurnstile: (token, online) => v1({ action: 'turnstile-status', deviceToken: token, online }).catch(() => null),
   verifyTwoFactor: async () => ({ success: false, error: 'Na v1 a conferência do rosto é obrigatória.' }),
 };
 
@@ -126,7 +128,7 @@ const v2Backend: Backend = {
   session: async (token) => {
     const r = await v2('session', token);
     if (!r.success) return r.code === 'terminal_invalid' ? r : { ...r, success: false };
-    return { success: true, terminal: { name: (r.terminal as any)?.name, status: (r.terminal as any)?.status, activationCode: (r.terminal as any)?.activationCode, purpose: (r.terminal as any)?.purpose }, company: r.company, meals: r.meals };
+    return { success: true, terminal: { name: (r.terminal as any)?.name, status: (r.terminal as any)?.status, activationCode: (r.terminal as any)?.activationCode, purpose: (r.terminal as any)?.purpose, turnstile: (r.terminal as any)?.turnstile ?? null }, company: r.company, meals: r.meals };
   },
   activate: async (cnpj, name, _coords, purpose) => {
     const r = await v2('activate', null, { cnpj, name: name || undefined, purpose });
@@ -152,6 +154,7 @@ const v2Backend: Backend = {
     const r = await v2('identify-face', token, { selfie, ...off });
     return r.success ? v2Record(r) : r;
   },
+  reportTurnstile: (token, online) => v2('turnstile-status', token, { online }).catch(() => null),
   verifyTwoFactor: async (token, first, second, off) => {
     const r = await v2('verify-2fa', token, { first: { method: V2_METHOD[first.method], value: first.value }, second: { method: V2_METHOD[second.method], value: second.value }, ...off });
     return r.success ? v2Record(r) : r;

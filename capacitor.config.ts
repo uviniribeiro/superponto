@@ -38,7 +38,8 @@ const config: CapacitorConfig = {
     // Origem do app: https://localhost (Android) e capacitor://localhost (iOS),
     // liberadas no CORS da VPS pelo instalador.
     androidScheme: 'https',
-    cleartext: false,
+    // Terminal: libera HTTP só para falar com a catraca na rede local (o app e a API seguem em HTTPS).
+    cleartext: app === 'terminal',
   },
   android: {
     path: v.androidPath,

@@ -12,6 +12,17 @@ agora (ou a próxima) e a identificação — rosto com prova de vida, QR Code, 
 ou CPF — registra a refeição do horário, respeitando o limite por dia. Sem internet, guarda e envia depois.
 A finalidade também pode ser trocada depois, pelo sistema (Refeitório › Terminais).
 
+## Catraca (liberação instantânea)
+
+Em *Refeitório › Terminais › Catraca* (v1) ou *Ponto › Refeitório › Terminais* (v2) configure a catraca
+ligada ao terminal: **Control iD** (iDBlock, iDFlex…: IP, usuário, senha e sentido da entrada) ou **HTTP
+genérico** (placas de relé e controladoras que liberam por uma URL). Assim que a identificação é aceita,
+o próprio terminal envia o comando para a catraca pela rede local — sem passar pela nuvem, em
+milissegundos. Opções: botão "Liberar saída" na tela, liberar sem internet (a refeição é conferida
+depois) e liberar também no registro de ponto. O terminal confere a catraca a cada minuto e o estado
+(online / sem resposta) aparece para o administrador. Terminal e catraca precisam estar na mesma rede;
+use IP fixo na catraca.
+
 ## O que o APK faz sozinho
 
 - Abre **sempre em tela cheia**, sem a barra de status e sem os botões do Android. Se as barras aparecerem

@@ -17,6 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import type { TurnstileConfig } from '@/lib/turnstile';
 
 const db = supabase as any;
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -28,7 +31,9 @@ export default function Cafeteria() {
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
   const [types, setTypes] = useState<MealType[]>([]);
   const [draft, setDraft] = useState<MealType>(EMPTY);
-  const [terminals, setTerminals] = useState<{ id: string; name: string; purpose: string }[]>([]);
+  const [terminals, setTerminals] = useState<{ id: string; name: string; purpose: string; turnstile: TurnstileConfig | null; turnstile_online: boolean | null; turnstile_seen_at: string | null }[]>([]);
+  const [gateFor, setGateFor] = useState<{ id: string; name: string } | null>(null);
+  const [gate, setGate] = useState<TurnstileConfig>({ vendor: 'controlid', entry: 'clockwise', exitButton: true, offlineUnlock: true });
   const [from, setFrom] = useState(today.slice(0, 8) + '01');
   const [to, setTo] = useState(today);
   const [group, setGroup] = useState<'employee' | 'department' | 'meal' | 'day'>('employee');
@@ -38,7 +43,7 @@ export default function Cafeteria() {
   const loadTypes = useCallback(async () => {
     const [{ data: t }, { data: k }] = await Promise.all([
       db.from('meal_types').select('*').order('start_time'),
-      db.from('kiosk_terminals').select('id, name, purpose').neq('status', 'revoked').order('name'),
+      db.from('kiosk_terminals').select('id, name, purpose, turnstile, turnstile_online, turnstile_seen_at').neq('status', 'revoked').order('name'),
     ]);
     setTypes(t ?? []);
     setTerminals(k ?? []);
@@ -71,6 +76,16 @@ export default function Cafeteria() {
     const { error } = await db.from('kiosk_terminals').update({ purpose }).eq('id', id);
     if (error) return toast.error(error.message);
     toast.success(purpose === 'meal' ? 'Terminal passa a registrar refeições.' : 'Terminal volta a registrar ponto.');
+    loadTypes();
+  };
+
+  const saveGate = async () => {
+    if (!gateFor) return;
+    if (gate.vendor !== 'none' && !gate.host?.trim()) return toast.error(gate.vendor === 'controlid' ? 'Informe o IP da catraca.' : 'Informe a URL de liberação.');
+    const { error } = await db.from('kiosk_terminals').update({ turnstile: gate.vendor === 'none' ? null : { ...gate, host: gate.host?.trim() } }).eq('id', gateFor.id);
+    if (error) return toast.error(error.message);
+    toast.success('Catraca configurada. O terminal recebe a configuração em até 1 minuto (ou ao reabrir).');
+    setGateFor(null);
     loadTypes();
   };
 
@@ -178,8 +193,15 @@ export default function Cafeteria() {
             <p className="text-sm text-muted-foreground">Escolha quais terminais ficam no refeitório: neles, a identificação (rosto, QR Code, crachá, PIN…) registra a refeição do horário em vez do ponto. Novos terminais são ativados no <Link className="text-primary underline" to="/kiosk-terminals">app do terminal</Link>.</p>
             {terminals.length === 0 && <p className="text-sm text-muted-foreground">Nenhum terminal ativado.</p>}
             {terminals.map((k) => (
-              <div key={k.id} className="flex items-center justify-between rounded-2xl border p-3">
-                <span className="font-medium">{k.name}</span>
+              <div key={k.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-3">
+                <div>
+                  <span className="font-medium">{k.name}</span>
+                  <p className="text-xs text-muted-foreground">
+                    {k.turnstile ? `Catraca ${k.turnstile.vendor === 'controlid' ? 'Control iD' : 'HTTP'} · ${k.turnstile.host}` : 'Sem catraca'}
+                    {k.turnstile && k.turnstile_seen_at ? ` · ${k.turnstile_online ? 'online' : 'sem resposta'} em ${new Date(k.turnstile_seen_at).toLocaleString('pt-BR')}` : ''}
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" className="ml-auto" onClick={() => { setGateFor(k); setGate(k.turnstile ?? { vendor: 'controlid', entry: 'clockwise', exitButton: true, offlineUnlock: true }); }}>Catraca</Button>
                 <Select value={k.purpose ?? 'punch'} onValueChange={(v) => setPurpose(k.id, v)}>
                   <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="punch">Registro de ponto</SelectItem><SelectItem value="meal">Refeitório</SelectItem></SelectContent>
@@ -189,6 +211,60 @@ export default function Cafeteria() {
           </CardContent></Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!gateFor} onOpenChange={(o) => !o && setGateFor(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Catraca do terminal {gateFor?.name}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">O terminal libera a catraca na hora, direto pela rede local, assim que a identificação é aceita. Terminal e catraca precisam estar na mesma rede.</p>
+          <div className="grid gap-3">
+            <div className="grid gap-1"><Label>Catraca</Label>
+              <Select value={gate.vendor} onValueChange={(v) => setGate({ ...gate, vendor: v as TurnstileConfig['vendor'] })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="controlid">Control iD (iDBlock, iDFlex…)</SelectItem>
+                  <SelectItem value="http">HTTP genérico (placa de relé / controladora)</SelectItem>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {gate.vendor === 'controlid' && (
+              <>
+                <div className="grid gap-1"><Label>IP da catraca</Label><Input value={gate.host ?? ''} onChange={(e) => setGate({ ...gate, host: e.target.value })} placeholder="192.168.0.50" /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1"><Label>Usuário</Label><Input value={gate.login ?? ''} onChange={(e) => setGate({ ...gate, login: e.target.value })} placeholder="admin" /></div>
+                  <div className="grid gap-1"><Label>Senha</Label><Input type="password" value={gate.password ?? ''} onChange={(e) => setGate({ ...gate, password: e.target.value })} placeholder="admin" /></div>
+                </div>
+                <div className="grid gap-1"><Label>Sentido da entrada</Label>
+                  <Select value={gate.entry ?? 'clockwise'} onValueChange={(v) => setGate({ ...gate, entry: v as TurnstileConfig['entry'] })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="clockwise">Horário</SelectItem><SelectItem value="anticlockwise">Anti-horário</SelectItem><SelectItem value="both">Os dois sentidos</SelectItem></SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+            {gate.vendor === 'http' && (
+              <>
+                <div className="grid gap-1"><Label>URL de liberação da entrada</Label><Input value={gate.host ?? ''} onChange={(e) => setGate({ ...gate, host: e.target.value })} placeholder="http://192.168.0.60/relay/0?turn=on&timer=3" /></div>
+                <div className="grid gap-1"><Label>URL de liberação da saída (opcional)</Label><Input value={gate.exitUrl ?? ''} onChange={(e) => setGate({ ...gate, exitUrl: e.target.value })} /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1"><Label>Método</Label>
+                    <Select value={gate.method ?? 'GET'} onValueChange={(v) => setGate({ ...gate, method: v as 'GET' | 'POST' })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="GET">GET</SelectItem><SelectItem value="POST">POST</SelectItem></SelectContent></Select>
+                  </div>
+                  <div className="grid gap-1"><Label>Corpo (POST, opcional)</Label><Input value={gate.body ?? ''} onChange={(e) => setGate({ ...gate, body: e.target.value })} placeholder='{"open":true}' /></div>
+                </div>
+              </>
+            )}
+            {gate.vendor !== 'none' && (
+              <div className="space-y-2 text-sm">
+                <label className="flex items-center gap-2"><Checkbox checked={gate.exitButton !== false} onCheckedChange={(v) => setGate({ ...gate, exitButton: !!v })} /> Botão "Liberar saída" na tela do terminal</label>
+                <label className="flex items-center gap-2"><Checkbox checked={gate.offlineUnlock !== false} onCheckedChange={(v) => setGate({ ...gate, offlineUnlock: !!v })} /> Sem internet, liberar mesmo assim (a refeição é conferida ao reconectar)</label>
+                <label className="flex items-center gap-2"><Checkbox checked={!!gate.onPunch} onCheckedChange={(v) => setGate({ ...gate, onPunch: !!v })} /> Liberar também no registro de ponto (terminal de ponto com catraca)</label>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setGateFor(null)}>Cancelar</Button><Button onClick={saveGate}>Salvar</Button></div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

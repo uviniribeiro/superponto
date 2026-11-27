@@ -21,6 +21,7 @@ import {
 } from '@/lib/terminalBackend';
 import { scanVideoFrame, useBarcodeWedge } from '@/lib/barcodeScan';
 import QRCode from 'qrcode';
+import { turnstileOnline, unlockTurnstile, type TurnstileConfig } from '@/lib/turnstile';
 
 /** Desafios aleatórios da prova de vida (a câmera é espelhada: "esquerda" na tela). */
 const CHALLENGES: { key: string; text: string }[] = [
@@ -66,6 +67,8 @@ interface KioskSession {
   purpose?: string;
   /** horários das refeições (terminal do refeitório) */
   meals?: { name: string; start: string; end: string }[];
+  /** catraca ligada a este terminal (liberação direta pela rede local) */
+  turnstile?: TurnstileConfig | null;
 }
 
 /** Refeição aberta agora e a próxima (para a tela de espera do refeitório). */
@@ -148,6 +151,8 @@ export default function KioskTerminal() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ label: string; time: string; nsr: number | string; name: string; offline?: boolean; qr?: string; next?: string } | null>(null);
   const [challenge, setChallenge] = useState<string | null>(null);
+  const [gate, setGate] = useState<boolean | null>(null); // catraca online?
+  const sessionRef = useRef<KioskSession | null>(null);
   const [refused, setRefused] = useState<string | null>(null);
   /** Primeira identificação (aguardando rosto ou segunda verificação). */
   const pendingRef = useRef<{ method: Method; value: string; name: string; offline?: boolean } | null>(null);
@@ -174,6 +179,30 @@ export default function KioskTerminal() {
     const t = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  sessionRef.current = session;
+  /** Libera a catraca na hora (comando direto pela rede local). */
+  const openGate = useCallback((kind: 'entry' | 'exit') => {
+    const cfg = sessionRef.current?.turnstile;
+    if (!cfg || cfg.vendor === 'none') return;
+    unlockTurnstile(cfg, kind).then((ok) => { setGate(ok ? true : false); if (!ok) toast.error('A catraca não respondeu. Confira a rede e o endereço dela.'); });
+  }, []);
+
+  // Estado da catraca: confere a cada minuto e informa ao sistema
+  useEffect(() => {
+    const cfg = session?.turnstile;
+    if (!session || !cfg || cfg.vendor === 'none') { setGate(null); return; }
+    let stop = false;
+    const check = async () => {
+      const ok = await turnstileOnline(cfg);
+      if (stop || ok === null) return;
+      setGate(ok);
+      backendFor(session.version).reportTurnstile(session.deviceToken, ok);
+    };
+    check();
+    const t = setInterval(check, 60_000);
+    return () => { stop = true; clearInterval(t); };
+  }, [session]);
 
   // ---------------- Conexão ----------------
   const sync = useCallback(async () => {
@@ -215,7 +244,7 @@ export default function KioskTerminal() {
         .then((res) => {
           if (res?.success) {
             const t = res.terminal as any, c = res.company as any;
-            const updated = { ...saved, terminalName: t?.name ?? saved.terminalName, companyName: c?.name ?? saved.companyName, status: t?.status, activationCode: t?.activationCode, purpose: t?.purpose ?? saved.purpose, meals: (res.meals as KioskSession['meals']) ?? saved.meals };
+            const updated = { ...saved, terminalName: t?.name ?? saved.terminalName, companyName: c?.name ?? saved.companyName, status: t?.status, activationCode: t?.activationCode, purpose: t?.purpose ?? saved.purpose, meals: (res.meals as KioskSession['meals']) ?? saved.meals, turnstile: t?.turnstile !== undefined ? t.turnstile : saved.turnstile };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
             setSession(updated);
           } else if (res?.code === 'terminal_invalid') {
@@ -417,6 +446,8 @@ export default function KioskTerminal() {
     setQueueSize(readQueue().length);
     if (!ok) return showError('Memória do terminal cheia: conecte à internet para enviar as marcações guardadas.');
     setOnline(false);
+    const tc = sessionRef.current?.turnstile;
+    if (tc && tc.vendor !== 'none' && tc.offlineUnlock !== false && (sessionRef.current?.purpose === 'meal' || tc.onPunch)) openGate('entry');
     setSuccess({ label: 'Marcação guardada', time: at.toLocaleTimeString('pt-BR'), nsr: 'offline', name: name || 'Será conferida quando a internet voltar', offline: true });
     stageRef.current = 'idle';
     setTimeout(() => { setSuccess(null); goIdle(); }, 2600);
@@ -424,6 +455,7 @@ export default function KioskTerminal() {
 
   const handleResult = useCallback((res: TerminalResult) => {
     if (res?.success && res.meal) {
+      openGate('entry');
       setSuccess({ label: `${res.meal.meal_name} registrado`, time: new Date(res.meal.recorded_at).toLocaleTimeString('pt-BR'), nsr: 'refeitório', name: res.employeeName || '' });
       stageRef.current = 'idle';
       setTimeout(() => { setSuccess(null); goIdle(); }, 2600);
@@ -436,6 +468,7 @@ export default function KioskTerminal() {
       return;
     }
     if (res?.success && res.record) {
+      if (sessionRef.current?.turnstile?.onPunch) openGate('entry');
       const rec = res.record;
       const base = {
         label: rec.record_type ? `${RECORD_LABELS[rec.record_type as RecordType] ?? 'Marcação'} registrada` : 'Ponto registrado',
@@ -785,7 +818,15 @@ export default function KioskTerminal() {
             {maintenance && <Badge variant="outline" className="gap-1"><Wrench className="h-3 w-3" /> Manutenção — registro liberado</Badge>}
             {queueSize > 0 && <Badge variant="outline" className="gap-1"><CloudUpload className="h-3 w-3" /> {queueSize} offline aguardando envio</Badge>}
             <Badge variant="outline" className="gap-1"><ShieldCheck className="h-3 w-3" /> {session.version === 'v2' ? 'SuperPonto v2' : 'SuperPonto v1'}</Badge>
+            {gate !== null && <Badge variant={gate ? 'secondary' : 'destructive'} className="gap-1">{gate ? 'Catraca conectada' : 'Catraca sem resposta'}</Badge>}
           </div>
+          {session.turnstile?.exitButton && session.turnstile.vendor !== 'none' && (
+            <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); openGate('exit'); toast.success('Saída liberada'); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); openGate('exit'); } }}
+              className="mt-4 inline-flex items-center gap-2 rounded-full border-2 border-primary px-8 py-4 text-xl font-bold text-primary hover:bg-primary/10">
+              <LogOut className="h-6 w-6" /> Liberar saída
+            </span>
+          )}
           {pendingApproval && <p className="text-sm text-amber-600">Aguardando liberação do administrador — código <strong>{session.activationCode}</strong></p>}
           {cameraError && <p className="flex items-center gap-2 text-sm text-destructive"><CameraOff className="h-4 w-4" /> {cameraError} Toque na tela para registrar.</p>}
           {/* Câmera da detecção de presença (invisível) */}

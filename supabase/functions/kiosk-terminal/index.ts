@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
 
     const { data: terminal } = await supabase
       .from('kiosk_terminals')
-      .select('id, name, company_id, is_active, status, allow_all_employees, activation_code, latitude, longitude, address, purpose, companies:company_id(id, name, is_active)')
+      .select('id, name, company_id, is_active, status, allow_all_employees, activation_code, latitude, longitude, address, purpose, turnstile, companies:company_id(id, name, is_active)')
       .eq('device_token', deviceToken)
       .maybeSingle();
 
@@ -201,6 +201,8 @@ Deno.serve(async (req) => {
       longitude: terminal.longitude,
       address: terminal.address,
       purpose: (terminal as any).purpose ?? 'punch',
+      // Catraca na rede local: o próprio terminal envia o comando de liberação (instantâneo).
+      turnstile: (terminal as any).turnstile ?? null,
     };
 
     // Atualiza a localização do terminal quando o dispositivo informa
@@ -215,6 +217,12 @@ Deno.serve(async (req) => {
     // ---------------------------------------------------------------
     // 2) Sessão do terminal (revalidação no carregamento)
     // ---------------------------------------------------------------
+    // Estado da catraca informado pelo terminal (aparece para o administrador).
+    if (action === 'turnstile-status') {
+      await supabase.from('kiosk_terminals').update({ turnstile_online: !!body?.online, turnstile_seen_at: new Date().toISOString() }).eq('id', terminal.id);
+      return json({ success: true });
+    }
+
     if (action === 'session') {
       // Terminal do refeitório: horários das refeições para a tela de espera (aberta agora / próxima).
       let meals: unknown[] = [];
