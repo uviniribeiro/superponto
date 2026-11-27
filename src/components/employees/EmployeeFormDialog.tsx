@@ -9,7 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { User, Briefcase, FileText, Key, X, Save, Upload } from 'lucide-react';
+import { User, Briefcase, FileText, Key, X, Save, Upload, ListPlus, Settings2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { EXTRA_FIELDS, FIELD_GROUPS, MODEL_LABEL, visibleFields, type FormConfig, type FormModel } from '@/lib/employeeFormFields';
 import { formatCPF, formatPIS } from '@/lib/validators';
 
 interface EmployeeFormDialogProps {
@@ -36,7 +39,13 @@ interface WorkSchedule {
 }
 
 export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: EmployeeFormDialogProps) {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
+  const [formCfg, setFormCfg] = useState<FormConfig>({ model: 'padrao' });
+  const [extra, setExtra] = useState<Record<string, string>>({});
+  const [cfgOpen, setCfgOpen] = useState(false);
+  const [cfgDraft, setCfgDraft] = useState<FormConfig>({ model: 'padrao' });
+  // Campos que já têm lugar nas abas principais (guardados nos dados complementares)
+  const MAIN_EXTRA = ['gender', 'address', 'rg', 'ctps_number', 'ctps_series'];
   const [activeTab, setActiveTab] = useState('pessoal');
   const [loading, setLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -73,6 +82,30 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
     card_number: '',
     pin_code: '',
   });
+
+  useEffect(() => {
+    if (!open || !profile?.company_id) return;
+    (supabase as any).from('companies').select('employee_form').eq('id', profile.company_id).maybeSingle()
+      .then(({ data }: any) => data?.employee_form && setFormCfg(data.employee_form));
+    if (employee?.id) {
+      (supabase as any).from('profiles').select('extra_data').eq('id', employee.id).maybeSingle()
+        .then(({ data }: any) => {
+          const x = (data?.extra_data ?? {}) as Record<string, string>;
+          setExtra(x);
+          setFormData((prev) => ({ ...prev, gender: x.gender ?? prev.gender, address: x.address ?? prev.address, rg: x.rg ?? prev.rg, ctps_number: x.ctps_number ?? prev.ctps_number, ctps_series: x.ctps_series ?? prev.ctps_series }));
+        });
+    } else setExtra({});
+  }, [open, employee?.id, profile?.company_id]);
+
+  const fields = visibleFields(formCfg);
+
+  const saveCfg = async () => {
+    const { error } = await (supabase as any).from('companies').update({ employee_form: cfgDraft }).eq('id', profile?.company_id);
+    if (error) return toast.error('Não foi possível salvar o modelo do cadastro.');
+    setFormCfg(cfgDraft);
+    setCfgOpen(false);
+    toast.success('Modelo do cadastro atualizado para a empresa.');
+  };
 
   useEffect(() => {
     if (open) {
@@ -180,9 +213,21 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
       return;
     }
 
+    const missing = fields.filter((f) => f.required && !(f.key in formData ? (formData as any)[f.key] : extra[f.key])?.toString().trim());
+    if (missing.length) {
+      setActiveTab('complementar');
+      toast.error(`Preencha: ${missing.map((f) => f.label).join(', ')}`);
+      return;
+    }
+
     setLoading(true);
     try {
+      const extraData: Record<string, string> = {};
+      for (const [k, v] of Object.entries({ ...extra, gender: formData.gender, address: formData.address, rg: formData.rg, ctps_number: formData.ctps_number, ctps_series: formData.ctps_series })) {
+        if (v != null && String(v).trim()) extraData[k] = String(v).trim();
+      }
       const updateData = {
+        extra_data: extraData,
         full_name: formData.full_name.trim(),
         email: formData.email || null,
         phone: formData.phone || null,
@@ -276,6 +321,13 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Documentos
+              </TabsTrigger>
+              <TabsTrigger 
+                value="complementar"
+                className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4"
+              >
+                <ListPlus className="w-4 h-4 mr-2" />
+                Complementar
               </TabsTrigger>
               <TabsTrigger 
                 value="acesso"
@@ -518,6 +570,40 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
             </TabsContent>
 
             {/* Acesso */}
+            <TabsContent value="complementar" className="m-0 max-h-[55vh] space-y-5 overflow-y-auto pr-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-muted-foreground">Modelo da empresa: <strong>{MODEL_LABEL[formCfg.model].split(' — ')[0]}</strong></p>
+                {isAdmin && <Button size="sm" variant="outline" onClick={() => { setCfgDraft(formCfg); setCfgOpen(true); }}><Settings2 className="mr-2 h-4 w-4" />Configurar modelo</Button>}
+              </div>
+              {fields.filter((f) => !MAIN_EXTRA.includes(f.key)).length === 0 && <p className="text-sm text-muted-foreground">O modelo Simplificado não usa dados complementares.</p>}
+              {FIELD_GROUPS.map((g) => {
+                const list = fields.filter((f) => f.group === g && !MAIN_EXTRA.includes(f.key));
+                if (!list.length) return null;
+                return (
+                  <div key={g} className="space-y-3">
+                    <h3 className="font-medium">{g}</h3>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      {list.map((f) => (
+                        <div key={f.key} className={`space-y-2 ${f.type === 'textarea' ? 'sm:col-span-2' : ''}`}>
+                          <Label>{f.label}{f.required ? ' *' : ''}</Label>
+                          {f.type === 'select' ? (
+                            <Select value={extra[f.key] ?? ''} onValueChange={(v) => setExtra({ ...extra, [f.key]: v })}>
+                              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                              <SelectContent>{f.options!.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                            </Select>
+                          ) : f.type === 'textarea' ? (
+                            <Textarea value={extra[f.key] ?? ''} onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })} rows={2} />
+                          ) : (
+                            <Input type={f.type} value={extra[f.key] ?? ''} placeholder={f.placeholder} onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </TabsContent>
+
             <TabsContent value="acesso" className="m-0 space-y-4">
               <h3 className="font-medium mb-4">Dados de Acesso (Ponto)</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -558,6 +644,43 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSuccess }: 
           </Button>
         </div>
       </DialogContent>
+      <Dialog open={cfgOpen} onOpenChange={setCfgOpen}>
+        <DialogContent className="max-w-2xl">
+          <h2 className="text-lg font-semibold">Modelo do cadastro de funcionários</h2>
+          <p className="text-sm text-muted-foreground">Vale para todos os cadastros desta empresa. Pode ser trocado a qualquer momento; nenhum dado é apagado.</p>
+          <div className="space-y-2">
+            {(Object.keys(MODEL_LABEL) as FormModel[]).map((m) => (
+              <label key={m} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 ${cfgDraft.model === m ? 'border-primary bg-primary/5' : ''}`}>
+                <input type="radio" name="model" className="mt-1" checked={cfgDraft.model === m} onChange={() => setCfgDraft({ ...cfgDraft, model: m })} />
+                <span className="text-sm">{MODEL_LABEL[m]}</span>
+              </label>
+            ))}
+          </div>
+          {cfgDraft.model === 'personalizado' && (
+            <div className="max-h-72 space-y-3 overflow-y-auto rounded-xl border p-3">
+              {FIELD_GROUPS.map((g) => (
+                <div key={g}>
+                  <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">{g}</p>
+                  {EXTRA_FIELDS.filter((f) => f.group === g).map((f) => {
+                    const c = cfgDraft.fields?.[f.key] ?? { show: false, required: false };
+                    const set = (v: { show: boolean; required: boolean }) => setCfgDraft({ ...cfgDraft, fields: { ...(cfgDraft.fields ?? {}), [f.key]: v } });
+                    return (
+                      <div key={f.key} className="flex items-center gap-4 py-1 text-sm">
+                        <label className="flex flex-1 items-center gap-2"><Checkbox checked={c.show} onCheckedChange={(v) => set({ show: !!v, required: !!v && c.required })} />{f.label}</label>
+                        <label className="flex items-center gap-2 text-muted-foreground"><Checkbox checked={c.required} disabled={!c.show} onCheckedChange={(v) => set({ ...c, required: !!v })} />obrigatório</label>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setCfgOpen(false)}>Cancelar</Button>
+            <Button onClick={saveCfg}>Salvar modelo</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
