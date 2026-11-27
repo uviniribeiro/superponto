@@ -22,6 +22,10 @@ import {
 import { scanVideoFrame, useBarcodeWedge } from '@/lib/barcodeScan';
 import QRCode from 'qrcode';
 import { turnstileOnline, unlockTurnstile, type TurnstileConfig } from '@/lib/turnstile';
+import { TerminalSettings, type TerminalConfig } from '@/components/terminal/TerminalSettings';
+import { hashPin, startCardReader } from '@/lib/terminalDevice';
+
+const PIN_KEY = 'superponto.terminal.adminPin';
 
 /** Desafios aleatórios da prova de vida (a câmera é espelhada: "esquerda" na tela). */
 const CHALLENGES: { key: string; text: string }[] = [
@@ -69,6 +73,10 @@ interface KioskSession {
   meals?: { name: string; start: string; end: string }[];
   /** catraca ligada a este terminal (liberação direta pela rede local) */
   turnstile?: TurnstileConfig | null;
+  /** portaria: sentido fixo ou automático */
+  gateDirection?: 'auto' | 'in' | 'out';
+  /** refeitório/portaria: cartão NFC libera sem rosto */
+  cardWithoutFace?: boolean;
 }
 
 /** Refeição aberta agora e a próxima (para a tela de espera do refeitório). */
@@ -122,7 +130,11 @@ function useTerminalManifest() {
 export default function KioskTerminal() {
   useTerminalManifest();
   useKioskScreen();
-  const [purpose, setPurpose] = useState<'punch' | 'meal'>('punch');
+  const [purpose, setPurpose] = useState<'punch' | 'meal' | 'gate'>('punch');
+  const [showSettings, setShowSettings] = useState(false);
+  const [pinAsk, setPinAsk] = useState<string | null>(null); // senha digitada para abrir a configuração
+  const [nfcOn, setNfcOn] = useState(false);
+  const pressTimer = useRef<number | null>(null);
   const [session, setSession] = useState<KioskSession | null>(null);
   const [booting, setBooting] = useState(true);
 
@@ -244,7 +256,7 @@ export default function KioskTerminal() {
         .then((res) => {
           if (res?.success) {
             const t = res.terminal as any, c = res.company as any;
-            const updated = { ...saved, terminalName: t?.name ?? saved.terminalName, companyName: c?.name ?? saved.companyName, status: t?.status, activationCode: t?.activationCode, purpose: t?.purpose ?? saved.purpose, meals: (res.meals as KioskSession['meals']) ?? saved.meals, turnstile: t?.turnstile !== undefined ? t.turnstile : saved.turnstile };
+            const updated = { ...saved, terminalName: t?.name ?? saved.terminalName, companyName: c?.name ?? saved.companyName, status: t?.status, activationCode: t?.activationCode, purpose: t?.purpose ?? saved.purpose, meals: (res.meals as KioskSession['meals']) ?? saved.meals, turnstile: t?.turnstile !== undefined ? t.turnstile : saved.turnstile, gateDirection: t?.gateDirection ?? saved.gateDirection, cardWithoutFace: t?.cardWithoutFace ?? saved.cardWithoutFace };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
             setSession(updated);
           } else if (res?.code === 'terminal_invalid') {
@@ -301,6 +313,7 @@ export default function KioskTerminal() {
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newSession));
       setSession(newSession);
+      setShowSettings(true); // configurar finalidade, catraca e senha logo após a ativação
       toast.success(`Terminal cadastrado em ${newSession.companyName} (${version === 'v2' ? 'SuperPonto v2' : 'SuperPonto v1'}).`);
     } catch {
       setActivationError('Não foi possível falar com o servidor agora. Confira a internet e tente novamente.');
@@ -447,7 +460,7 @@ export default function KioskTerminal() {
     if (!ok) return showError('Memória do terminal cheia: conecte à internet para enviar as marcações guardadas.');
     setOnline(false);
     const tc = sessionRef.current?.turnstile;
-    if (tc && tc.vendor !== 'none' && tc.offlineUnlock !== false && (sessionRef.current?.purpose === 'meal' || tc.onPunch)) openGate('entry');
+    if (tc && tc.vendor !== 'none' && tc.offlineUnlock !== false && (sessionRef.current?.purpose === 'meal' || sessionRef.current?.purpose === 'gate' || tc.onPunch)) openGate('entry');
     setSuccess({ label: 'Marcação guardada', time: at.toLocaleTimeString('pt-BR'), nsr: 'offline', name: name || 'Será conferida quando a internet voltar', offline: true });
     stageRef.current = 'idle';
     setTimeout(() => { setSuccess(null); goIdle(); }, 2600);
@@ -459,6 +472,14 @@ export default function KioskTerminal() {
       setSuccess({ label: `${res.meal.meal_name} registrado`, time: new Date(res.meal.recorded_at).toLocaleTimeString('pt-BR'), nsr: 'refeitório', name: res.employeeName || '' });
       stageRef.current = 'idle';
       setTimeout(() => { setSuccess(null); goIdle(); }, 2600);
+      return;
+    }
+    if (res?.success && res.access) {
+      const inside = res.access.direction === 'in';
+      openGate(inside ? 'entry' : 'exit');
+      setSuccess({ label: inside ? 'Entrada liberada' : 'Saída liberada', time: new Date(res.access.recorded_at).toLocaleTimeString('pt-BR'), nsr: 'portaria', name: res.employeeName || '' });
+      stageRef.current = 'idle';
+      setTimeout(() => { setSuccess(null); goIdle(); }, 2200);
       return;
     }
     if (res?.code === 'meal_limit') {
@@ -507,7 +528,7 @@ export default function KioskTerminal() {
   }, [goIdle, showError]);
 
   /** Identificação (QR, código de barras, PIN, matrícula ou CPF). */
-  const identify = useCallback(async (raw: string) => {
+  const identify = useCallback(async (raw: string, alt?: string) => {
     if (!session || !raw.trim()) return;
     const value = raw.trim();
     const m = methodRef.current;
@@ -530,7 +551,7 @@ export default function KioskTerminal() {
     setBusy(true);
     setError(null);
     try {
-      const res = await backend.identify(session.deviceToken, m, value);
+      const res = await backend.identify(session.deviceToken, m, value, alt);
       if (!res?.success) return handleResult(res);
       const full = res.employee?.full_name || 'Funcionário';
       const first = full.split(' ')[0];
@@ -674,6 +695,60 @@ export default function KioskTerminal() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, goIdle, identify, submitFace, openCamera, setStage, showError, online]);
 
+  // Cartão NFC (MIFARE): aproximar o cartão identifica na hora, em qualquer tela de espera/escolha.
+  const identifyRef = useRef(identify);
+  identifyRef.current = identify;
+  useEffect(() => {
+    if (!session || session.status !== 'approved' || showSettings) return;
+    let stop: (() => void) | null = null;
+    let last = { uid: '', at: 0 };
+    startCardReader((uid, decimal) => {
+      const st = stageRef.current;
+      if (st !== 'idle' && st !== 'select' && st !== 'second') return;
+      if (uid === last.uid && Date.now() - last.at < 3000) return; // mesmo cartão encostado
+      last = { uid, at: Date.now() };
+      methodRef.current = 'card';
+      setMethod('card');
+      identifyRef.current(uid, decimal);
+    }).then((fn) => { stop = fn; setNfcOn(true); }).catch(() => setNfcOn(false));
+    return () => { stop?.(); };
+  }, [session, showSettings]);
+
+  /** Segurar o relógio por 3 s abre a configuração (com a senha do administrador). */
+  const startPress = () => {
+    pressTimer.current = window.setTimeout(() => {
+      try { if (localStorage.getItem(PIN_KEY)) setPinAsk(''); else setShowSettings(true); } catch { setShowSettings(true); }
+    }, 3000);
+  };
+  const endPress = () => { if (pressTimer.current) clearTimeout(pressTimer.current); pressTimer.current = null; };
+
+  const checkPin = async () => {
+    const ok = (await hashPin(pinAsk ?? '')) === localStorage.getItem(PIN_KEY);
+    if (!ok) return toast.error('Senha incorreta.');
+    setPinAsk(null);
+    setShowSettings(true);
+  };
+
+  const saveSettings = async (c: TerminalConfig, newPin?: string) => {
+    if (!session) return;
+    let hasPin = false;
+    try { hasPin = !!localStorage.getItem(PIN_KEY); } catch { /* ignora */ }
+    if (!hasPin && !newPin) { toast.error('Crie a senha do administrador do terminal (4 a 8 números).'); return; }
+    try {
+      const res = await backend.configure(session.deviceToken, { purpose: c.purpose, turnstile: c.turnstile, gateDirection: c.gateDirection, cardWithoutFace: c.cardWithoutFace, name: c.name.trim() || undefined });
+      if (!res?.success) { toast.error(res?.error || 'Não foi possível salvar.'); return; }
+    } catch {
+      toast.error('Sem conexão: conecte o terminal à internet para salvar a configuração.');
+      return;
+    }
+    if (newPin) { try { localStorage.setItem(PIN_KEY, await hashPin(newPin)); } catch { /* ignora */ } }
+    const updated: KioskSession = { ...session, terminalName: c.name.trim() || session.terminalName, purpose: c.purpose, turnstile: c.turnstile, gateDirection: c.gateDirection, cardWithoutFace: c.cardWithoutFace };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setSession(updated);
+    setShowSettings(false);
+    toast.success('Configuração salva.');
+  };
+
   // Câmera ligada desde a espera (detecção de presença)
   useEffect(() => {
     if (session && session.status === 'approved') openCamera('user');
@@ -711,8 +786,8 @@ export default function KioskTerminal() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Este aparelho vai registrar</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {([['punch', 'Ponto', ScanFace], ['meal', 'Refeitório', UtensilsCrossed]] as const).map(([k, l, Icon]) => (
+              <div className="grid grid-cols-3 gap-2">
+                {([['punch', 'Ponto', ScanFace], ['meal', 'Refeitório', UtensilsCrossed], ['gate', 'Portaria', LogOut]] as const).map(([k, l, Icon]) => (
                   <button key={k} type="button" onClick={() => setPurpose(k)}
                     className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold ${purpose === k ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted'}`}>
                     <Icon className="h-4 w-4" />{l}
@@ -767,6 +842,24 @@ export default function KioskTerminal() {
         <div className="absolute -bottom-40 -right-24 h-[28rem] w-[28rem] rounded-full bg-accent/20 blur-3xl" />
       </div>
       <canvas ref={canvasRef} className="hidden" />
+      {showSettings && (
+        <TerminalSettings
+          version={session.version}
+          initial={{ name: session.terminalName, purpose: (session.purpose as TerminalConfig['purpose']) ?? 'punch', turnstile: session.turnstile ?? null, gateDirection: session.gateDirection ?? 'auto', cardWithoutFace: !!session.cardWithoutFace }}
+          onSave={saveSettings}
+          onClose={() => setShowSettings(false)}
+          onDeactivate={() => { setShowSettings(false); handleExitTerminal(); }}
+        />
+      )}
+      {pinAsk !== null && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-background/80 backdrop-blur" onClick={() => setPinAsk(null)}>
+          <form className="w-80 space-y-3 rounded-3xl border bg-background p-6 shadow-2xl" onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); checkPin(); }}>
+            <p className="text-lg font-semibold">Senha do administrador</p>
+            <Input autoFocus type="password" inputMode="numeric" value={pinAsk} onChange={(e) => setPinAsk(e.target.value.replace(/\D/g, '').slice(0, 8))} className="h-12 text-center text-2xl tracking-widest" />
+            <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setPinAsk(null)}>Cancelar</Button><Button type="submit">Entrar</Button></div>
+          </form>
+        </div>
+      )}
 
       {success && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-md animate-in fade-in-0 duration-200" role="status" aria-live="assertive">
@@ -776,7 +869,7 @@ export default function KioskTerminal() {
             </div>
             <p className="text-2xl font-bold">{success.label}</p>
             <p className="text-lg">{success.name}</p>
-            <p className="text-sm text-muted-foreground tabular-nums">{success.offline ? `${success.time} · sem internet — será conferida e enviada ao reconectar` : success.nsr === 'refeitório' ? `${success.time} · refeitório` : `${success.time} · NSR ${success.nsr}`}</p>
+            <p className="text-sm text-muted-foreground tabular-nums">{success.offline ? `${success.time} · sem internet — será conferida e enviada ao reconectar` : success.nsr === 'refeitório' ? `${success.time} · refeitório` : success.nsr === 'portaria' ? `${success.time} · portaria` : `${success.time} · NSR ${success.nsr}`}</p>
             {success.next && <p className="text-sm">Próxima marcação: <strong>{success.next}</strong></p>}
             {success.qr && (
               <div className="mt-1 flex flex-col items-center gap-1">
@@ -802,8 +895,9 @@ export default function KioskTerminal() {
       {stage === 'idle' ? (
         // ---------------- Espera: data e hora; a câmera detecta quem se aproxima ----------------
         <button type="button" onClick={() => setStage('select')} className="relative z-10 flex flex-1 flex-col items-center justify-center gap-4 text-center outline-none" aria-label="Iniciar registro de ponto">
-          <p className="text-lg text-muted-foreground">{session.companyName} · {session.terminalName}{session.purpose === 'meal' ? ' · Refeitório' : ''}</p>
-          <p className="text-[18vw] font-bold leading-none tabular-nums tracking-tight md:text-[12rem]">{timeStr}</p>
+          <p className="text-lg text-muted-foreground">{session.companyName} · {session.terminalName}{session.purpose === 'meal' ? ' · Refeitório' : session.purpose === 'gate' ? ' · Portaria' : ''}</p>
+          <p className="select-none text-[18vw] font-bold leading-none tabular-nums tracking-tight md:text-[12rem]"
+            onPointerDown={startPress} onPointerUp={endPress} onPointerLeave={endPress} onContextMenu={(e) => e.preventDefault()}>{timeStr}</p>
           <p className="text-4xl font-semibold tabular-nums md:text-6xl">{dateStr}</p>
           {session.purpose === 'meal' && (() => {
             const st = mealStatus(session.meals, clock);
@@ -812,7 +906,7 @@ export default function KioskTerminal() {
               ? <p className="mt-4 flex items-center gap-2 rounded-full bg-emerald-500/15 px-5 py-2 text-2xl font-semibold text-emerald-700 dark:text-emerald-400"><UtensilsCrossed className="h-7 w-7" /> {st.open.name} aberto · até {st.open.end}</p>
               : <p className="mt-4 flex items-center gap-2 rounded-full bg-muted px-5 py-2 text-2xl font-semibold text-muted-foreground"><UtensilsCrossed className="h-7 w-7" /> Refeitório fechado · próximo: {st.next.name} às {st.next.start}</p>;
           })()}
-          <p className="mt-6 flex items-center gap-2 text-muted-foreground"><ScanFace className="h-5 w-5" /> {session.purpose === 'meal' ? 'Aproxime-se da câmera para registrar a refeição' : 'Aproxime-se da câmera para registrar o ponto'}</p>
+          <p className="mt-6 flex items-center gap-2 text-muted-foreground"><ScanFace className="h-5 w-5" /> {session.purpose === 'meal' ? 'Aproxime-se da câmera para registrar a refeição' : session.purpose === 'gate' ? 'Aproxime-se da câmera para entrar ou sair' : 'Aproxime-se da câmera para registrar o ponto'}{nfcOn ? ' — ou aproxime o cartão' : ''}</p>
           <div className="mt-2 flex flex-wrap justify-center gap-2">
             <Badge variant={online ? 'secondary' : 'destructive'} className="gap-1">{online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}{online ? 'Conectado' : 'Reconectando...'}</Badge>
             {maintenance && <Badge variant="outline" className="gap-1"><Wrench className="h-3 w-3" /> Manutenção — registro liberado</Badge>}

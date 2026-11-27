@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
           name: terminalName,
           device_token: deviceToken,
           status: 'pending',
-          purpose: body?.purpose === 'meal' ? 'meal' : 'punch',
+          purpose: ['meal', 'gate'].includes(body?.purpose) ? body.purpose : 'punch',
           activation_code: code,
           latitude: body?.latitude ?? null,
           longitude: body?.longitude ?? null,
@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
 
     const { data: terminal } = await supabase
       .from('kiosk_terminals')
-      .select('id, name, company_id, is_active, status, allow_all_employees, activation_code, latitude, longitude, address, purpose, turnstile, companies:company_id(id, name, is_active)')
+      .select('id, name, company_id, is_active, status, allow_all_employees, activation_code, latitude, longitude, address, purpose, turnstile, gate_direction, card_without_face, companies:company_id(id, name, is_active)')
       .eq('device_token', deviceToken)
       .maybeSingle();
 
@@ -203,6 +203,8 @@ Deno.serve(async (req) => {
       purpose: (terminal as any).purpose ?? 'punch',
       // Catraca na rede local: o próprio terminal envia o comando de liberação (instantâneo).
       turnstile: (terminal as any).turnstile ?? null,
+      gateDirection: (terminal as any).gate_direction ?? 'auto',
+      cardWithoutFace: !!(terminal as any).card_without_face,
     };
 
     // Atualiza a localização do terminal quando o dispositivo informa
@@ -217,6 +219,20 @@ Deno.serve(async (req) => {
     // ---------------------------------------------------------------
     // 2) Sessão do terminal (revalidação no carregamento)
     // ---------------------------------------------------------------
+    // Configuração feita na tela do próprio terminal (protegida pela senha do administrador no aparelho).
+    if (action === 'configure') {
+      const c = body?.config ?? {};
+      const upd: Record<string, unknown> = {};
+      if (['punch', 'meal', 'gate'].includes(c.purpose)) upd.purpose = c.purpose;
+      if ('turnstile' in c) upd.turnstile = c.turnstile && typeof c.turnstile === 'object' ? c.turnstile : null;
+      if (['auto', 'in', 'out'].includes(c.gateDirection)) upd.gate_direction = c.gateDirection;
+      if (typeof c.cardWithoutFace === 'boolean') upd.card_without_face = c.cardWithoutFace;
+      if (typeof c.name === 'string' && c.name.trim()) upd.name = c.name.trim().slice(0, 80);
+      const { error } = await supabase.from('kiosk_terminals').update(upd).eq('id', terminal.id);
+      if (error) return json({ success: false, error: 'Não foi possível salvar a configuração.' }, 500);
+      return json({ success: true });
+    }
+
     // Estado da catraca informado pelo terminal (aparece para o administrador).
     if (action === 'turnstile-status') {
       await supabase.from('kiosk_terminals').update({ turnstile_online: !!body?.online, turnstile_seen_at: new Date().toISOString() }).eq('id', terminal.id);
@@ -306,7 +322,7 @@ Deno.serve(async (req) => {
     //    Nenhum desses registra sozinho: o terminal sempre confere o rosto (1:1) com a foto do cadastro.
     // ---------------------------------------------------------------
     const METHOD_NAME: Record<string, string> = {
-      qrcode: 'do QR Code', barcode: 'do código de barras', badge_legacy: 'do crachá', pin: 'do PIN', rfid: 'do cartão', registration: 'da matrícula', cpf: 'do CPF', manual: 'da identificação',
+      qrcode: 'do QR Code', barcode: 'do código de barras', badge_legacy: 'do crachá', card: 'do cartão', pin: 'do PIN', rfid: 'do cartão', registration: 'da matrícula', cpf: 'do CPF', manual: 'da identificação',
     };
 
     async function resolveIdentifier(rawIdentifier: string): Promise<{ profileId: string; methodType: string } | { error: string; status: number }> {
@@ -343,11 +359,11 @@ Deno.serve(async (req) => {
       return { error: 'Funcionário não encontrado nesta empresa.', status: 404 };
     }
 
-    async function loadOwner(profileId: string) {
+    async function loadOwner(profileId: string, requirePhoto = true) {
       const { data: owner } = await supabase.from('profiles')
         .select('id, full_name, photo_url, is_active, company_id').eq('id', profileId).maybeSingle();
       if (!owner || !owner.is_active || owner.company_id !== terminal.company_id) return { error: 'Funcionário inativo ou de outra empresa.', status: 403 };
-      if (!owner.photo_url) return { error: 'Funcionário sem foto cadastrada para a verificação facial. Procure o RH.', status: 403 };
+      if (requirePhoto && !owner.photo_url) return { error: 'Funcionário sem foto cadastrada para a verificação facial. Procure o RH.', status: 403 };
       const allowed = await authorizedProfileIds();
       if (allowed && !allowed.includes(owner.id)) return { error: 'Você não está autorizado a registrar ponto neste terminal.', status: 403 };
       return { owner };
@@ -391,8 +407,34 @@ Deno.serve(async (req) => {
       return json({ success: true, meal: rec, employeeName: owner.full_name });
     }
 
+    /** Portaria: registra entrada/saída (alternando no automático) e o terminal libera a catraca. */
+    async function gateRecord(owner: { id: string; full_name: string }, methodType: string, confidence: number) {
+      const at = body?.clientRecordedAt ? new Date(String(body.clientRecordedAt)) : new Date();
+      if (isNaN(at.getTime()) || at.getTime() > Date.now() + 5 * 60_000 || at.getTime() < Date.now() - 7 * 86_400_000) {
+        return json({ success: false, code: 'offline_expired', error: 'Registro offline fora do prazo aceito (até 7 dias).' }, 422);
+      }
+      const hash = body?.clientPunchId ? await sha256(['gate', owner.id, String(body.clientPunchId)].join('|')) : await sha256(['gate', owner.id, at.toISOString(), crypto.randomUUID()].join('|'));
+      const { data: dup } = await supabase.from('gate_access_logs').select('direction, recorded_at').eq('transaction_hash', hash).maybeSingle();
+      if (dup) return json({ success: true, access: dup, employeeName: owner.full_name, duplicated: true });
+      let direction = (terminal as any).gate_direction as string;
+      if (direction !== 'in' && direction !== 'out') {
+        const day = at.toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+        const { data: last } = await supabase.from('gate_access_logs').select('direction').eq('profile_id', owner.id)
+          .gte('recorded_at', new Date(`${day}T00:00:00-03:00`).toISOString()).lt('recorded_at', at.toISOString())
+          .order('recorded_at', { ascending: false }).limit(1).maybeSingle();
+        direction = last?.direction === 'in' ? 'out' : 'in';
+      }
+      const { data: rec, error } = await supabase.from('gate_access_logs').insert({
+        company_id: terminal.company_id, profile_id: owner.id, terminal_id: terminal.id, direction, recorded_at: at.toISOString(),
+        verification: `${methodType} (${confidence}%)`, transaction_hash: hash,
+      }).select('direction, recorded_at').single();
+      if (error) return json({ success: false, error: 'Não foi possível registrar o acesso.' }, 500);
+      return json({ success: true, access: rec, employeeName: owner.full_name });
+    }
+
     async function verifiedPunch(owner: { id: string; full_name: string }, methodType: string, confidence: number) {
       if ((terminal as any).purpose === 'meal') return mealRecord(owner, methodType, confidence);
+      if ((terminal as any).purpose === 'gate') return gateRecord(owner, methodType, confidence);
       // Marcação offline: vale a hora em que foi feita no terminal (até 7 dias atrás, nunca no futuro).
       const offlineAt = body?.clientRecordedAt ? new Date(String(body.clientRecordedAt)) : null;
       if (offlineAt && (isNaN(offlineAt.getTime()) || offlineAt.getTime() > Date.now() + 5 * 60_000 || offlineAt.getTime() < Date.now() - 7 * 86_400_000)) {
@@ -438,8 +480,18 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'identify') {
-      const r = await resolveIdentifier(String(body?.identifier || '').trim());
-      if ('error' in r) return json({ success: false, error: r.error }, r.status);
+      const raw = String(body?.identifier || '').trim();
+      // Cartão NFC (MIFARE): o número lido pode estar cadastrado em hexadecimal ou decimal.
+      let r = await resolveIdentifier(body?.method === 'card' ? raw.toUpperCase() : raw);
+      if ('error' in r && body?.method === 'card' && body?.alt) r = await resolveIdentifier(String(body.alt).trim());
+      if ('error' in r) return json({ success: false, error: body?.method === 'card' ? 'Cartão não cadastrado. Procure o RH.' : r.error }, r.status);
+      const purpose = (terminal as any).purpose;
+      if (body?.method === 'card' && (terminal as any).card_without_face && (purpose === 'meal' || purpose === 'gate')) {
+        // Refeitório/portaria configurados para cartão sem rosto: libera como numa catraca convencional.
+        const oc = await loadOwner(r.profileId, false);
+        if ('error' in oc) return json({ success: false, error: oc.error }, oc.status);
+        return purpose === 'meal' ? mealRecord(oc.owner, 'card', 100) : gateRecord(oc.owner, 'card', 100);
+      }
       const o = await loadOwner(r.profileId);
       if ('error' in o) return json({ success: false, error: o.error }, o.status);
       return json({ success: true, requireFace: true, methodType: r.methodType, employee: { id: o.owner.id, full_name: o.owner.full_name } });

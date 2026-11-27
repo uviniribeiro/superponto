@@ -4,6 +4,27 @@ O app do terminal roda em um tablet ou celular fixo na empresa. O APK é gerado 
 (workflow **APK do terminal**) a cada alteração na main, ou manualmente em *Actions › APK do terminal ›
 Run workflow*. Baixe em *Artifacts › superponto-terminal-apk*.
 
+## Configuração do terminal
+
+Logo após a ativação (e depois, segurando o relógio da tela de espera por 3 segundos + senha do
+administrador do terminal) abre a **Configuração do terminal**:
+
+- **Registro de ponto** (como sempre), **Controle de refeitório** ou **Controle de portaria**.
+- Refeitório e portaria: **catraca** com **busca automática na rede local** (o terminal varre a rede e
+  lista as catracas Control iD e equipamentos HTTP encontrados; toque para escolher), usuário/senha,
+  sentido da entrada, botão de saída livre, liberação sem internet e **Testar liberação**.
+- Portaria: sentido **automático** (entrada e saída alternadas) ou fixo (só entrada / só saída).
+- **Cartão NFC (MIFARE / ISO 14443)**: em aparelhos com NFC, o funcionário aproxima o cartão. No ponto o
+  rosto é conferido em seguida; no refeitório e na portaria dá para liberar só com o cartão, como numa
+  catraca convencional. Os cartões são vinculados em *Crachás, cartões e códigos de barras* (leitor NFC
+  USB no computador) ou em *Cadastros › Métodos de identificação* (tipo RFID).
+- Senha do administrador, atalhos para Wi-Fi e Configurações do Android, sair do modo quiosque e
+  desativar o terminal.
+
+O terminal funciona como o "sistema" do aparelho: abre ao ligar, pode ser a tela inicial, fica em tela
+cheia sem as barras do Android e, como dono do dispositivo, trava o aparelho só nele. Requer
+**Android 7.0 ou superior** (o motor de navegador atual não roda no Android 5/6).
+
 ## Um app para ponto e refeitório
 
 Na ativação (CNPJ da empresa) escolha o que o aparelho registra: **Ponto** ou **Refeitório**. O app

@@ -74,6 +74,12 @@ patch('AndroidManifest.xml', [
   ['RECEIVE_BOOT_COMPLETED', '<uses-permission android:name="android.permission.INTERNET" />', `<uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />`],
+  // NFC (cartões MIFARE por aproximação) e estado da rede local (busca da catraca).
+  ['android.permission.NFC', '<uses-permission android:name="android.permission.INTERNET" />', `<uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />`],
 ]);
 
 // 3) Tema: sem barras, ocupando a área do entalhe da câmera.

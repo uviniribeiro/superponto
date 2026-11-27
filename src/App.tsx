@@ -109,6 +109,7 @@ const BadgeConversion = React.lazy(() => import("@/pages/BadgeConversion"));
 const ManagerHub = React.lazy(() => import("@/pages/ManagerHub"));
 const Cafeteria = React.lazy(() => import("@/pages/Cafeteria"));
 const Indicators = React.lazy(() => import("@/pages/Indicators"));
+const GateControl = React.lazy(() => import("@/pages/GateControl"));
 const ScheduleSwaps = React.lazy(() => import("@/pages/ScheduleSwaps"));
 const ApprovalPolicies = React.lazy(() => import("@/pages/ApprovalPolicies"));
 const NotificationSchedules = React.lazy(() => import("@/pages/NotificationSchedules"));
@@ -335,6 +336,7 @@ const App = () => isTerminalHost() || APP_MODE === 'terminal' ? <StandaloneTermi
                   <Route path="manager-hub" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><ManagerHub /></ProtectedRoute>} />
                   <Route path="cafeteria" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Cafeteria /></ProtectedRoute>} />
                   <Route path="indicators" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><Indicators /></ProtectedRoute>} />
+                  <Route path="gate" element={<ProtectedRoute requiredRoles={['admin', 'manager']}><GateControl /></ProtectedRoute>} />
                   <Route path="schedule-swaps" element={<ProtectedRoute requiredRoles={['admin', 'manager', 'employee']}><ScheduleSwaps /></ProtectedRoute>} />
                   <Route path="approval-policies" element={<ProtectedRoute requiredRoles={['admin']}><ApprovalPolicies /></ProtectedRoute>} />
                   <Route path="notification-schedules" element={<ProtectedRoute requiredRoles={['admin']}><NotificationSchedules /></ProtectedRoute>} />

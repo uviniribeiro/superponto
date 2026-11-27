@@ -75,7 +75,7 @@ export default function Cafeteria() {
   const setPurpose = async (id: string, purpose: string) => {
     const { error } = await db.from('kiosk_terminals').update({ purpose }).eq('id', id);
     if (error) return toast.error(error.message);
-    toast.success(purpose === 'meal' ? 'Terminal passa a registrar refeições.' : 'Terminal volta a registrar ponto.');
+    toast.success(purpose === 'meal' ? 'Terminal passa a registrar refeições.' : purpose === 'gate' ? 'Terminal passa a controlar a portaria.' : 'Terminal volta a registrar ponto.');
     loadTypes();
   };
 
@@ -204,7 +204,7 @@ export default function Cafeteria() {
                 <Button size="sm" variant="outline" className="ml-auto" onClick={() => { setGateFor(k); setGate(k.turnstile ?? { vendor: 'controlid', entry: 'clockwise', exitButton: true, offlineUnlock: true }); }}>Catraca</Button>
                 <Select value={k.purpose ?? 'punch'} onValueChange={(v) => setPurpose(k.id, v)}>
                   <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="punch">Registro de ponto</SelectItem><SelectItem value="meal">Refeitório</SelectItem></SelectContent>
+                  <SelectContent><SelectItem value="punch">Registro de ponto</SelectItem><SelectItem value="meal">Refeitório</SelectItem><SelectItem value="gate">Portaria</SelectItem></SelectContent>
                 </Select>
               </div>
             ))}

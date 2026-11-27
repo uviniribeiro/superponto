@@ -5,7 +5,7 @@ import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@s
 import { supabase } from '@/integrations/supabase/client';
 
 export type SystemVersion = 'v1' | 'v2';
-export type TerminalMethod = 'facial' | 'qrcode' | 'barcode' | 'pin' | 'registration' | 'cpf';
+export type TerminalMethod = 'facial' | 'qrcode' | 'barcode' | 'pin' | 'registration' | 'cpf' | 'card';
 
 export const V2_API = 'https://superponto-v2.vercel.app/v1';
 
@@ -22,6 +22,7 @@ export interface TerminalResult {
   employeeName?: string;
   duplicated?: boolean;
   meal?: { meal_name: string; recorded_at: string; transaction_hash?: string };
+  access?: { direction: 'in' | 'out'; recorded_at: string };
   [k: string]: unknown;
 }
 
@@ -32,8 +33,8 @@ export class OfflineError extends Error {
   constructor() { super('offline'); }
 }
 
-const V2_METHOD: Record<string, string> = { qrcode: 'qr', barcode: 'barcode', pin: 'pin', registration: 'registration', cpf: 'cpf' };
-const V1_FROM_V2: Record<string, TerminalMethod> = { qr: 'qrcode', barcode: 'barcode', pin: 'pin', registration: 'registration', cpf: 'cpf' };
+const V2_METHOD: Record<string, string> = { qrcode: 'qr', barcode: 'barcode', pin: 'pin', registration: 'registration', cpf: 'cpf', card: 'card' };
+const V1_FROM_V2: Record<string, TerminalMethod> = { qr: 'qrcode', barcode: 'barcode', pin: 'pin', registration: 'registration', cpf: 'cpf', card: 'card' };
 
 export async function resolveVersion(cnpj: string): Promise<SystemVersion | null> {
   const { data, error } = await (supabase as any).rpc('kiosk_system_version', { p_cnpj: cnpj });
@@ -78,7 +79,10 @@ async function v2(path: string, token: string | null, body?: unknown): Promise<T
   return { success: true, ...json };
 }
 
-const v2Record = (r: TerminalResult): TerminalResult => r.meal ? ({
+const v2Record = (r: TerminalResult): TerminalResult => r.access ? ({
+  success: true, duplicated: !!r.duplicated, employeeName: String(r.employee ?? ''),
+  access: { direction: (r.access as any).direction, recorded_at: String((r.access as any).recordedAt ?? new Date().toISOString()) },
+}) : r.meal ? ({
   success: true,
   duplicated: !!r.duplicated,
   employeeName: String(r.employee ?? ''),
@@ -94,8 +98,9 @@ export interface Backend {
   version: SystemVersion;
   health(): Promise<TerminalResult>;
   session(token: string): Promise<TerminalResult>;
-  activate(cnpj: string, name: string, coords?: { latitude: number | null; longitude: number | null }, purpose?: 'punch' | 'meal'): Promise<TerminalResult>;
-  identify(token: string, method: TerminalMethod, value: string): Promise<TerminalResult>;
+  activate(cnpj: string, name: string, coords?: { latitude: number | null; longitude: number | null }, purpose?: 'punch' | 'meal' | 'gate'): Promise<TerminalResult>;
+  identify(token: string, method: TerminalMethod, value: string, alt?: string): Promise<TerminalResult>;
+  configure(token: string, config: Record<string, unknown>): Promise<TerminalResult>;
   verifyFace(token: string, method: TerminalMethod, value: string, selfie: string, off?: OfflineInfo): Promise<TerminalResult>;
   identifyFace(token: string, selfie: string, off?: OfflineInfo): Promise<TerminalResult>;
   reportTurnstile(token: string, online: boolean): Promise<unknown>;
@@ -107,7 +112,8 @@ const v1Backend: Backend = {
   health: () => v1({ action: 'health' }),
   session: (token) => v1({ action: 'session', deviceToken: token }),
   activate: (cnpj, name, coords, purpose) => v1({ action: 'activate', cnpj, terminalName: name, purpose, latitude: coords?.latitude ?? null, longitude: coords?.longitude ?? null }),
-  identify: (token, method, value) => v1({ action: 'identify', deviceToken: token, identifier: value, method }),
+  identify: (token, method, value, alt) => v1({ action: 'identify', deviceToken: token, identifier: value, method, alt }),
+  configure: (token, config) => v1({ action: 'configure', deviceToken: token, config }),
   verifyFace: (token, method, value, selfie, off) => v1({ action: 'verify-face', deviceToken: token, identifier: value, method, selfieBase64: selfie, userAgent: navigator.userAgent, ...off }),
   identifyFace: (token, selfie, off) => v1({ action: 'identify-face', deviceToken: token, selfieBase64: selfie, userAgent: navigator.userAgent, ...off }),
   reportTurnstile: (token, online) => v1({ action: 'turnstile-status', deviceToken: token, online }).catch(() => null),
@@ -128,16 +134,18 @@ const v2Backend: Backend = {
   session: async (token) => {
     const r = await v2('session', token);
     if (!r.success) return r.code === 'terminal_invalid' ? r : { ...r, success: false };
-    return { success: true, terminal: { name: (r.terminal as any)?.name, status: (r.terminal as any)?.status, activationCode: (r.terminal as any)?.activationCode, purpose: (r.terminal as any)?.purpose, turnstile: (r.terminal as any)?.turnstile ?? null }, company: r.company, meals: r.meals };
+    return { success: true, terminal: { name: (r.terminal as any)?.name, status: (r.terminal as any)?.status, activationCode: (r.terminal as any)?.activationCode, purpose: (r.terminal as any)?.purpose, turnstile: (r.terminal as any)?.turnstile ?? null, gateDirection: (r.terminal as any)?.gateDirection, cardWithoutFace: (r.terminal as any)?.cardWithoutFace }, company: r.company, meals: r.meals };
   },
   activate: async (cnpj, name, _coords, purpose) => {
     const r = await v2('activate', null, { cnpj, name: name || undefined, purpose });
     if (!r.success) return r;
     return { success: true, deviceToken: r.deviceToken, activationCode: r.activationCode, status: r.status, terminal: r.terminal, company: r.company };
   },
-  identify: async (token, method, value) => {
-    const r = await v2('identify', token, { method: V2_METHOD[method], value });
+  configure: (token, config) => v2('configure', token, { config }),
+  identify: async (token, method, value, alt) => {
+    const r = await v2('identify', token, { method: V2_METHOD[method], value, ...(alt ? { alt } : {}) });
     if (!r.success) return r;
+    if (r.meal || r.access) return v2Record(r); // cartão sem rosto (refeitório/portaria): já registrou
     return {
       success: true,
       requireFace: !!r.requireFace,

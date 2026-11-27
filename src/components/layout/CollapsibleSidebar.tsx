@@ -102,7 +102,7 @@ import {
   LayoutList,
   Ban,
 } from 'lucide-react';
-import { Bot, QrCode, AlertTriangle, UtensilsCrossed } from 'lucide-react';
+import { Bot, QrCode, AlertTriangle, UtensilsCrossed, DoorOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu as MenuIcon, X as CloseIcon } from 'lucide-react';
@@ -217,6 +217,7 @@ const menuCategories: MenuCategory[] = [
       { title: 'Registrar Ponto', icon: Clock, href: '/time-clock', roles: ['admin', 'manager'] },
       { title: 'Crachás e Códigos de Barras', icon: QrCode, href: '/badges', roles: ['admin'] },
       { title: 'Refeitório', icon: UtensilsCrossed, href: '/cafeteria', roles: ['admin', 'manager'] },
+      { title: 'Portaria', icon: DoorOpen, href: '/gate', roles: ['admin', 'manager'] },
       { title: 'App do Terminal', icon: MonitorSmartphone, href: '/kiosk-terminals', roles: ['admin'] },
     ]
   },
